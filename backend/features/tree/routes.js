@@ -111,7 +111,7 @@ router.get('/', (req, res) => {
                 GROUP BY feedback_id
             ) fa ON fa.feedback_id = f.id
             WHERE f.is_active = 1
-              AND YEAR(f.created_at) = ?
+              AND YEAR(CONVERT_TZ(f.created_at, '+00:00', '+08:00')) = ?
             ORDER BY f.created_at ASC, f.id ASC
         `;
 
@@ -174,7 +174,7 @@ router.get('/years', (req, res) => {
             .filter(row => !isFeedbackFlagged([row.comment, row.answer_values]))
             .forEach(row => {
                 const createdAt = row.created_at;
-                const year = new Date(createdAt).getFullYear();
+                const year = Number(new Date(createdAt).toLocaleString('en-US', { year: 'numeric', timeZone: 'Asia/Singapore' }));
                 if (!Number.isInteger(year)) return;
 
                 if (!yearMap.has(year)) {

@@ -96,7 +96,7 @@
 
 require('dotenv').config({ path: require('path').join(__dirname, '.env') }); // backend/.env regardless of the working directory
 const express = require('express');
-const https = require('https');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const paths = require('./core/paths');
@@ -409,8 +409,19 @@ function printServerInfo(isHttps) {
 }
 
 function startServer() {
-  // For simplicity, run kiosk server on HTTP (gateway handles SSL)
-  app.listen(PORT, 'localhost', () => printServerInfo(false));
+  // Local only, on both loopback addresses: 'localhost' alone resolved to ::1 on Windows, so http://127.0.0.1:3003 failed
+  let printed = false;
+  ['127.0.0.1', '::1'].forEach((host) => {
+    const server = http.createServer(app);
+    server.on('error', (err) => {
+      if (err.code === 'EADDRNOTAVAIL') return console.warn(`⚠️ ${host} is not available on this machine, skipping`);
+      console.error(err.code === 'EADDRINUSE' ? `❌ Port ${PORT} on ${host} is already in use (another kioskServer.js running?)` : `❌ Kiosk server failed to start on ${host}: ${err.message}`);
+      process.exit(1);
+    });
+    server.listen(PORT, host, () => {
+      if (!printed) { printed = true; printServerInfo(false); }
+    });
+  });
 }
 
 // Initialize email service at startup

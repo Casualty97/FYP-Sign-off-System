@@ -1381,7 +1381,7 @@ router.get('/test-db', (req, res) => {
         feedback: 'SELECT COUNT(*) as count FROM feedback WHERE is_active = 1',
         admin_users: 'SELECT COUNT(*) as count FROM admin_users',
         feedback_with_rating: 'SELECT COUNT(*) as count FROM feedback WHERE rating IS NOT NULL AND is_active = 1',
-        users_today: 'SELECT COUNT(*) as count FROM users WHERE DATE(last_visit) = CURDATE()'
+        users_today: "SELECT COUNT(*) as count FROM users WHERE DATE(CONVERT_TZ(last_visit, '+00:00', '+08:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))"
     };
     
     const results = {};
@@ -2933,7 +2933,7 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
             FROM feedback
             WHERE archive_status = 'archived'
             AND is_active = 1
-            AND created_at < ?
+            AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')
         `;
         params = [dateRange.before];
     } else {
@@ -3158,7 +3158,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             JOIN users u ON f.user_id = u.id
             WHERE f.archive_status = 'archived'
             AND f.is_active = 1
-            AND f.created_at < ?
+            AND f.created_at < CONVERT_TZ(?, '+08:00', '+00:00')
         `;
         
         db.all(selectQuery, [beforeDate], (selectErr, feedbackData) => {
@@ -3211,7 +3211,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             const deleteQuery = `
                 DELETE FROM feedback
                 WHERE archive_status = 'archived'
-                AND created_at < ?
+                AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')
             `;
             
             db.run(deleteQuery, [beforeDate], function(deleteErr) {
@@ -4893,100 +4893,44 @@ router.post('/questions', (req, res) => {
             console.log('⚠️ Warning: Options provided for non-choice question type, ignoring options');
         }
         
-        // Start transaction
-        db.beginTransaction( function(err) {
-            if (err) {
-                console.error('❌ Error starting transaction:', err);
-                return res.status(500).json({ error: 'Database error: ' + err.message });
-            }
-            
-            // Insert the question
+        // One connection, one real transaction: the question and its options land together or not at all
+        db.withTransaction((tx, finish) => {
             const insertQuestionQuery = `
                 INSERT INTO questions (question_text, question_type, is_required, display_order, is_active, created_at)
                 VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             `;
-            
-            db.run(insertQuestionQuery, [
-                question_text, 
-                question_type, 
-                is_required ? 1 : 0, 
-                display_order || 0, 
+            tx.run(insertQuestionQuery, [
+                question_text,
+                question_type,
+                is_required ? 1 : 0,
+                display_order || 0,
                 is_active ? 1 : 0
             ], function(err) {
-                if (err) {
-                    console.error('❌ Error inserting question:', err);
-                    return db.rollback( () => {
-                        res.status(500).json({ error: 'Database error: ' + err.message });
-                    });
-                }
-                
+                if (err) return finish(err);
                 const questionId = this.lastID;
-                console.log(`✅ Question added with ID: ${questionId}`);
-                
-                // If it's a choice question, insert options
-                if (question_type === 'choice' && options && options.length > 0) {
-                    // Use the helper function to insert options
-                    let optionsInserted = 0;
-                    let optionsError = null;
-                    
-                    options.forEach((option, index) => {
-                        const insertOptionQuery = `
-                            INSERT INTO question_options (question_id, option_label, display_order)
-                            VALUES (?, ?, ?)
-                        `;
-                        
-                        db.run(insertOptionQuery, [
-                            questionId, 
-                            option.option_label, 
-                            option.display_order || index
-                        ], function(err) {
-                            if (err) {
-                                console.error('❌ Error inserting option:', err);
-                                optionsError = err;
-                            } else {
-                                console.log(`✅ Option added for question ${questionId}: "${option.option_label}"`);
-                            }
-                            
-                            optionsInserted++;
-                            
-                            if (optionsInserted === options.length) {
-                                if (optionsError) {
-                                    return db.rollback( () => {
-                                        res.status(500).json({ error: 'Failed to add question options: ' + optionsError.message });
-                                    });
-                                }
-                                
-                                // Commit transaction
-                                db.commit( (err) => {
-                                    if (err) {
-                                        console.error('❌ Error committing transaction:', err);
-                                        return res.status(500).json({ error: 'Database error: ' + err.message });
-                                    }
-                                    
-                                    res.json({
-                                        success: true,
-                                        message: 'Question and options added successfully',
-                                        questionId: questionId
-                                    });
-                                });
-                            }
-                        });
-                    });
-                } else {
-                    // Commit transaction (no options to insert for non-choice questions)
-                    db.commit( (err) => {
-                        if (err) {
-                            console.error('❌ Error committing transaction:', err);
-                            return res.status(500).json({ error: 'Database error: ' + err.message });
-                        }
-                        
-                        res.json({
-                            success: true,
-                            message: 'Question added successfully',
-                            questionId: questionId
-                        });
-                    });
-                }
+                const optionRows = question_type === 'choice' && Array.isArray(options) ? options : [];
+                let index = 0;
+                const insertNext = () => {
+                    if (index >= optionRows.length) return finish(null, questionId);
+                    const option = optionRows[index];
+                    const position = index;
+                    index++;
+                    tx.run('INSERT INTO question_options (question_id, option_label, display_order) VALUES (?, ?, ?)',
+                        [questionId, option.option_label, option.display_order || position],
+                        (optionErr) => (optionErr ? finish(optionErr) : insertNext()));
+                };
+                insertNext();
+            });
+        }, (err, questionId) => {
+            if (err) {
+                console.error('❌ Error adding question:', err);
+                return res.status(500).json({ error: 'Database error: ' + err.message });
+            }
+            console.log(`✅ Question added with ID: ${questionId}`);
+            res.json({
+                success: true,
+                message: 'Question added successfully',
+                questionId: questionId
             });
         });
     });
@@ -5045,52 +4989,24 @@ router.delete('/questions/:id', (req, res) => {
                 });
             } else {
                 // No answers safe to hard delete (question and options)
-                db.beginTransaction((err) => {
+                db.withTransaction((tx, finish) => {
+                    tx.run('DELETE FROM question_options WHERE question_id = ?', [id], (optionErr) => {
+                        if (optionErr) return finish(optionErr);
+                        tx.run('DELETE FROM questions WHERE id = ?', [id], function(questionErr) {
+                            if (questionErr) return finish(questionErr);
+                            finish(null, this.changes);
+                        });
+                    });
+                }, (err, changes) => {
                     if (err) {
-                        console.error('❌ Error starting transaction:', err);
+                        console.error('❌ Error deleting question:', err);
                         return res.status(500).json({ error: 'Database error: ' + err.message });
                     }
-                    
-                    // First delete any options for this question
-                    const deleteOptionsQuery = 'DELETE FROM question_options WHERE question_id = ?';
-                    
-                    db.run(deleteOptionsQuery, [id], function(err) {
-                        if (err) {
-                            console.error('❌ Error deleting question options:', err);
-                            return db.rollback(() => {
-                                res.status(500).json({ error: 'Database error: ' + err.message });
-                            });
-                        }
-                        
-                        console.log(`✅ Deleted options for question ID: ${id}`);
-                        
-                        // Now delete the question
-                        const deleteQuestionQuery = 'DELETE FROM questions WHERE id = ?';
-                        
-                        db.run(deleteQuestionQuery, [id], function(err) {
-                            if (err) {
-                                console.error('❌ Error deleting question:', err);
-                                return db.rollback(() => {
-                                    res.status(500).json({ error: 'Database error: ' + err.message });
-                                });
-                            }
-                            
-                            // Commit transaction
-                            db.commit((err) => {
-                                if (err) {
-                                    console.error('❌ Error committing transaction:', err);
-                                    return res.status(500).json({ error: 'Database error: ' + err.message });
-                                }
-                                
-                                console.log(`✅ Question completely deleted (no historical answers): ${id}`);
-                                
-                                res.json({
-                                    success: true,
-                                    message: 'Question and associated options deleted successfully (no historical answers)',
-                                    changes: this.changes
-                                });
-                            });
-                        });
+                    console.log(`✅ Question completely deleted (no historical answers): ${id}`);
+                    res.json({
+                        success: true,
+                        message: 'Question and associated options deleted successfully (no historical answers)',
+                        changes: changes
                     });
                 });
             }

@@ -611,6 +611,10 @@ function startServer() {
         server = http.createServer(app);
     }
 
+    server.on('error', (err) => {
+        console.error(err.code === 'EADDRINUSE' ? `❌ Port ${PORT} is already in use (another server.js running?)` : `❌ Server failed to start: ${err.message}`);
+        process.exit(1);
+    });
     server.listen(PORT, bindHost, () => {
         printServerInfo(!!sslOptions);
     });
