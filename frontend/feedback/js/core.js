@@ -2,6 +2,12 @@
 // File 1 of 17: previous-team index, state, constants, pledge topic helpers, flow constants. Owner: Role 1.
 // Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
 // ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: XY (Xuanyang) (42), Preti (40), Nick (26), Caeden (8), Yu Kang (4), Bernissa (3), Nadhirah (1)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 1, Zihan. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
+// ============================================================
 // XY CHANGE SUMMARY (DONE BY XY)
 // ============================================================
 //

@@ -1,6 +1,12 @@
 // Feedback (kiosk) page script, split from the former feedback.js by section (move only, nothing changed inside).
 // File 5 of 17: face detection before taking a photo (face-api). Owner: Role 1.
 // Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
+// ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: Yu Kang (2), Nick (2)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 1, Zihan. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
 // facial detection (Done by Yu Kang)
 const FACE_API_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
 let faceDetectionReady = false;

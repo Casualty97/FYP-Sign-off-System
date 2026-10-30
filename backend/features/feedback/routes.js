@@ -1,4 +1,10 @@
 // ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: Preti (23), Nick (23), Caeden (9), XY (Xuanyang) (3), Nadhirah (2), Bernissa (2)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 1, Zihan. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
+// ============================================================
 // FEEDBACKROUTES.JS - TABLE OF CONTENTS (CTRL+F SEARCHABLE)
 // ============================================================
 //

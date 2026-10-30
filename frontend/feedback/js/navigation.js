@@ -1,6 +1,12 @@
 // Feedback (kiosk) page script, split from the former feedback.js by section (move only, nothing changed inside).
 // File 13 of 17: page navigation, final submit, thank-you page, keepsake. Owner: Role 1.
 // Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
+// ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: Nick (14), XY (Xuanyang) (1)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 1, Zihan. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
 // ==================== 8. PAGE NAVIGATION FUNCTIONS ====================
 
 // Show consent page from landing page

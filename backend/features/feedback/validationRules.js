@@ -1,4 +1,10 @@
 // ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: Caeden (4), XY (Xuanyang) (3), Nick (2)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 1, Zihan. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
+// ============================================================
 // VALIDATIONRULES.JS - Centralized Feedback Validation
 // ============================================================
 // CAEDEN CHANGE SUMMARY (DONE BY CAEDEN)

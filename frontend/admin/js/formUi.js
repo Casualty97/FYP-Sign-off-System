@@ -1,6 +1,12 @@
 // Admin page script, split from the former admin.js by section (move only, nothing changed inside).
 // File 24 of 30: feedback form text and layout. Owner: Role 1.
 // Load order (classic scripts, one shared global scope): core, audit, lostFound, dashboard, feedback, archive, feedbackFilters, encryption, pledgeViewer, analysis, photos, emailPopup, overlays, users, questions, dataExport, feedbackDeletion, navigation, tree, init, themes, archiveDeletion, pledgeboard, formUi, email, parameters, countdown, serverControl, vips, kioskReload.
+// ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: no markers in this file   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 1, Zihan. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
 // ===================== 27. FORM MANAGEMENT =====================
 // Configure feedback form UI (background, landing title, subtitle)
 

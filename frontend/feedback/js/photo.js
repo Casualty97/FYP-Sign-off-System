@@ -1,6 +1,12 @@
 // Feedback (kiosk) page script, split from the former feedback.js by section (move only, nothing changed inside).
 // File 11 of 17: camera, capture, boomerang, beauty filter, saving photos. Owner: Role 1.
 // Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
+// ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: Nick (56), Yu Kang (5)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 1, Zihan. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
 // ==================== 6. PHOTO HANDLING FUNCTIONS ====================
 
 // Handle photo upload from file input (mobile) - with face detection validation (Done by Yu Kang)

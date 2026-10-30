@@ -1,6 +1,12 @@
 // Admin page script, split from the former admin.js by section (move only, nothing changed inside).
 // File 18 of 30: page navigation and Bluetooth asset page. Owner: shared.
 // Load order (classic scripts, one shared global scope): core, audit, lostFound, dashboard, feedback, archive, feedbackFilters, encryption, pledgeViewer, analysis, photos, emailPopup, overlays, users, questions, dataExport, feedbackDeletion, navigation, tree, init, themes, archiveDeletion, pledgeboard, formUi, email, parameters, countdown, serverControl, vips, kioskReload.
+// ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: Nick (2)   <- counted from the "DONE BY" style markers below
+// Current team owner: shared. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
 // ==================== 17. NAVIGATION & PAGE MANAGEMENT ====================
 
 let bluetoothAssetData = [];

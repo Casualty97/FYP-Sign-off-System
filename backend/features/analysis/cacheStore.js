@@ -1,3 +1,9 @@
+// ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: Yu Kang (1)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 3, Jun Kai. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
 //==============================================================
 // feedbackAnalysisCacheStore.js (Done by Yu Kang)
 // This module provides a caching mechanism for feedback analysis results.

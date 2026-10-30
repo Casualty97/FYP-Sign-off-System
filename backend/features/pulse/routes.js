@@ -1,4 +1,10 @@
 // ============================================================
+// OWNERSHIP (keep this block at the top and update it when you change the file)
+// Previous team, inherited code: XY (Xuanyang) (2)   <- counted from the "DONE BY" style markers below
+// Current team owner: Role 2, Wei Jie. Add your name here when you change this file.
+// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
+// ============================================================
+// ============================================================
 // DONE BY XY - LIVE PULSE ROUTES SUMMARY
 //  - Added live ESG Kiosk pulse summary API routes.
 //  - Aggregates pledge counts for today, this month, all-time pledges, and digital tree visitors.
