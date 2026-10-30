@@ -99,12 +99,14 @@ function tinyPng() {
     await expect('GET /api/test-db', `${BASE}/api/test-db`, (r) => r.status === 200 && r.body && Array.isArray(r.body.tables) || 'db test failed');
 
     // Pages
-    await expect('GET /feedback', `${BASE}/feedback`, (r) => r.status === 200 && /feedback\.js/.test(r.text));
+    await expect('GET /feedback', `${BASE}/feedback`, (r) => r.status === 200 && /\/feedback\/js\/core\.js/.test(r.text));
+    await expect('GET /feedback/js/core.js is served', `${BASE}/feedback/js/core.js`, (r) => r.status === 200 && r.text.length > 1000);
     await expect('GET /admin', `${BASE}/admin`, (r) => r.status === 200 && /\/admin\/js\/core\.js/.test(r.text));
     await expect('GET /admin/js/core.js is served', `${BASE}/admin/js/core.js`, (r) => r.status === 200 && r.text.length > 1000);
     await expect('GET /tree', `${BASE}/tree`, (r) => r.status === 200);
     await expect('GET /pulse', `${BASE}/pulse`, (r) => r.status === 200);
-    await expect('GET /feedback on the kiosk server', `${KIOSK}/feedback`, (r) => r.status === 200 && /feedback\.js/.test(r.text));
+    await expect('GET /feedback on the kiosk server', `${KIOSK}/feedback`, (r) => r.status === 200 && /\/feedback\/js\/core\.js/.test(r.text));
+    await expect('GET /feedback/js/core.js on the kiosk server', `${KIOSK}/feedback/js/core.js`, (r) => r.status === 200 && r.text.length > 1000);
 
     // Admin auth
     const json = (b) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
