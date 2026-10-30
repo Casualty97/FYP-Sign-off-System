@@ -272,7 +272,28 @@ check('secrets: no console output of keys or passwords', () => {
   return problems;
 });
 
-// ---------------------------------------------------------------- 10. route snapshot
+// ---------------------------------------------------------------- 10. database baseline is frozen
+check('schema: database/schema.sql is unchanged and migrations are well formed', () => {
+  const problems = [];
+  const baselinePath = path.join(ROOT, 'database/migrations/baseline.json');
+  if (!fs.existsSync(baselinePath)) return ['database/migrations/baseline.json is missing'];
+  const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+  const hash = require('crypto').createHash('sha256').update(read('database/schema.sql')).digest('hex');
+  if (hash !== baseline.sha256) problems.push(`database/schema.sql changed. It is the frozen baseline: add a migration with "npm run db:new -- <what-changed>" instead. If the baseline itself must change, update database/migrations/baseline.json in the same change and say why.`);
+  const dir = path.join(ROOT, 'database/migrations');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.sql'));
+  const numbers = new Map();
+  for (const f of files) {
+    const m = f.match(/^(\d{3})_[A-Za-z0-9_-]+\.sql$/);
+    if (!m) { problems.push(`database/migrations/${f}: name must look like 001_short_description.sql`); continue; }
+    if (numbers.has(m[1])) problems.push(`database/migrations/${f} and ${numbers.get(m[1])} share the number ${m[1]}`);
+    numbers.set(m[1], f);
+  }
+  if (!fs.existsSync(path.join(ROOT, 'database/schema.snapshot.sql'))) problems.push('database/schema.snapshot.sql is missing: run `npm run db:snapshot` and commit it');
+  return problems;
+});
+
+// ---------------------------------------------------------------- 11. route snapshot
 check('snapshot: the route table matches tests/contracts/routes.snapshot.txt', () => {
   const table = ROUTES.map((r) => `${r.method.padEnd(6)} ${r.path}  (${r.file})`).join('\n') + '\n';
   if (UPDATE_SNAPSHOT) { fs.writeFileSync(SNAPSHOT_FILE, table); return []; }

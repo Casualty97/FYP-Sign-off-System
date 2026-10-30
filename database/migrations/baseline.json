@@ -1,0 +1,6 @@
+{
+  "schema": "database/schema.sql",
+  "sha256": "ddd246c7c0dd22a0638bc22c8c24f41176c0b7c91c3167301bf2b37d9602b10a",
+  "frozenOn": "2026-10-31",
+  "note": "schema.sql is the fresh-install baseline. Changes go in database/migrations/NNN_*.sql. Update this hash only when the baseline itself must change, and say why in the pull request."
+}

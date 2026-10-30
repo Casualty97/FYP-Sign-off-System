@@ -170,6 +170,12 @@ jobs:
         run: mkdir -p uploads/photos uploads/processed logs backend/cache
       - name: Create the database and apply schema.sql twice
         run: node tests/ci-db-setup.js
+      - name: Migrations apply cleanly and the schema snapshot is current
+        if: runner.os == 'Linux'
+        run: |
+          node database/migrate.js status
+          node database/migrate.js up
+          node database/migrate.js check
       - name: Make sure no real email can be sent from a runner
         shell: bash
         run: |

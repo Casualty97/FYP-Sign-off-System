@@ -34,6 +34,19 @@ pull request title and files.
   `tests/smoke.js` in the same PR.
 - Fill in the pull request template. The reviewer checks the Test Specification line against the FYP test spec.
 
+## Changing the database
+
+`database/schema.sql` is frozen (fresh installs only). Every change is a migration:
+
+```bash
+npm run db:new -- add_hardware_samples    # creates database/migrations/001_add_hardware_samples.sql
+npm run db:migrate                         # applies pending migrations to your local database
+npm run db:snapshot                        # regenerates database/schema.snapshot.sql (needs MYSQL_ROOT_PASSWORD)
+```
+
+Commit the migration and the snapshot together. After `git pull`, run `npm run db:migrate`.
+Details and rules: `database/migrations/README.md`.
+
 ## Who owns what
 
 See the Team modules table in `README.md` and `CODEOWNERS`. Edit shared files additively and tell the owner.

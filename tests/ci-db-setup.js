@@ -46,4 +46,9 @@ async function connectAsAdmin() {
   await conn.end();
   console.log(`${tables.length} tables, ${admins[0].n} admin user(s)`);
   if (tables.length < 14 || admins[0].n < 1) { console.error('database setup did not produce the expected tables/seed'); process.exit(1); }
+
+  // A fresh schema.sql already contains everything, so record every migration as applied.
+  const { spawnSync } = require('child_process');
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'database', 'migrate.js'), 'baseline'], { stdio: 'inherit', env: { ...process.env, DB_HOST: HOST, DB_USER: USER, DB_PASSWORD: PASS, DB_NAME: DB } });
+  if (r.status !== 0) { console.error('migration baseline failed'); process.exit(1); }
 })().catch((e) => { console.error('db setup failed:', e.message); process.exit(1); });

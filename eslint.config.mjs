@@ -27,7 +27,7 @@ const cdnGlobals = { Chart: 'readonly', faceapi: 'readonly', QRCode: 'readonly',
 export default [
   { ignores: ['node_modules/**', 'legacy/**', 'uploads/**', 'assets/**', 'logs/**', 'docs/**'] },
   {
-    files: ['backend/**/*.js', 'startAll.js', 'tests/**/*.js', 'scripts/**/*.js', '.github/scripts/**/*.js'],
+    files: ['backend/**/*.js', 'database/**/*.js', 'startAll.js', 'tests/**/*.js', 'scripts/**/*.js', '.github/scripts/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: globals.node },
     rules,
   },

@@ -12,7 +12,12 @@
     "smoke:full": "node tests/smoke.js",
     "test": "npm run check",
     "test:pulse": "node tests/pulse-backend-check.js",
-    "hooks:install": "node scripts/hooks-install.js"
+    "hooks:install": "node scripts/hooks-install.js",
+    "db:migrate": "node database/migrate.js up",
+    "db:status": "node database/migrate.js status",
+    "db:new": "node database/migrate.js new",
+    "db:check": "node database/migrate.js check",
+    "db:snapshot": "node database/migrate.js check --update"
   },
   "author": "",
   "license": "ISC",
