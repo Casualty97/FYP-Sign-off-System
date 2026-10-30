@@ -6018,7 +6018,7 @@ router.delete('/vips/:name', (req, res) => {
 // ==================== 20. FORM UI CONFIGURATION ====================
 // Read + write feedback form UI settings 
 
-const FORM_UI_CONFIG_PATH = path.join(paths.CONFIG, 'form-ui.json');
+const FORM_UI_CONFIG_PATH = paths.dataFile('form-ui.json');
 
 // GET /api/admin/form-ui
 // Load current form UI configuration
@@ -7404,10 +7404,10 @@ router.put('/countdown-management', auth.requireAuth, (req, res) => {
 // SERVER SCHEDULE MANAGEMENT (Config File Based)
 
 // Config file location (readable/ writable by both Node.js and the schedule runner)
-const SCHEDULE_CONFIG_PATH = process.env.SCHEDULE_CONFIG_PATH || path.join(paths.BACKEND, 'kiosk-schedules.json');
+const SCHEDULE_CONFIG_PATH = process.env.SCHEDULE_CONFIG_PATH || paths.dataFile('kiosk-schedules.json');
 
 // Mode file location (for manual/auto mode control)
-const MODE_FILE = path.join(paths.BACKEND, 'server-control-mode.json');
+const MODE_FILE = paths.dataFile('server-control-mode.json');
 
 // Helper: Read schedules from config file
 function readSchedulesConfig() {

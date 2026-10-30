@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const paths = require('../../core/paths');
 
-const CONFIG_PATH = path.join(paths.CONFIG, 'emailConfig.json');
+const CONFIG_PATH = paths.dataFile('emailConfig.json');
 
 function ensureConfigFile() {
   const dir = path.dirname(CONFIG_PATH);

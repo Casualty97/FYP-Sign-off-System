@@ -20,6 +20,7 @@ const FORBIDDEN = [
   [/^backend\/\.env\.(?!example$)/, '.env variants'],
   [/^backend\/certs\//, 'certificates'],
   [/^backend\/cache\//, 'the analysis cache'],
+  [/^backend\/data\//, 'runtime settings (edit backend/config/defaults/ instead)'],
   [/(^|\/)node_modules\//, 'node_modules'],
 ];
 const BIG_CHANGE_LINES = 1500;

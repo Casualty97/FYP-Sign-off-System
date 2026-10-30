@@ -25,3 +25,6 @@ assets/Tree/tree.glb
 .idea/
 .DS_Store
 Thumbs.db
+
+# Runtime settings written by the admin page (seeded from backend/config/defaults/)
+backend/data/

@@ -179,7 +179,7 @@ jobs:
       - name: Make sure no real email can be sent from a runner
         shell: bash
         run: |
-          cat > backend/config/emailConfig.json <<'EOF'
+          cat > backend/config/defaults/emailConfig.json <<'EOF'
           {"provider":"gmail","senderEmail":"","senderName":"CI","gmail":{"user":"","pass":""},"outlook":{"user":"","pass":""},"custom":{"host":"","port":587,"secure":false,"user":"","pass":""}}
           EOF
       - name: Boot both servers and run the smoke checks

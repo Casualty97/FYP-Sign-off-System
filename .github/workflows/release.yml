@@ -33,8 +33,8 @@ jobs:
           NAME="kiosk-$TAG.zip"
           zip -qr "$NAME" . \
             -x 'node_modules/*' '.git/*' 'uploads/photos/*' 'uploads/processed/*' 'logs/*' '*.log' \
-               'backend/.env' 'backend/certs/*' 'backend/cache/*' 'backend/config/emailConfig.json' \
-               'backend/kiosk-schedules.json' 'backend/server-control-mode.json' 'legacy/*' 'Team_Documentation/*' 'docs/*'
+               'backend/.env' 'backend/certs/*' 'backend/cache/*' 'backend/data/*' \
+               'backend/config/defaults/emailConfig.json' 'legacy/*' 'Team_Documentation/*' 'docs/*'
           sha256sum "$NAME" > "$NAME.sha256"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"

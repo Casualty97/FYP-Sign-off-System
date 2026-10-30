@@ -30,7 +30,7 @@ const path = require('path');
 const paths = require('../../core/paths');
 const { detectPledgeSentimentRule } = require('../feedback/pledgeSentiment');
 
-const pledgeTopicsPath = path.join(paths.CONFIG, 'pledge-topics.json');
+const pledgeTopicsPath = paths.dataFile('pledge-topics.json');
 const DEFAULT_PLEDGE_TOPICS = [
     { value: 'climate-change', label: 'Climate Change' },
     { value: 'renewable-energy', label: 'Renewable Energy' },

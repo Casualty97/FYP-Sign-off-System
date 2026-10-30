@@ -1485,7 +1485,7 @@ router.get('/form-ui', (req, res) => {
     const fs = require('fs');
     const path = require('path');
 
-    const configPath = path.join(paths.CONFIG, 'form-ui.json');
+    const configPath = paths.dataFile('form-ui.json');
 
     if (!fs.existsSync(configPath)) {
       return res.json({

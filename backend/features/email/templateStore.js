@@ -5,7 +5,7 @@
 // 1. DEPENDENCIES & CONFIGURATION
 //    const fs                         - File system operations for JSON config storage (DONE BY XY)
 //    const path                       - Path utilities for config file location (DONE BY XY)
-//    const CONFIG_PATH                - Path to backend/config/badgeEmailTemplates.json (DONE BY XY)
+//    const CONFIG_PATH                - Path to backend/data/badgeEmailTemplates.json (DONE BY XY)
 //
 // 2. DEFAULT BADGE EMAIL TEMPLATES
 //    const DEFAULT_TEMPLATES          - Default templates for Feedback Contributor plus 6 topic badges (DONE BY XY)
@@ -25,7 +25,7 @@ const fs = require('fs');
 const path = require('path');
 const paths = require('../../core/paths');
 
-const CONFIG_PATH = path.join(paths.CONFIG, 'badgeEmailTemplates.json');
+const CONFIG_PATH = paths.dataFile('badgeEmailTemplates.json');
 
 const DEFAULT_TEMPLATES = {
   'feedback-completer': {
