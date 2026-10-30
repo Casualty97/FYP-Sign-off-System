@@ -3,18 +3,10 @@
 // Yu Kang Change Summary:
 //=============================================================
 //
-// 1. BLUETOOTH CLOSE PROXIMITY DETECTION
-//    bluetooth scanner                - Detects nearby devices for proximity-based access control (Done by Yu Kang)
-//    /secure-data route               - Grants access only when a device is detected nearby (Done by Yu Kang)
-//    /nearby-devices route            - Exposes the current nearby device list for monitoring (Done by Yu Kang)
-//
-// 2. QR CODE PHONE PAIRING
-// - Short-lived single-use JWT QR tokens for phone pairing (QR lifetime default: 30s)
-// - `/api/kiosk/generate-qr?kiosk_id=...` endpoint to issue per-kiosk QR SVGs (single-use)
-// - `/connect?token=...` endpoint to redeem token and create pairing session
-// - `/api/kiosk/heartbeat` HTTP endpoint and Socket.IO `heartbeat` event for kiosk liveness
-// - Socket.IO support: kiosks register with `register-kiosk` and receive `paired` events
-// - DB tables `kiosks`, `qr_sessions`, `device_pairings` defined in `database/schema.sql`
+// Bluetooth proximity code lives in backend/bluetooth.js (used by auth.js and adminRoutes.js), not here.
+// The QR phone-pairing design once described in this header (JWT tokens, /connect, Socket.IO heartbeats,
+// kiosks / qr_sessions / device_pairings tables) was never implemented. The kiosk QR comes from
+// GET /api/generate-qr below and simply encodes the HTTPS feedback URL.
 //
 // ============================================================
 // XY CHANGE SUMMARY (DONE BY XY)
@@ -36,10 +28,6 @@
 // 4. KIOSK PHOTO UPLOAD BODY LIMIT
 //    const JSON_BODY_LIMIT            - Raises standalone server upload payload limit for base64 kiosk photos (DONE BY XY)
 //    upload error middleware          - Returns JSON for oversized uploads instead of an HTML error page (DONE BY XY)
-//
-// 5. QR PAIRING TABLE SELF-HEALING
-//    ensureQrPairingTables()          - Creates missing kiosk QR pairing tables without a full database rebuild (DONE BY XY)
-//    QR/heartbeat routes              - Verify kiosk, qr_sessions and device_pairings tables before use (DONE BY XY)
 //
 //=============================================================
 // FIND COMMAND
@@ -774,9 +762,9 @@ startServer();
 // - Accept self-signed certificate warning in browsers
 // - For firewall: netsh advfirewall firewall add rule name="Kiosk" dir=in action=allow protocol=TCP localport=3000-3002
 //
-// LINUX (Production):
-// - Use systemd services (gateway.service, admin.service, kiosk.service)
-// - Use scheduleRunner.js with cron for automated scheduling
+// LINUX (previous team's design, see legacy/README.md; not used by the current Windows deployment):
+// - systemd services (gateway.service, admin.service, kiosk.service)
+// - scheduleRunner.js with cron for automated scheduling
 // - For firewall: sudo ufw allow 3000:3002/tcp
 // - SSL certificates in /certs/ directory
 //

@@ -272,13 +272,12 @@ const feedbackAnalysisCacheStore = require('./feedbackAnalysisCacheStore');
 
 
 //AI for sentiment analysis testing (Done by Yu Kang)
-const { pipeline } = require('@xenova/transformers');
-
 let classifier;
 
 async function getModel() {
     if (!classifier) {
         console.log("⏳ Loading AI model (first time only)...");
+        const { pipeline } = require('@xenova/transformers'); // loaded lazily: requiring it at boot is slow and nothing else needs it
         classifier = await pipeline(
             'sentiment-analysis',
             'Xenova/bert-base-multilingual-uncased-sentiment'
