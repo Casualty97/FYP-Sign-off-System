@@ -189,12 +189,16 @@ check('ids: every element id a page script looks up exists in that page', () => 
   for (const h of HTML) {
     const html = read(h);
     const htmlIds = new Set([...html.matchAll(/\bid\s*=\s*["']([^"'\s]+)["']/g)].map((m) => m[1]));
-    for (const s of pageScripts(h)) {
+    const scripts = pageScripts(h);
+    const created = new Set(); // ids any script of the page builds at runtime
+    for (const s of scripts) {
       const js = read(s);
-      const created = new Set();
       for (const m of js.matchAll(/\bid\s*=\s*\\?["']([A-Za-z0-9_-]+)\\?["']/g)) created.add(m[1]);
       for (const m of js.matchAll(/\.id\s*=\s*["'`]([A-Za-z0-9_-]+)["'`]/g)) created.add(m[1]);
       for (const m of js.matchAll(/\bid:\s*["'`]([A-Za-z0-9_-]+)["'`]/g)) created.add(m[1]);
+    }
+    for (const s of scripts) {
+      const js = read(s);
       const used = new Map();
       for (const m of js.matchAll(/getElementById\(\s*["']([^"'`]+)["']\s*\)/g)) used.set(m[1], lineOf(js, m.index));
       for (const m of js.matchAll(/querySelector(?:All)?\(\s*["']#([A-Za-z0-9_-]+)["']\s*\)/g)) used.set(m[1], lineOf(js, m.index));
@@ -210,18 +214,21 @@ check('ids: every element id a page script looks up exists in that page', () => 
 });
 
 // ---------------------------------------------------------------- 5. duplicate functions
-check('duplicates: no top-level function is declared twice in a file', () => {
+check('duplicates: no top-level function is declared twice in a file or across one page\'s scripts', () => {
   const problems = [];
-  for (const f of [...FRONTEND_JS, ...BACKEND_JS]) {
-    const text = read(f); const seen = new Map();
-    for (const m of text.matchAll(/(?:^|\n)(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g)) {
-      const line = lineOf(text, m.index + 1);
-      if (!seen.has(m[1])) seen.set(m[1], []);
-      seen.get(m[1]).push(line);
+  const groups = [...[...FRONTEND_JS, ...BACKEND_JS].map((f) => [f]), ...HTML.map((h) => pageScripts(h)).filter((s) => s.length > 1)];
+  for (const group of groups) {
+    const seen = new Map();
+    for (const f of group) {
+      const text = read(f);
+      for (const m of text.matchAll(/(?:^|\n)(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g)) {
+        if (!seen.has(m[1])) seen.set(m[1], []);
+        seen.get(m[1]).push(`${f}:${lineOf(text, m.index + 1)}`);
+      }
     }
-    for (const [name, lines] of seen) if (lines.length > 1) problems.push(`${f}: ${name} declared at lines ${lines.join(', ')} (only the last one runs)`);
+    for (const [name, where] of seen) if (where.length > 1) problems.push(`${name} declared at ${where.join(' and ')} (only the last one runs)`);
   }
-  return problems;
+  return [...new Set(problems)];
 });
 
 // ---------------------------------------------------------------- 6. env contract

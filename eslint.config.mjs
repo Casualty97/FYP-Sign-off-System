@@ -1,5 +1,20 @@
 // ESLint 9 flat config. Errors fail CI; warnings are reported in the job summary.
+import fs from 'node:fs';
+import path from 'node:path';
 import globals from 'globals';
+
+// A page that loads several classic scripts shares one global scope between them. Collect the
+// top-level names of every script in the folder so `no-undef` still catches real typos.
+function sharedPageGlobals(dir) {
+  const names = {};
+  if (!fs.existsSync(dir)) return names;
+  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const text = fs.readFileSync(path.join(dir, f), 'utf8');
+    for (const m of text.matchAll(/^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)) names[m[1]] = 'writable';
+    for (const m of text.matchAll(/^(?:const|let|var)\s+([A-Za-z_$][\w$]*)/gm)) names[m[1]] = 'writable';
+  }
+  return names;
+}
 
 const rules = {
   'no-undef': 'error',
@@ -35,5 +50,16 @@ export default [
     files: ['frontend/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: { ...globals.browser, ...cdnGlobals } },
     rules,
+  },
+  {
+    // The page's own top-level names are declared as globals above, so a declaration is not a "redeclaration".
+    files: ['frontend/admin/js/*.js'],
+    languageOptions: { globals: sharedPageGlobals('frontend/admin/js') },
+    rules: { 'no-redeclare': ['error', { builtinGlobals: false }], 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none' }] },
+  },
+  {
+    files: ['frontend/feedback/js/*.js'],
+    languageOptions: { globals: sharedPageGlobals('frontend/feedback/js') },
+    rules: { 'no-redeclare': ['error', { builtinGlobals: false }], 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none' }] },
   },
 ];

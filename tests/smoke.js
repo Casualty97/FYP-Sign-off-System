@@ -100,7 +100,8 @@ function tinyPng() {
 
     // Pages
     await expect('GET /feedback', `${BASE}/feedback`, (r) => r.status === 200 && /feedback\.js/.test(r.text));
-    await expect('GET /admin', `${BASE}/admin`, (r) => r.status === 200 && /admin\.js/.test(r.text));
+    await expect('GET /admin', `${BASE}/admin`, (r) => r.status === 200 && /\/admin\/js\/core\.js/.test(r.text));
+    await expect('GET /admin/js/core.js is served', `${BASE}/admin/js/core.js`, (r) => r.status === 200 && r.text.length > 1000);
     await expect('GET /tree', `${BASE}/tree`, (r) => r.status === 200);
     await expect('GET /pulse', `${BASE}/pulse`, (r) => r.status === 200);
     await expect('GET /feedback on the kiosk server', `${KIOSK}/feedback`, (r) => r.status === 200 && /feedback\.js/.test(r.text));
