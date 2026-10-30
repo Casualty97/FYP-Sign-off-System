@@ -17,10 +17,15 @@ function initDataExportPage() {
     const username = sessionStorage.getItem('loggedUser');
     document.getElementById('export-username').value = username;
     
-    // Show password panel by default
-    document.getElementById('data-export-password-panel').style.display = 'flex';
-    document.getElementById('data-export-cards').style.display = 'none';
-    
+    // Keep the cards open while the server-side unlock (30 minutes) is still valid
+    const unlockAgeMinutes = dataExportUnlocked && dataExportUnlockTime
+        ? (Date.now() - new Date(dataExportUnlockTime).getTime()) / 60000
+        : Infinity;
+    const stillUnlocked = unlockAgeMinutes < 30;
+    document.getElementById('data-export-password-panel').style.display = stillUnlocked ? 'none' : 'flex';
+    document.getElementById('data-export-cards').style.display = stillUnlocked ? 'block' : 'none';
+    if (stillUnlocked) updateExportSessionInfo(Math.max(1, Math.round(30 - unlockAgeMinutes)));
+
     return true;
 }
 

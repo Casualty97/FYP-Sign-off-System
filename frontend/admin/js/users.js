@@ -552,7 +552,7 @@ function editUser(userId, username, currentRole, fullName) {
                     </div>
                 </div>
                 
-                <form id="edit-user-form" onsubmit="handleEditUser(event, ${userId}, true)">
+                <form id="edit-user-form" onsubmit="handleEditUser(event, ${userId})">
                     <div class="form-group" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
                             Username (locked)
@@ -679,7 +679,7 @@ function editUser(userId, username, currentRole, fullName) {
                     ">×</button>
                 </div>
                 
-                <form id="edit-user-form" onsubmit="handleEditUser(event, ${userId}, false)">
+                <form id="edit-user-form" onsubmit="handleEditUser(event, ${userId})">
                     <div class="form-group" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
                             Username

@@ -14,6 +14,11 @@ async function viewProcessedPhoto(feedbackId) {
 
 // Show raw photo in popup
 function showRawPhotoPopup(feedbackId) {
+    const loaded = findLoadedFeedbackRow(feedbackId);
+    if (loaded) {
+        if (!loaded.photo_path) return alert('No raw photo available for this feedback');
+        return createPhotoPopup(feedbackId, loaded.photo_path, 'Raw');
+    }
     // First, get the photo path from the feedback data
     fetch('/api/admin/feedback')
         .then(response => response.json())
@@ -42,6 +47,11 @@ function showRawPhotoPopup(feedbackId) {
 
 // Show processed photo in popup
 function showProcessedPhotoPopup(feedbackId) {
+    const loaded = findLoadedFeedbackRow(feedbackId);
+    if (loaded) {
+        if (!loaded.processed_photo_path) return alert('No processed photo available for this feedback');
+        return createPhotoPopup(feedbackId, loaded.processed_photo_path, 'Processed');
+    }
     // First, get the photo path from the feedback data
     fetch('/api/admin/feedback')
         .then(response => response.json())
@@ -90,6 +100,7 @@ function createPhotoPopup(feedbackId, photoPath, photoType) {
 
     // Construct the full URL to the photo
     const photoUrl = `/uploads/${photoPath}`;
+    const photoExt = (String(photoPath).match(/\.[a-z0-9]+$/i) || ['.jpg'])[0];
     
     // Use the SAME sizing for both raw and processed photos
     const containerStyle = `
@@ -154,7 +165,7 @@ function createPhotoPopup(feedbackId, photoPath, photoType) {
             </div>
             
             <div style="flex-shrink: 0;">
-                <button onclick="downloadPhoto('${photoUrl}', 'feedback_${feedbackId}_${photoType.toLowerCase()}_photo.jpg')" 
+                <button onclick="downloadPhoto('${photoUrl}', 'feedback_${feedbackId}_${photoType.toLowerCase()}_photo${photoExt}')" 
                         class="modal-btn-primary font-size-11 p-6-12">
                     ⬇️ Download ${photoType}
                 </button>

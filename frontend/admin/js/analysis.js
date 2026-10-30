@@ -793,7 +793,10 @@ function buildTimelineFromItems(items) {
         if (!dateStr) return;
 
         // Extract date part (YYYY-MM-DD)
-        const date = dateStr.split('T')[0] || dateStr.split(' ')[0];
+        const parsed = new Date(dateStr);
+        const date = Number.isNaN(parsed.getTime())
+            ? (dateStr.split('T')[0] || dateStr.split(' ')[0])
+            : parsed.toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
         if (!date) return;
 
         if (!dateMap[date]) {

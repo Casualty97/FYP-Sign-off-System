@@ -7,20 +7,18 @@ let schedulesData = [];
 let currentScheduleId = null;
 
 // Initialize schedule management when page loads
+function startServerStatusPolling() {
+    if (window.statusCheckInterval) clearInterval(window.statusCheckInterval);
+    window.statusCheckInterval = setInterval(checkServerStatus, 10000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📅 Initializing server schedule management...');
-    
-    // Load schedules if we're on the schedule page
-    if (document.getElementById('server-schedule-page')) {
+    // Only when a session was restored; a fresh login goes through showPage('server-schedule')
+    if (document.getElementById('server-schedule-page') && sessionStorage.getItem('loggedUser')) {
         loadSchedules();
         loadServerMode();
         checkServerStatus();
-        
-        // Refresh status every 10 seconds
-        if (window.statusCheckInterval) {
-            clearInterval(window.statusCheckInterval);
-        }
-        window.statusCheckInterval = setInterval(checkServerStatus, 10000);
+        startServerStatusPolling();
     }
 });
 
@@ -514,6 +512,7 @@ function updateModeUI(isAuto) {
 
 // Check current kiosk service status
 async function checkServerStatus() {
+    if (!sessionStorage.getItem('loggedUser')) return;
     try {
         const response = await fetch('/api/admin/server/status');
         const data = await response.json();
@@ -556,7 +555,7 @@ function updateDailyOperationButton(isRunning) {
 
     if (hint) {
         hint.textContent = isRunning
-            ? 'Kiosk is running. End Day switches to manual mode and stops the kiosk server.'
+            ? 'Kiosk is running. End Day switches to manual mode, stops the kiosk server and hibernates this PC.'
             : 'Kiosk is stopped. Start Day switches to manual mode and starts the kiosk server.';
     }
 }
@@ -583,7 +582,7 @@ async function toggleDailyOperation() {
     const statusResponse = await fetch('/api/admin/server/status');
     const statusData = await statusResponse.json();
     const isRunning = statusData.success ? statusData.kiosk_running === true : button?.dataset?.running === 'true';
-    const action = isRunning ? 'end the day and stop the kiosk' : 'start the day and turn the kiosk on';
+    const action = isRunning ? 'end the day, stop the kiosk and hibernate this PC (the wall and tablets go dark until it is woken)' : 'start the day and turn the kiosk on';
 
     if (!confirm(`Are you sure you want to ${action}?`)) return;
 
@@ -605,7 +604,7 @@ async function toggleDailyOperation() {
             throw new Error(data.error || 'Daily operation failed');
         }
 
-        showNotification(isRunning ? 'End Day complete. Kiosk is off.' : 'Start Day complete. Kiosk is on.', 'success');
+        showNotification(data.message || (isRunning ? 'End Day complete. Kiosk is off.' : 'Start Day complete. Kiosk is on.'), 'success');
         setTimeout(() => checkServerStatus(), 2000);
     } catch (error) {
         console.error('Daily operation error:', error);
@@ -688,7 +687,7 @@ function stopServer() {
         return;
     }
     
-    if (!confirm('Are you sure you want to stop the server?')) return;
+    if (!confirm('Stop the kiosk server? This PC hibernates right after, so the wall and tablets go dark until it is woken up.')) return;
     
     console.log('⏹️ Stopping server manually...');
     
@@ -699,7 +698,7 @@ function stopServer() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showNotification('Server stopped successfully', 'success');
+            showNotification(data.message || 'Server stopped successfully', 'success');
             // Wait a moment then check status
             setTimeout(() => checkServerStatus(), 2000);
         } else {

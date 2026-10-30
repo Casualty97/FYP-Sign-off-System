@@ -296,33 +296,19 @@ function clearAllFilters() {
 
 // Set date range preset
 function setDateRangePreset(preset) {
-    const today = new Date();
     const filterDateFrom = document.getElementById('filter-date-from');
     const filterDateTo = document.getElementById('filter-date-to');
-    
     if (!filterDateFrom || !filterDateTo) return;
-    
-    // Set end date to today
-    filterDateTo.value = today.toISOString().split('T')[0];
-    
-    // Set start date based on preset
-    let startDate = new Date();
-    
-    switch (preset) {
-        case 'today':
-            startDate = new Date(today);
-            break;
-        case 'week':
-            startDate.setDate(today.getDate() - 7);
-            break;
-        case 'month':
-            startDate.setMonth(today.getMonth() - 1);
-            break;
-    }
-    
-    filterDateFrom.value = startDate.toISOString().split('T')[0];
-    
-    // Apply filter
+
+    // Singapore calendar days, same helpers as the feedback presets
+    const sgt = getSGTDateComponents();
+    const todaySGT = new Date(Date.UTC(sgt.year, sgt.month, sgt.day));
+    const startDate = new Date(todaySGT);
+    if (preset === 'week') startDate.setUTCDate(startDate.getUTCDate() - 7);
+    if (preset === 'month') startDate.setUTCMonth(startDate.getUTCMonth() - 1);
+
+    filterDateTo.value = formatDateToSGTString(todaySGT);
+    filterDateFrom.value = formatDateToSGTString(startDate);
     filterAuditLogs();
 }
 

@@ -139,6 +139,12 @@ function filterArchiveData() {
     
     // Update UI counts
     updateArchiveCounts(allArchiveData.length, filteredArchiveData.length, activeFiltersCount);
+
+    // Keep the column sort the admin chose
+    if (archiveSortColumn) {
+        filteredArchiveData.sort((a, b) => compareValues(a[archiveSortColumn], b[archiveSortColumn], archiveSortColumn));
+        if (!archiveSortAsc) filteredArchiveData.reverse();
+    }
     
     // Reset to page 1
     archiveCurrentPage = 1;
@@ -252,7 +258,7 @@ function renderArchivePage() {
         // Pledge
         const pledgeCell = row.insertCell(4);
         if (feedback.pledge && feedback.pledge.trim() !== '') {
-            pledgeCell.innerHTML = `<button class="btn-view" onclick="viewPledge(${feedback.id}, decodeURIComponent('${encodeURIComponent(feedback.pledge)}'))">View</button>`;
+            pledgeCell.innerHTML = `<button class="btn-view" onclick="viewPledge(${feedback.id})">View</button>`;
         } else {
             pledgeCell.innerHTML = '<span class="text-muted font-size-12">No pledge</span>';
         }

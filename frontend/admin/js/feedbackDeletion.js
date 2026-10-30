@@ -2,15 +2,19 @@
 // Part 17/30 of the admin page: feedback deletion (load order in admin.html).
 // ==================== 16. FEEDBACK DELETION ====================
 
+let currentDeleteSource = 'feedback';
+
 // Delete feedback with password verification
 async function deleteFeedback(feedbackId) {
     currentDeleteFeedbackId = feedbackId;
+    currentDeleteSource = 'feedback';
     showDeletePasswordModal();
 }
 
-// Delete archive feedback (placeholder)
+// Delete archived feedback (same modal, refreshes the archive table afterwards)
 async function deleteArchiveFeedback(feedbackId) {
     currentDeleteFeedbackId = feedbackId;
+    currentDeleteSource = 'archive';
     showDeletePasswordModal();
 }
 
@@ -112,12 +116,12 @@ async function verifyDeleteAccess() {
     }
     
     try {
-        const response = await fetch('/api/admin/login', {
+        const response = await fetch('/api/admin/verify-password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ password })
         });
         
         const data = await response.json();
@@ -126,7 +130,7 @@ async function verifyDeleteAccess() {
             await performFeedbackDeletion(currentDeleteFeedbackId);
             closeDeleteModal();
         } else {
-            errorDiv.textContent = 'Invalid password. Please try again.';
+            errorDiv.textContent = data.error || 'Invalid password. Please try again.';
             errorDiv.style.display = 'block';
         }
     } catch (error) {
@@ -153,7 +157,7 @@ async function performFeedbackDeletion(feedbackId) {
         
         if (data.success) {
             alert('✅ Feedback deleted successfully!');
-            loadFeedbackData();
+            if (currentDeleteSource === 'archive') loadArchiveData(); else loadFeedbackData();
         } else {
             alert('❌ Failed to delete feedback: ' + (data.error || 'Unknown error'));
         }

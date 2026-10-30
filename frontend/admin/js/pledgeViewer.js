@@ -51,6 +51,10 @@ async function translateAdminTextToEnglish(sourceId, outputId, button) {
 
 // View pledge
 function viewPledge(feedbackId, pledgeText) {
+    if (pledgeText === undefined) {
+        const row = findLoadedFeedbackRow(feedbackId);
+        pledgeText = row ? (row.pledge || '') : '';
+    }
     const popup = document.createElement('div');
     const pledgeSourceId = `pledge-source-${feedbackId}`;
     const pledgeTranslationId = `pledge-translation-${feedbackId}`;
@@ -159,20 +163,22 @@ function closePledgePopup() {
 }
 
 // View question answers
-async function viewQuestionAnswers(feedbackId) {
-    try {
-        const response = await fetch(`/api/admin/feedback/${feedbackId}/questions`);
-        const data = await response.json();
-        
-        if (data.success) {
-            createQuestionAnswersPopup(feedbackId, data.answers);
-        } else {
-            alert('Error loading question answers: ' + (data.error || 'Unknown error'));
-        }
-    } catch (error) {
-        console.error('Error loading question answers:', error);
-        alert('Error loading question answers: ' + error.message);
+function viewQuestionAnswers(feedbackId) {
+    const row = findLoadedFeedbackRow(feedbackId);
+    if (!row) {
+        alert('Feedback not found in the loaded table. Refresh the page and try again.');
+        return;
     }
+    createQuestionAnswersPopup(feedbackId, row.question_answers || []);
+}
+
+// The feedback and archive lists already carry question_answers, photo paths and the pledge
+function findLoadedFeedbackRow(feedbackId) {
+    const rows = [].concat(
+        typeof allFeedbackData !== 'undefined' ? allFeedbackData : [],
+        typeof allArchiveData !== 'undefined' ? allArchiveData : []
+    );
+    return rows.find(f => Number(f.id) === Number(feedbackId)) || null;
 }
 
 // Create Q&A popup
@@ -200,7 +206,7 @@ function createQuestionAnswersPopup(feedbackId, answers) {
             <div class="qa-item" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;">
                 <div style="font-weight: 600; color: #1e293b; margin-bottom: 8px;">${escapeHtmlSafe(answer.question_text)}</div>
                 <div id="${answerSourceId}" style="color: #475569; padding-left: 10px; border-left: 3px solid #e2e8f0;">
-                    ${formatAnswer(answer.answer_value, answer.question_type)}
+                    ${formatAnswer(answer.option_label || answer.answer_value, answer.question_type)}
                 </div>
                 <button onclick="translateAdminTextToEnglish('${answerSourceId}', '${answerTranslationId}', this)" style="
                     margin-top: 10px;
@@ -293,7 +299,7 @@ function formatAnswer(answer, questionType) {
                 return `Rating: ${rating}`;
             }
         case 'yesno':
-            return answer === '1' ? 'Yes' : 'No';
+            return ['1', 'yes', 'true'].includes(String(answer).trim().toLowerCase()) ? 'Yes' : 'No';
         case 'choice':
             return safeAnswer;
         default:

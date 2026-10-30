@@ -372,6 +372,10 @@ async function loadJourneyPassport() {
 // Animate number counting
 function animateValue(element, start, end, duration) {
     const range = end - start;
+    if (range === 0) {
+        element.textContent = end.toLocaleString();
+        return;
+    }
     const increment = range / (duration / 16); // 60 FPS
     let current = start;
     

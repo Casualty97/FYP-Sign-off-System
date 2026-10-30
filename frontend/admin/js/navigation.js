@@ -274,23 +274,27 @@ function showPage(pageName) {
     // Show selected page
     document.getElementById(pageName + '-page').classList.add('active');
     
-    // Add active class to clicked nav item
-    if (event && event.target) {
-        event.target.closest('.nav-item').classList.add('active');
-    }
+    // Highlight the sidebar item (dashboard quick actions are not inside a .nav-item)
+    const clickedNav = event && event.target && event.target.closest ? event.target.closest('.nav-item') : null;
+    const navItem = clickedNav || document.querySelector(`.nav-item[onclick*="showPage('${pageName}')"]`);
+    if (navItem) navItem.classList.add('active');
     
     // Load data for specific pages
     if (pageName === 'dashboard') {
         loadDashboardData();
     } else if (pageName === 'feedback-data') {
         loadFeedbackData();
-        analyzeFeedbackData();
     } else if (pageName === 'feedback-report') {
         loadFlaggedFeedback();
         loadVisitorTrendsData();
         loadCacheStorageMode();
     } else if (pageName === 'digital-tree') {
         loadDigitalTreeData();
+    } else if (pageName === 'tree-adjustment') {
+        initTreeStageMode();
+        loadTreeStageSelection();
+        loadTreeTitleSettings();
+        updateAutoStagePreview();
     } else if (pageName === 'pledgeboard') {
         loadAdminPledgeboard();
     } else if (pageName === 'overlay') {
@@ -315,10 +319,12 @@ function showPage(pageName) {
         loadTimerCountdownSetting();
     } else if (pageName === 'server-schedule') {
         loadSchedules();
+        loadServerMode();
         checkServerStatus();
+        startServerStatusPolling();
     } else if (pageName === 'form-management') {
     loadFormUISettings();
-    } else if (pageName === 'Land-page-QR') {
+    } else if (pageName === 'Feedback-page-QR') {
     loadLandingPageQR();
     } else if (pageName === 'email-management') {
     loadEmailConfig();

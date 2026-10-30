@@ -538,7 +538,7 @@ function resetActivityTimer() {
  */
 function initActivityTracking() {
     // Track various user interactions
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    const events = ['mousedown', 'keypress', 'touchstart', 'click']; // not mousemove/scroll: they closed the warning modal
     
     events.forEach(event => {
         document.addEventListener(event, resetActivityTimer, { passive: true });
@@ -732,35 +732,24 @@ function handleSessionTimeout() {
  * Wrap the original fetch to detect 401 errors and auto-logout
  */
 const originalFetch = window.fetch;
+let sessionExpiredHandled = false;
 window.fetch = function(...args) {
     return originalFetch.apply(this, args)
         .then(response => {
-            // Check if response is 401 Unauthorized
-            if (response.status === 401) {
-                const loggedUser = sessionStorage.getItem('loggedUser');
-                
-                // Only auto-logout if we think we're logged in
-                if (loggedUser) {
+            // Only the auth middleware's 401 means the session is gone. Password checks (decrypt,
+            // data export, archive delete) also answer 401 and must not log the admin out.
+            if (response.status === 401 && sessionStorage.getItem('loggedUser') && !sessionExpiredHandled) {
+                response.clone().json().catch(() => null).then(body => {
+                    if (!body || body.error !== 'Authentication required' || sessionExpiredHandled) return;
+                    sessionExpiredHandled = true;
                     console.log('🔒 401 Unauthorized detected - session expired');
-                    
-                    // Show message
                     setTimeout(() => {
                         alert('🔒 Your session has expired. Please log in again.');
                         handleLogout();
                     }, 100);
-                }
+                });
             }
-            
-            // Reset activity timer on successful API calls
-            if (response.ok && sessionStorage.getItem('loggedUser')) {
-                resetActivityTimer();
-            }
-            
             return response;
-        })
-        .catch(error => {
-            // Re-throw the error for normal error handling
-            throw error;
         });
 };
 
@@ -948,6 +937,7 @@ function handleLogout() {
     // Log the logout
     fetch('/api/admin/logout-audit', {
         method: 'POST',
+        keepalive: true,
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ username: username })
     }).catch(() => {});
@@ -984,12 +974,16 @@ function updateUIForUser(username, role) {
     
     // Show/hide ONLY decrypt/download buttons based on role
     // Filter buttons should be visible for ALL roles
-    const decryptButtons = document.querySelectorAll('#decrypt-emails-btn, #decrypt-archive-all-btn, #re-encrypt-btn, #re-encrypt-archive-all-btn');
+    const decryptButtons = document.querySelectorAll('#decrypt-emails-btn, #re-encrypt-btn, #decrypt-archive-emails-btn, #re-encrypt-archive-btn');
     if (role === 'system_admin') {
         decryptButtons.forEach(btn => btn.style.display = 'inline-block');
     } else {
         decryptButtons.forEach(btn => btn.style.display = 'none');
     }
+
+    // Lost & Found and Parameter Adjustment are system-admin pages that sit in the all-roles sidebar sections
+    document.querySelectorAll(".nav-item[onclick*=\"showPage('lost-found')\"], .nav-item[onclick*=\"showPage('parameter-adjustment')\"]")
+        .forEach(item => { item.style.display = role === 'system_admin' ? '' : 'none'; });
     
     // If current page is an admin page and user is not system admin, redirect to dashboard
     const currentPage = document.querySelector('.page.active');

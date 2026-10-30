@@ -87,7 +87,7 @@ function renderVipList() {
 
     vipList.innerHTML = vipData.map((vip) => {
         const name = escapeHtmlSafe(vip.name ?? "");
-        const vipNameForJs = name.replace(/'/g, "\\'"); // escape single quotes
+        const vipNameForJs = encodeURIComponent(vip.name ?? '').replace(/'/g, '%27'); // safe inside the onclick quotes
 
         // Support different backend field names
         const createdAt = formatVipDate(vip.created_at ?? vip.createdAt);
@@ -99,7 +99,7 @@ function renderVipList() {
                     <div class="vip-date">Added: ${createdAt}</div>
                 </div>
                 <div class="vip-item-actions">
-                    <button type="button" class="vip-delete-btn" onclick="deleteVip('${vipNameForJs}')">
+                    <button type="button" class="vip-delete-btn" onclick="deleteVip(decodeURIComponent('${vipNameForJs}'))">
                         Remove &#128465;
                     </button>
                 </div>

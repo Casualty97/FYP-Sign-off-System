@@ -6,7 +6,7 @@
 async function loadQuestionManagementData() {
     try {
         console.log('❓ Loading question management data...');
-        const response = await fetch('/api/admin/questions');
+        const response = await fetch('/api/admin/questions?includeInactive=1');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -62,6 +62,7 @@ function updateQuestionManagementTable(questionsData) {
         
         const questionCard = document.createElement('div');
         questionCard.className = 'question-card';
+        if (!question.is_active) questionCard.style.opacity = '0.6';
         
         questionCard.innerHTML = `
             <div class="question-header">
@@ -232,7 +233,7 @@ function showAddQuestionModal() {
                 
                 <div class="form-group" style="margin-bottom: 25px;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="is-active" checked style="width: 16px; height: 16px;">
+                        <input type="checkbox" id="question-is-active" checked style="width: 16px; height: 16px;">
                         <span style="font-weight: 600; color: #1e293b;">Active Question</span>
                     </label>
                     <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
@@ -356,7 +357,7 @@ async function handleAddQuestion(event) {
     const questionType = document.getElementById('question-type').value;
     const displayOrder = parseInt(document.getElementById('display-order').value) || 0;
     const isRequired = document.getElementById('is-required').value === '1';
-    const isActive = document.getElementById('is-active').checked;
+    const isActive = document.getElementById('question-is-active').checked;
     const errorDiv = document.getElementById('question-error');
     
     errorDiv.style.display = 'none';
@@ -431,7 +432,6 @@ async function handleAddQuestion(event) {
         if (data.success) {
             alert('✅ Question added successfully!');
             closeAddQuestionModal();
-            loadQuestionManagementData();
         } else {
             errorDiv.textContent = data.error || 'Failed to add question';
             errorDiv.style.display = 'block';

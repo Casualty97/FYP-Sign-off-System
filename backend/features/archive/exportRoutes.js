@@ -265,7 +265,7 @@ router.get('/photos/all', requireDataExportUnlocked, async (req, res) => {
         await exportPhotos(res, null, 'All photos', username);
     } catch (error) {
         console.error('Error exporting all photos:', error);
-        res.status(500).json({ error: 'Export failed: ' + error.message });
+        if (!res.headersSent) res.status(500).json({ error: 'Export failed: ' + error.message });
     }
 });
 
@@ -279,7 +279,7 @@ router.get('/photos/not-archived', requireDataExportUnlocked, async (req, res) =
         await exportPhotos(res, 'not_archived', 'Not archived photos', username);
     } catch (error) {
         console.error('Error exporting not-archived photos:', error);
-        res.status(500).json({ error: 'Export failed: ' + error.message });
+        if (!res.headersSent) res.status(500).json({ error: 'Export failed: ' + error.message });
     }
 });
 
@@ -293,7 +293,7 @@ router.get('/photos/archived', requireDataExportUnlocked, async (req, res) => {
         await exportPhotos(res, 'archived', 'Archived photos', username);
     } catch (error) {
         console.error('Error exporting archived photos:', error);
-        res.status(500).json({ error: 'Export failed: ' + error.message });
+        if (!res.headersSent) res.status(500).json({ error: 'Export failed: ' + error.message });
     }
 });
 
@@ -310,7 +310,8 @@ router.get('/audit-log', requireDataExportUnlocked, async (req, res) => {
         
         db.all(query, [], (err, rows) => {
             if (err) {
-                throw err;
+                console.error('❌ Audit log export failed:', err);
+                return res.status(500).json({ error: 'Failed to export audit logs' });
             }
             
             const csv = convertToCSV(rows);
@@ -944,6 +945,12 @@ Notes:
             res.setHeader('Content-Type', 'application/zip');
             res.setHeader('Content-Disposition', `attachment; filename=photos_${archiveFilter || 'all'}_${getTimestamp()}.zip`);
             
+            archive.on('error', (zipErr) => {
+                console.error('❌ Photo ZIP export failed:', zipErr);
+                res.destroy(zipErr);
+                reject(zipErr);
+            });
+            res.on('finish', resolve);
             archive.pipe(res);
             
             // Add readme
@@ -967,7 +974,6 @@ Notes:
             });
             
             archive.finalize();
-            resolve();
         });
     });
 }

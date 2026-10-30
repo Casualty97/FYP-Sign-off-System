@@ -185,6 +185,12 @@ function filterFeedbackData() {
     
     // Update UI counts
     updateFeedbackCounts(allFeedbackData.length, filteredFeedbackData.length, activeFiltersCount);
+
+    // Keep the column sort the admin chose
+    if (feedbackSortColumn) {
+        filteredFeedbackData.sort((a, b) => compareValues(a[feedbackSortColumn], b[feedbackSortColumn], feedbackSortColumn));
+        if (!feedbackSortAsc) filteredFeedbackData.reverse();
+    }
     
     // Reset to page 1
     feedbackCurrentPage = 1;
@@ -316,7 +322,7 @@ function renderFeedbackPage() {
         // Pledge
         const pledgeCell = row.insertCell(3);
         if (feedback.pledge && feedback.pledge.trim() !== '') {
-            pledgeCell.innerHTML = `<button class="btn-view" onclick="viewPledge(${feedback.id}, decodeURIComponent('${encodeURIComponent(feedback.pledge)}'))">View</button>`;
+            pledgeCell.innerHTML = `<button class="btn-view" onclick="viewPledge(${feedback.id})">View</button>`;
         } else {
             pledgeCell.innerHTML = '<span class="text-muted font-size-12">No pledge</span>';
         }

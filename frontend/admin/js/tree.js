@@ -131,11 +131,14 @@ async function saveTreeParameters() {
     }
 }
 
+let treeStageModeInitialized = false;
 function initTreeStageMode() {
     const radioAuto = document.querySelector('input[value="auto"]');
     const radioManual = document.querySelector('input[value="manual"]');
     const manualSelect = document.getElementById('param-treeStage');
     const manualContainer = document.getElementById('manualStageContainer');
+    if (treeStageModeInitialized || !radioAuto || !radioManual || !manualSelect || !manualContainer) return;
+    treeStageModeInitialized = true;
 
     function updateMode() {
         const isAuto = radioAuto.checked;
@@ -303,6 +306,11 @@ async function loadTreeStageSelection() {
         const rawStage = Number(treeParameters.treeStage);
         const normalizedStage = Number.isInteger(rawStage) ? Math.max(0, Math.min(4, rawStage)) : 0;
         stageSelect.value = String(normalizedStage);
+        const savedThresholds = treeParameters.leafThresholds || {};
+        ['stage1', 'stage2', 'stage3', 'stage4'].forEach(key => {
+            const input = document.getElementById('threshold-' + key);
+            if (input && savedThresholds[key] !== undefined && savedThresholds[key] !== null) input.value = savedThresholds[key];
+        });
         if (stageStatus) {
             stageStatus.textContent = `Current: stage ${normalizedStage}. Shown on /tree after apply.`;
         }
@@ -1016,9 +1024,11 @@ async function loadTreeTitleSettings() {
     const data = await response.json();
     const tree = data.parameters?.treeParameters || {};
     const settings = tree.treeTitleBox;
+    // treeDisplayMode is saved on treeParameters itself; reading it from the title box reset the select to 2D
+    const displayModeSelect = document.getElementById('param-treeDisplayMode');
+    if (displayModeSelect) displayModeSelect.value = (tree.treeDisplayMode || settings?.treeDisplayMode) === '3d' ? '3d' : '2d';
     if (settings) {
         document.getElementById('param-showTitleBox').checked = settings.showTitleBox ?? true;
-        document.getElementById('param-treeDisplayMode').value = settings.treeDisplayMode === '3d' ? '3d' : '2d';
         document.getElementById('param-titleText').value = settings.titleText || '🌳 ESG Digital Tree';
         document.getElementById('param-subtitleText').value = settings.subtitleText || 'Growing with every visitor\'s contribution this year';
         document.getElementById('param-titleOpacity').value = settings.opacity ?? 0.25;

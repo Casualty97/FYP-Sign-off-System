@@ -4065,6 +4065,24 @@ router.put('/users/:id', async (req, res) => {
 // Unlock data export with password verification (System Admin only)
 // POST /data-export/unlock lives in backend/features/archive/exportRoutes.js (mounted at /api/admin/data-export)
 
+// Re-check the logged-in admin's password before a destructive action (feedback delete).
+router.post('/verify-password', auth.requireAuth, (req, res) => {
+    const password = req.body && req.body.password;
+    const username = req.session.user.username;
+    if (!password) return res.status(400).json({ success: false, error: 'Password required' });
+
+    db.get('SELECT password_hash FROM admin_users WHERE username = ? AND is_active = 1', [username], async (err, row) => {
+        if (err) return res.status(500).json({ success: false, error: 'Database error' });
+        if (!row) return res.status(403).json({ success: false, error: 'Account is not active' });
+        const matches = await bcrypt.compare(password, row.password_hash).catch(() => false);
+        if (!matches) {
+            logAudit('PASSWORD_VERIFY_FAILED', username, null, null, req);
+            return res.status(403).json({ success: false, error: 'Invalid password' });
+        }
+        res.json({ success: true });
+    });
+});
+
 // ==================== 13. EXPORT/IMPORT ROUTES ====================
 
 // Excel download endpoint with email decryption
@@ -4729,8 +4747,8 @@ router.get('/questions', (req, res) => {
                 display_order,
                 is_active,
                 created_at
-            FROM questions 
-            WHERE is_active = 1
+            FROM questions
+            WHERE ${req.query.includeInactive === '1' ? '1 = 1' : 'is_active = 1'}
             ORDER BY display_order ASC, created_at ASC
         `;
         
@@ -8219,25 +8237,27 @@ router.post('/server/start', auth.requireAuth, (req, res) => {
                 child.unref();
                 fs.writeFileSync(kioskControlConfig.windowsPidFile, String(child.pid));
 
-                setTimeout(() => {
+                // A cold start loads the AI modules first, so keep checking for up to 30 s
+                const verifyStarted = (attempt) => {
                     resolveKioskStatus((verifyInfo) => {
-                        if (!verifyInfo.running) {
-                            return res.status(500).json({
-                                success: false,
-                                error: 'Kiosk server did not become reachable after start command',
+                        if (verifyInfo.running) {
+                            return res.json({
+                                success: true,
+                                message: 'Server started successfully',
                                 platform: 'windows',
-                                status: verifyInfo.status
+                                source: verifyInfo.source
                             });
                         }
-
-                        res.json({
-                            success: true,
-                            message: 'Server started successfully',
+                        if (attempt < 15) return setTimeout(() => verifyStarted(attempt + 1), 2000);
+                        res.status(500).json({
+                            success: false,
+                            error: 'Kiosk server did not become reachable within 30 seconds of the start command',
                             platform: 'windows',
-                            source: verifyInfo.source
+                            status: verifyInfo.status
                         });
                     });
-                }, 1500);
+                };
+                setTimeout(() => verifyStarted(1), 1500);
             } catch (error) {
                 console.error('❌ Failed to start Windows kiosk server:', error);
                 return res.status(500).json({
