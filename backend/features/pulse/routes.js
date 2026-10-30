@@ -10,8 +10,8 @@
 // ============================================================
 const express = require('express');
 const router = express.Router();
-const db = require('./db');
-const parametersConfigStore = require('./parametersConfigStore');
+const db = require('../../core/db');
+const parametersConfigStore = require('../parameters/store');
 
 const CAMPAIGN_GOAL = Number(process.env.PULSE_CAMPAIGN_GOAL || 100);
 

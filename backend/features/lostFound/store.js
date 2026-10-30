@@ -1,5 +1,5 @@
 // Lost and found report storage - changes made by nick
-const db = require('./db');
+const db = require('../../core/db');
 
 const VALID_TYPES = new Set(['lost', 'found']);
 const VALID_STATUSES = new Set(['new', 'reviewed', 'resolved']);

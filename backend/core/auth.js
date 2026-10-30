@@ -39,7 +39,7 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const db = require('./db');
-const { isDeviceNearby } = require('./bluetooth');
+const { isDeviceNearby } = require('../features/assets/bluetooth');
 
 // ==================== 1. CONFIGURATION ====================
 const SALT_ROUNDS = 12; // bcrypt salt rounds (higher = more secure but slower)

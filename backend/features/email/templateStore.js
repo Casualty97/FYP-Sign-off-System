@@ -23,8 +23,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const paths = require('../../core/paths');
 
-const CONFIG_PATH = path.join(__dirname, 'config', 'badgeEmailTemplates.json');
+const CONFIG_PATH = path.join(paths.CONFIG, 'badgeEmailTemplates.json');
 
 const DEFAULT_TEMPLATES = {
   'feedback-completer': {

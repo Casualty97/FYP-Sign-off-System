@@ -27,9 +27,10 @@
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
-const { getEmailConfig } = require('./emailConfigStore');
-const { getBadgeEmailTemplates } = require('./badgeEmailTemplateStore');
-const parametersConfigStore = require('./parametersConfigStore');
+const paths = require('../../core/paths');
+const { getEmailConfig } = require('./configStore');
+const { getBadgeEmailTemplates } = require('./templateStore');
+const parametersConfigStore = require('../parameters/store');
 
 function getPhotoAttachmentContentType(filename) { // changes made by nick
     const extension = path.extname(String(filename || '')).toLowerCase();
@@ -1163,12 +1164,12 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         if (photoFilename) {
             // Determine photo path - check multiple possible locations
             const searchPaths = [
-                path.join(__dirname, '..', 'uploads', 'photos', photoFilename),
-                path.join(__dirname, '..', 'uploads', 'processed', photoFilename),
-                path.join(__dirname, '..', 'uploads', photoFilename),
-                path.join(__dirname, '..', '..', 'uploads', 'photos', photoFilename),
-                path.join(__dirname, '..', '..', 'uploads', 'processed', photoFilename),
-                path.join(__dirname, '..', '..', 'uploads', photoFilename)
+                path.join(paths.UPLOADS, 'photos', photoFilename),
+                path.join(paths.UPLOADS, 'processed', photoFilename),
+                path.join(paths.UPLOADS, photoFilename),
+                path.join(paths.ROOT, '..', 'uploads', 'photos', photoFilename),
+                path.join(paths.ROOT, '..', 'uploads', 'processed', photoFilename),
+                path.join(paths.ROOT, '..', 'uploads', photoFilename)
             ];
 
             console.log('🔍 Searching for photo:', photoFilename);

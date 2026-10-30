@@ -14,11 +14,12 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const paths = require('../../core/paths');
 
-const db = require('./db');
+const db = require('../../core/db');
 
 const CACHE_SCHEMA_VERSION = 1;
-const CACHE_DIR = path.join(__dirname, 'cache');
+const CACHE_DIR = paths.CACHE;
 const CACHE_FILE = path.join(CACHE_DIR, 'feedback-analysis-cache.json');
 const CACHE_SETTINGS_FILE = path.join(CACHE_DIR, 'feedback-analysis-cache-settings.json');
 const CACHE_TABLE = 'feedback_analysis_cache';

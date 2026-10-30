@@ -26,8 +26,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { getBadgeSummary } = require('./emailService');
-const { isFeedbackFlagged } = require('./flaggedFeedback');
+const { getBadgeSummary } = require('../email/service');
+const { isFeedbackFlagged } = require('../analysis/flagged');
 
 let db;
 

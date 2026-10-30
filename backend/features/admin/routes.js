@@ -249,26 +249,27 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
-const auth = require('./auth');
+const auth = require('../../core/auth');
 const bcrypt = require('bcrypt');
-const lostFoundStore = require('./lostFoundStore'); // changes made by nick
-const db = require('./db');
+const lostFoundStore = require('../lostFound/store'); // changes made by nick
+const db = require('../../core/db');
 const multer = require('multer');
 const path = require('path');
+const paths = require('../../core/paths');
 const fs = require('fs');
 const https = require('https');
 const archiver = require('archiver');
-const emailService = require('./emailService');
-const emailConfigStore = require('./emailConfigStore');
+const emailService = require('../email/service');
+const emailConfigStore = require('../email/configStore');
 const {
     FLAGGED_FEEDBACK_KEYWORDS,
     analyzeFlaggedFeedbackText
-} = require('./flaggedFeedback');
-const badgeEmailTemplateStore = require('./badgeEmailTemplateStore');
-const assetStore = require('./assetStore');
-const parametersConfigStore = require('./parametersConfigStore');
-const dataRetentionCleanup = require('./dataRetentionCleanup');
-const feedbackAnalysisCacheStore = require('./feedbackAnalysisCacheStore');
+} = require('../analysis/flagged');
+const badgeEmailTemplateStore = require('../email/templateStore');
+const assetStore = require('../assets/store');
+const parametersConfigStore = require('../parameters/store');
+const dataRetentionCleanup = require('../archive/retention');
+const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
 
 
 //AI for sentiment analysis testing (Done by Yu Kang)
@@ -726,9 +727,9 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         let destFolder;
         if (file.fieldname === 'desktop_file') {
-            destFolder = path.join(__dirname, '../assets/overlays/DesktopOverlay');
+            destFolder = path.join(paths.ASSETS, 'overlays', 'DesktopOverlay');
         } else if (file.fieldname === 'mobile_file') {
-            destFolder = path.join(__dirname, '../assets/overlays/MobileOverlay');
+            destFolder = path.join(paths.ASSETS, 'overlays', 'MobileOverlay');
         } else {
             return cb(new Error('Invalid file type'));
         }
@@ -795,7 +796,7 @@ function handleOverlayUploadErrors(err, req, res, next) {
 
 const parameterBackgroundStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const destFolder = path.join(__dirname, '../assets/backgrounds');
+        const destFolder = path.join(paths.ASSETS, 'backgrounds');
         if (!fs.existsSync(destFolder)) {
             fs.mkdirSync(destFolder, { recursive: true });
         }
@@ -824,7 +825,7 @@ const uploadParameterBackground = multer({
 // Storage for custom leaf image uploads
 const leafStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const destFolder = path.join(__dirname, '../assets/Tree/leaf');
+        const destFolder = path.join(paths.ASSETS, 'Tree', 'leaf');
         console.log('📂 Destination folder:', destFolder);
         try {
             if (!fs.existsSync(destFolder)) {
@@ -868,7 +869,7 @@ const uploadParameterLeaf = multer({
 // Storage for custom tree background image uploads
 const treeBackgroundStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const destFolder = path.join(__dirname, '../assets/Tree/background');
+        const destFolder = path.join(paths.ASSETS, 'Tree', 'background');
         try {
             if (!fs.existsSync(destFolder)) {
                 fs.mkdirSync(destFolder, { recursive: true });
@@ -2801,14 +2802,14 @@ router.post('/download-archive-photos', async (req, res) => {
                 photoPaths.push({
                     id: item.id,
                     type: 'raw',
-                    path: path.join(__dirname, '..', 'uploads', item.photo_path)
+                    path: path.join(paths.UPLOADS, item.photo_path)
                 });
             }
             if (item.processed_photo_path) {
                 photoPaths.push({
                     id: item.id,
                     type: 'processed',
-                    path: path.join(__dirname, '..', 'uploads', item.processed_photo_path)
+                    path: path.join(paths.UPLOADS, item.processed_photo_path)
                 });
             }
         }
@@ -2819,10 +2820,10 @@ router.post('/download-archive-photos', async (req, res) => {
         
         // Create ZIP file
         const zipFilename = `archived_photos_${Date.now()}.zip`;
-        const zipPath = path.join(__dirname, '..', 'uploads', 'temp', zipFilename);
+        const zipPath = path.join(paths.UPLOADS, 'temp', zipFilename);
         
         // Ensure temp directory exists
-        const tempDir = path.join(__dirname, '..', 'uploads', 'temp');
+        const tempDir = path.join(paths.UPLOADS, 'temp');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
@@ -2879,7 +2880,7 @@ router.post('/download-archive-photos', async (req, res) => {
 router.get('/download-file/:filename', async (req, res) => {
     try {
         const { filename } = req.params;
-        const filePath = path.join(__dirname, '..', 'uploads', 'temp', filename);
+        const filePath = path.join(paths.UPLOADS, 'temp', filename);
         
         if (!fs.existsSync(filePath)) {
             return res.status(404).send('File not found');
@@ -3040,7 +3041,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
             // Delete photos from filesystem
             feedbackData.forEach(feedback => {
                 if (feedback.photo_path) {
-                    const photoPath = path.join(__dirname, '..', 'uploads', feedback.photo_path);
+                    const photoPath = path.join(paths.UPLOADS, feedback.photo_path);
                     if (fs.existsSync(photoPath)) {
                         try {
                             fs.unlinkSync(photoPath);
@@ -3052,7 +3053,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                 }
                 
                 if (feedback.processed_photo_path) {
-                    const processedPath = path.join(__dirname, '..', 'uploads', feedback.processed_photo_path);
+                    const processedPath = path.join(paths.UPLOADS, feedback.processed_photo_path);
                     if (fs.existsSync(processedPath)) {
                         try {
                             fs.unlinkSync(processedPath);
@@ -3190,7 +3191,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             let photosDeleted = 0;
             feedbackData.forEach(feedback => {
                 if (feedback.photo_path) {
-                    const photoPath = path.join(__dirname, '..', 'uploads', feedback.photo_path);
+                    const photoPath = path.join(paths.UPLOADS, feedback.photo_path);
                     if (fs.existsSync(photoPath)) {
                         try {
                             fs.unlinkSync(photoPath);
@@ -3203,7 +3204,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                 }
                 
                 if (feedback.processed_photo_path) {
-                    const processedPath = path.join(__dirname, '..', 'uploads', feedback.processed_photo_path);
+                    const processedPath = path.join(paths.UPLOADS, feedback.processed_photo_path);
                     if (fs.existsSync(processedPath)) {
                         try {
                             fs.unlinkSync(processedPath);
@@ -4377,10 +4378,10 @@ router.get('/download-photos', async (req, res) => {
             return res.status(401).json({ error: 'Invalid password or insufficient permissions' });
         }
         
-        const uploadsPath = path.join(__dirname, '../uploads');
+        const uploadsPath = paths.UPLOADS;
         
         console.log(`🔍 Looking for uploads at: ${uploadsPath}`);
-        console.log(`🔍 Current directory: ${__dirname}`);
+        console.log(`🔍 Backend directory: ${paths.BACKEND}`);
         console.log(`🔍 Resolved absolute path: ${path.resolve(uploadsPath)}`);
         
         // Check if uploads directory exists
@@ -4388,7 +4389,7 @@ router.get('/download-photos', async (req, res) => {
             console.error(`❌ Uploads directory not found at: ${uploadsPath}`);
             
             // Debug: Check what's in the parent directory
-            const parentDir = path.join(__dirname, '..');
+            const parentDir = paths.ROOT;
             try {
                 const files = fs.readdirSync(parentDir);
                 console.log(`📂 Files in parent directory (${parentDir}):`, files);
@@ -5277,9 +5278,9 @@ function deleteUserPhotos(feedback, callback) {
         // Handle both absolute and relative paths
         let photoFullPath;
         if (feedback.photo_path.startsWith('photos/')) {
-            photoFullPath = path.join(__dirname, '../uploads', feedback.photo_path);
+            photoFullPath = path.join(paths.UPLOADS, feedback.photo_path);
         } else {
-            photoFullPath = path.join(__dirname, '../uploads/photos', path.basename(feedback.photo_path));
+            photoFullPath = path.join(paths.UPLOADS, 'photos', path.basename(feedback.photo_path));
         }
         filesToDelete.push({
             path: photoFullPath,
@@ -5291,9 +5292,9 @@ function deleteUserPhotos(feedback, callback) {
     if (feedback.processed_photo_path) {
         let processedFullPath;
         if (feedback.processed_photo_path.startsWith('processed/')) {
-            processedFullPath = path.join(__dirname, '../uploads', feedback.processed_photo_path);
+            processedFullPath = path.join(paths.UPLOADS, feedback.processed_photo_path);
         } else {
-            processedFullPath = path.join(__dirname, '../uploads/processed', path.basename(feedback.processed_photo_path));
+            processedFullPath = path.join(paths.UPLOADS, 'processed', path.basename(feedback.processed_photo_path));
         }
         filesToDelete.push({
             path: processedFullPath,
@@ -5342,13 +5343,13 @@ function deleteOverlayFiles(overlay, callback) {
     
     if (overlay.desktop_filename) {
         const desktopFilename = path.basename(overlay.desktop_filename);
-        const desktopFullPath = path.join(__dirname, '../assets/overlays/DesktopOverlay', desktopFilename);
+        const desktopFullPath = path.join(paths.ASSETS, 'overlays', 'DesktopOverlay', desktopFilename);
         filesToDelete.push(desktopFullPath);
     }
     
     if (overlay.mobile_filename) {
         const mobileFilename = path.basename(overlay.mobile_filename);
-        const mobileFullPath = path.join(__dirname, '../assets/overlays/MobileOverlay', mobileFilename);
+        const mobileFullPath = path.join(paths.ASSETS, 'overlays', 'MobileOverlay', mobileFilename);
         filesToDelete.push(mobileFullPath);
     }
     
@@ -6017,7 +6018,7 @@ router.delete('/vips/:name', (req, res) => {
 // ==================== 20. FORM UI CONFIGURATION ====================
 // Read + write feedback form UI settings 
 
-const FORM_UI_CONFIG_PATH = path.join(__dirname, 'config', 'form-ui.json');
+const FORM_UI_CONFIG_PATH = path.join(paths.CONFIG, 'form-ui.json');
 
 // GET /api/admin/form-ui
 // Load current form UI configuration
@@ -6653,7 +6654,7 @@ router.get('/parameters/leaf/list', auth.requireAdmin, (req, res) => {
     try {
         console.log('📂 Listing available leaf images');
         
-        const leafDir = path.join(__dirname, '../assets/Tree/leaf');
+        const leafDir = path.join(paths.ASSETS, 'Tree', 'leaf');
         const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
         const leafImages = [];
         
@@ -6697,7 +6698,7 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
         }
         
         // Validate path to prevent directory traversal
-        const leafDir = path.join(__dirname, '../assets/Tree/leaf');
+        const leafDir = path.join(paths.ASSETS, 'Tree', 'leaf');
         const fullPath = path.join(leafDir, path.basename(leafImage));
         
         if (!fullPath.startsWith(leafDir)) {
@@ -6746,7 +6747,7 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
 // GET /api/admin/parameters/tree-background/list - List available tree background images
 router.get('/parameters/tree-background/list', auth.requireAdmin, (req, res) => {
     try {
-        const backgroundDir = path.join(__dirname, '../assets/Tree/background');
+        const backgroundDir = path.join(paths.ASSETS, 'Tree', 'background');
         const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
         const backgroundImages = [];
 
@@ -6795,7 +6796,7 @@ router.post('/parameters/tree-background/select', auth.requireAdmin, (req, res) 
             return res.status(400).json({ success: false, error: 'Tree background is required' });
         }
 
-        const backgroundDir = path.join(__dirname, '../assets/Tree/background');
+        const backgroundDir = path.join(paths.ASSETS, 'Tree', 'background');
         const safeFilename = path.basename(treeBackground);
         const fullPath = path.join(backgroundDir, safeFilename);
 
@@ -7403,10 +7404,10 @@ router.put('/countdown-management', auth.requireAuth, (req, res) => {
 // SERVER SCHEDULE MANAGEMENT (Config File Based)
 
 // Config file location (readable/ writable by both Node.js and the schedule runner)
-const SCHEDULE_CONFIG_PATH = process.env.SCHEDULE_CONFIG_PATH || path.join(__dirname, 'kiosk-schedules.json');
+const SCHEDULE_CONFIG_PATH = process.env.SCHEDULE_CONFIG_PATH || path.join(paths.BACKEND, 'kiosk-schedules.json');
 
 // Mode file location (for manual/auto mode control)
-const MODE_FILE = path.join(__dirname, 'server-control-mode.json');
+const MODE_FILE = path.join(paths.BACKEND, 'server-control-mode.json');
 
 // Helper: Read schedules from config file
 function readSchedulesConfig() {
@@ -7827,8 +7828,8 @@ router.post('/server-schedules/disable-all', auth.requireAuth, (req, res) => {
 
 // Done by Yu Kang
 const kioskControlConfig = {
-    windowsPidFile: path.join(__dirname, 'kioskServer.pid'),
-    kioskScriptPath: path.join(__dirname, 'kioskServer.js'),
+    windowsPidFile: path.join(paths.BACKEND, 'kioskServer.pid'),
+    kioskScriptPath: path.join(paths.BACKEND, 'kioskServer.js'),
     kioskPort: 3003
 };
 
@@ -7978,11 +7979,11 @@ function resolveHealthDetails() {
     const photoUploadEnabled = featureFlags.photoUploadEnabled !== false;
 
     const storagePaths = [
-        { key: 'uploads', label: 'Uploads root', path: path.join(__dirname, '..', 'uploads') },
-        { key: 'photos', label: 'Raw photos', path: path.join(__dirname, '..', 'uploads', 'photos') },
-        { key: 'processed', label: 'Processed photos', path: path.join(__dirname, '..', 'uploads', 'processed') },
-        { key: 'desktopOverlays', label: 'Desktop overlays', path: path.join(__dirname, '..', 'assets', 'overlays', 'DesktopOverlay') },
-        { key: 'mobileOverlays', label: 'Mobile overlays', path: path.join(__dirname, '..', 'assets', 'overlays', 'MobileOverlay') }
+        { key: 'uploads', label: 'Uploads root', path: paths.UPLOADS },
+        { key: 'photos', label: 'Raw photos', path: path.join(paths.UPLOADS, 'photos') },
+        { key: 'processed', label: 'Processed photos', path: path.join(paths.UPLOADS, 'processed') },
+        { key: 'desktopOverlays', label: 'Desktop overlays', path: path.join(paths.ASSETS, 'overlays', 'DesktopOverlay') },
+        { key: 'mobileOverlays', label: 'Mobile overlays', path: path.join(paths.ASSETS, 'overlays', 'MobileOverlay') }
     ].map(item => ({
         ...item,
         ...checkPathAccess(item.path)
@@ -8029,7 +8030,7 @@ function normalizeBluetoothAssetPayload(body = {}) {
 
 function getNearbyDeviceMap() {
     try {
-        const { nearbyDevices } = require('./bluetooth');
+        const { nearbyDevices } = require('../assets/bluetooth');
         return nearbyDevices;
     } catch (error) {
         console.error('Failed to access nearby bluetooth devices:', error);
@@ -8070,7 +8071,7 @@ router.get('/assets', auth.requireAdmin, (req, res) => {
 // Storage for custom VIP leaf image uploads
 const vipLeafStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const destFolder = path.join(__dirname, '../assets/Tree/vip-leaf');
+        const destFolder = path.join(paths.ASSETS, 'Tree', 'vip-leaf');
         console.log('📂 VIP leaf destination folder:', destFolder);
         try {
             if (!fs.existsSync(destFolder)) {
@@ -8186,7 +8187,7 @@ router.post('/parameters/vip-leaf/revert', auth.requireAdmin, (req, res) => {
 // GET /api/admin/parameters/vip-leaf/list - List available VIP leaf images
 router.get('/parameters/vip-leaf/list', auth.requireAdmin, (req, res) => {
     try {
-        const vipLeafDir = path.join(__dirname, '../assets/Tree/vip-leaf');
+        const vipLeafDir = path.join(paths.ASSETS, 'Tree', 'vip-leaf');
         const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
         const vipLeafImages = [];
 
@@ -8222,7 +8223,7 @@ router.post('/parameters/vip-leaf/select', auth.requireAdmin, (req, res) => {
             return res.status(400).json({ success: false, error: 'VIP leaf image path is required' });
         }
 
-        const vipLeafDir = path.join(__dirname, '../assets/Tree/vip-leaf');
+        const vipLeafDir = path.join(paths.ASSETS, 'Tree', 'vip-leaf');
         const fullPath = path.join(vipLeafDir, path.basename(vipLeafImage));
 
         if (!fullPath.startsWith(vipLeafDir)) {
@@ -8309,7 +8310,7 @@ router.post('/server/start', auth.requireAuth, (req, res) => {
 
             try {
                 const child = spawn(process.execPath, [kioskControlConfig.kioskScriptPath], {
-                    cwd: __dirname,
+                    cwd: paths.BACKEND,
                     detached: true,
                     stdio: 'ignore',
                     windowsHide: true
@@ -8372,7 +8373,7 @@ router.post('/server/start', auth.requireAuth, (req, res) => {
 // Restart the kiosk application stack from the admin panel
 router.post('/server/restart', auth.requireAuth, (req, res) => {
     const { spawn } = require('child_process');
-    const rootDir = path.join(__dirname, '..');
+    const rootDir = paths.ROOT;
     const logsDir = path.join(rootDir, 'logs');
     const batchFile = path.join(rootDir, 'restart-app.bat');
 
@@ -8428,7 +8429,7 @@ router.post('/server/stop', auth.requireAuth, (req, res) => {
     });
 
     setTimeout(() => { 
-        const batFile = path.join(__dirname, '../hibernate.bat');
+        const batFile = path.join(paths.ROOT, 'hibernate.bat');
         console.log('💤 Running hibernate BAT file...', batFile);
 
         exec(`cmd.exe /c "${batFile}"`, (err, stdout, stderr) => {
@@ -8494,7 +8495,7 @@ router.post('/server/stop', auth.requireAuth, (req, res) => {
 
             // Wait for frontend to receive response
             setTimeout(() => {
-                const batFile = path.join(__dirname, '../hibernate.bat');
+                const batFile = path.join(paths.ROOT, 'hibernate.bat');
                 console.log('💤 Running hibernate BAT file...', batFile);
 
                 if (!fs.existsSync(batFile)) {
@@ -8503,7 +8504,7 @@ router.post('/server/stop', auth.requireAuth, (req, res) => {
                 }
 
                 const child = spawn('cmd.exe', ['/c', batFile], {
-                    cwd: __dirname,
+                    cwd: paths.BACKEND,
                     detached: true,
                     stdio: 'ignore',
                     windowsHide: true

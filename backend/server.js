@@ -114,17 +114,18 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const paths = require('./core/paths');
 const session = require('express-session');
-const db = require('./db');
-const feedbackRoutes = require('./feedbackRoutes');
-const adminRoutes = require('./adminRoutes');
-const dataExportRoutes = require('./dataExportRoutes');
-const pledgeboardRoutes = require('./pledgeboardRoutes');
-const pulseRoutes = require('./pulseRoutes');
+const db = require('./core/db');
+const feedbackRoutes = require('./features/feedback/routes');
+const adminRoutes = require('./features/admin/routes');
+const dataExportRoutes = require('./features/archive/exportRoutes');
+const pledgeboardRoutes = require('./features/pledgeboard/routes');
+const pulseRoutes = require('./features/pulse/routes');
 const os = require('os');
-const emailService = require('./emailService');
-const auth = require('./auth');
-const parametersConfigStore = require('./parametersConfigStore');
+const emailService = require('./features/email/service');
+const auth = require('./core/auth');
+const parametersConfigStore = require('./features/parameters/store');
 
 function isMobileUserAgent(userAgent) {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent || '');
@@ -143,10 +144,10 @@ function requireMobileTokenForPledgeboard(req, res, next) {
 }
 
 // Import tree routes and wire them to the shared DB
-const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./treeRoutes');
+const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features/tree/routes');
 
 // Import cleanup module
-const dataRetentionCleanup = require('./dataRetentionCleanup');
+const dataRetentionCleanup = require('./features/archive/retention');
 
 // Import QR code generation
 const QRCode = require('qrcode');
@@ -298,7 +299,7 @@ const bindHost = getBindHost();
 
 // Check for existing SSL certificate or generate new one
 // Updated paths to use certs/ folder
-const certsDir = path.join(__dirname, 'certs');
+const certsDir = paths.CERTS;
 const certPath = path.join(certsDir, 'selfsigned.pem');
 const keyPath = path.join(certsDir, 'selfsigned.key');
 
@@ -390,13 +391,13 @@ app.use(session({
 // Serve the admin page before static directory handling so /admin and /admin/
 // both load the same HTML and use the same absolute asset paths.
 app.get(['/admin', '/admin/'], (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin/admin.html'));
+    res.sendFile(path.join(paths.FRONTEND, 'admin', 'admin.html'));
 });
 
 // Serve static files
-app.use(express.static(path.join(__dirname, '../frontend')));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/assets', express.static(path.join(__dirname, '../assets')));
+app.use(express.static(paths.FRONTEND));
+app.use('/uploads', express.static(paths.UPLOADS));
+app.use('/assets', express.static(paths.ASSETS));
 
 // Wire the shared DB into the tree routes
 setTreeDatabase(db);
@@ -521,19 +522,19 @@ app.get('/api/status', (req, res) => {
 // ==================== 6. PAGE ROUTES ====================
 
 app.get('/feedback', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/feedback/feedback.html'));
+    res.sendFile(path.join(paths.FRONTEND, 'feedback', 'feedback.html'));
 });
 
 app.get('/pledgeboard', requireMobileTokenForPledgeboard, (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/Pledgeboard/Pledgeboard.html'));
+    res.sendFile(path.join(paths.FRONTEND, 'Pledgeboard', 'Pledgeboard.html'));
 });
 
 app.get(['/admin', '/admin/'], (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin/admin.html'));
+    res.sendFile(path.join(paths.FRONTEND, 'admin', 'admin.html'));
 });
 
 app.get(['/tree-demo', '/tree-demo/'], auth.requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/tree/tree.html'));
+    res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
 });
 
 // Tree page is selected from admin settings; inactive route returns 403.
@@ -542,7 +543,7 @@ app.get('/tree', (req, res) => {
     if (activeMode !== '2d') {
         return sendBlockedTreeRoute(res, activeMode);
     }
-    res.sendFile(path.join(__dirname, '../frontend/tree/tree.html'));
+    res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
 });
 
 // 3D Tree page is selected from admin settings; inactive route returns 403.
@@ -551,11 +552,11 @@ app.get(['/3dTree', '/3dtree'], (req, res) => {
     if (activeMode !== '3d') {
         return sendBlockedTreeRoute(res, activeMode);
     }
-    res.sendFile(path.join(__dirname, '../frontend/3dTree/3dTree.html'));
+    res.sendFile(path.join(paths.FRONTEND, '3dTree', '3dTree.html'));
 });
 
 app.get('/pulse', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/pulse/pulse.html'));
+    res.sendFile(path.join(paths.FRONTEND, 'pulse', 'pulse.html'));
 });
 
 // Default redirect

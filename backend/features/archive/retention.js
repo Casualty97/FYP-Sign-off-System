@@ -39,10 +39,11 @@
 // ============================================================
 
 // =================== 1. IMPORTS & DEPENDENCIES =================== 
-const db = require('./db');
+const db = require('../../core/db');
 const fs = require('fs');
 const path = require('path');
-const parametersConfigStore = require('./parametersConfigStore');
+const paths = require('../../core/paths');
+const parametersConfigStore = require('../parameters/store');
 
 const TEMPORARY_RETENTION_VALUES = new Set(['temporary', '7days', '7day']);
 const LONGTERM_RETENTION_VALUES = new Set(['longterm', 'indefinite']);
@@ -103,7 +104,7 @@ function isExpired(createdAt, retentionPeriod, feedbackId) {
 function deletePhotoFile(photoPath) {
     if (!photoPath) return;
 
-    const fullPath = path.join(__dirname, '../uploads', photoPath);
+    const fullPath = path.join(paths.UPLOADS, photoPath);
 
     if (fs.existsSync(fullPath)) {
         try {

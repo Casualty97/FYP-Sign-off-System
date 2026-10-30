@@ -24,12 +24,13 @@
 
 const express = require('express');
 const router = express.Router();
-const db = require('./db');
+const db = require('../../core/db');
 const fs = require('fs');
 const path = require('path');
-const { detectPledgeSentimentRule } = require('./pledgeSentiment');
+const paths = require('../../core/paths');
+const { detectPledgeSentimentRule } = require('../feedback/pledgeSentiment');
 
-const pledgeTopicsPath = path.join(__dirname, 'config', 'pledge-topics.json');
+const pledgeTopicsPath = path.join(paths.CONFIG, 'pledge-topics.json');
 const DEFAULT_PLEDGE_TOPICS = [
     { value: 'climate-change', label: 'Climate Change' },
     { value: 'renewable-energy', label: 'Renewable Energy' },

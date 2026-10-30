@@ -43,7 +43,7 @@ const path = require('path');
 const readline = require('readline');
 
 // Load environment variables from .env file
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', 'backend', '.env') });
 
 // Readline interface instance for prompting user input
 const rl = readline.createInterface({

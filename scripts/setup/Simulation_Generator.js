@@ -89,7 +89,7 @@
 // ==================== 1. IMPORTS & CONFIGURATION ====================
 
 // Load environment variables from .env file
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', 'backend', '.env') });
 
 // MySQL database library for database operations
 const mysql = require('mysql2');

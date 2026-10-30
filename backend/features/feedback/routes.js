@@ -67,14 +67,15 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const paths = require('../../core/paths');
 const fs = require('fs');
-const db = require('./db'); // Import database connection
-const emailService = require('./emailService');
-const auth = require('./auth');
-const parametersConfigStore = require('./parametersConfigStore');
+const db = require('../../core/db'); // Import database connection
+const emailService = require('../email/service');
+const auth = require('../../core/auth');
+const parametersConfigStore = require('../parameters/store');
 const { validateFeedbackSubmission } = require('./validationRules');
 const { analyzePledgeSentiment } = require('./pledgeSentiment');
-const lostFoundStore = require('./lostFoundStore'); // changes made by nick
+const lostFoundStore = require('../lostFound/store'); // changes made by nick
 
 function normalizeRetentionSelection(retention) {
     const normalized = String(retention || '').toLowerCase();
@@ -263,9 +264,9 @@ const sharp = require('sharp');
 
 // ==================== 1. DIRECTORY SETUP ====================
 // Ensure upload directories exist
-const uploadsDir = path.join(__dirname, '..', 'uploads', 'photos');
-const processedDir = path.join(__dirname, '..', 'uploads', 'processed');
-const lostFoundUploadsDir = path.join(__dirname, '..', 'uploads', 'lost-found'); // Lost & Found item photos (DONE BY NICK)
+const uploadsDir = path.join(paths.UPLOADS, 'photos');
+const processedDir = path.join(paths.UPLOADS, 'processed');
+const lostFoundUploadsDir = path.join(paths.UPLOADS, 'lost-found'); // Lost & Found item photos (DONE BY NICK)
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
     console.log('Created uploads directory:', uploadsDir);
@@ -1484,7 +1485,7 @@ router.get('/form-ui', (req, res) => {
     const fs = require('fs');
     const path = require('path');
 
-    const configPath = path.join(__dirname, 'config', 'form-ui.json');
+    const configPath = path.join(paths.CONFIG, 'form-ui.json');
 
     if (!fs.existsSync(configPath)) {
       return res.json({
@@ -1592,7 +1593,7 @@ router.get('/countdown-timer', (req, res) => {
 
 // Serve the languages.json file
 router.get('/languages/languages.json', (req, res) => {
-    res.sendFile(path.join(__dirname, '../languages.json'));
+    res.sendFile(path.join(paths.ROOT, 'languages.json'));
 });
 
 module.exports = router;

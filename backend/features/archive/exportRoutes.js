@@ -54,13 +54,14 @@
 
 const express = require('express');
 const router = express.Router();
-const auth = require('./auth');
-const db = require('./db');
+const auth = require('../../core/auth');
+const db = require('../../core/db');
 const fs = require('fs');
 const path = require('path');
+const paths = require('../../core/paths');
 const archiver = require('archiver');
 
-const pledgeTopicsPath = path.join(__dirname, 'config', 'pledge-topics.json');
+const pledgeTopicsPath = path.join(paths.CONFIG, 'pledge-topics.json');
 const DEFAULT_PLEDGE_TOPICS = [
     { value: 'climate-change', label: 'Climate Change' },
     { value: 'renewable-energy', label: 'Renewable Energy' },
@@ -906,7 +907,7 @@ async function exportPhotos(res, archiveFilter, exportName, username) {
                 return reject(err);
             }
             
-            const uploadsPath = path.join(__dirname, '../uploads');
+            const uploadsPath = paths.UPLOADS;
             
             // Count photos
             let rawCount = 0;

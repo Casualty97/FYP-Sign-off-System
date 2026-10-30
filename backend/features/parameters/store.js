@@ -50,8 +50,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const paths = require('../../core/paths');
 
-const CONFIG_FILE = path.join(__dirname, 'config', 'parametersConfig.json');
+const CONFIG_FILE = path.join(paths.CONFIG, 'parametersConfig.json');
 
 // Default parameters if file doesn't exist
 const DEFAULT_CONFIG = {

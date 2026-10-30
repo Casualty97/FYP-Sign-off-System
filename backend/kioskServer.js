@@ -98,18 +98,19 @@ const express = require('express');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const paths = require('./core/paths');
 const session = require('express-session');
 const os = require('os');
 
-const db = require('./db');
-const feedbackRoutes = require('./feedbackRoutes');
-const pledgeboardRoutes = require('./pledgeboardRoutes');
-const pulseRoutes = require('./pulseRoutes');
-const emailService = require('./emailService');
-const parametersConfigStore = require('./parametersConfigStore');
+const db = require('./core/db');
+const feedbackRoutes = require('./features/feedback/routes');
+const pledgeboardRoutes = require('./features/pledgeboard/routes');
+const pulseRoutes = require('./features/pulse/routes');
+const emailService = require('./features/email/service');
+const parametersConfigStore = require('./features/parameters/store');
 
-const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./treeRoutes');
-const dataRetentionCleanup = require('./dataRetentionCleanup');
+const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features/tree/routes');
+const dataRetentionCleanup = require('./features/archive/retention');
 const QRCode = require('qrcode');
 
 const app = express();
@@ -193,7 +194,7 @@ const interfaceName = getInterfaceForIP(localIP);
 // ==================== SSL CERTIFICATE CONFIGURATION ====================
 
 // NOTE: SSL is handled by gateway server, but we keep this for direct access if needed
-const certsDir = path.join(__dirname, 'certs');
+const certsDir = paths.CERTS;
 const certPath = path.join(certsDir, 'selfsigned.pem');
 const keyPath = path.join(certsDir, 'selfsigned.key');
 
@@ -248,9 +249,9 @@ app.use(
 );
 
 // Static files
-app.use(express.static(path.join(__dirname, '../frontend')));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/assets', express.static(path.join(__dirname, '../assets')));
+app.use(express.static(paths.FRONTEND));
+app.use('/uploads', express.static(paths.UPLOADS));
+app.use('/assets', express.static(paths.ASSETS));
 
 // Wire DB into tree routes
 setTreeDatabase(db);
@@ -365,23 +366,23 @@ app.get('/api/status', (req, res) => {
 // ==================== PAGE ROUTES (KIOSK) ====================
 
 app.get('/feedback', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/feedback/feedback.html'));
+  res.sendFile(path.join(paths.FRONTEND, 'feedback', 'feedback.html'));
 });
 
 app.get('/pledgeboard', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/Pledgeboard/Pledgeboard.html'));
+  res.sendFile(path.join(paths.FRONTEND, 'Pledgeboard', 'Pledgeboard.html'));
 });
 
 app.get('/tree', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/tree/tree.html'));
+  res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
 });
 
 app.get('/3dTree', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/3dTree/3dTree.html'));
+  res.sendFile(path.join(paths.FRONTEND, '3dTree', '3dTree.html'));
 });
 
 app.get('/pulse', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/pulse/pulse.html'));
+  res.sendFile(path.join(paths.FRONTEND, 'pulse', 'pulse.html'));
 });
 
 app.get('/', (req, res) => {

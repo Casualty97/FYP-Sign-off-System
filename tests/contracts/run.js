@@ -62,8 +62,9 @@ function buildRouteTable() {
   for (const sf of serverFiles) {
     const text = read(sf);
     const reqs = {};
-    for (const m of text.matchAll(/const\s+(\w+)\s*=\s*require\(['"]\.\/([\w/]+)['"]\)/g)) reqs[m[1]] = `backend/${m[2]}.js`;
-    for (const m of text.matchAll(/const\s*\{[^}]*\brouter\s*:\s*(\w+)[^}]*\}\s*=\s*require\(['"]\.\/([\w/]+)['"]\)/g)) reqs[m[1]] = `backend/${m[2]}.js`;
+    const resolveReq = (spec) => path.posix.normalize(path.posix.join(path.posix.dirname(sf), spec)).replace(/(\.js)?$/, '.js');
+    for (const m of text.matchAll(/const\s+(\w+)\s*=\s*require\(['"](\.\.?\/[\w/.-]+)['"]\)/g)) reqs[m[1]] = resolveReq(m[2]);
+    for (const m of text.matchAll(/const\s*\{[^}]*\brouter\s*:\s*(\w+)[^}]*\}\s*=\s*require\(['"](\.\.?\/[\w/.-]+)['"]\)/g)) reqs[m[1]] = resolveReq(m[2]);
     for (const m of text.matchAll(/app\.use\(\s*['"]([^'"]+)['"]\s*,\s*(\w+)\s*\)/g)) {
       if (!reqs[m[2]]) continue;
       if (!mounts.has(reqs[m[2]])) mounts.set(reqs[m[2]], new Set());
@@ -93,6 +94,21 @@ function buildRouteTable() {
 }
 const routeRegex = (p) => new RegExp('^' + p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/:\w+\??/g, '[^/]+') + '/?$');
 const ROUTES = buildRouteTable();
+
+// ---------------------------------------------------------------- 1b. relative requires resolve
+check('requires: every relative require() points at a file that exists', () => {
+  const problems = [];
+  const files = JS.filter((f) => !f.startsWith('frontend/'));
+  for (const f of files) {
+    const text = read(f);
+    for (const m of text.matchAll(/require\((['"])(\.\.?\/[^'"]+)\1\)/g)) {
+      const target = path.posix.normalize(path.posix.join(path.posix.dirname(f), m[2]));
+      const candidates = [target, `${target}.js`, `${target}.json`, `${target}/index.js`];
+      if (!candidates.some((c) => fs.existsSync(path.join(ROOT, c)))) problems.push(`${f}:${lineOf(text, m.index)} require('${m[2]}') does not resolve`);
+    }
+  }
+  return problems;
+});
 
 // ---------------------------------------------------------------- 2. frontend /api paths exist
 check('routes: every /api path the frontend calls is registered', () => {
