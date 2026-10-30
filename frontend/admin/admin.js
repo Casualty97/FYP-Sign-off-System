@@ -170,8 +170,6 @@
 //    let encryptedArchiveIds          - Array of encrypted archive IDs (current page) (DONE BY PRETI)
 //    let dataExportUnlocked           - Track data export session unlock status (DONE BY PRETI)
 //    let dataExportUnlockTime         - Track data export unlock timestamp (DONE BY PRETI)
-//    let preti_kioskMonitorInterval   - Timer for dashboard kiosk status monitoring (DONE BY PRETI)
-//    let preti_previousKioskState     - Track previous kiosk state for change detection (DONE BY PRETI)
 //    window.questionsDataMap          - Store question data for edit functions (DONE BY PRETI)
 //    function showNotification()      - Show notification message to user (DONE BY PRETI)
 //
@@ -207,9 +205,6 @@
 //    async function loadDashboardData() - Load dashboard statistics and start kiosk monitoring (DONE BY PRETI)
 //    function updateEnhancedDashboardStats() - Update dashboard stat cards (DONE BY PRETI)
 //    async function updateSystemStatus() - Check and update System Status section (Kiosk, DB) (DONE BY PRETI)
-//    async function updateKioskStatus() - Update kiosk status metric card with real-time data (DONE BY PRETI)
-//    function preti_startDashboardKioskMonitoring() - Start continuous kiosk status monitoring (5s interval) (DONE BY PRETI)
-//    function preti_stopDashboardKioskMonitoring() - Stop kiosk status monitoring and cleanup (DONE BY PRETI)
 //    function animateValue()          - Animate number value changes (DONE BY PRETI)
 //    function updateLastUpdated()     - Update last updated timestamp (DONE BY PRETI)
 //    function getDefaultStats()       - Get fallback statistics for offline mode (DONE BY PRETI)
@@ -877,30 +872,10 @@ let encryptedArchiveIds = [];
 let dataExportUnlocked = false;
 let dataExportUnlockTime = null;
 
-let preti_kioskMonitorInterval = null;    // Timer for 5-second status checks
-let preti_previousKioskState = null;      // Track previous state to detect changes
 
 // Question management - store question data to avoid JSON.stringify issues in onclick
 window.questionsDataMap = new Map();
 
-//
-//  Show notification message to user
-//  @param {string} message - Message to display
-//  @param {string} type - Type of notification: 'success', 'error', 'info', 'warning'
-//  
-function showNotification(message, type = 'info') {
-    // Check if you have an existing notification system
-    
-    if (type === 'error') {
-        alert('❌ ' + message);
-    } else if (type === 'success') {
-        alert('✅ ' + message);
-    } else if (type === 'warning') {
-        alert('⚠️ ' + message);
-    } else {
-        alert('ℹ️ ' + message);
-    }
-}
 
 // ==================== 2. AUTHENTICATION & SESSION MANAGEMENT ====================
 
@@ -968,9 +943,6 @@ async function handleLogin(event) {
 function handleLogout() {
     const username = sessionStorage.getItem('loggedUser');
     
-    // PRETI'S CODE - Stop monitoring on logout
-    preti_stopDashboardKioskMonitoring();
-    
     // Log the logout
     fetch('/api/admin/logout-audit', {
         method: 'POST',
@@ -1025,15 +997,6 @@ function updateUIForUser(username, role) {
 }
 
 // Format role name for display
-function formatRoleName(role) {
-    const roleMap = {
-        'system_admin': 'System Admin',
-        'IT_admin': 'IT Admin',
-        'IT_staff': 'IT Staff'
-    };
-    return roleMap[role] || role;
-}
-
 // ==================== 3. AUDIT LOGS MANAGEMENT ====================
 
 // Load all audit logs
@@ -1779,8 +1742,6 @@ async function loadDashboardData() {
             updateEnhancedDashboardStats(data.stats);
             await updateSystemStatus(data.recentActivity); // Check all system statuses (System Status section)
             
-            preti_startDashboardKioskMonitoring();
-            
             await Promise.all([
                 loadChartData(), // Load chart data separately
                 loadInterventionAlerts(),
@@ -2119,88 +2080,6 @@ async function loadJourneyPassport() {
     }
 }
 
-// Update kiosk server status on dashboard
-async function updateKioskStatus() {
-    try {
-        const response = await fetch('/api/admin/server/status', { 
-            cache: 'no-store',
-            headers: { 'X-Preti-Dashboard': 'true' } 
-        });
-        
-        const data = await response.json();
-        
-        // Dashboard metric card elements
-        const statusValueEl = document.getElementById('kiosk-status-value');
-        const statusSubtitleEl = document.getElementById('kiosk-status-subtitle');
-        
-        if (!statusValueEl) {
-            console.warn('⚠️ [PRETI] Dashboard kiosk status element not found');
-            return;
-        }
-        
-        const isRunning = data.success && data.kiosk_running;
-        
-        if (isRunning) {
-            // Kiosk is running - show green
-            statusValueEl.innerHTML = '<span class="status-running">🟢 Running</span>';
-            if (statusSubtitleEl) {
-                statusSubtitleEl.textContent = 'Service is active';
-            }
-            updateDailyOperationButton(data.kiosk_running);
-        } else {
-            // Kiosk is stopped - show red
-            statusValueEl.innerHTML = '<span class="status-stopped">🔴 Stopped</span>';
-            if (statusSubtitleEl) {
-                statusSubtitleEl.textContent = 'Service is inactive';
-            }
-        }
-        
-        // Only log when state changes (reduce console spam)
-        if (preti_previousKioskState !== isRunning) {
-            console.log(`[PRETI] Dashboard kiosk status: ${isRunning ? 'Running' : 'Stopped'}`);
-            preti_previousKioskState = isRunning;
-        }
-        
-    } catch (error) {
-        console.error('❌ [PRETI] Error fetching kiosk status:', error);
-        
-        const statusValueEl = document.getElementById('kiosk-status-value');
-        if (statusValueEl) {
-            statusValueEl.innerHTML = '<span class="status-badge" style="background: #ffc107; color: #000;">⚠️ Unknown</span>';
-        }
-        
-        preti_previousKioskState = null;
-    }
-}
-
-// ==================== MONITORING START FUNCTION ====================
-
-function preti_startDashboardKioskMonitoring() {
-    // Stop any existing monitoring first to prevent duplicates
-    preti_stopDashboardKioskMonitoring();
-    
-    console.log('🔄 [PRETI] Starting dashboard kiosk monitoring (updates every 5 seconds)');
-    
-    // Do initial update immediately
-    updateKioskStatus();
-    
-    // Then update every 5 seconds
-    preti_kioskMonitorInterval = setInterval(() => {
-        updateKioskStatus();
-    }, 5000); // 5 seconds (different from other team's 3 seconds)
-}
-
-// ==================== ADD MONITORING STOP FUNCTION ====================
-function preti_stopDashboardKioskMonitoring() {
-    if (preti_kioskMonitorInterval) {
-        clearInterval(preti_kioskMonitorInterval);
-        preti_kioskMonitorInterval = null;
-        console.log('⏹️ [PRETI] Stopped dashboard kiosk monitoring');
-    }
-    
-    // Reset state tracker
-    preti_previousKioskState = null;
-}
 
 
 
@@ -3713,10 +3592,6 @@ function nextArchivePage() {
         isAnyArchiveEmailDecrypted = false;
         renderArchivePage();
     }
-}
-
-function refreshArchiveData() {
-    loadArchiveData();
 }
 
 // ==================== 7. FILTER CONTROLS (BOTH TABS) ====================
@@ -5232,18 +5107,6 @@ function updateLineChartForRange(range) {
         heading.textContent = `Feedback Demographics (${rangeLabel})`;
     }
 }
-
-// Wait for the page to load
-document.addEventListener('DOMContentLoaded', function() {
-    const rangeSelect = document.getElementById('timeRangeSelect');
-    if (rangeSelect) {
-        rangeSelect.addEventListener('change', function() {
-            const range = this.value;
-            window.currentTimeRange = range;
-            updateLineChartForRange(this.value);
-        });
-    }
-});
 
 
 // Create sentiment analysis doughnut chart (added by Yu Kang)
@@ -7355,97 +7218,6 @@ function editUser(userId, username, currentRole, fullName) {
     document.body.appendChild(modal);
 }
 
-// handleEditUser function to handle systemadmin self-edits
-async function handleEditUser(event, userId, isSystemAdminSelf = false) {
-    event.preventDefault();
-    
-    const username = document.getElementById('edit-username').value.trim();
-    const fullName = document.getElementById('edit-full-name').value.trim();
-    const role = document.getElementById('edit-user-role').value;
-    const password = document.getElementById('edit-user-password').value;
-    const errorDiv = document.getElementById('edit-user-error');
-    
-    // Validate inputs
-    if (!username || !fullName || !role) {
-        errorDiv.textContent = 'Username, display name, and role are required';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
-    // For systemadmin self-edit, enforce locked username and role
-    if (isSystemAdminSelf) {
-        if (username !== 'systemadmin' || role !== 'system_admin') {
-            errorDiv.textContent = 'Root account username and role cannot be changed';
-            errorDiv.style.display = 'block';
-            return;
-        }
-    } else {
-        // Validate username format for non-systemadmin users
-        if (!/^[a-z0-9_]+$/.test(username)) {
-            errorDiv.textContent = 'Username must contain only lowercase letters, numbers, and underscores';
-            errorDiv.style.display = 'block';
-            return;
-        }
-    }
-    
-    // Validate password if provided
-    if (password && password.length < 8) {
-        errorDiv.textContent = 'Password must be at least 8 characters long';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
-    try {
-        const updateData = {
-            username,
-            full_name: fullName,
-            role
-        };
-        
-        // Only include password if provided
-        if (password) {
-            updateData.password = password;
-        }
-        
-        const response = await fetch(`/api/admin/users/${userId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-username': sessionStorage.getItem('loggedUser')
-            },
-            body: JSON.stringify(updateData)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            if (isSystemAdminSelf) {
-                alert('✅ Root account updated successfully!\n\n' + 
-                      (password ? '🔐 Your password has been changed.' : '📝 Your display name has been updated.'));
-            } else {
-                alert('✅ User updated successfully!');
-            }
-            closeEditUserModal();
-            loadActiveUsers(); // Reload active users
-        } else {
-            errorDiv.textContent = data.error || 'Failed to update user';
-            errorDiv.style.display = 'block';
-        }
-    } catch (error) {
-        console.error('Error updating user:', error);
-        errorDiv.textContent = 'Error connecting to server: ' + error.message;
-        errorDiv.style.display = 'block';
-    }
-}
-
-// Close edit user modal
-function closeEditUserModal() {
-    const modal = document.querySelector('.edit-user-modal');
-    if (modal) {
-        modal.remove();
-    }
-}
-
 // Handle edit user form submission
 async function handleEditUser(event, userId) {
     event.preventDefault();
@@ -9000,11 +8772,6 @@ async function deleteAsset(bluetoothId) {
 // Show page with role-based access control
 function showPage(pageName) {
 
-        // ✨ PRETI'S CODE - Stop monitoring when leaving dashboard
-    if (pageName !== 'dashboard') {
-        preti_stopDashboardKioskMonitoring();
-    }
-    
     const userRole = sessionStorage.getItem('userRole');
     
     // Check if user is trying to access admin pages without system_admin role
@@ -10106,8 +9873,6 @@ function collectTreeTitleSettings() {
         paddingX: parseInt(document.getElementById('param-titlePaddingX').value),
         paddingY: parseInt(document.getElementById('param-titlePaddingY').value)
     };
-    console.log('Collected title settings:', settings);
-    return settings;
 }
 
 // Save tree title settings
@@ -10734,38 +10499,6 @@ const themeConfig = {
             buttons: {
                 'button-color': ['#digital-tree-page .btn-primary'],
                 'button-text-color': ['#digital-tree-page .btn-primary']
-            }
-        },
-        
-        'pledgeboard-page': {
-            general: {
-                'page-background': ['#pledgeboard-page'],
-                'primary-text': ['#pledgeboard-page .page-header h2'],
-                'secondary-text': ['#pledgeboard-page .page-header p']
-            },
-            card: {
-                'card-background': ['#pledgeboard-page .pledgeboard-section'],
-                'card-primary-text': ['#pledgeboard-page .section-header h3']
-            },
-            buttons: {
-                'button-color': ['#pledgeboard-page .btn-primary', '#pledgeboard-page .btn-secondary'],
-                'button-text-color': ['#pledgeboard-page .btn-primary', '#pledgeboard-page .btn-secondary']
-            }
-        },
-        
-        'pledgeboard-page': {
-            general: {
-                'page-background': ['#pledgeboard-page'],
-                'primary-text': ['#pledgeboard-page .page-header h2'],
-                'secondary-text': ['#pledgeboard-page .page-header p']
-            },
-            card: {
-                'card-background': ['#pledgeboard-page .pledgeboard-section'],
-                'card-primary-text': ['#pledgeboard-page .section-header h3']
-            },
-            buttons: {
-                'button-color': ['#pledgeboard-page .btn-primary', '#pledgeboard-page .btn-secondary'],
-                'button-text-color': ['#pledgeboard-page .btn-primary', '#pledgeboard-page .btn-secondary']
             }
         },
         
@@ -15748,6 +15481,18 @@ function hideLoading() {
     loadingElements.forEach(element => {
         element.classList.remove('loading');
     });
+}
+
+function showError(selector, message) {
+    const element = document.querySelector(selector);
+    if (element) {
+        element.classList.remove('loading');
+        const safeMessage = escapeHtml(message);
+        element.innerHTML = element.tagName === 'TBODY'
+            ? `<tr><td colspan="10" class="table-error">${safeMessage}</td></tr>`
+            : `<p class="table-error">${safeMessage}</p>`;
+    }
+    showNotification(message, 'error');
 }
 
 function closeModal(modalId) {

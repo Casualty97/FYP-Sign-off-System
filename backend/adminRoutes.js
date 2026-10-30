@@ -250,6 +250,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const auth = require('./auth');
+const bcrypt = require('bcrypt');
 const lostFoundStore = require('./lostFoundStore'); // changes made by nick
 const db = require('./db');
 const multer = require('multer');
@@ -2670,13 +2671,13 @@ router.post('/archive/update-status', (req, res) => {
 // Get archive statistics
 router.get('/archive/stats', async (req, res) => {
     try {
-        const [archivedCount] = await pool.query(`
+        const [archivedCount] = await db.pool.promise().query(`
             SELECT COUNT(*) as count 
             FROM feedback 
             WHERE archive_status = 'archived' AND is_active = 1
         `);
 
-        const [oldestArchived] = await pool.query(`
+        const [oldestArchived] = await db.pool.promise().query(`
             SELECT MIN(created_at) as oldest_date 
             FROM feedback 
             WHERE archive_status = 'archived' AND is_active = 1
@@ -2742,7 +2743,7 @@ router.post('/bulk-decrypt-archive', async (req, res) => {
         for (const item of emails) {
             if (item.email_encrypted && item.email_encrypted.includes(':')) {
                 try {
-                    const decrypted = decryptEmail(item.email_encrypted);
+                    const decrypted = auth.decryptEmail(item.email_encrypted);
                     if (decrypted) {
                         decryptedEmails[item.id] = decrypted;
                     }
@@ -4115,7 +4116,6 @@ router.post('/data-export/unlock', (req, res) => {
         
         // Now verify the password using bcrypt
         try {
-            const bcrypt = require('bcrypt');
             const passwordMatch = await bcrypt.compare(password, dbUser.password_hash);
             
             if (!passwordMatch) {

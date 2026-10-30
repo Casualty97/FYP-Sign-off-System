@@ -46,9 +46,9 @@
 // ============================================================
 //
 // 1. TOKEN-BASED QR FEEDBACK FLOW
-//    loadDynamicQRCode()             - Fetches a short-lived kiosk token QR from /api/kiosk/generate-qr (Done by Yu Kang)
+//    loadDynamicQRCode()             - Fetches the kiosk QR SVG from /api/generate-qr (Done by Yu Kang)
 //    startQrRefreshLoop()            - Refreshes the kiosk QR every 25 seconds to reduce screenshot reuse (Done by Yu Kang)
-//    qr-description text             - Shows the live /feedback?token=... URL and expiry note on the kiosk screen (Done by Yu Kang)
+//    qr-description text             - Static text under the kiosk QR (Done by Yu Kang)
 //
 
 // CAEDEN CHANGE SUMMARY (DONE BY CAEDEN)
@@ -216,9 +216,9 @@ let lostFoundPhotoName = ''; // Original Lost & Found item photo filename (DONE 
 let lostFoundPhotoReadPromise = Promise.resolve(true); // Wait for Lost & Found photo reads before saving (DONE BY NICK)
 const RP_BEAR_VOICE_KEY = 'rpBearVoiceEnabled'; // RP guide voice preference (DONE BY NICK)
 let rpBearVoiceEnabled = localStorage.getItem(RP_BEAR_VOICE_KEY) === 'true'; // RP guide audio toggle (DONE BY NICK)
-const MEDIAPIPE_TASKS_VISION_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest';
-const MEDIAPIPE_WASM_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm';
-const FACE_LANDMARKER_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
+const MEDIAPIPE_TASKS_VISION_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.0';
+const MEDIAPIPE_WASM_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.0/wasm';
+const FACE_LANDMARKER_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 // Swipeable animated face filter options - changes made by nick
 const FACE_ACCESSORY_OPTIONS = [
     { id: 'none', label: 'No filter' },
@@ -1233,15 +1233,6 @@ async function detectFaceInCurrentFrame() {
 }
 
 // Feature to detect face in uploaded image (mobile) - done by Yu Kang
-function loadImageElement(dataUrl) {
-    return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error('Unable to load uploaded image for face detection.'));
-        image.src = dataUrl;
-    });
-}
-
 async function detectFaceInImageData(dataUrl) {
     await ensureFaceDetectionReady();
 
@@ -1971,8 +1962,7 @@ async function capturePhotoIfFaceDetected() {
 // Load dynamic QR code from server
 async function loadDynamicQRCode() {
     try {
-        const kioskId = window.location.hostname || 'default-kiosk';
-        const response = await fetch(`/api/kiosk/generate-qr?kiosk_id=${encodeURIComponent(kioskId)}`);
+        const response = await fetch('/api/generate-qr');
         const data = await response.json();
         
         if (data.success && data.qrSvg) {
@@ -1981,15 +1971,6 @@ async function loadDynamicQRCode() {
                 // Replace the dummy QR code with dynamic one
                 qrContainer.innerHTML = data.qrSvg;
                 
-                // Update the description with the actual IP
-                const qrDescription = document.querySelector('.qr-description');
-                if (qrDescription) {
-                    qrDescription.innerHTML = `
-                        Scan to open<br>
-                        This QR refreshes automatically and expires in about 30 seconds.
-                    `; //: <strong>${data.url}</strong> (Put under qrcode)
-                }
-
                 console.log('Dynamic QR code loaded:', data.url);
             }
         }
@@ -2290,8 +2271,6 @@ function returnToLandingPage() {
     if (charCount) charCount.textContent = '0';
     
     // Reset proceed button if it exists
-    const proceedBtn = document.getElementById('proceedBtn');
-    if (proceedBtn) proceedBtn.disabled = true;
     
     showLandingPages();
     
@@ -4532,8 +4511,6 @@ function selectOption(option, element) {
     });
     element.classList.add('selected');
     selectedRetention = LONG_TERM_RETENTION;
-    const proceedBtn = document.getElementById('proceedBtn');
-    if (proceedBtn) proceedBtn.disabled = false;
     resetInactivityTimer();
 }
 
@@ -5693,8 +5670,6 @@ function submitAnother() {
     // Reset forms
     document.querySelectorAll('form').forEach(form => form.reset());
     document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-    const proceedBtn = document.getElementById('proceedBtn');
-    if (proceedBtn) proceedBtn.disabled = true;
     document.getElementById('char-count').textContent = '0';
     clearValidationMessages();
     
@@ -5752,8 +5727,6 @@ function goHomeFromFeedbackForm() {
     document.querySelectorAll('form').forEach(form => form.reset());
     document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
 
-    const proceedBtn = document.getElementById('proceedBtn');
-    if (proceedBtn) proceedBtn.disabled = true;
 
     const charCount = document.getElementById('char-count');
     if (charCount) charCount.textContent = '0';

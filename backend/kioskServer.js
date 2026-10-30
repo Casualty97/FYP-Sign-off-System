@@ -73,7 +73,7 @@
 //    app.use('/api/tree'              - Tree data fetching routes (DONE BY PRETI)
 //    app.get('/api/network-interfaces' - Get network interface information (DONE BY PRETI)
 //    app.get('/api/server-info'       - Get server configuration information (DONE BY PRETI)
-//    app.get('/api/generate-qr'       - Generate QR code for gateway URL (port 3001) (DONE BY PRETI)
+//    app.get('/api/generate-qr'       - Generate QR code for the HTTPS feedback URL (port 3000) (DONE BY PRETI)
 //    app.get('/api/test-db'           - Test database connection endpoint (DONE BY PRETI)
 //    app.get('/api/test-email-service' - Test email service endpoint (DONE BY PRETI)
 //    app.get('/api/status'            - Server status for offline.html auto-refresh (DONE BY PRETI)
@@ -296,12 +296,11 @@ app.get('/api/server-info', (req, res) => {
   });
 });
 
-// QR code (for feedback URL) - Now generates for gateway port 3001
+// QR code (for feedback URL) - points at the HTTPS server on port 3000
 app.get('/api/generate-qr', async (req, res) => {
   try {
-    const protocol = sslOptions ? 'https' : 'http';
-    // CHANGED: Generate QR for gateway port 3001
-    const url = `${protocol}://${localIP}:3001/feedback`;
+    // Phones must use the HTTPS server on port 3000 (the 3001 gateway is not started on Windows)
+    const url = `https://${localIP}:3000/feedback`;
 
     const qrSvg = await QRCode.toString(url, {
       type: 'svg',

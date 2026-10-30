@@ -56,7 +56,6 @@ function toCustomDateString(value) {
 }
 
 function mysqlDate(date = new Date()) {
-    return date
         const pad = (n) => String(n).padStart(2, '0');
         const year = date.getFullYear();
         const month = pad(date.getMonth() + 1);

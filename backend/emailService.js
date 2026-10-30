@@ -515,10 +515,6 @@ const BADGE_CONFIGS = {
         subject: 'Congratulations on Earning Your Social Champion Badge!',
         icon: '🤝',
         imageUrl: 'https://img.icons8.com/fluency/96/group.png',
-        description: 'For making social responsibility pledges',
-        subject: 'Congratulations on Earning Your Social Champion Badge!',
-        icon: '🤝',
-        imageUrl: 'https://img.icons8.com/fluency/96/group.png',
         color: '#f59e0b',
         textTemplate: `Hello!\n\nCongratulations! By making a social responsibility pledge, you've earned the "Social Champion" badge.\n\nYour commitment to community and inclusion makes a real difference!\n\nBest regards,\nESG Team`,
         htmlTemplate: `
