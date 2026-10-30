@@ -545,22 +545,11 @@ router.get('/journey-passport', auth.requireAuth, (req, res) => {
 // ==================== 2. AUDIT LOGGING FUNCTIONS ====================
 
 function logAudit(action, adminUsername, targetType = null, targetId = null, req = null) {
-    // Only log important actions - customize this list as needed
-    const importantActions = [
-        'LOGIN', 'LOGOUT', 
-        'DELETE_FEEDBACK', 'DELETE_USER', 'DELETE_OVERLAY', 'DELETE_QUESTION',
-        'DELETE_ARCHIVE_SELECTED', 'DELETE_ARCHIVE_BY_DATE', 'DELETE_ARCHIVE_FAILED', 'DELETE_ARCHIVE_BY_DATE_FAILED',
-        'ADD_USER', 'EDIT_USER',
-        'ADD_OVERLAY', 
-        'DOWNLOAD_EXCEL', 'DOWNLOAD_PHOTOS',
-        'VIEW_ENCRYPTED_EMAIL',
-        'EDIT_LOST_FOUND_REPORT',
-        'SAVE_THEME', 'ACTIVATE_THEME', 'UPDATE_THEME', 'DELETE_THEME' 
-    ];
-    
-    if (!importantActions.includes(action)) {
-        return; // Skip unimportant actions
-    }
+    // target_id is an INT column: text ids such as 'form-ui' go into target_type instead
+    let targetIdValue = null;
+    let targetTypeValue = targetType;
+    if (targetId !== null && targetId !== undefined && /^\d+$/.test(String(targetId))) targetIdValue = Number(targetId);
+    else if (targetId) targetTypeValue = String(targetType ? `${targetType}:${targetId}` : targetId).slice(0, 50);
     
     const ip = req ? req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress : 'unknown';
     const userAgent = req ? req.headers['user-agent'] : 'unknown';
@@ -571,7 +560,7 @@ function logAudit(action, adminUsername, targetType = null, targetId = null, req
     `;
     
     // Fire and forget - don't await
-    db.run(query, [action, adminUsername, targetType, targetId, ip, userAgent], (err) => {
+    db.run(query, [action, adminUsername, targetTypeValue, targetIdValue, ip, userAgent], (err) => {
         if (err) console.error('Audit log failed:', err);
     });
 }
@@ -844,7 +833,7 @@ const leafStorage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase() || '.png';
-        const filename = `CustomLeaf${ext}`;
+        const filename = `CustomLeaf-${Date.now()}${ext}`;
         console.log(`📁 Leaf filename: ${filename}`);
         cb(null, filename);
     }
@@ -1609,9 +1598,9 @@ router.put('/feedback/:id', (req, res) => {
 });
 
 // Delete feedback - with photo deletion and proper cascade
-router.delete('/feedback/:id', async (req, res) => {
+router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
     const { id } = req.params;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username;
     
     console.log('🗑️ Delete feedback request from:', username);
     
@@ -1654,8 +1643,6 @@ router.delete('/feedback/:id', async (req, res) => {
             });
         }
         
-        // Log the deletion attempt
-        logAudit('DELETE_FEEDBACK', username, 'feedback', id, req);
         console.log('✅ Authorized deletion by:', username, '(', user.role, ')');
     
     try {
@@ -1690,23 +1677,21 @@ router.delete('/feedback/:id', async (req, res) => {
                 has_processed: !!feedback.processed_photo_path
             });
             
-            // Step 2: Delete the user (this will CASCADE delete feedback and feedback_answers)
-            const deleteUserQuery = 'DELETE FROM users WHERE id = ?';
-            
-            db.run(deleteUserQuery, [feedback.user_id], function(err) {
+            // Step 2: delete this feedback row (answers and likes cascade). The visitor's users row is only
+            // removed when no other feedback points at it, so a returning visitor keeps their other entries.
+            db.run('DELETE FROM feedback WHERE id = ?', [feedback.id], function(err) {
                 if (err) {
-                    console.error('❌ Error deleting user:', err);
-                    return res.status(500).json({ error: 'Failed to delete user: ' + err.message });
+                    console.error('❌ Error deleting feedback:', err);
+                    return res.status(500).json({ error: 'Failed to delete feedback: ' + err.message });
                 }
-                
-                console.log('✅ User deleted successfully (CASCADE will delete feedback and answers):', {
-                    user_id: feedback.user_id,
-                    changes: this.changes
-                });
-                
                 if (this.changes === 0) {
-                    return res.status(404).json({ error: 'User not found or already deleted' });
+                    return res.status(404).json({ error: 'Feedback not found or already deleted' });
                 }
+                logAudit('DELETE_FEEDBACK', username, 'feedback', id, req);
+                db.run('DELETE FROM users WHERE id = ? AND NOT EXISTS (SELECT 1 FROM feedback WHERE user_id = ?)',
+                    [feedback.user_id, feedback.user_id], (userErr) => {
+                        if (userErr) console.error('⚠️ Could not remove the empty visitor row:', userErr.message);
+                    });
                 
                 // Step 3: Delete associated photos from filesystem
                 deleteUserPhotos(feedback, (photoError) => {
@@ -2878,10 +2863,14 @@ router.post('/download-archive-photos', async (req, res) => {
 });
 
 // Download file (for ZIP downloads)
-router.get('/download-file/:filename', async (req, res) => {
+router.get('/download-file/:filename', auth.requireAuth, async (req, res) => {
     try {
-        const { filename } = req.params;
-        const filePath = path.join(paths.UPLOADS, 'temp', filename);
+        const filename = path.basename(req.params.filename || '');
+        const tempDir = path.join(paths.UPLOADS, 'temp');
+        const filePath = path.join(tempDir, filename);
+        if (!filename || !filePath.startsWith(tempDir + path.sep)) {
+            return res.status(400).send('Invalid file name');
+        }
         
         if (!fs.existsSync(filePath)) {
             return res.status(404).send('File not found');
@@ -4074,99 +4063,7 @@ router.put('/users/:id', async (req, res) => {
 // ==================== 12. DATA EXPORT MANAGEMENT ROUTES ====================
 
 // Unlock data export with password verification (System Admin only)
-router.post('/data-export/unlock', (req, res) => {
-    const { username, password } = req.body;
-    
-    console.log('🔓 Data export unlock attempt:', { username });
-    
-    if (!username || !password) {
-        return res.status(400).json({ 
-            success: false,
-            error: 'Username and password required' 
-        });
-    }
-    
-    // First, get the user from database to check role
-    const getUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
-    
-    db.get(getUserQuery, [username], async (err, dbUser) => {
-        if (err) {
-            console.error('❌ Database error during unlock:', err);
-            return res.status(500).json({ 
-                success: false,
-                error: 'Server error' 
-            });
-        }
-        
-        if (!dbUser) {
-            console.error('❌ Data export unlock failed - user not found');
-            return res.status(401).json({ 
-                success: false,
-                error: 'Invalid credentials' 
-            });
-        }
-        
-        // Check if user has system_admin role BEFORE password verification
-        if (dbUser.role !== 'system_admin') {
-            console.error('❌ Data export unlock failed - insufficient permissions:', dbUser.role);
-            return res.status(403).json({ 
-                success: false,
-                error: 'Access denied. System Administrator privileges required.' 
-            });
-        }
-        
-        // Now verify the password using bcrypt
-        try {
-            const passwordMatch = await bcrypt.compare(password, dbUser.password_hash);
-            
-            if (!passwordMatch) {
-                console.error('❌ Data export unlock failed - invalid password');
-                return res.status(401).json({ 
-                    success: false,
-                    error: 'Invalid password' 
-                });
-            }
-            
-            // Log the successful unlock
-            logAudit('DATA_EXPORT_UNLOCK', username, null, null, req);
-            
-            // Set session flags for data export unlock
-            req.session.data_export_unlocked = true;
-            req.session.data_export_unlock_time = new Date().toISOString();
-            
-            // Explicitly save session before responding
-            req.session.save((saveErr) => {
-                if (saveErr) {
-                    console.error('❌ Failed to save session:', saveErr);
-                    return res.status(500).json({ 
-                        success: false,
-                        error: 'Failed to save session' 
-                    });
-                }
-                
-                console.log('✅ Data export unlocked for system admin:', username);
-                console.log('✅ Session saved successfully');
-                
-                res.json({
-                    success: true,
-                    message: 'Data export unlocked',
-                    expiresIn: 30,
-                    user: {
-                        username: dbUser.username,
-                        role: dbUser.role
-                    }
-                });
-            });
-            
-        } catch (bcryptError) {
-            console.error('❌ Error verifying password:', bcryptError);
-            res.status(500).json({ 
-                success: false,
-                error: 'Server error during authentication' 
-            });
-        }
-    });
-});
+// POST /data-export/unlock lives in backend/features/archive/exportRoutes.js (mounted at /api/admin/data-export)
 
 // ==================== 13. EXPORT/IMPORT ROUTES ====================
 
@@ -6488,11 +6385,7 @@ router.get('/parameters', auth.requireAuth, (req, res) => {
     const config = parametersConfigStore.readParametersConfig();
     res.json({ 
         success: true, 
-        parameters: {
-            treeParameters: config.treeParameters || {},
-            visualAssets: config.visualAssets || {},
-            campaignSettings: config.campaignSettings || {}
-        }
+        parameters: config
     });
   } catch (error) {
     console.error('❌ Error reading parameters:', error);
@@ -6526,7 +6419,7 @@ router.post('/translate', auth.requireAuth, (req, res) => {
   });
 });
 
-router.post('/parameters/background', auth.requireAdmin, uploadParameterBackground.single('background'), (req, res) => {
+router.post('/parameters/background', auth.requireAdmin, uploadParameterBackground.single('background'), handleTreeBackgroundUploadErrors, (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No background file uploaded' });
@@ -6567,7 +6460,7 @@ router.post('/parameters/background', auth.requireAdmin, uploadParameterBackgrou
 });
 
 // POST /api/admin/parameters/leaf - Upload a custom leaf image and activate it (Done by Yu Kang)
-router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('leaf'), (req, res) => {
+router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('leaf'), handleTreeBackgroundUploadErrors, (req, res) => {
     try {
         console.log('🍃 Leaf upload endpoint hit');
         console.log('📦 Received file:', req.file);
@@ -6839,10 +6732,10 @@ function handleTreeBackgroundUploadErrors(err, req, res, next) {
     if (!err) {
         return next();
     }
-    console.error('❌ Tree background upload failed:', err.message);
+    console.error('❌ Upload rejected:', err.message);
     return res.status(400).json({
         success: false,
-        error: err.message || 'Tree background upload failed'
+        error: err.message || 'Upload failed'
     });
 }
 
@@ -7222,7 +7115,7 @@ router.put('/email-config', auth.requireAuth, async (req, res) => {
     const existing = emailConfigStore.getEmailConfig();
     const merged = structuredClone(existing);
 
-    merged.provider = incoming.provider ?? merged.provider;
+    merged.provider = String(incoming.provider ?? merged.provider ?? '').toLowerCase();
     merged.senderEmail = incoming.senderEmail ?? merged.senderEmail;
 
     if (merged.provider === 'gmail') {
@@ -7247,12 +7140,20 @@ router.put('/email-config', auth.requireAuth, async (req, res) => {
       if (pass && pass !== '********') merged.custom.pass = pass;
     }
 
+    const need = { gmail: ['user', 'pass'], outlook: ['user', 'pass'], custom: ['host', 'port'] }[merged.provider];
+    if (!need) return res.status(400).json({ success: false, error: `Unknown provider "${merged.provider}"` });
+    const missing = need.filter((f) => !merged[merged.provider] || String(merged[merged.provider][f] ?? '').trim() === '');
+    if (missing.length) return res.status(400).json({ success: false, error: `Missing ${merged.provider} settings: ${missing.join(', ')}` });
     emailConfigStore.saveEmailConfig(merged);
-
     if (emailService.reloadEmailService) {
-      await emailService.reloadEmailService(); // no restart
+      try {
+        await emailService.reloadEmailService(); // no restart
+      } catch (reloadErr) {
+        emailConfigStore.saveEmailConfig(existing); // keep the settings that worked
+        await emailService.reloadEmailService().catch(() => {});
+        return res.status(400).json({ success: false, error: `Not saved, the mail service rejected these settings: ${reloadErr.message}` });
+      }
     }
-
     res.json({ success: true, message: 'Email config saved and reloaded.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -7264,7 +7165,10 @@ router.post('/email-config/test', auth.requireAuth, async (req, res) => {
     const to = req.body?.to;
     if (!to) return res.status(400).json({ success: false, error: 'Missing "to" email.' });
 
-    await emailService.testEmailService(to);
+    const result = await emailService.testEmailService(to);
+    if (!result || result.success === false) {
+      return res.status(500).json({ success: false, error: (result && result.error) || 'Test email failed' });
+    }
     res.json({ success: true, message: 'Test email sent successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -7871,29 +7775,24 @@ function probeKioskHttp(callback) {
 
         const host = hostsToTry[index];
         const formattedHost = host.includes(':') ? `[${host}]` : host;
+        let settled = false; // a timeout followed by the 'error' event must not advance twice
+        const next = (result) => {
+            if (settled) return;
+            settled = true;
+            if (result) callback(result); else tryHost(index + 1);
+        };
         const probe = http.get(`http://${formattedHost}:${kioskControlConfig.kioskPort}/feedback`, (probeRes) => {
             const reachable = probeRes.statusCode >= 200 && probeRes.statusCode < 500;
             probeRes.resume();
-
-            if (reachable) {
-                callback({
-                    running: true,
-                    status: `reachable (${host})`,
-                    source: 'http-probe'
-                });
-            } else {
-                tryHost(index + 1);
-            }
+            next(reachable ? { running: true, status: `reachable (${host})`, source: 'http-probe' } : null);
         });
 
         probe.setTimeout(1500, () => {
             probe.destroy();
-            tryHost(index + 1);
+            next(null);
         });
 
-        probe.on('error', () => {
-            tryHost(index + 1);
-        });
+        probe.on('error', () => next(null));
     }
 
     tryHost(0);
@@ -8088,7 +7987,7 @@ const vipLeafStorage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase() || '.png';
-        const filename = `CustomVipLeaf${ext}`;
+        const filename = `CustomVipLeaf-${Date.now()}${ext}`;
         console.log(`📁 VIP leaf filename: ${filename}`);
         cb(null, filename);
     }
@@ -8111,7 +8010,7 @@ const uploadParameterVipLeaf = multer({
     }
 });
 
-router.post('/parameters/vip-leaf', auth.requireAdmin, uploadParameterVipLeaf.single('vipLeaf'), (req, res) => {
+router.post('/parameters/vip-leaf', auth.requireAdmin, uploadParameterVipLeaf.single('vipLeaf'), handleTreeBackgroundUploadErrors, (req, res) => {
     try {
         console.log('🍃 VIP leaf upload endpoint hit');
         console.log('📦 Received file:', req.file);
@@ -8599,7 +8498,7 @@ router.post('/server/mode', auth.requireAuth, (req, res) => {
   try {
     const config = {
       mode: mode,
-      updated_by: req.session.username || 'unknown'
+      updated_by: (req.session.user && req.session.user.username) || 'unknown'
     };
     
     if (!writeModeConfig(config)) {

@@ -1,13 +1,13 @@
 {
   "feedbackMessages": {
-    "thankYouTitle": "",
-    "thankYouMessage": "",
-    "thankYouSubtitle": "",
-    "thankYouFooter": "",
-    "consentPrompt": "",
-    "detailsPrompt": "",
-    "feedbackPrompt": "",
-    "pledgePrompt": ""
+    "thankYouTitle": "Thank You! ☀️",
+    "thankYouMessage": "Your feedback has been recorded and a new leaf has been added to our digital tree!",
+    "thankYouSubtitle": "Your feedback makes a difference",
+    "thankYouFooter": "Thank you for contributing to our sustainability journey at Republic Polytechnic!",
+    "consentPrompt": "Your feedback helps us create a more sustainable future. Your responses will be kept confidential.",
+    "detailsPrompt": "Please provide your details so we can track your contributions.",
+    "feedbackPrompt": "Share your thoughts on our sustainability initiatives.",
+    "pledgePrompt": "Would you like to make a pledge to support sustainability?"
   },
   "contentSettings": {
     "temporaryRetentionDays": 7,
@@ -24,7 +24,12 @@
     "treeSubtitle": "This week's focus: reduce food waste through mindful choices.",
     "pulseGoal": 100,
     "badgeEmphasis": "sustainable-living",
-    "focusKeywords": [],
+    "focusKeywords": [
+      "food waste",
+      "leftovers",
+      "canteen",
+      "meal"
+    ],
     "pledgeExamples": [
       "Take only what I can finish during meals",
       "Share food waste tips with one friend this week",
@@ -32,11 +37,11 @@
     ]
   },
   "emailContent": {
-    "thankYouSubject": "",
-    "thankYouIntro": "",
-    "thankYouClosing": "",
-    "senderName": "",
-    "footerNote": "",
+    "thankYouSubject": "Thank you for visiting RP ESG Centre, {name}!",
+    "thankYouIntro": "Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.",
+    "thankYouClosing": "We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.",
+    "senderName": "ESG Centre Team",
+    "footerNote": "This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.",
     "visitSummaryTitle": "Your Visit Summary",
     "visitSummaryDateLabel": "Visit date",
     "visitSummaryTopicLabel": "Pledge topic",
@@ -57,31 +62,36 @@
   },
   "validationRules": {
     "nameRequired": true,
-    "nameMinLength": 0,
+    "nameMinLength": 2,
     "nameMaxLength": 80,
     "emailRequired": true,
     "emailPattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
     "requiredQuestionsEnabled": true,
     "pledgeRequired": true,
-    "pledgeMinLength": 0,
+    "pledgeMinLength": 5,
     "pledgeMaxLength": 500,
     "pledgeTopicRequired": true,
     "photoRequired": true,
     "dailySubmissionLimitPerEmail": 1,
     "maxPhotoFileSizeMb": 5,
-    "allowedPhotoFormats": []
+    "allowedPhotoFormats": [
+      "jpeg",
+      "jpg",
+      "png",
+      "webp"
+    ]
   },
   "treeParameters": {
     "treeStage": 4,
     "treeDisplayMode": "2d",
     "ovalWidth": 850,
     "ovalHeight": 300,
-    "ovalTopOffset": 0,
-    "leafRefreshInterval": 0,
-    "leafOpacity": 0,
-    "leafAnimationDuration": 0,
-    "leafFallThreshold": 0,
-    "leafFallDuration": 0,
+    "ovalTopOffset": -100,
+    "leafRefreshInterval": 30000,
+    "leafOpacity": 0.9,
+    "leafAnimationDuration": 500,
+    "leafFallThreshold": 15,
+    "leafFallDuration": 4200,
     "leafDisplayScale": 1,
     "vipLeafDisplayScale": 1,
     "showTitleBox": true,
@@ -123,7 +133,7 @@
     "tintDurationHours": 0
   },
   "photoSettings": {
-    "beautyFilterEnabled": false,
+    "beautyFilterEnabled": true,
     "beautyFilterStrength": "medium",
     "boomerangFrameDelayMs": 90,
     "boomerangQuality": "medium",
@@ -134,7 +144,7 @@
     ]
   },
   "overlaySettings": {
-    "enableOverlayUpload": false,
+    "enableOverlayUpload": true,
     "maxOverlayFileSize": 10485760,
     "gifOverlaySpeed": 1,
     "supportedFormats": [
