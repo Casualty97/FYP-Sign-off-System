@@ -30,8 +30,8 @@ One JSON file with the consent and pledge wording, validation rules, feature fla
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- GET /api/admin/parameters returns only 3 groups (see the admin page).
-- getNumberValue turns an empty box into 0.
+- getNumberValue turns an empty box into 0, and blank text fields are saved as "" (store.js 217; parameters.js 529): the form should keep the previous value or the default instead.
+- Settings files are written non-atomically and a corrupt parametersConfig.json is silently replaced by the defaults on the next save (store.js 248-271; same pattern in email/configStore.js, templateStore.js, assets/store.js, analysis/cacheStore.js).
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

@@ -19,9 +19,5 @@ Names on this list get a gold leaf on the tree.
 | POST | `/api/admin/vips` | backend/features/admin/routes.js |
 | DELETE | `/api/admin/vips/:name` | backend/features/admin/routes.js |
 
-**Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
-
-- Remove button breaks for names with an apostrophe (js/vips.js).
-
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

@@ -33,6 +33,7 @@ Login, session timeout, navigation between the admin pages, the dashboard with i
 | GET | `/api/admin/nick-usage-analytics` | backend/features/admin/routes.js |
 | GET | `/api/admin/school-summary` | backend/features/admin/routes.js |
 | GET | `/api/admin/test-db` | backend/features/admin/routes.js |
+| POST | `/api/admin/verify-password` | backend/features/admin/routes.js |
 | GET | `/api/admin/visitor-trends` | backend/features/admin/routes.js |
 
 **Task-sheet items for this feature**
@@ -43,11 +44,14 @@ Login, session timeout, navigation between the admin pages, the dashboard with i
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- GET /api/admin/parameters returns 3 of 14 settings groups, so Save Parameters wipes settings and breaks kiosk photo upload (routes 6485 old layout).
-- watchKioskService reloads the admin page after login and on session expiry (js/kioskReload.js).
-- Server mode is loaded only before login and two pollers are never cleared (js/serverControl.js).
-- Dashboard kiosk status poller was removed because its elements never existed; the Kiosk Server badge is updated by checkServerStatus instead.
 - Only 39 of about 108 admin routes use auth.requireAuth; the router is mounted with no guard (server.js 419).
+- Three queries use a feedback.rating column that does not exist (old 1399, 4252, 4345).
+- Phones are always bounced off /pledgeboard: req.session.mobileAccessGranted is set by nothing (server.js 140).
+- getSelectedIP falls back to the first adapter unless one is literally named "Wi-Fi 2" (server.js 227); set SERVER_IP on the wall PC.
+- kioskServer.js has drifted from server.js (no page gates, different static handling) if the wall browser is pointed at :3003.
+- restart-app.bat and startup-monitor.bat can double-launch the servers.
+- Dashboard kiosk status poller was removed because its elements never existed; the Kiosk Server badge is updated by checkServerStatus instead.
+- scripts/setup: Simulation_Generator stores bare filenames in photo_path (the app expects photos/<file>) and needs pngjs, which is not a dependency; Purge_Actuator "CLEAR ALL TEST DATA" leaves photo files and several tables behind.
 
 **Extracting a route group from routes.js**
 

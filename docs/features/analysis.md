@@ -30,7 +30,9 @@ Classifies feedback as positive, neutral or negative with rules, the BERT model 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
 - /feedback-sentiment-analysis downloads a 164 MB model and has no auth.
-- Ollama calls fail to "neutral" with no sign in the admin page.
+- Ollama calls fail to "neutral" with no sign in the admin page, and engine failures are cached as "neutral" forever (old 2426-2447).
+- cacheStore never persists hit statistics and rewrites the whole JSON cache on every run with no pruning (cacheStore.js 404-473).
+- pledgeSentiment retries a failed local-model load on every neutral pledge, before the feedback INSERT (pledgeSentiment.js 22, 70-75).
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

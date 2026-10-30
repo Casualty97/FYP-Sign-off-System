@@ -51,11 +51,9 @@ The wall display. /api/tree returns this year's visitors as leaves; tree.js plac
 - 3D page ignores title box and VIP settings; VIP folder name vip_leaf should be vip-leaf (3dTree.js 315, 1133).
 - model-viewer only from a Google CDN, no fallback (3dTree.html 7).
 - Live tree polls every 5 s regardless of leafRefreshInterval, 4 requests and a full rebuild each time (tree.js 2042).
-- Growth stage frozen at save time; leafThresholds read by nothing (admin/js/tree.js, admin routes 6910 old layout).
-- Tree tab can flip 3D back to 2D (admin/js/tree.js, old admin.js 10119).
+- Auto growth stage is computed once when the admin saves; nothing re-evaluates it as leaves arrive (the thresholds are stored and reloaded into the form since 31 Oct).
 - Empty number boxes save 0 and the wall uses hidden defaults (admin/js/parameters.js + tree.js 411).
 - Tree keeps archived rows that pulse and pledgeboard hide (treeRoutes 112).
-- Year computed three different ways (treeRoutes 113 vs 176).
 - Default background path wrong in parameters/store.js 185 (black wall on a fresh install).
 - param-tintDurationHours input missing so the badge tint duration is always 0.
 

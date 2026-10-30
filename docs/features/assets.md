@@ -27,5 +27,9 @@ Registers tablets by Bluetooth id and reports whether a registered device is nea
 - A graphical canvas for positioning the tree and pulse displays.
 - System-level server hibernation scheduling (shared with Role 3).
 
+**Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
+
+- bluetooth.js is unreachable from any route, its proximity threshold is unattainable, and its timer runs in both server processes for nothing (bluetooth.js 18, 21, 89; auth.js bluetoothAccessControl).
+
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

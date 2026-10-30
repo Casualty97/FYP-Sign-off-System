@@ -40,8 +40,8 @@ The visitor flow on the tablets: landing page with the QR code and the RP bear, 
 - The upload page keeps the previous visitor's photo preview and an enabled Continue button after a reset (old 3108).
 - A theme reset leaves a stale overlay preview, so the previewed frame differs from the saved one (old 2268, 4057).
 - The on-screen keepsake shows the raw unframed capture because processedPhoto is nulled before the thank-you page (old 3880, 5146).
-- allowedPhotoFormats is [] in the shipped config and the `|| defaults` fallback does not trigger for an empty array, so every upload is rejected (old 3043; admin save writes []).
-- Empty feedbackMessages blank the page text; setText has no fallback and runs again after translations (old 6028, 6774).
+- An empty allowedPhotoFormats list rejects every upload: the shipped config was repaired on 31 Oct, but config.js still has no fallback for an empty array (old 3043).
+- Empty feedbackMessages blank the page text; setText has no fallback and runs again after translations (old 6028, 6774). The shipped blanks were restored on 31 Oct.
 - The photoRequired rule never takes effect: Skip Photo is always offered and the server accepts photoSkipped (old 2968; validationRules).
 - Returning to the landing page depends on an async /form-ui fetch: blank kiosk when it fails (old 1018, 5864).
 - initializeCamera has no in-flight guard: double taps leak a MediaStream, Back during getUserMedia leaves the camera on (old 3648).
@@ -62,6 +62,16 @@ The visitor flow on the tablets: landing page with the QR code and the RP bear, 
 - Lost and Found is unreachable: both openers are inside HTML comments (html 155, 944).
 - MediaPipe and face-api load from CDNs: keep local copies for the day the centre has no internet.
 - overlaySettings and photoSettings.supportedFormats are saved by the admin but read by nothing (admin/js/parameters.js 14586 old layout).
+- Backend (feedback/routes.js, old line numbers): submit-feedback answers "success" before anything is saved and DB failures are only logged (718, 724-733).
+- The "Photo Thank You Email" toggle cannot stop the email (OR with badgeEmailEnabled, 706); the photo is attached unconditionally (743).
+- device and theme go unsanitised into saved filenames (474, 556): path traversal with a crafted POST; a non-string userName is a 500.
+- School-impact report uses the PULSE_CAMPAIGN_GOAL env while pulse uses campaignSettings.pulseGoal (409).
+- GET /api/feedback/test-db never answers (db.get without params, 1510); /languages/languages.json serves a file that does not exist (1594).
+- POST /send-email with an empty photoFilename marks EVERY feedback row email_sent=1 and resends (LIKE "%%", 1386); public, no caller.
+- Visitors are told the email is on its way before the transporter is known to work; failures leave no trace and retry-email has no UI (706-712).
+- Retention is hard-coded to long-term on both ends (634; LONG_TERM_RETENTION) so temporaryRetentionDays never applies; stale privacy texts.
+- Required questions are enforced client-side only (validationRules never checks answers).
+- Unmatched data URLs are decoded as garbage and saved as .png (282-298); allowedPhotoFormats is never enforced server-side.
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

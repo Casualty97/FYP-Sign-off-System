@@ -41,11 +41,8 @@ Stores daily start and stop schedules, starts or stops the kiosk server, and on 
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- Windows Start reports failure after 1.5 s even though the kiosk is starting (routes 8312 old layout).
-- Stop and End Day never say the PC will hibernate (js/serverControl.js).
-- updated_by is always "unknown" (routes 8601).
-- Overnight schedules are rejected by the page only.
-- kioskServer binds [::1] only on Windows (listen on 127.0.0.1 too).
+- The saved schedules are executed by nothing on Windows (only the legacy Linux cron runner read them); the page also rejects overnight schedules.
+- Auto-archive never runs when the PC hibernates every night (old 6466-6487).
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

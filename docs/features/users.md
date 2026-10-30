@@ -26,6 +26,7 @@ System admin, IT admin and IT staff accounts with soft delete and restore. The s
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
 - Change the seeded admin password on the wall PC.
+- Soft-deleted admins can still log in (auth.js 258; old routes 3688).
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

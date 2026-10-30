@@ -33,6 +33,9 @@ Sends the thank-you and badge emails through Gmail, Outlook or custom SMTP from 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
 - Credentials live in backend/config/defaults/emailConfig.json (tracked from the previous team) and are copied to backend/data/ at boot; rotate them.
+- initEmailService always reports success, so the startup log and GET /api/test-email-service lie (service.js 1085).
+- The transport reloads only in the server.js process; the kiosk server keeps stale credentials until restart; the custom provider insists on user+pass.
+- The visitor name is inserted raw into the thank-you HTML (service.js 1281, 1286); the pledge is escaped.
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

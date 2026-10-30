@@ -20,5 +20,9 @@ Visitors report a lost item from the kiosk (with a photo); admins list, export a
 | GET | `/api/admin/lost-found-reports/export.csv` | backend/features/admin/routes.js |
 | POST | `/api/feedback/lost-found` | backend/features/feedback/routes.js |
 
+**Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
+
+- The staff alert email's "View attached item photo" is a relative link and nothing is attached (feedback/routes.js 1535-1561 old).
+
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

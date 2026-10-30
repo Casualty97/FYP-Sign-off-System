@@ -25,5 +25,12 @@ Admins upload desktop and mobile frame images per theme; the kiosk draws the cho
 
 - RP photo props.
 
+**Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
+
+- The required Display Order field is discarded on save (overlays.js 723; routes 4513, 4690 old).
+- Preview onclick breaks on names with an apostrophe (overlays.js 131).
+- POST /overlays overwrites the live overlay files when the theme id already exists (routes 759-761, 4657 old).
+- schema.sql 289 seeds a Tech mobile overlay path that does not exist (needs a migration, not an edit of the frozen schema).
+
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.
