@@ -1,0 +1,205 @@
+# CI gate. Runs on every pull request to main and on every push to main.
+# One required status check: "ci-summary". Job names are load-bearing for branch protection.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, edited, labeled, unlabeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: '0'
+
+jobs:
+  # ------------------------------------------------------------------ which areas changed
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'database/**'
+              - 'startAll.js'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tests/**'
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
+
+  # ------------------------------------------------------------------ PR title, forbidden files, size
+  pr-rules:
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: Check the pull request
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/check-pr.js
+
+  # ------------------------------------------------------------------ new secrets
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          curl -sSfL -o /tmp/gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Scan the commits this change adds
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE_SHA" 2>/dev/null; then
+            BASE_SHA=$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)
+          fi
+          echo "scanning $BASE_SHA..$HEAD_SHA"
+          gitleaks git --redact --no-banner --exit-code 1 --config .gitleaks.toml --log-opts="--no-merges $BASE_SHA..$HEAD_SHA" .
+
+  # ------------------------------------------------------------------ syntax, lint, contracts
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            backend
+            frontend
+            database
+            tests
+            scripts
+            .github
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: ESLint (errors fail, warnings are listed)
+        run: |
+          npx eslint . -f json -o eslint-report.json || true
+          node -e "
+            const r=require('./eslint-report.json');
+            let errors=0,warnings=0;const byRule={};
+            for(const f of r)for(const m of f.messages){if(m.severity===2){errors++;console.log('::error file='+f.filePath+',line='+m.line+'::'+m.ruleId+': '+m.message);}else{warnings++;byRule[m.ruleId]=(byRule[m.ruleId]||0)+1;}}
+            const s='### ESLint\n'+errors+' error(s), '+warnings+' warning(s)\n\n'+Object.entries(byRule).map(([k,v])=>'- '+k+': '+v).join('\n')+'\n';
+            require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY||'/dev/null',s);
+            console.log(s);process.exit(errors?1:0);"
+      - name: Contract checks
+        run: node tests/contracts/run.js
+
+  # ------------------------------------------------------------------ boot + endpoints, Linux and Windows
+  smoke:
+    needs: [changes, static]
+    if: always() && needs.static.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows minutes cost more: Windows runs on push to main and on PRs that touch server-side files
+        os: ${{ fromJSON((github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true') && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: kiosk_user
+      DB_PASSWORD: kiosk123
+      DB_NAME: dp_kiosk_db
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000' # gitleaks:allow
+      SESSION_SECRET: ci-only-session-secret
+      PLEDGE_SENTIMENT_MODE: rules
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            backend
+            frontend
+            database
+            tests
+            scripts
+            assets/overlays
+            assets/static
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: ankane/setup-mysql@v1
+        with:
+          mysql-version: '8.4'
+      - run: npm ci
+      - name: Folders the servers write to (the tracked photos are deliberately not checked out)
+        shell: bash
+        run: mkdir -p uploads/photos uploads/processed logs backend/cache
+      - name: Create the database and apply schema.sql twice
+        run: node tests/ci-db-setup.js
+      - name: Make sure no real email can be sent from a runner
+        shell: bash
+        run: |
+          cat > backend/config/emailConfig.json <<'EOF'
+          {"provider":"gmail","senderEmail":"","senderName":"CI","gmail":{"user":"","pass":""},"outlook":{"user":"","pass":""},"custom":{"host":"","port":587,"secure":false,"user":"","pass":""}}
+          EOF
+      - name: Boot both servers and run the smoke checks
+        shell: bash
+        run: node tests/smoke.js
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: server-log-${{ runner.os }}
+          path: logs/smoke-server.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------ the one required check
+  ci-summary:
+    if: ${{ !cancelled() }}
+    needs: [changes, pr-rules, secret-scan, static, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every gate must have passed or been skipped
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS"
+          if echo "$RESULTS" | grep -Eq '"result": *"(failure|cancelled)"'; then
+            echo "::error::a required job failed"; exit 1
+          fi
+          echo "all gates green"

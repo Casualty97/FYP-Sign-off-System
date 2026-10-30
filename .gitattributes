@@ -1,1 +1,5 @@
 *.pdf binary
+
+# Shell scripts and git hooks must keep LF endings even when checked out on Windows
+.githooks/* text eol=lf
+*.sh text eol=lf

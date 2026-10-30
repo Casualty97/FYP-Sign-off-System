@@ -1,0 +1,49 @@
+# Builds an installable zip from main after CI passed and publishes it as a pre-release.
+# The wall PC installs from the release asset. Nothing is deployed automatically.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Build the zip
+        id: build
+        run: |
+          SHA7=$(git rev-parse --short=7 HEAD)
+          TAG="build-$(date -u +%Y%m%d-%H%M)-$SHA7"
+          NAME="kiosk-$TAG.zip"
+          zip -qr "$NAME" . \
+            -x 'node_modules/*' '.git/*' 'uploads/photos/*' 'uploads/processed/*' 'logs/*' '*.log' \
+               'backend/.env' 'backend/certs/*' 'backend/cache/*' 'backend/config/emailConfig.json' \
+               'backend/kiosk-schedules.json' 'backend/server-control-mode.json' 'legacy/*' 'Team_Documentation/*' 'docs/*'
+          sha256sum "$NAME" > "$NAME.sha256"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          ls -lh "$NAME"
+      - name: Publish as a pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Built from $(git rev-parse HEAD) on $(date -u +'%Y-%m-%d %H:%M UTC').\n\nInstall: unzip, run npm ci, copy backend/.env.example to backend/.env, then node startAll.js."
+          printf "%b" "$NOTES" > notes.md
+          gh release create "${{ steps.build.outputs.tag }}" "${{ steps.build.outputs.name }}" "${{ steps.build.outputs.name }}.sha256" \
+            --prerelease --title "${{ steps.build.outputs.tag }}" --notes-file notes.md --target "$(git rev-parse HEAD)"

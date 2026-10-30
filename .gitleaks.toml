@@ -1,0 +1,18 @@
+# gitleaks configuration. CI scans only the commits a change adds (base..head), so the files the
+# previous team committed are never visited; the allowlist below only matters if someone edits them.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Files still tracked from the previous team (to be untracked later) and the CI test key"
+paths = [
+  '''backend/\.env$''',
+  '''backend/config/emailConfig\.json$''',
+  '''backend/certs/.*''',
+]
+regexes = [
+  '''0000000000000000000000000000000000000000000000000000000000000000''',
+  '''SystemAdmin123!''',
+  '''kiosk123''',
+  '''ci-only-session-secret''',
+]

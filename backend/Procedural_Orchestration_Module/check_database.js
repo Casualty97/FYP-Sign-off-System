@@ -138,7 +138,8 @@ connection.connect((err) => {
                     console.log('✅ Query returned a user');
                     console.log('   Username:', testResults[0].username);
                     console.log('   Role:', testResults[0].role);
-                    console.log('   Password hash starts with:', testResults[0].password_hash.substring(0, 10));
+                    const hashFormat = String(testResults[0].password_hash || '').startsWith('$2') ? 'bcrypt' : 'not bcrypt';
+            console.log('   Password hash format:', hashFormat);
                 }
                 
                 connection.end();

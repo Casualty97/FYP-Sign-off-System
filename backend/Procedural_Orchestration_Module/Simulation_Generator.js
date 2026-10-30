@@ -116,7 +116,7 @@ const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 64) {
     console.log('❌ ERROR: ENCRYPTION_KEY not found or invalid in .env file!');
     console.log('   Please make sure your .env has:');
-    console.log('   ENCRYPTION_KEY=73b7a3917d846546457cbd72ba22c2f9ab5668dd42d954843f713d778c85ce8d');
+    console.log('   Set it in backend/.env to the same 64-hex value the server uses.');
     process.exit(1);
 }
 

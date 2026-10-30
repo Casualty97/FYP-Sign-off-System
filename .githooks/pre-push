@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs the same static checks as CI before a push. Install once with: npm run hooks:install
+cd "$(git rev-parse --show-toplevel)" || exit 1
+echo "pre-push: npm run check"
+npm run check --silent
