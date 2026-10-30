@@ -37,6 +37,7 @@
 // ==================== 1. IMPORTS & CONFIGURATION ====================
 
 // MySQL2 promise library for async database operations
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const mysql = require('mysql2/promise');
 
 // Password hashing library using bcrypt algorithm
@@ -54,7 +55,12 @@ const DB_CONFIG = {
 };
 
 // AES-256 encryption key for email encryption (must match .env file)
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-32-character-encryption-key-here-change-this!!';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY || !/^[0-9a-f]{64}$/i.test(ENCRYPTION_KEY)) {
+    console.error('❌ ENCRYPTION_KEY is missing from backend/.env or is not 64 hex characters.');
+    console.error('   The server derives its key from the same value (backend/auth.js), so this script must use it too.');
+    process.exit(1);
+}
 
 console.log('📄 Starting database migration...\n');
 
@@ -70,7 +76,7 @@ async function hashPassword(plainPassword) {
 function encryptEmail(email) {
     try {
         const algorithm = 'aes-256-gcm';
-        const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32), 'utf-8');
+        const key = Buffer.from(ENCRYPTION_KEY.slice(0, 64), 'hex'); // same derivation as backend/auth.js
         const iv = crypto.randomBytes(16);
         
         const cipher = crypto.createCipheriv(algorithm, key, iv);

@@ -93,7 +93,7 @@
 // DONE BY PRETI
 // Modified: Now runs on port 3003 (behind gateway on 3001)
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') }); // backend/.env regardless of the working directory
 const express = require('express');
 const https = require('https');
 const fs = require('fs');
