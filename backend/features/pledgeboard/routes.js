@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Preti (6), XY (Xuanyang) (3)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 2, Wei Jie. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 2, Wei Jie. Previous team: Preti (6), XY (Xuanyang) (3).
 // ============================================================
 // PLEDGEBOARDROUTES.JS - TABLE OF CONTENT
 // ============================================================

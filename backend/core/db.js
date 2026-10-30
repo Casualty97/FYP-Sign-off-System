@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Preti (11)   <- counted from the "DONE BY" style markers below
-// Current team owner: shared (lead: Role 3, Jun Kai). Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: shared (lead: Role 3, Jun Kai). Previous team: Preti (11).
 // ============================================================
 // DB.JS - TABLE OF CONTENTS (CTRL+F SEARCHABLE)
 // ============================================================

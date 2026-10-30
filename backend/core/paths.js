@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: no markers in this file   <- counted from the "DONE BY" style markers below
-// Current team owner: shared (lead: Role 3, Jun Kai). Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: shared (lead: Role 3, Jun Kai). Previous team: none marked.
 // Absolute paths used by the backend. Everything that touches the filesystem goes through here,
 // so files can move between folders without breaking paths.
 const path = require('path');

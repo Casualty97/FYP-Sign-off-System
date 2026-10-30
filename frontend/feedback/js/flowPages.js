@@ -1,12 +1,5 @@
-// Feedback (kiosk) page script, split from the former feedback.js by section (move only, nothing changed inside).
-// File 4 of 17: landing and flow page switching, validation messages, progress indicators. Owner: Role 1.
-// Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Nick (6)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 1, Zihan. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 1, Zihan. Previous team: Nick (6).
+// Part 4/17 of the feedback page: landing and flow page switching, validation messages, progress indicators (load order in feedback.html).
 
 function hideLandingPages() {
     ['land-page-no-qrcode', 'land-page-qrcode'].forEach(id => {

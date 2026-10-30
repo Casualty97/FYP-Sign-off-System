@@ -1,12 +1,5 @@
-// Admin page script, split from the former admin.js by section (move only, nothing changed inside).
-// File 1 of 30: previous-team index, session timeout, 401 handling, login/logout, global state. Owner: shared.
-// Load order (classic scripts, one shared global scope): core, audit, lostFound, dashboard, feedback, archive, feedbackFilters, encryption, pledgeViewer, analysis, photos, emailPopup, overlays, users, questions, dataExport, feedbackDeletion, navigation, tree, init, themes, archiveDeletion, pledgeboard, formUi, email, parameters, countdown, serverControl, vips, kioskReload.
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Preti (289), Yu Kang (22), XY (Xuanyang) (20), Caeden (13), Nick (6), Bernissa (3), Nadhirah (2), Zah (1)   <- counted from the "DONE BY" style markers below
-// Current team owner: shared. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: shared. Previous team: Preti (289), Yu Kang (22), XY (Xuanyang) (20), Caeden (13), Nick (6), Bernissa (3), Nadhirah (2), Zah (1).
+// Part 1/30 of the admin page: previous-team index, session timeout, 401 handling, login/logout, global state (load order in admin.html).
 // ============================================================
 // YU KANG — Feedback Analysis Options & LocalGPT (Done by Yu Kang)
 // - Feedback analysis modes available in the admin UI:

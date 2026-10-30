@@ -1,0 +1,10 @@
+# Maps every commit identity to one name, so `git shortlog -sn` and the contribution summary count each person once.
+# Format: Proper Name <preferred@email> <email-used-in-a-commit>
+# Current team (fill in the email each person commits with):
+Jun Kai <2670044@sit.singaporetech.edu.sg> Casualty97 <2670044@sit.singaporetech.edu.sg>
+# Zihan <...>
+# Wei Jie <...>
+# Ryan <...>
+# Previous team (inherited history):
+Preti <24042206@myrp.edu.sg> FranG-1314 <24042206@myrp.edu.sg>
+Xuanyang <xuanyang@previous-team> Zhuo Xuanyang <xuanyang@previous-team>

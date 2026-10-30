@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Yu Kang (2)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 3, Jun Kai. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 3, Jun Kai. Previous team: Yu Kang (2).
 // - Flagged feedback analysis:
 //   * Added keyword-based flagging for potential issues (e.g. "bad", "worst", "disappointed") (Done by Yu Kang)
 //   * Admin dashboard highlights flagged feedback for review (Done by Yu Kang)

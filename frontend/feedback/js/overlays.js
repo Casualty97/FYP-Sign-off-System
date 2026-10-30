@@ -1,12 +1,5 @@
-// Feedback (kiosk) page script, split from the former feedback.js by section (move only, nothing changed inside).
-// File 12 of 17: photo frames (overlays) and themes. Owner: Role 1.
-// Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Nick (20)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 1, Zihan. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 1, Zihan. Previous team: Nick (20).
+// Part 12/17 of the feedback page: photo frames (overlays) and themes (load order in feedback.html).
 // ==================== 7. OVERLAY & THEME FUNCTIONS ====================
 
 // Load overlay options from database

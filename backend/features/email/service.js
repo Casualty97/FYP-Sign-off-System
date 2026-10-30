@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: XY (Xuanyang) (8), Caeden (4), Nick (4)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 3, Jun Kai. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 3, Jun Kai. Previous team: XY (Xuanyang) (8), Caeden (4), Nick (4).
 // ============================================================
 // DONE BY XY - EMAIL BADGE SERVICE SUMMARY
 //  - Added the ESG Kiosk badge email system and badge configurations.

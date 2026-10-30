@@ -1,12 +1,5 @@
-// Admin page script, split from the former admin.js by section (move only, nothing changed inside).
-// File 26 of 30: parameter adjustment. Owner: Role 1 + Role 3.
-// Load order (classic scripts, one shared global scope): core, audit, lostFound, dashboard, feedback, archive, feedbackFilters, encryption, pledgeViewer, analysis, photos, emailPopup, overlays, users, questions, dataExport, feedbackDeletion, navigation, tree, init, themes, archiveDeletion, pledgeboard, formUi, email, parameters, countdown, serverControl, vips, kioskReload.
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Nick (6), Caeden (5), Yu Kang (4)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 1, Zihan and Role 3, Jun Kai. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 1, Zihan and Role 3, Jun Kai. Previous team: Nick (6), Caeden (5), Yu Kang (4).
+// Part 26/30 of the admin page: parameter adjustment (load order in admin.html).
 // ==================== PARAMETER ADJUSTMENT MANAGEMENT ====================
 
 const DEFAULT_LANDING_LAYOUT_SETTINGS = {

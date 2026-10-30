@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Preti (67), Yu Kang (22), XY (Xuanyang) (17), Caeden (17), Nick (12), Bernissa (9), Nadhirah (4), Zah (3)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 3, Jun Kai (admin page; each route group is extracted by the role that owns it). Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 3, Jun Kai (admin page; each route group is extracted by the role that owns it). Previous team: Preti (67), Yu Kang (22), XY (Xuanyang) (17), Caeden (17), Nick (12), Bernissa (9), Nadhirah (4), Zah (3).
 // ============================================================
 // YU KANG — Feedback Analysis Options & LocalGPT (Done by Yu Kang)
 // - Feedback analysis modes handled by admin endpoints:

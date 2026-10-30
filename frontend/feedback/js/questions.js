@@ -1,12 +1,5 @@
-// Feedback (kiosk) page script, split from the former feedback.js by section (move only, nothing changed inside).
-// File 9 of 17: question loading and rendering. Owner: Role 1.
-// Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: no markers in this file   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 1, Zihan. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 1, Zihan. Previous team: none marked.
+// Part 9/17 of the feedback page: question loading and rendering (load order in feedback.html).
 // ==================== 4. QUESTION MANAGEMENT FUNCTIONS ====================
 
 // Load questions from the database

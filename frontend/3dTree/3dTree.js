@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: XY (Xuanyang) (19), Caeden (5), Yu Kang (3)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 2, Wei Jie. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 2, Wei Jie. Previous team: XY (Xuanyang) (19), Caeden (5), Yu Kang (3).
 // ============================================================
 // XY CHANGE SUMMARY (DONE BY XY)
 // ============================================================

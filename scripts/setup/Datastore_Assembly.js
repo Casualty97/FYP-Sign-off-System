@@ -1,9 +1,4 @@
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Preti (10)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 3, Jun Kai (install and setup scripts). Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 3, Jun Kai (install and setup scripts). Previous team: Preti (10).
 // WHOLE FILE DONE BY PRETI
 
 // ============================================================

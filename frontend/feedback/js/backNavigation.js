@@ -1,12 +1,5 @@
-// Feedback (kiosk) page script, split from the former feedback.js by section (move only, nothing changed inside).
-// File 14 of 17: back buttons. Owner: Role 1.
-// Load order (classic scripts, one shared global scope): core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language.
-// ============================================================
-// OWNERSHIP (keep this block at the top and update it when you change the file)
-// Previous team, inherited code: Nick (6)   <- counted from the "DONE BY" style markers below
-// Current team owner: Role 1, Zihan. Add your name here when you change this file.
-// Rules: one feature per pull request; edit shared files additively and tell the owner. See CONTRIBUTING.md.
-// ============================================================
+// Owner: Role 1, Zihan. Previous team: Nick (6).
+// Part 14/17 of the feedback page: back buttons (load order in feedback.html).
 // ==================== 9. BACK NAVIGATION FUNCTIONS ====================
 
 // From Consent to Landing

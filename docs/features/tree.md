@@ -1,0 +1,63 @@
+# Digital tree (2D and 3D)
+
+**Owner:** Role 2, Wei Jie
+
+**Where the code is**
+
+- backend/features/tree/routes.js
+- frontend/tree/, frontend/3dTree/
+- frontend/admin/js/tree.js (Digital Tree Adjustment tab) and the leaf / background / vip-leaf / treeParameters routes still inside backend/features/admin/routes.js
+
+**What it does**
+
+The wall display. /api/tree returns this year's visitors as leaves; tree.js places them around the trunk, animates falling leaves and VIP gold leaves, and polls for new feedback. The admin tab controls growth stage, backgrounds, leaf images and the title box. /3dtree is only served when the admin switches the display mode to 3D.
+
+**Routes** (from tests/contracts/routes.snapshot.txt)
+
+| Method | Path | Registered in |
+|---|---|---|
+| GET | `/3dtree` | backend/server.js |
+| GET | `/3dTree` | backend/kioskServer.js |
+| POST | `/api/admin/parameters/background` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/leaf` | backend/features/admin/routes.js |
+| GET | `/api/admin/parameters/leaf/list` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/leaf/revert` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/leaf/select` | backend/features/admin/routes.js |
+| GET | `/api/admin/parameters/tree-background/list` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/tree-background/select` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/tree-background/upload` | backend/features/admin/routes.js |
+| PUT | `/api/admin/parameters/treeParameters` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/vip-leaf` | backend/features/admin/routes.js |
+| GET | `/api/admin/parameters/vip-leaf/list` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/vip-leaf/revert` | backend/features/admin/routes.js |
+| POST | `/api/admin/parameters/vip-leaf/select` | backend/features/admin/routes.js |
+| GET | `/api/tree` | backend/features/tree/routes.js |
+| GET | `/api/tree/vip-names` | backend/features/tree/routes.js |
+| GET | `/api/tree/years` | backend/features/tree/routes.js |
+| GET | `/tree` | backend/kioskServer.js |
+| GET | `/tree-demo` | backend/server.js |
+| GET | `/tree-demo/` | backend/server.js |
+
+**Task-sheet items for this feature**
+
+- 3D tree animation with a moving leaf container; smoother 2D animation; replace or enhance the 4 growth stages.
+- New leaf appears at the bottom centre for 10 to 15 s before joining the tree.
+- Event-driven refresh instead of polling.
+- Corrected pulse screen layout (deliverables list).
+
+**Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
+
+- 3D page never draws a leaf: 3dTree.js has the tree-image line commented out (3dTree.js 112 / 865).
+- 3D page ignores title box and VIP settings; VIP folder name vip_leaf should be vip-leaf (3dTree.js 315, 1133).
+- model-viewer only from a Google CDN, no fallback (3dTree.html 7).
+- Live tree polls every 5 s regardless of leafRefreshInterval, 4 requests and a full rebuild each time (tree.js 2042).
+- Growth stage frozen at save time; leafThresholds read by nothing (admin/js/tree.js, admin routes 6910 old layout).
+- Tree tab can flip 3D back to 2D (admin/js/tree.js, old admin.js 10119).
+- Empty number boxes save 0 and the wall uses hidden defaults (admin/js/parameters.js + tree.js 411).
+- Tree keeps archived rows that pulse and pledgeboard hide (treeRoutes 112).
+- Year computed three different ways (treeRoutes 113 vs 176).
+- Default background path wrong in parameters/store.js 185 (black wall on a fresh install).
+- param-tintDurationHours input missing so the badge tint duration is always 0.
+
+---
+Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.
