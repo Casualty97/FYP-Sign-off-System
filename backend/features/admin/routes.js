@@ -259,7 +259,7 @@ const path = require('path');
 const paths = require('../../core/paths');
 const fs = require('fs');
 const https = require('https');
-const archiver = require('archiver');
+const { createZipArchive } = require('../../core/zip');
 const emailService = require('../email/service');
 const emailConfigStore = require('../email/configStore');
 const {
@@ -2815,9 +2815,7 @@ router.post('/download-archive-photos', async (req, res) => {
         }
         
         const output = fs.createWriteStream(zipPath);
-        const archive = archiver('zip', {
-            zlib: { level: 9 }
-        });
+        const archive = createZipArchive({ zlib: { level: 9 } });
         
         output.on('close', async () => {
             // Log the download
@@ -5251,7 +5249,6 @@ function checkDirectoryForPhotos(dirPath) {
 
 // Helper function to create zip of uploads directory
 async function createUploadsZip(uploadsPath) {
-    const archiver = require('archiver');
     const { PassThrough } = require('stream');
     
     return new Promise((resolve, reject) => {
@@ -5259,9 +5256,7 @@ async function createUploadsZip(uploadsPath) {
         
         // Create a buffer stream to collect the zip data
         const chunks = [];
-        const archive = archiver('zip', {
-            zlib: { level: 9 } // Maximum compression
-        });
+        const archive = createZipArchive({ zlib: { level: 9 } }); // maximum compression
         
         const bufferStream = new PassThrough();
         

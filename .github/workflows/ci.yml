@@ -161,7 +161,15 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - uses: ankane/setup-mysql@v1
+      # The Windows runner sometimes fails the install with EPERM while Defender scans the unzipped folder;
+      # a second attempt a few seconds later has always worked. Both failing still fails the job.
+      - id: mysql-first-try
+        uses: ankane/setup-mysql@v1
+        continue-on-error: true
+        with:
+          mysql-version: '8.4'
+      - if: steps.mysql-first-try.outcome == 'failure'
+        uses: ankane/setup-mysql@v1
         with:
           mysql-version: '8.4'
       - run: npm ci

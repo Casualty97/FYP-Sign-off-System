@@ -60,7 +60,7 @@ const db = require('../../core/db');
 const fs = require('fs');
 const path = require('path');
 const paths = require('../../core/paths');
-const archiver = require('archiver');
+const { createZipArchive } = require('../../core/zip');
 
 const pledgeTopicsPath = paths.dataFile('pledge-topics.json');
 const DEFAULT_PLEDGE_TOPICS = [
@@ -940,7 +940,7 @@ Notes:
 `;
             
             // Create ZIP archive
-            const archive = archiver('zip', { zlib: { level: 9 } });
+            const archive = createZipArchive({ zlib: { level: 9 } });
             
             res.setHeader('Content-Type', 'application/zip');
             res.setHeader('Content-Disposition', `attachment; filename=photos_${archiveFilter || 'all'}_${getTimestamp()}.zip`);

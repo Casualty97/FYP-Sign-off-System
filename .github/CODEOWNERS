@@ -1,5 +1,5 @@
-# Who reviews what. Two people on every line (the owner and the lead) so a pull request always has a
-# reviewer who is not its author. Later lines win over earlier ones.
+# Who gets asked to look at a pull request: the owner of the folder and the lead. No approval is required
+# (team decision 31 Oct 2026): when CI is green, the author merges their own PR. Later lines win over earlier ones.
 #
 # Handles: @Casualty97 = Jun Kai (Role 3, Admin screen, lead)
 #          @userZihan  = Zihan   (Role 1, Feedback screen)
@@ -41,7 +41,7 @@
 /frontend/admin/js/tree.js                  @WeijieRP @Casualty97
 /frontend/admin/js/pledgeboard.js           @WeijieRP @Casualty97
 
-# Role 3: Admin screen (owner is the lead, so a second reviewer is needed)   TODO add a deputy handle
+# Role 3: Admin screen
 /backend/features/admin/                    @Casualty97
 /backend/features/archive/                  @Casualty97
 /backend/features/analysis/                 @Casualty97
