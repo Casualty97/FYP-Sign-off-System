@@ -13,7 +13,7 @@ Owners keep their page current (CI does not check this, the reviewer does).
 - [Email and badges](email.md) — owner: Role 3, Jun Kai, 9 route(s)
 - [Bluetooth assets](assets.md) — owner: Role 4, Ryan, 3 route(s)
 - [Kiosk parameters (shared settings)](parameters.md) — owner: Role 1, Zihan and Role 3, Jun Kai, 6 route(s)
-- [Server schedules and control (hibernation)](serverControl.md) — owner: Role 3, Jun Kai, 17 route(s)
+- [Server schedules and control (hibernation)](serverControl.md) — owner: Role 3, Jun Kai, 18 route(s)
 - [Photo frames (overlays)](overlays.md) — owner: Role 1, Zihan, 5 route(s)
 - [Feedback form text and layout](formUi.md) — owner: Role 1, Zihan, 3 route(s)
 - [Feedback questions](questions.md) — owner: Role 1, Zihan, 6 route(s)

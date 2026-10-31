@@ -149,6 +149,7 @@ const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features
 
 // Import cleanup module
 const dataRetentionCleanup = require('./features/archive/retention');
+const kioskScheduler = require('./features/serverControl/scheduler');
 
 // Import QR code generation
 const QRCode = require('qrcode');
@@ -263,6 +264,16 @@ function getSelectedIP() {
         if (preferredIP) {
             selectedIP = preferredIP.address;
             console.log(`📡 Using preferred interface IP: ${selectedIP} (${preferredIP.interface})`);
+            return selectedIP;
+        }
+
+        // Skip virtual adapters (VMware, Hyper-V, WSL...) so the QR code gets the Wi-Fi or Ethernet address
+        const virtualAdapter = /vmware|vethernet|wsl|hyper-v|virtualbox|vbox|docker|loopback|bluetooth|tailscale|zerotier|npcap|tap-/i;
+        const physical = availableIPs.filter((ip) => !virtualAdapter.test(ip.interface));
+        const physicalPreferred = physical.find((ip) => /wi-?fi|wlan|ethernet/i.test(ip.interface)) || physical[0];
+        if (physicalPreferred) {
+            selectedIP = physicalPreferred.address;
+            console.log(`📡 Using ${physicalPreferred.interface}: ${selectedIP} (virtual adapters skipped)`);
             return selectedIP;
         }
 
@@ -683,6 +694,8 @@ function printServerInfo(isHttps) {
 
     // Initialize data retention cleanup system
     dataRetentionCleanup.initializeCleanup();
+    // Schedules (hibernate at stop time, start the kiosk in the morning); off with KIOSK_AUTOMATION=off
+    kioskScheduler.start();
 }
 
 // Try to enable HTTPS if selfsigned package is available

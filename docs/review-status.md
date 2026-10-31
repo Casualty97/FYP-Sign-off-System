@@ -74,11 +74,13 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | open | email | transport reloads only in the server.js process; the kiosk server keeps stale credentials; custom provider insists on user and password | email/service.js | |
 | open | email | the visitor name is inserted raw into the thank-you HTML | email/service.js 1281 | |
 | open | parameters | settings files are written non-atomically; a corrupt parametersConfig.json is silently replaced by the defaults | parameters/store.js 248 | |
-| open | server control | schedules are CRUD only; nothing executes them on Windows (this is the hibernation task) | routes.js | |
+| fixed | server control | schedules were CRUD only; nothing executed them on Windows. Now: scheduler + Windows wake timer (feature A) | backend/features/serverControl/ | hibernation feature, 31 Oct |
+| fixed | server control | the page rejected overnight schedules (stop before start now means the next day) | serverControl.js | hibernation feature, 31 Oct |
+| fixed | parameters | the email-pattern setting is hidden from the Parameter Adjustment form (task-sheet item) | admin.html | hibernation feature, 31 Oct |
 | open | server control | restart-app.bat and startup-monitor.bat can double-launch the servers | project root | |
 | open | core | only 39 of about 108 admin routes use auth.requireAuth; the router is mounted with no guard | server.js 409 | |
 | open | core | static files are served before the page gates, so /tree/tree.html bypasses the 2D/3D and mobile gates | server.js 409 | |
-| open | core | getSelectedIP falls back to the first adapter unless one is named "Wi-Fi 2" (set SERVER_IP) | server.js 227 | |
+| fixed | core | getSelectedIP fell back to the first adapter (VMware) unless one was named "Wi-Fi 2"; virtual adapters are now skipped | server.js 227 | hibernation feature, 31 Oct |
 | open | core | kioskServer.js drifted from server.js (no page gates, different static handling) | kioskServer.js | |
 | open | scripts | Simulation_Generator stores bare filenames and needs pngjs, which is not installed; Purge_Actuator leaves photos and tables behind | scripts/setup | |
 | open | archive | the export unlock now goes through auth.loginUser, which bumps last_login on every unlock (minor) | exportRoutes.js 128 | |

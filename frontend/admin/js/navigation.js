@@ -321,6 +321,7 @@ function showPage(pageName) {
         loadSchedules();
         loadServerMode();
         checkServerStatus();
+        loadAutomationStatus();
         startServerStatusPolling();
     } else if (pageName === 'form-management') {
     loadFormUISettings();

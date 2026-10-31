@@ -146,6 +146,7 @@ jobs:
       ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000' # gitleaks:allow
       SESSION_SECRET: ci-only-session-secret
       PLEDGE_SENTIMENT_MODE: rules
+      KIOSK_AUTOMATION: off
     steps:
       - uses: actions/checkout@v7
         with:

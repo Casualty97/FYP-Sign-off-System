@@ -10,6 +10,8 @@ let currentScheduleId = null;
 function startServerStatusPolling() {
     if (window.statusCheckInterval) clearInterval(window.statusCheckInterval);
     window.statusCheckInterval = setInterval(checkServerStatus, 10000);
+    if (window.automationStatusInterval) clearInterval(window.automationStatusInterval);
+    window.automationStatusInterval = setInterval(loadAutomationStatus, 60000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -40,6 +42,7 @@ function loadSchedules() {
         if (data.success) {
             schedulesData = data.schedules;
             renderSchedulesTable(data.schedules);
+            loadAutomationStatus();
         } else {
             showError('#schedules-table-body', 'Failed to load schedules');
         }
@@ -195,9 +198,8 @@ function validateTimes() {
     const endTime = document.getElementById('end-time').value;
     
     if (startTime && endTime) {
-        if (startTime >= endTime) {
-            showNotification('Please choose a stop time that is later than the start time', 'error');
-            document.getElementById('end-time').value = '';
+        if (startTime === endTime) {
+            showNotification('Start and stop time cannot be the same. A stop time earlier than the start means the next day.', 'error');
             return false;
         }
     }
@@ -452,6 +454,7 @@ async function toggleServerMode() {
             
             // Refresh server status
             checkServerStatus();
+            loadAutomationStatus();
             
             if (!isAuto) {
                 showNotification('Manual mode: Start/Stop buttons now available', 'info');
@@ -852,3 +855,111 @@ window.serverScheduleManager = {
     checkServerStatus
 };
 
+
+
+// ==================== AUTOMATION OVERVIEW (Role 3) ====================
+// What the scheduler will do next, from GET /api/admin/server/automation
+
+function formatPlannedTime(iso) {
+    if (!iso) return '–';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '–';
+    const now = new Date();
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayDiff = Math.round((startOfDay(date) - startOfDay(now)) / 86400000);
+    const time = date.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
+    if (dayDiff === 0) return `Today ${time}`;
+    if (dayDiff === 1) return `Tomorrow ${time}`;
+    return `${date.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })} ${time}`;
+}
+
+function setAutomationText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
+
+function setAutomationState(label, tone) {
+    const pill = document.getElementById('automation-state');
+    if (!pill) return;
+    pill.className = `status-indicator status-${tone}`;
+    pill.innerHTML = `<span class="status-dot"></span>${label}`;
+}
+
+async function loadAutomationStatus() {
+    if (!document.getElementById('automation-card')) return;
+    try {
+        const response = await fetch('/api/admin/server/automation');
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load automation status');
+        renderAutomationStatus(data.automation);
+    } catch (error) {
+        console.error('❌ Error loading automation status:', error);
+        setAutomationText('automation-summary', 'Automation status is not available right now.');
+        setAutomationState('Unavailable', 'offline');
+    }
+}
+
+function renderAutomationStatus(a) {
+    const isAuto = a.mode === 'auto';
+    if (!a.enabled) {
+        setAutomationState('Off on this machine', 'offline');
+        setAutomationText('automation-summary', 'Automation is switched off here (KIOSK_AUTOMATION=off). Schedules are saved but nothing runs them.');
+    } else if (!isAuto) {
+        setAutomationState('Paused', 'warning');
+        setAutomationText('automation-summary', 'Manual mode: switch to AUTO MODE below and the schedules will hibernate and wake the PC.');
+    } else if (!a.activeSchedules) {
+        setAutomationState('No schedules', 'warning');
+        setAutomationText('automation-summary', 'AUTO MODE is on but no schedule is active. Add or enable one to automate the day.');
+    } else if (a.dryRun) {
+        setAutomationState('Dry run', 'warning');
+        setAutomationText('automation-summary', 'Dry run: actions are only logged (KIOSK_AUTOMATION=dry-run).');
+    } else {
+        setAutomationState('Running', 'online');
+        setAutomationText('automation-summary', a.currentWindow
+            ? `Kiosk hours are open (${a.currentWindow.schedule}) until ${formatPlannedTime(a.currentWindow.until)}.`
+            : `${a.activeSchedules} active schedule${a.activeSchedules === 1 ? '' : 's'}. The PC hibernates at the stop time and wakes before the start time.`);
+    }
+
+    setAutomationText('automation-next-stop', isAuto && a.enabled ? formatPlannedTime(a.nextStop) : '–');
+    setAutomationText('automation-next-start', isAuto && a.enabled ? formatPlannedTime(a.nextStart) : '–');
+
+    const wake = a.wake || {};
+    if (!wake.supported) {
+        setAutomationText('automation-wake-status', 'Windows only');
+        setAutomationText('automation-wake-detail', 'Wake timers need the Windows Task Scheduler');
+    } else if (wake.dryRun) {
+        setAutomationText('automation-wake-status', 'Dry run');
+        setAutomationText('automation-wake-detail', `${wake.triggers || 0} trigger(s) would be set`);
+    } else if (wake.error) {
+        setAutomationText('automation-wake-status', 'Not set');
+        setAutomationText('automation-wake-detail', wake.error);
+    } else if (wake.task && wake.task.exists) {
+        setAutomationText('automation-wake-status', wake.wakeTimersAllowed === false ? 'Set, timers blocked' : 'Set');
+        setAutomationText('automation-wake-detail', wake.wakeTimersAllowed === false
+            ? 'Windows power settings block wake timers: run the install script as administrator'
+            : (wake.task.nextRun ? `Next wake ${wake.task.nextRun}` : 'Scheduled task present'));
+    } else {
+        setAutomationText('automation-wake-status', a.activeSchedules ? 'Missing' : 'Not needed');
+        setAutomationText('automation-wake-detail', a.activeSchedules ? 'Created when a schedule is saved while automation is on' : 'No active schedule');
+    }
+
+    setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting…' : 'Off'));
+    setAutomationText('automation-mode-hint', isAuto ? 'AUTO MODE: schedules apply' : 'Manual mode: schedules paused');
+
+    const list = document.getElementById('automation-events');
+    if (!list) return;
+    const labels = { hibernate: 'Hibernated the PC', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' };
+    if (!a.events || !a.events.length) {
+        list.innerHTML = '<li class="automation-empty">No automatic actions recorded yet</li>';
+        return;
+    }
+    list.innerHTML = a.events.map((event) => {
+        const when = new Date(event.at).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+        const tone = event.type === 'start-failed' ? 'danger' : (event.type === 'hibernate' ? 'info' : 'success');
+        return `<li class="automation-event automation-event-${tone}">
+                    <span class="automation-event-time">${escapeHtmlSafe(when)}</span>
+                    <span class="automation-event-type">${escapeHtmlSafe(labels[event.type] || event.type)}${event.dryRun ? ' (dry run)' : ''}</span>
+                    <span class="automation-event-detail">${escapeHtmlSafe(event.detail || '')}</span>
+                </li>`;
+    }).join('');
+}

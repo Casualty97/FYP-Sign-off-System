@@ -113,7 +113,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Kiosk Admin</title>
+    $1
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Cpath d='M22.5 9.5c-6.5 0-11 3.6-11 9.2 0 .8.1 1.5.3 2.2 1.6-3.1 4.4-5.4 8.2-6.6-3.3 2-5.6 4.8-6.9 8.4 1.1.5 2.4.8 3.7.8 5.6 0 8.2-5.2 8.2-11.6 0-.8-.1-1.6-.2-2.4h-2.3z' fill='%23fff'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/admin/admin.css">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -2949,12 +2950,6 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="rule-emailPattern">Email Pattern</label>
-                            <input type="text" id="rule-emailPattern" placeholder="^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$">
-                            <small class="text-muted">JavaScript regular expression used by frontend and backend validation</small>
-                        </div>
-
-                        <div class="form-group">
                             <label for="rule-dailySubmissionLimitPerEmail">Daily Feedback Limit Per Email</label>
                             <input type="number" id="rule-dailySubmissionLimitPerEmail" min="0" max="20" step="1">
                             <small class="text-muted">Maximum feedback submissions per email per Singapore day. Use 0 for unlimited.</small>
@@ -3275,8 +3270,47 @@
                 <!-- Server Schedule Page (DONE BY BERNISSA) -->
                 <div id="server-schedule-page" class="page">
                     <div class="page-header">
-                        <h2>Server Schedule Management</h2>
-                        <p>Configure automated server start/stop schedules</p>
+                        <h2>Server Schedule &amp; Hibernation</h2>
+                        <p>Set when the kiosk runs. In AUTO mode the PC hibernates at the stop time and wakes itself before the start time.</p>
+                    </div>
+
+                    <!-- Automation overview: what the scheduler will do next (Role 3) -->
+                    <div class="automation-card" id="automation-card">
+                        <div class="automation-header">
+                            <div>
+                                <h3>Automation</h3>
+                                <p class="automation-summary" id="automation-summary">Checking the scheduler…</p>
+                            </div>
+                            <span id="automation-state" class="status-indicator status-checking"><span class="status-dot"></span>Checking</span>
+                        </div>
+                        <div class="automation-grid">
+                            <div class="automation-tile">
+                                <span class="automation-tile-label">Next stop</span>
+                                <span class="automation-tile-value" id="automation-next-stop">–</span>
+                                <span class="automation-tile-hint">Kiosk off, PC hibernates</span>
+                            </div>
+                            <div class="automation-tile">
+                                <span class="automation-tile-label">Next start</span>
+                                <span class="automation-tile-value" id="automation-next-start">–</span>
+                                <span class="automation-tile-hint" id="automation-next-start-hint">PC wakes 3 minutes before</span>
+                            </div>
+                            <div class="automation-tile">
+                                <span class="automation-tile-label">Wake timer</span>
+                                <span class="automation-tile-value" id="automation-wake-status">–</span>
+                                <span class="automation-tile-hint" id="automation-wake-detail">Windows scheduled task</span>
+                            </div>
+                            <div class="automation-tile">
+                                <span class="automation-tile-label">Scheduler</span>
+                                <span class="automation-tile-value" id="automation-last-tick">–</span>
+                                <span class="automation-tile-hint" id="automation-mode-hint">Checks once a minute</span>
+                            </div>
+                        </div>
+                        <div class="automation-events">
+                            <h4>Recent automatic actions</h4>
+                            <ul class="automation-event-list" id="automation-events">
+                                <li class="automation-empty">No automatic actions recorded yet</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div class="schedule-section">

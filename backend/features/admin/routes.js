@@ -7237,74 +7237,10 @@ router.put('/countdown-management', auth.requireAuth, (req, res) => {
 
 // SERVER SCHEDULE MANAGEMENT (Config File Based)
 
-// Config file location (readable/ writable by both Node.js and the schedule runner)
-const SCHEDULE_CONFIG_PATH = process.env.SCHEDULE_CONFIG_PATH || paths.dataFile('kiosk-schedules.json');
-
-// Mode file location (for manual/auto mode control)
-const MODE_FILE = paths.dataFile('server-control-mode.json');
-
-// Helper: Read schedules from config file
-function readSchedulesConfig() {
-  try {
-    if (!fs.existsSync(SCHEDULE_CONFIG_PATH)) {
-      // Create empty config if doesn't exist
-      const emptyConfig = { schedules: [], last_updated: new Date().toLocaleString('sv-SE') };
-      fs.writeFileSync(SCHEDULE_CONFIG_PATH, JSON.stringify(emptyConfig, null, 2));
-      return emptyConfig;
-    }
-    
-    const data = fs.readFileSync(SCHEDULE_CONFIG_PATH, 'utf8');
-    return JSON.parse(data);
-    
-  } catch (err) {
-    console.error('❌ Error reading schedules config:', err);
-    return { schedules: [], last_updated: null };
-  }
-}
-
-// Helper: Write schedules to config file
-function writeSchedulesConfig(config) {
-  try {
-    config.last_updated = new Date().toLocaleString('sv-SE');
-    fs.writeFileSync(SCHEDULE_CONFIG_PATH, JSON.stringify(config, null, 2));
-    return true;
-  } catch (err) {
-    console.error('❌ Error writing schedules config:', err);
-    return false;
-  }
-}
-
-// Helper: Read server control mode configuration
-function readModeConfig() {
-  try {
-    if (fs.existsSync(MODE_FILE)) {
-      const data = fs.readFileSync(MODE_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error('❌ Error reading mode file:', err);
-  }
-  
-  // Default to auto mode
-  return {
-    mode: 'auto',
-    last_updated: new Date().toISOString(),
-    updated_by: 'system'
-  };
-}
-
-// Helper: Write server control mode configuration
-function writeModeConfig(config) {
-  try {
-    config.last_updated = new Date().toISOString();
-    fs.writeFileSync(MODE_FILE, JSON.stringify(config, null, 2));
-    console.log(`✅ Mode file updated: ${config.mode}`);
-    return true;
-  } catch (err) {
-    console.error('❌ Error writing mode file:', err);
-    return false;
-  }
-}
+// Schedule, mode and automation files plus the kiosk status probe live in features/serverControl/control.js
+const serverControl = require('../serverControl/control');
+const scheduler = require('../serverControl/scheduler');
+const { readSchedulesConfig, writeSchedulesConfig, readModeConfig, writeModeConfig, resolveKioskStatus, logKioskStatusIfNeeded } = serverControl;
 
 // GET /api/admin/server-schedules
 // Fetch all schedules
@@ -7661,111 +7597,7 @@ router.post('/server-schedules/disable-all', auth.requireAuth, (req, res) => {
 });
 
 // Done by Yu Kang
-const kioskControlConfig = {
-    windowsPidFile: path.join(paths.BACKEND, 'kioskServer.pid'),
-    kioskScriptPath: path.join(paths.BACKEND, 'kioskServer.js'),
-    kioskPort: 3003
-};
-
-function readWindowsKioskPid() {
-    try {
-        if (!fs.existsSync(kioskControlConfig.windowsPidFile)) return null;
-        const raw = fs.readFileSync(kioskControlConfig.windowsPidFile, 'utf8').trim();
-        const pid = Number.parseInt(raw, 10);
-        return Number.isInteger(pid) ? pid : null;
-    } catch (error) {
-        return null;
-    }
-}
-
-function clearWindowsKioskPid() {
-    try {
-        if (fs.existsSync(kioskControlConfig.windowsPidFile)) {
-            fs.unlinkSync(kioskControlConfig.windowsPidFile);
-        }
-    } catch (error) {
-        console.warn('⚠️ Unable to clear kiosk PID file:', error.message);
-    }
-}
-
-function probeKioskHttp(callback) {
-    const http = require('http');
-    const hostsToTry = ['127.0.0.1', '::1', 'localhost'];
-
-    function tryHost(index) {
-        if (index >= hostsToTry.length) {
-            callback({
-                running: false,
-                status: 'unreachable',
-                source: 'http-probe'
-            });
-            return;
-        }
-
-        const host = hostsToTry[index];
-        const formattedHost = host.includes(':') ? `[${host}]` : host;
-        let settled = false; // a timeout followed by the 'error' event must not advance twice
-        const next = (result) => {
-            if (settled) return;
-            settled = true;
-            if (result) callback(result); else tryHost(index + 1);
-        };
-        const probe = http.get(`http://${formattedHost}:${kioskControlConfig.kioskPort}/feedback`, (probeRes) => {
-            const reachable = probeRes.statusCode >= 200 && probeRes.statusCode < 500;
-            probeRes.resume();
-            next(reachable ? { running: true, status: `reachable (${host})`, source: 'http-probe' } : null);
-        });
-
-        probe.setTimeout(1500, () => {
-            probe.destroy();
-            next(null);
-        });
-
-        probe.on('error', () => next(null));
-    }
-
-    tryHost(0);
-}
-
-function resolveKioskStatus(callback) {
-    const { exec } = require('child_process');
-
-    if (process.platform === 'win32') {
-        probeKioskHttp(callback);
-        return;
-    }
-
-    exec('systemctl is-active kiosk.service', (err, stdout) => {
-        const status = (stdout || '').trim();
-        if (!err && status) {
-            callback({
-                running: status === 'active',
-                status,
-                source: 'systemctl'
-            });
-            return;
-        }
-
-        probeKioskHttp(callback);
-    });
-}
-
-// Done by Yu Kang
-let lastKioskStatusLogKey = null;
-let lastKioskStatusLogAt = 0;
-
-function logKioskStatusIfNeeded(result) {
-    const now = Date.now();
-    const logKey = `${result.status}|${result.source}`;
-    const changed = logKey !== lastKioskStatusLogKey;
-    const throttleElapsed = now - lastKioskStatusLogAt >= 60000; // 60s heartbeat
-
-    if (changed || throttleElapsed) {
-        console.log(`📊 Kiosk service status: ${result.status} (${result.source})`);
-        lastKioskStatusLogKey = logKey;
-        lastKioskStatusLogAt = now;
-    }
-}
+// kiosk status probe: see features/serverControl/control.js (resolveKioskStatus, logKioskStatusIfNeeded)
 
 function checkPathAccess(targetPath) {
     const result = {
@@ -8122,81 +7954,8 @@ router.delete('/assets/:bluetoothId', auth.requireAdmin, (req, res) => {
 // POST /api/admin/server/start
 // Manually start the kiosk service
 router.post('/server/start', auth.requireAuth, (req, res) => {
-    const { exec, spawn } = require('child_process');
-
     console.log('▶️  Manual server start requested');
-
-    if (process.platform === 'win32') {
-        resolveKioskStatus((statusInfo) => {
-            if (statusInfo.running) {
-                return res.json({
-                    success: true,
-                    message: 'Server is already running',
-                    platform: 'windows',
-                    source: statusInfo.source
-                });
-            }
-
-            try {
-                const child = spawn(process.execPath, [kioskControlConfig.kioskScriptPath], {
-                    cwd: paths.BACKEND,
-                    detached: true,
-                    stdio: 'ignore',
-                    windowsHide: true
-                });
-
-                child.unref();
-                fs.writeFileSync(kioskControlConfig.windowsPidFile, String(child.pid));
-
-                // A cold start loads the AI modules first, so keep checking for up to 30 s
-                const verifyStarted = (attempt) => {
-                    resolveKioskStatus((verifyInfo) => {
-                        if (verifyInfo.running) {
-                            return res.json({
-                                success: true,
-                                message: 'Server started successfully',
-                                platform: 'windows',
-                                source: verifyInfo.source
-                            });
-                        }
-                        if (attempt < 15) return setTimeout(() => verifyStarted(attempt + 1), 2000);
-                        res.status(500).json({
-                            success: false,
-                            error: 'Kiosk server did not become reachable within 30 seconds of the start command',
-                            platform: 'windows',
-                            status: verifyInfo.status
-                        });
-                    });
-                };
-                setTimeout(() => verifyStarted(1), 1500);
-            } catch (error) {
-                console.error('❌ Failed to start Windows kiosk server:', error);
-                return res.status(500).json({
-                    success: false,
-                    error: 'Failed to start server on Windows'
-                });
-            }
-        });
-
-        return;
-    }
-
-    exec('sudo systemctl start kiosk.service', (err, stdout, stderr) => {
-        if (err) {
-            console.error('❌ Failed to start server:', stderr);
-            return res.status(500).json({
-                success: false,
-                error: 'Failed to start server'
-            });
-        }
-
-        console.log('✅ Server started successfully');
-        res.json({
-            success: true,
-            message: 'Server started successfully',
-            platform: 'linux'
-        });
-    });
+    serverControl.startKiosk((result) => res.status(result.success ? 200 : 500).json(result));
 });
 
 
@@ -8250,149 +8009,12 @@ router.post('/server/restart', auth.requireAuth, (req, res) => {
 // POST /api/admin/server/stop (Done by Yu Kang)
 // Manually stop the kiosk service
 router.post('/server/stop', auth.requireAuth, (req, res) => {
-    const { exec } = require('child_process');
-
-    console.log('⏹️  Manual server stop requested');
-
-    res.json({
-        success: true,
-        message: 'Computer entering hibernate mode. Please wait...'
-    });
-
-    setTimeout(() => { 
-        const batFile = path.join(paths.ROOT, 'hibernate.bat');
-        console.log('💤 Running hibernate BAT file...', batFile);
-
-        exec(`cmd.exe /c "${batFile}"`, (err, stdout, stderr) => {
-            if (err) {
-                console.error('❌ Failed to execute hibernate BAT:', err);
-                return;
-            }
-
-            if (stderr) {
-                console.error('❌ Hibernate BAT error output:', stderr);
-            }
-
-            console.log ('✅ BAT executed');
-            console.log(stdout);
-        });
-    }, 3000);
+    const username = (req.session.user && req.session.user.username) || 'unknown';
+    console.log('⏹️  Manual stop requested by', username);
+    res.json({ success: true, message: 'Computer entering hibernate mode. Please wait...' });
+    // let the response reach the page first
+    setTimeout(() => serverControl.hibernateNow(`manual stop by ${username}`), 3000);
 });
-
-    /*
-    if (process.platform === 'win32') {
-        const pid = readWindowsKioskPid();
-
-        if (pid) {
-            exec(`taskkill /PID ${pid} /T /F`, () => {
-                clearWindowsKioskPid();
-                res.json({
-                    success: true,
-                    message: 'Server stopped successfully',
-                    platform: 'windows',
-                    method: 'pid-file'
-                });
-            });
-            return;
-        }
-
-        exec('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \"*kioskServer.js*\" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"', () => {
-            clearWindowsKioskPid();
-            res.json({
-                success: true,
-                message: 'Stop command issued',
-                platform: 'windows',
-                method: 'process-scan'
-            });
-        });
-        return;
-    }
-    */
-
-    /*if (process.platform === 'win32') {
-        const path = require('path');
-        const fs = require('fs');
-        const { spawn } = require('child_process');
-        const pid = readWindowsKioskPid();
-
-        const runHibernate = () => {
-
-            // Send response FIRST
-            res.json({
-                success: true,
-                message: 'Kiosk stopped. Computer entering hibernate mode.',
-                platform: 'windows'
-            });
-
-            // Wait for frontend to receive response
-            setTimeout(() => {
-                const batFile = path.join(paths.ROOT, 'hibernate.bat');
-                console.log('💤 Running hibernate BAT file...', batFile);
-
-                if (!fs.existsSync(batFile)) {
-                    console.error('❌ Hibernate BAT file not found:', batFile);
-                    return;
-                }
-
-                const child = spawn('cmd.exe', ['/c', batFile], {
-                    cwd: paths.BACKEND,
-                    detached: true,
-                    stdio: 'ignore',
-                    windowsHide: true
-                });
-
-                child.on('error', (error) => {
-                    console.error('❌ Failed to start hibernate BAT:', error);
-                });
-
-                child.unref();
-                console.log('💤 Hibernate command executed');
-
-            }, 1500);
-        };
-
-        // Stop kiosk using PID
-        if (pid) {
-            exec(`taskkill /PID ${pid} /F`, (err) => {
-                if (err) {
-                    console.error('❌ Failed to stop kiosk process:', err);
-                }
-
-                runHibernate();
-                clearWindowsKioskPid();
-            });
-            return;
-        }
-
-    // Fallback process scan
-    exec(
-        'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \\"*kioskServer.js*\\" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"',
-        () => {
-            runHibernate();
-            clearWindowsKioskPid();
-        }
-);
-    return;
-}*/
-
-
-    /*exec('sudo systemctl stop kiosk.service', (err, stdout, stderr) => {
-        if (err) {
-            console.error('❌ Failed to stop server:', stderr);
-            return res.status(500).json({
-                success: false,
-                error: 'Failed to stop server'
-            });
-        }
-
-        console.log('✅ Server stopped successfully');
-        res.json({
-            success: true,
-            message: 'Server stopped successfully',
-            platform: 'linux'
-        });
-    });
-});*/
 
 // ==================== SERVER CONTROL MODE ROUTES ====================
 
@@ -8469,6 +8091,12 @@ router.get('/server/status', auth.requireAuth, (req, res) => {
             health
     });
   });
+});
+
+// GET /api/admin/server/automation
+// What the scheduler will do next: mode, next stop and start, wake timer state, recent automatic actions
+router.get('/server/automation', auth.requireAuth, (req, res) => {
+    scheduler.getStatus((automation) => res.json({ success: true, automation }));
 });
 
 // GET /api/admin/kiosk-status

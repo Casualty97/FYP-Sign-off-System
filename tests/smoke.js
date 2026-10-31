@@ -32,7 +32,7 @@ function startServers() {
   const out = fs.openSync(LOG, 'w');
   child = spawn(process.execPath, ['startAll.js'], {
     cwd: ROOT, stdio: ['ignore', out, out], detached: process.platform !== 'win32',
-    env: { PLEDGE_SENTIMENT_MODE: 'rules', ...process.env },
+    env: { PLEDGE_SENTIMENT_MODE: 'rules', KIOSK_AUTOMATION: 'off', ...process.env },
   });
 }
 function stopServers() {
@@ -123,6 +123,7 @@ function tinyPng() {
     if (cookie) {
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
+      await expect('GET /api/admin/server/automation with the session', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.success === true && r.body.automation && r.body.automation.enabled === false || `automation=${JSON.stringify(r.body && r.body.automation).slice(0, 120)}`, { headers: { cookie } });
     }
 
     // One visitor submission end to end
