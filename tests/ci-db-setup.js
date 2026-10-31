@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // CI helper: create the kiosk database and user on a fresh MySQL (root, no password), apply
-// database/schema.sql twice (it must be re-runnable) and check the result.
+// database/schema.sql twice (it must be re-runnable) and check the result. schema.sql is the frozen
+// pre-migration baseline, so the CI step after this one runs migrate.js up to apply every migration.
 // Local use: node tests/ci-db-setup.js --root-password <pw>   (drops and recreates dp_kiosk_db!)
 const fs = require('fs');
 const path = require('path');
@@ -47,8 +48,4 @@ async function connectAsAdmin() {
   console.log(`${tables.length} tables, ${admins[0].n} admin user(s)`);
   if (tables.length < 14 || admins[0].n < 1) { console.error('database setup did not produce the expected tables/seed'); process.exit(1); }
 
-  // A fresh schema.sql already contains everything, so record every migration as applied.
-  const { spawnSync } = require('child_process');
-  const r = spawnSync(process.execPath, [path.join(ROOT, 'database', 'migrate.js'), 'baseline'], { stdio: 'inherit', env: { ...process.env, DB_HOST: HOST, DB_USER: USER, DB_PASSWORD: PASS, DB_NAME: DB } });
-  if (r.status !== 0) { console.error('migration baseline failed'); process.exit(1); }
 })().catch((e) => { console.error('db setup failed:', e.message); process.exit(1); });
