@@ -150,6 +150,8 @@ const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features
 // Import cleanup module
 const dataRetentionCleanup = require('./features/archive/retention');
 const kioskScheduler = require('./features/serverControl/scheduler');
+const healthRoutes = require('./features/health/routes');
+const healthPublicRoutes = require('./features/health/publicRoutes');
 
 // Import QR code generation
 const QRCode = require('qrcode');
@@ -417,6 +419,8 @@ setTreeDatabase(db);
 // ==================== 5. API ROUTES ====================
 
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin/health', healthRoutes);
+app.use('/api/health', healthPublicRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);

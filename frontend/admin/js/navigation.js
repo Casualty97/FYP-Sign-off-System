@@ -290,6 +290,9 @@ function showPage(pageName) {
         loadCacheStorageMode();
     } else if (pageName === 'digital-tree') {
         loadDigitalTreeData();
+    } else if (pageName === 'health') {
+        loadHealth();
+        startHealthPolling();
     } else if (pageName === 'tree-adjustment') {
         initTreeStageMode();
         loadTreeStageSelection();

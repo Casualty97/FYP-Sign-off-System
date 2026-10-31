@@ -113,7 +113,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    $1
+    <title>ESG Centre Sign-Off · Administration</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Cpath d='M22.5 9.5c-6.5 0-11 3.6-11 9.2 0 .8.1 1.5.3 2.2 1.6-3.1 4.4-5.4 8.2-6.6-3.3 2-5.6 4.8-6.9 8.4 1.1.5 2.4.8 3.7.8 5.6 0 8.2-5.2 8.2-11.6 0-.8-.1-1.6-.2-2.4h-2.3z' fill='%23fff'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/admin/admin.css">
 
@@ -150,8 +150,8 @@
         <!-- Header -->
         <header class="admin-header">
             <div class="header-left">
-                <h1>Feedback Kiosk Admin</h1>
-                <p>Manage visitor feedback and system settings</p>
+                <h1>ESG Centre Sign-Off</h1>
+                <p>Administration · Republic Polytechnic</p>
             </div>
             <div class="header-right">
                 <div class="user-info">
@@ -177,19 +177,19 @@
                             Dashboard
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('feedback-data')">
-                            <span class="nav-icon">💬</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
                             Feedback Data
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('digital-tree')">
-                            <span class="nav-icon">🌳</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 5 11h3.5L5 17h5v5h4v-5h5l-3.5-6H19z"></path></svg></span>
                             Digital Tree
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('pledgeboard')">
-                            <span class="nav-icon">📜</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
                             Pledgeboard
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('theme-settings')">
-                            <span class="nav-icon">🎨</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
                             Style & Theme Settings
                         </a>
                     </nav>
@@ -199,13 +199,23 @@
                     <h3>REPORTS</h3>
                     <nav>
                         <a href="#" class="nav-item" onclick="showPage('feedback-report')">
-                            <span class="nav-icon">📈</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
                             Feedback Reports
                         </a>
                         <!-- Lost and found admin report page - changes made by nick -->
                         <a href="#" class="nav-item" onclick="showPage('lost-found')">
-                            <span class="nav-icon">LF</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
                             Lost &amp; Found Reports
+                        </a>
+                    </nav>
+                </div>
+
+                <div class="sidebar-section" id="monitor-section">
+                    <h3>SYSTEM</h3>
+                    <nav>
+                        <a href="#" class="nav-item" onclick="showPage('health')">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+                            System Health
                         </a>
                     </nav>
                 </div>
@@ -214,15 +224,15 @@
                     <h3>ADJUSTMENTS</h3>
                     <nav>
                         <a href="#" class="nav-item" onclick="showPage('tree-adjustment')">
-                            <span class="nav-icon">🌴</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
                             Digital Tree Adjustment
                         </a>
                         <a href="/tree-demo" class="nav-item" target="_blank" rel="noopener">
-                            <span class="nav-icon">🎬</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg></span>
                             Tree Animation Demo
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('parameter-adjustment')">
-                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
                             Parameter Adjustment
                         </a>
                     </nav>
@@ -232,59 +242,59 @@
                     <h3>ADMINISTRATION</h3>
                     <nav>
                         <a href="#" class="nav-item" onclick="showPage('asset')">
-                            <span class="nav-icon">🛡️</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg></span>
                             Assets Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('overlay')">
-                            <span class="nav-icon">🎨</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
                             Overlay Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('questions')">
-                            <span class="nav-icon">❓</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                             Question Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('users')">
-                            <span class="nav-icon">👥</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
                             User Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('vip')">
-                            <span class="nav-icon">👑</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
                             VIP Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('email-management')">
-                            <span class="nav-icon">📧</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
                             Email Management
                         </a>
                     <a href="#" class="nav-item" onclick="showPage('badge-email-templates')">
-                        <span class="nav-icon">✉️</span>
+                        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
                         Badge Email Templates
                     </a>
                         <a href="#" class="nav-item" onclick="showPage('form-management')">
-                            <span class="nav-icon">📝</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span>
                             Form Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('archive')">
-                            <span class="nav-icon">📚</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
                             Archive
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('audit')">
-                            <span class="nav-icon">📋</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
                             Audit Logs
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('data-export')">
-                            <span class="nav-icon">📦</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
                             Data Export
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('timer-countdown')">
-                            <span class="nav-icon">🕔</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
                             Timer Countdown
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('server-schedule')">
-                            <span class="nav-icon">❗</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span>
                             Server Schedule
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('Feedback-page-QR')">
-                            <span class="nav-icon">📱</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14h1v1M14 20h1v1M20 20h1v1M17 20h1v1M20 17h1v1"></path></svg></span>
                             Feedback Page QR Code
                         </a>
                     </nav>
@@ -3268,147 +3278,167 @@
                 </div>
                 
                 <!-- Server Schedule Page (DONE BY BERNISSA) -->
+                <!-- System health (Role 3) -->
+                <div id="health-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>System health</h2>
+                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation. Refreshes every 30 seconds while this page is open.</p>
+                        </div>
+                        <button class="ui-btn ui-btn-secondary" id="health-refresh-btn" onclick="loadHealth('email')">Check now</button>
+                    </div>
+                    <div class="ui-card">
+                        <div class="ui-card-body ui-row ui-row-between">
+                            <div class="ui-row">
+                                <span id="health-overall" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
+                                <span id="health-summary-text" class="ui-mode-desc">Running the checks</span>
+                            </div>
+                            <span id="health-checked-at" class="ui-fact-hint"></span>
+                        </div>
+                    </div>
+                    <div class="health-grid" id="health-cards"></div>
+                    <div class="ui-grid-2">
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Tablets</h3>
+                                    <p>Each kiosk screen reports once a minute from the feedback page.</p>
+                                </div>
+                            </div>
+                            <div class="ui-table-wrap">
+                                <table class="ui-table">
+                                    <thead><tr><th>Device</th><th>Page</th><th>Battery</th><th>Status</th><th>Address</th></tr></thead>
+                                    <tbody id="health-tablets"><tr><td colspan="5" class="ui-empty">No tablet has reported yet</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Server PC</h3>
+                                    <p id="health-server-time"></p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body"><dl class="ui-kv" id="health-server-details"></dl></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="server-schedule-page" class="page">
-                    <div class="page-header">
-                        <h2>Server Schedule &amp; Hibernation</h2>
-                        <p>Set when the kiosk runs. In AUTO mode the PC hibernates at the stop time and wakes itself before the start time.</p>
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Operating hours</h2>
+                            <p>When the kiosk runs. In automatic mode the PC hibernates at the stop time and wakes itself a few minutes before the start time.</p>
+                        </div>
+                        <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New schedule</button>
                     </div>
 
-                    <!-- Automation overview: what the scheduler will do next (Role 3) -->
-                    <div class="automation-card" id="automation-card">
-                        <div class="automation-header">
+                    <div class="ui-card" id="automation-card">
+                        <div class="ui-card-header">
                             <div>
                                 <h3>Automation</h3>
-                                <p class="automation-summary" id="automation-summary">Checking the scheduler…</p>
+                                <p id="automation-summary">Checking</p>
                             </div>
-                            <span id="automation-state" class="status-indicator status-checking"><span class="status-dot"></span>Checking</span>
+                            <span id="automation-state" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
                         </div>
-                        <div class="automation-grid">
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Next stop</span>
-                                <span class="automation-tile-value" id="automation-next-stop">–</span>
-                                <span class="automation-tile-hint">Kiosk off, PC hibernates</span>
-                            </div>
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Next start</span>
-                                <span class="automation-tile-value" id="automation-next-start">–</span>
-                                <span class="automation-tile-hint" id="automation-next-start-hint">PC wakes 3 minutes before</span>
-                            </div>
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Wake timer</span>
-                                <span class="automation-tile-value" id="automation-wake-status">–</span>
-                                <span class="automation-tile-hint" id="automation-wake-detail">Windows scheduled task</span>
-                            </div>
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Scheduler</span>
-                                <span class="automation-tile-value" id="automation-last-tick">–</span>
-                                <span class="automation-tile-hint" id="automation-mode-hint">Checks once a minute</span>
+                        <div class="ui-card-body">
+                            <div class="ui-facts">
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Next stop</span>
+                                    <span class="ui-fact-value" id="automation-next-stop">–</span>
+                                    <span class="ui-fact-hint">Kiosk off, PC hibernates</span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Next start</span>
+                                    <span class="ui-fact-value" id="automation-next-start">–</span>
+                                    <span class="ui-fact-hint" id="automation-next-start-hint">PC wakes 3 minutes before</span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Wake timer</span>
+                                    <span class="ui-fact-value" id="automation-wake-status">–</span>
+                                    <span class="ui-fact-hint" id="automation-wake-detail">Windows scheduled task</span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Scheduler</span>
+                                    <span class="ui-fact-value" id="automation-last-tick">–</span>
+                                    <span class="ui-fact-hint" id="automation-mode-hint">Checks once a minute</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="automation-events">
-                            <h4>Recent automatic actions</h4>
-                            <ul class="automation-event-list" id="automation-events">
-                                <li class="automation-empty">No automatic actions recorded yet</li>
+                        <div class="ui-card-body">
+                            <p class="ui-section-title">Recent automatic actions</p>
+                            <ul class="ui-events" id="automation-events">
+                                <li class="ui-empty">No automatic actions recorded yet</li>
                             </ul>
                         </div>
                     </div>
 
-                    <div class="schedule-section">
-                        <div class="section-header">
-                            <h3>Schedules</h3>
-                            <button class="btn-primary" onclick="showAddScheduleModal()">
-                                + Add Schedule
-                            </button>
+                    <div class="ui-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Schedules</h3>
+                                <p>Daily, weekly or single-date operating hours. A stop time earlier than the start time means the next day.</p>
+                            </div>
+                            <div class="ui-row">
+                                <button class="ui-btn ui-btn-secondary" onclick="enableAllSchedules()">Enable all</button>
+                                <button class="ui-btn ui-btn-secondary" onclick="disableAllSchedules()">Disable all</button>
+                            </div>
                         </div>
-
-                        <!-- Schedules table (DONE BY BERNISSA) -->
-                        <div class="data-table">
-                            <table>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table">
                                 <thead>
                                     <tr>
-                                        <th>Schedule Name</th>
-                                        <th>Type</th>
-                                        <th>Days/Date</th>
-                                        <th>Start Time</th>
-                                        <th>Stop Time</th>
+                                        <th>Name</th>
+                                        <th>Repeats</th>
+                                        <th>Days / date</th>
+                                        <th>Start</th>
+                                        <th>Stop</th>
                                         <th>Status</th>
-                                        <th>Actions</th>
+                                        <th class="ui-th-actions"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="schedules-table-body">
-                                    <tr>
-                                        <td colspan="7" class="schedule-loading">
-                                            Loading schedules...
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="7" class="ui-empty">Loading schedules</td></tr>
                                 </tbody>
                             </table>
                         </div>
+                    </div>
 
-                        <!-- Server control mode (DONE BY BERNISSA) -->
-                        <div class="server-mode-control">
-                            <h4>Server Control Mode</h4>
-                            <div class="mode-toggle-container">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="auto-mode-toggle" onchange="toggleServerMode()" checked>
-                                    <span class="slider"></span>
-                                </label>
-                                <div class="mode-info">
-                                    <span id="mode-status" class="mode-auto">🤖 AUTO MODE</span>
-                                    <p id="mode-description">Schedules control the server automatically</p>
-                                </div>
+                    <div class="ui-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Controls</h3>
+                                <p>Automatic mode follows the schedules. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
                             </div>
-                            <div class="status-indicator" id="server-status-indicator">
-                                <span class="status-loading">⏳ Checking status...</span>
-                            </div>
+                            <div id="server-status-indicator"><span class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking status</span></div>
                         </div>
-
-                        <!-- Quick actions -->
-                        <div class="quick-actions">
-                            <h4>Quick Actions</h4>
-                            
-                            <!-- Schedule control buttons -->
-                            <div class="action-section">
-                                <p class="section-label">Schedule Control:</p>
-                                <div class="action-buttons">
-                                    <button class="btn-secondary" onclick="enableAllSchedules()">
-                                        ✅ Enable All Schedules
-                                    </button>
-                                    <button class="btn-secondary" onclick="disableAllSchedules()">
-                                        ⏸️ Disable All Schedules
-                                    </button>
+                        <div class="ui-card-body">
+                            <div class="ui-row ui-row-between">
+                                <div class="ui-row">
+                                    <label class="ui-switch">
+                                        <input type="checkbox" id="auto-mode-toggle" onchange="toggleServerMode()" checked>
+                                        <span class="ui-switch-track"></span>
+                                    </label>
+                                    <div>
+                                        <div id="mode-status" class="ui-mode-label">Automatic mode</div>
+                                        <div id="mode-description" class="ui-mode-desc">Schedules run the kiosk and hibernate the PC</div>
+                                    </div>
+                                </div>
+                                <div class="ui-row">
+                                    <button class="ui-btn ui-btn-secondary" onclick="startServer()" id="start-btn" disabled>Start kiosk</button>
+                                    <button class="ui-btn ui-btn-secondary" onclick="restartServer()" id="restart-btn" disabled>Restart application</button>
+                                    <button class="ui-btn ui-btn-danger" onclick="stopServer()" id="stop-btn" disabled>Stop and hibernate</button>
                                 </div>
                             </div>
-                            
-                            <!-- Server control buttons -->
-                            <div class="action-section">
-                                <p class="section-label">Manual Server Control:</p>
-                                <div class="action-buttons">
-                                    <button class="btn-secondary" onclick="startServer()" id="start-btn" disabled>
-                                        ▶️ Start Server
-                                    </button>
-                                    <button class="btn-secondary" onclick="restartServer()" id="restart-btn" disabled>
-                                        🔄 Restart Server
-                                    </button>
-                                    <button class="btn-danger" onclick="stopServer()" id="stop-btn" disabled>
-                                        ⏹️ Stop Server
-                                    </button>
+                            <p class="ui-note" id="mode-hint">Switch to manual mode to use the start and stop controls.</p>
+                        </div>
+                        <div class="ui-card-body">
+                            <div class="ui-row ui-row-between">
+                                <div>
+                                    <div class="ui-mode-label">Daily operation</div>
+                                    <div class="ui-mode-desc" id="daily-operation-hint">Use this at the end of the day to stop the kiosk, then again next morning to start it.</div>
                                 </div>
-                                <p class="mode-hint" id="mode-hint">
-                                    ⚠️ Switch to MANUAL MODE to use Start/Stop buttons
-                                </p>
-                            </div>
-                            <!-- Daily operation button (Done by Caeden) -->
-                            <div class="action-section">
-                                <p class="section-label">Daily Operation:</p>
-                                <div class="action-buttons">
-                                    <button class="btn-primary" onclick="toggleDailyOperation()" id="daily-operation-toggle-btn">
-                                        Checking...
-                                    </button>
-                                </div>
-                                <p class="mode-hint" id="daily-operation-hint">
-                                    Use this at the end of the day to stop the kiosk, then again next day to start it.
-                                </p>
+                                <button class="ui-btn ui-btn-primary" onclick="toggleDailyOperation()" id="daily-operation-toggle-btn">Checking</button>
                             </div>
                         </div>
                     </div>
@@ -3589,6 +3619,7 @@
 
             </main>
     <script src="/admin/js/core.js"></script>
+    <script src="/admin/js/uiKit.js"></script>
     <script src="/admin/js/audit.js"></script>
     <script src="/admin/js/lostFound.js"></script>
     <script src="/admin/js/dashboard.js"></script>
@@ -3616,6 +3647,7 @@
     <script src="/admin/js/parameters.js"></script>
     <script src="/admin/js/countdown.js"></script>
     <script src="/admin/js/serverControl.js"></script>
+    <script src="/admin/js/health.js"></script>
     <script src="/admin/js/vips.js"></script>
     <script src="/admin/js/kioskReload.js"></script>
 </body>

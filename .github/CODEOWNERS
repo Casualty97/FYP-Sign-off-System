@@ -24,6 +24,7 @@
 # Role 1: Feedback screen
 /backend/features/feedback/                 @userZihan @Casualty97
 /frontend/feedback/                         @userZihan @Casualty97
+/frontend/feedback/js/heartbeat.js          @Casualty97
 /frontend/admin/js/overlays.js              @userZihan @Casualty97
 /frontend/admin/js/questions.js             @userZihan @Casualty97
 /frontend/admin/js/formUi.js                @userZihan @Casualty97

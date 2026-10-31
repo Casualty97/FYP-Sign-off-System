@@ -57,56 +57,29 @@ function renderSchedulesTable(schedules) {
     const tbody = document.getElementById('schedules-table-body');
     
     if (!schedules || schedules.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">
-                    No schedules found. Click "Add Schedule" to create one.
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = '<tr><td colspan="7" class="ui-empty">No schedules yet. Use New schedule to add the operating hours.</td></tr>';
         return;
     }
     
-    let html = '';
-    
-    schedules.forEach(schedule => {
-        const typeBadge = getScheduleTypeBadge(schedule.schedule_type);
-        const statusBadge = schedule.is_active ? 
-            '<span class="status-badge active">Active</span>' : 
-            '<span class="status-badge inactive">Inactive</span>';
-        
-        // Pass specific_date to formatDaysDisplay
+    tbody.innerHTML = schedules.map((schedule) => {
         const daysDisplay = formatDaysDisplay(schedule.days_of_week, schedule.schedule_type, schedule.specific_date);
-        const startTime = schedule.start_time || '-';
-        const endTime = schedule.end_time || '-';
-        
-        html += `
-            <tr data-schedule-id="${schedule.id}">
-                <td><strong>${schedule.schedule_name}</strong></td>
-                <td>${typeBadge}</td>
-                <td>${daysDisplay}</td>
-                <td><span class="time-badge">${startTime}</span></td>
-                <td><span class="time-badge">${endTime}</span></td>
-                <td>${statusBadge}</td>
+        return `
+            <tr data-schedule-id="${schedule.id}" class="${schedule.is_active ? '' : 'health-row-offline'}">
+                <td class="ui-strong">${escapeHtmlSafe(schedule.schedule_name)}</td>
+                <td>${getScheduleTypeBadge(schedule.schedule_type)}</td>
+                <td>${escapeHtmlSafe(daysDisplay)}</td>
+                <td class="ui-time">${escapeHtmlSafe(schedule.start_time || '–')}</td>
+                <td class="ui-time">${escapeHtmlSafe(schedule.end_time || '–')}</td>
+                <td>${schedule.is_active ? uiPill('ok', 'Active') : uiPill('muted', 'Off')}</td>
                 <td>
-                    <div class="action-buttons">
-                        <button class="btn-edit" onclick="toggleScheduleStatus(${schedule.id}, ${!schedule.is_active})" 
-                                title="${schedule.is_active ? 'Disable' : 'Enable'}">
-                            ${schedule.is_active ? '⏸️' : '▶️'}
-                        </button>
-                        <button class="btn-edit" onclick="editSchedule(${schedule.id})" title="Edit">
-                            ✏️
-                        </button>
-                        <button class="btn-delete" onclick="deleteSchedule(${schedule.id})" title="Delete">
-                            🗑️
-                        </button>
+                    <div class="ui-actions">
+                        <button class="ui-btn ui-btn-icon" onclick="toggleScheduleStatus(${schedule.id}, ${!schedule.is_active})" title="${schedule.is_active ? 'Switch off' : 'Switch on'}">${uiIcon(schedule.is_active ? 'pause' : 'play')}</button>
+                        <button class="ui-btn ui-btn-icon" onclick="editSchedule(${schedule.id})" title="Edit">${uiIcon('edit')}</button>
+                        <button class="ui-btn ui-btn-icon ui-danger" onclick="deleteSchedule(${schedule.id})" title="Delete">${uiIcon('trash')}</button>
                     </div>
                 </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
+            </tr>`;
+    }).join('');
 }
 
 // Schedule CRUD operations
@@ -449,18 +422,13 @@ async function toggleServerMode() {
         const data = await response.json();
         
         if (data.success) {
-            showNotification(`Switched to ${newMode.toUpperCase()} mode`, 'success');
+            showNotification(`Switched to ${newMode} mode`, 'success');
             updateModeUI(isAuto);
             
             // Refresh server status
             checkServerStatus();
             loadAutomationStatus();
             
-            if (!isAuto) {
-                showNotification('Manual mode: Start/Stop buttons now available', 'info');
-            } else {
-                showNotification('Auto mode: Schedules will control the server', 'info');
-            }
         } else {
             showNotification(data.error || 'Failed to change mode', 'error');
             // Revert toggle
@@ -483,34 +451,19 @@ function updateModeUI(isAuto) {
     const startBtn = document.getElementById('start-btn');
     const restartBtn = document.getElementById('restart-btn');
     const stopBtn = document.getElementById('stop-btn');
-    
     if (!modeStatus || !modeDesc) return;
-    
-    if (isAuto) {
-        // AUTO MODE
-        modeStatus.textContent = '🤖 AUTO MODE';
-        modeStatus.className = 'mode-auto';
-        modeDesc.textContent = 'Schedules control the server automatically';
-        if (modeHint) {
-            modeHint.textContent = '⚠️ Switch to MANUAL MODE to use Start/Stop buttons';
-            modeHint.style.color = '#856404';
-        }
-        if (startBtn) startBtn.disabled = true;
-        if (restartBtn) restartBtn.disabled = true;
-        if (stopBtn) stopBtn.disabled = true;
-    } else {
-        // MANUAL MODE
-        modeStatus.textContent = '✋ MANUAL MODE';
-        modeStatus.className = 'mode-manual';
-        modeDesc.textContent = 'You control the server with Start/Stop buttons';
-        if (modeHint) {
-            modeHint.textContent = '💡 Manual mode active - schedules are temporarily disabled';
-            modeHint.style.color = '#004085';
-        }
-        if (startBtn) startBtn.disabled = false;
-        if (restartBtn) restartBtn.disabled = false;
-        if (stopBtn) stopBtn.disabled = false;
+
+    modeStatus.textContent = isAuto ? 'Automatic mode' : 'Manual mode';
+    modeDesc.textContent = isAuto
+        ? 'Schedules run the kiosk and hibernate the PC'
+        : 'Schedules are paused; use the controls to start or stop the kiosk';
+    if (modeHint) {
+        modeHint.textContent = isAuto
+            ? 'Switch to manual mode to use the start and stop controls.'
+            : 'Manual mode: the schedules stay paused until automatic mode is switched back on.';
+        modeHint.classList.toggle('ui-note-warn', !isAuto);
     }
+    [startBtn, restartBtn, stopBtn].forEach((btn) => { if (btn) btn.disabled = isAuto; });
 }
 
 // Check current kiosk service status
@@ -527,19 +480,19 @@ async function checkServerStatus() {
         
         if (data.success) {
             if (data.kiosk_running) {
-                statusIndicator.innerHTML = '<span class="status-running">🟢 Kiosk Running</span>';
+                statusIndicator.innerHTML = uiPill('ok', 'Kiosk running');
             } else {
-                statusIndicator.innerHTML = '<span class="status-stopped">🔴 Kiosk Stopped</span>';
+                statusIndicator.innerHTML = uiPill('down', 'Kiosk stopped');
             }
         } else {
-            statusIndicator.innerHTML = '<span class="status-error">⚠️ Status Unknown</span>';
+            statusIndicator.innerHTML = uiPill('warn', 'Status unknown');
         }
         
     } catch (error) {
         console.error('❌ Error checking status:', error);
         const statusIndicator = document.getElementById('server-status-indicator');
         if (statusIndicator) {
-            statusIndicator.innerHTML = '<span class="status-error">⚠️ Cannot check status</span>';
+            statusIndicator.innerHTML = uiPill('warn', 'Cannot check status');
         }
     }
 }
@@ -553,13 +506,13 @@ function updateDailyOperationButton(isRunning) {
 
     button.disabled = false;
     button.dataset.running = isRunning ? 'true' : 'false';
-    button.textContent = isRunning ? 'End Day: Turn Kiosk Off' : 'Start Day: Turn Kiosk On';
-    button.className = isRunning ? 'btn-danger' : 'btn-primary';
+    button.textContent = isRunning ? 'End the day' : 'Start the day';
+    button.className = isRunning ? 'ui-btn ui-btn-danger' : 'ui-btn ui-btn-primary';
 
     if (hint) {
         hint.textContent = isRunning
-            ? 'Kiosk is running. End Day switches to manual mode, stops the kiosk server and hibernates this PC.'
-            : 'Kiosk is stopped. Start Day switches to manual mode and starts the kiosk server.';
+            ? 'The kiosk is running. End the day switches to manual mode and hibernates this PC.'
+            : 'The kiosk is stopped. Start the day switches to manual mode and starts the kiosk server.';
     }
 }
 
@@ -585,13 +538,13 @@ async function toggleDailyOperation() {
     const statusResponse = await fetch('/api/admin/server/status');
     const statusData = await statusResponse.json();
     const isRunning = statusData.success ? statusData.kiosk_running === true : button?.dataset?.running === 'true';
-    const action = isRunning ? 'end the day, stop the kiosk and hibernate this PC (the wall and tablets go dark until it is woken)' : 'start the day and turn the kiosk on';
+    const action = isRunning ? 'end the day and hibernate this PC (the wall and tablets go dark until it is woken)' : 'start the day and turn the kiosk on';
 
     if (!confirm(`Are you sure you want to ${action}?`)) return;
 
     if (button) {
         button.disabled = true;
-        button.textContent = isRunning ? 'Turning Off...' : 'Turning On...';
+        button.textContent = isRunning ? 'Hibernating' : 'Starting';
     }
 
     try {
@@ -623,7 +576,7 @@ function startServer() {
     const isAuto = toggle ? toggle.checked : true;
     
     if (isAuto) {
-        showNotification('Switch to MANUAL MODE first to manually control the server', 'warning');
+        showNotification('Switch to manual mode first to control the kiosk by hand', 'warning');
         return;
     }
     
@@ -654,7 +607,7 @@ function restartServer() {
     const isAuto = toggle ? toggle.checked : true;
 
     if (isAuto) {
-        showNotification('Switch to MANUAL MODE first to restart the server', 'warning');
+        showNotification('Switch to manual mode first to restart the application', 'warning');
         return;
     }
 
@@ -686,7 +639,7 @@ function stopServer() {
     const isAuto = toggle ? toggle.checked : true;
     
     if (isAuto) {
-        showNotification('Switch to MANUAL MODE first to manually control the server', 'warning');
+        showNotification('Switch to manual mode first to control the kiosk by hand', 'warning');
         return;
     }
     
@@ -718,9 +671,9 @@ function stopServer() {
 
 function getScheduleTypeBadge(type) {
     const badges = {
-        'daily': '<span class="badge badge-info">Daily</span>',
-        'weekly': '<span class="badge badge-info">Weekly</span>',
-        'specific_date': '<span class="badge badge-info">Specific</span>'
+        'daily': uiPill('info', 'Daily'),
+        'weekly': uiPill('info', 'Weekly'),
+        'specific_date': uiPill('info', 'One date')
     };
     return badges[type] || '<span class="badge">Unknown</span>';
 }
@@ -783,7 +736,7 @@ function showNotification(message, type = 'info') {
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
         <div class="notification-content">
-            <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+            <span class="notification-icon">${uiIcon(type === 'success' ? 'check' : type === 'error' ? 'cross' : type === 'warning' ? 'alert' : 'info', 18)}</span>
             <span>${message}</span>
         </div>
         <button class="notification-close" onclick="this.parentElement.remove()">×</button>
@@ -881,8 +834,8 @@ function setAutomationText(id, text) {
 function setAutomationState(label, tone) {
     const pill = document.getElementById('automation-state');
     if (!pill) return;
-    pill.className = `status-indicator status-${tone}`;
-    pill.innerHTML = `<span class="status-dot"></span>${label}`;
+    pill.className = `ui-pill ui-pill-${tone}`;
+    pill.innerHTML = `<span class="ui-dot"></span>${escapeHtmlSafe(label)}`;
 }
 
 async function loadAutomationStatus() {
@@ -895,26 +848,26 @@ async function loadAutomationStatus() {
     } catch (error) {
         console.error('❌ Error loading automation status:', error);
         setAutomationText('automation-summary', 'Automation status is not available right now.');
-        setAutomationState('Unavailable', 'offline');
+        setAutomationState('Unavailable', 'down');
     }
 }
 
 function renderAutomationStatus(a) {
     const isAuto = a.mode === 'auto';
     if (!a.enabled) {
-        setAutomationState('Off on this machine', 'offline');
+        setAutomationState('Off on this machine', 'muted');
         setAutomationText('automation-summary', 'Automation is switched off here (KIOSK_AUTOMATION=off). Schedules are saved but nothing runs them.');
     } else if (!isAuto) {
-        setAutomationState('Paused', 'warning');
-        setAutomationText('automation-summary', 'Manual mode: switch to AUTO MODE below and the schedules will hibernate and wake the PC.');
+        setAutomationState('Paused', 'warn');
+        setAutomationText('automation-summary', 'Manual mode. Switch to automatic mode below and the schedules will hibernate and wake the PC.');
     } else if (!a.activeSchedules) {
-        setAutomationState('No schedules', 'warning');
-        setAutomationText('automation-summary', 'AUTO MODE is on but no schedule is active. Add or enable one to automate the day.');
+        setAutomationState('No schedules', 'warn');
+        setAutomationText('automation-summary', 'Automatic mode is on but no schedule is active. Add or enable one to automate the day.');
     } else if (a.dryRun) {
-        setAutomationState('Dry run', 'warning');
+        setAutomationState('Dry run', 'warn');
         setAutomationText('automation-summary', 'Dry run: actions are only logged (KIOSK_AUTOMATION=dry-run).');
     } else {
-        setAutomationState('Running', 'online');
+        setAutomationState('Active', 'ok');
         setAutomationText('automation-summary', a.currentWindow
             ? `Kiosk hours are open (${a.currentWindow.schedule}) until ${formatPlannedTime(a.currentWindow.until)}.`
             : `${a.activeSchedules} active schedule${a.activeSchedules === 1 ? '' : 's'}. The PC hibernates at the stop time and wakes before the start time.`);
@@ -943,23 +896,22 @@ function renderAutomationStatus(a) {
         setAutomationText('automation-wake-detail', a.activeSchedules ? 'Created when a schedule is saved while automation is on' : 'No active schedule');
     }
 
-    setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting…' : 'Off'));
-    setAutomationText('automation-mode-hint', isAuto ? 'AUTO MODE: schedules apply' : 'Manual mode: schedules paused');
+    setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting' : 'Off'));
+    setAutomationText('automation-mode-hint', isAuto ? 'Automatic mode: schedules apply' : 'Manual mode: schedules paused');
 
     const list = document.getElementById('automation-events');
     if (!list) return;
     const labels = { hibernate: 'Hibernated the PC', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' };
     if (!a.events || !a.events.length) {
-        list.innerHTML = '<li class="automation-empty">No automatic actions recorded yet</li>';
+        list.innerHTML = '<li class="ui-empty">No automatic actions recorded yet</li>';
         return;
     }
     list.innerHTML = a.events.map((event) => {
         const when = new Date(event.at).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
-        const tone = event.type === 'start-failed' ? 'danger' : (event.type === 'hibernate' ? 'info' : 'success');
-        return `<li class="automation-event automation-event-${tone}">
-                    <span class="automation-event-time">${escapeHtmlSafe(when)}</span>
-                    <span class="automation-event-type">${escapeHtmlSafe(labels[event.type] || event.type)}${event.dryRun ? ' (dry run)' : ''}</span>
-                    <span class="automation-event-detail">${escapeHtmlSafe(event.detail || '')}</span>
+        return `<li>
+                    <span class="ui-time">${escapeHtmlSafe(when)}</span>
+                    <span class="ui-type">${escapeHtmlSafe(labels[event.type] || event.type)}${event.dryRun ? ' (dry run)' : ''}</span>
+                    <span class="ui-detail">${escapeHtmlSafe(event.detail || '')}</span>
                 </li>`;
     }).join('');
 }

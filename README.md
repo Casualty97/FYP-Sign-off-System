@@ -78,6 +78,8 @@ Every code file starts with an OWNERSHIP block naming the previous-team authors 
 
 ## Team
 
+New to the project? Read [docs/START_HERE.md](docs/START_HERE.md) first: how the code fits together, laptop setup, the daily git routine and what CI checks.
+
 | Role | Person | Task sheet | Folders |
 |---|---|---|---|
 | Role 1 | Zihan | Feedback screen: face detection, photo props, RP bear, pledge-first flow, 7 m by 2 m display, tablet battery | `backend/features/feedback`, `frontend/feedback`, overlays, questions, form UI, parameters (shared) |

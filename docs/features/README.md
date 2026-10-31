@@ -22,7 +22,7 @@ Owners keep their page current (CI does not check this, the reviewer does).
 - [Audit logs](audit.md) — owner: shared, 1 route(s)
 - [VIP visitors](vips.md) — owner: shared, 3 route(s)
 - [Admin themes](themes.md) — owner: Role 3, Jun Kai, 7 route(s)
-- [System and LLM health (planned)](health.md) — owner: Role 3, Jun Kai, 4 route(s)
+- [System and LLM health](health.md) — owner: Role 3, Jun Kai, 6 route(s)
 - [Hardware usage graphs with forecasting (planned)](hardware.md) — owner: Role 3, Jun Kai, 0 route(s)
 
 Routes not yet on any page: `GET /api/generate-qr`, `GET /`, `GET /api/feedback`
