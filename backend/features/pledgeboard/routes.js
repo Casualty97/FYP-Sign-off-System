@@ -1,4 +1,4 @@
-// Owner: Role 2, Wei Jie. Previous team: Preti (6), XY (Xuanyang) (3).
+// Owner: Role 1, Zihan. Previous team: Preti (6), XY (Xuanyang) (3).
 // ============================================================
 // PLEDGEBOARDROUTES.JS - TABLE OF CONTENT
 // ============================================================

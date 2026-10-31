@@ -57,7 +57,7 @@ backend/
   .env                        secrets and machine settings (never in git); .env.example lists every variable
 frontend/
   feedback/                   the tablet page (Role 1, Zihan)
-  tree/ 3dTree/ pulse/        the wall pages (Role 2, Wei Jie)        Pledgeboard/ (Role 2)
+  tree/ 3dTree/ pulse/        the wall pages (Role 2, Wei Jie)        Pledgeboard/ (Role 1, Zihan)
   admin/                      the admin page: admin.html, admin.css, js/<section>.js (Role 3 owns the shell;
                               each section file belongs to the role listed in its first line)
 database/
@@ -214,19 +214,22 @@ Fix problems, never silence them (no `eslint-disable`, no skipping a check). If 
 
 Your code: `frontend/feedback/` (the tablet page, 17 script files, load order at the bottom of `feedback.html`),
 `backend/features/feedback/` (the routes, validation and pledge sentiment), the question, overlay and form-text admin
-sections (`frontend/admin/js/questions.js`, `overlays.js`, `formUi.js`), and the shared parameters page
-(`frontend/admin/js/parameters.js`, `backend/features/parameters/`, shared with Jun Kai). `frontend/feedback/js/heartbeat.js`
-is Jun Kai's (it tells the health page a tablet is alive); leave it.
+sections (`frontend/admin/js/questions.js`, `overlays.js`, `formUi.js`), the shared parameters page
+(`frontend/admin/js/parameters.js`, `backend/features/parameters/`, shared with Jun Kai), and the pledgeboard:
+`frontend/Pledgeboard/` (the public wall of pledges), `backend/features/pledgeboard/` (its routes, likes and moderation)
+and its admin tab `frontend/admin/js/pledgeboard.js`. `frontend/feedback/js/heartbeat.js` is Jun Kai's (it tells the
+health page a tablet is alive); leave it.
 
-Read `docs/features/feedback.md` first, then the Role 1 section of `docs/review-status.md` (38 open rows). Good first
+Read `docs/features/feedback.md` and `docs/features/pledgeboard.md` first, then the Role 1 section of
+`docs/review-status.md` (43 open rows). Good first
 tasks, because they teach the whole flow: the rating that survives `form.reset()` (next visitor submits the previous
 rating), no auto-reset after a successful submit, the thank-you page that always says the photo was emailed. After
 those, the task-sheet items (pledge required, feedback skippable, admin-editable titles and button names, RP photo
 props). Test on a real phone or tablet over Wi-Fi, not only in the laptop browser: the camera and the "mobile"
 detection behave differently.
 
-Wei Jie (Role 2): `frontend/tree`, `frontend/3dTree`, `frontend/pulse`, `frontend/Pledgeboard`, `backend/features/tree`,
-`pulse`, `pledgeboard`, and the tree tab of the admin page (`frontend/admin/js/tree.js`). Start with `docs/features/tree.md`;
+Wei Jie (Role 2): `frontend/tree`, `frontend/3dTree`, `frontend/pulse`, `backend/features/tree`, `backend/features/pulse`,
+and the tree tab of the admin page (`frontend/admin/js/tree.js`). Start with `docs/features/tree.md`;
 the 3D page currently never draws a leaf (one commented-out line), which is the first row in your list.
 
 Ryan (Role 4): `backend/features/assets/` and the Assets section of the admin page. `docs/features/assets.md` explains

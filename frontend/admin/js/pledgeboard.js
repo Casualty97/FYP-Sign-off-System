@@ -1,4 +1,4 @@
-// Owner: Role 2, Wei Jie. Previous team: XY (Xuanyang) (2).
+// Owner: Role 1, Zihan. Previous team: XY (Xuanyang) (2).
 // Part 23/30 of the admin page: pledgeboard management (load order in admin.html).
 // ==================== 26. PLEDGEBOARD MANAGEMENT ====================
 

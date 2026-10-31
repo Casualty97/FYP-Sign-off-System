@@ -85,7 +85,7 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | open | scripts | Simulation_Generator stores bare filenames and needs pngjs, which is not installed; Purge_Actuator leaves photos and tables behind | scripts/setup | |
 | open | archive | the export unlock now goes through auth.loginUser, which bumps last_login on every unlock (minor) | exportRoutes.js 128 | |
 
-## Role 1, Zihan (feedback screen, feedback routes, questions, overlays, form UI)
+## Role 1, Zihan (feedback screen, feedback routes, questions, overlays, form UI, pledgeboard)
 
 | Status | Area | Problem | Where | Fixed in |
 |---|---|---|---|---|
@@ -134,8 +134,13 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | open | overlays | the required Display Order field is discarded on save | overlays.js 723 | |
 | open | overlays | Preview onclick breaks on names with an apostrophe | overlays.js 131 | |
 | open | overlays | POST /overlays overwrites the live files when the theme id already exists | old routes 759, 4657 | |
+| open | pledgeboard | phones are always bounced off /pledgeboard: req.session.mobileAccessGranted is set by nothing | server.js 140 | |
+| open | pledgeboard | unlimited likes: the identity is a browser-made string sent in the body | Pledgeboard.js 65, routes 161 | |
+| open | pledgeboard | the public /pledges API returns every visitor's survey answers and photo ids | pledgeboard/routes.js 62 | |
+| open | pledgeboard | one request per pledge on every search keystroke | Pledgeboard.js 386 | |
+| open | pledgeboard | moderation and topic routes have no auth | pledgeboard/routes.js 378, 423 | |
 
-## Role 2, Wei Jie (tree, 3D tree, pulse, pledgeboard)
+## Role 2, Wei Jie (tree, 3D tree, pulse)
 
 | Status | Area | Problem | Where | Fixed in |
 |---|---|---|---|---|
@@ -156,11 +161,6 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | open | pulse | "Digital Leaves" is the length of a LIMIT 80 query | pulse/routes.js 226 | |
 | open | pulse | shows pledges that moderation rejected | pulse/routes.js 193 | |
 | open | pulse | badge earners print names regardless of consent | pulse/routes.js 203 | |
-| open | pledgeboard | phones are always bounced off /pledgeboard: req.session.mobileAccessGranted is set by nothing | server.js 140 | |
-| open | pledgeboard | unlimited likes: the identity is a browser-made string sent in the body | Pledgeboard.js 65, routes 161 | |
-| open | pledgeboard | the public /pledges API returns every visitor's survey answers and photo ids | pledgeboard/routes.js 62 | |
-| open | pledgeboard | one request per pledge on every search keystroke | Pledgeboard.js 386 | |
-| open | pledgeboard | moderation and topic routes have no auth | pledgeboard/routes.js 378, 423 | |
 
 ## Role 4, Ryan (Bluetooth assets, alerts, canvas)
 

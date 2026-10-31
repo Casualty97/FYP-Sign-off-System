@@ -1,4 +1,4 @@
-// Owner: Role 2, Wei Jie. Previous team: Preti (21).
+// Owner: Role 1, Zihan. Previous team: Preti (21).
 // ============================================================
 // PLEDGEBOARD.JS - TABLE OF CONTENTS (CTRL+F SEARCHABLE)
 // ============================================================
