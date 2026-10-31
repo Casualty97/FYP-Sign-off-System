@@ -2,7 +2,7 @@
 # (team decision 31 Oct 2026): when CI is green, the author merges their own PR. Later lines win over earlier ones.
 #
 # Handles: @Casualty97 = Jun Kai (Role 3, Admin screen, lead)
-#          @userZihan  = Zihan   (Role 1, Feedback screen)
+#          @userZihan  = Zihan   (Role 1, Feedback screen and pledgeboard)
 #          @WeijieRP   = Wei Jie (Role 2, Tree and Pulse screens)
 #          @24047966   = Ryan    (Role 4, Bluetooth, alerts, canvas)
 
@@ -21,7 +21,14 @@
 /CONTRIBUTING.md                            @Casualty97
 /eslint.config.mjs                          @Casualty97
 
-# Role 1: Feedback screen
+# Role 3: Admin screen (first, so the per-file admin rules of the other roles below win over /frontend/admin/)
+/backend/features/admin/                    @Casualty97
+/backend/features/archive/                  @Casualty97
+/backend/features/analysis/                 @Casualty97
+/backend/features/email/                    @Casualty97
+/frontend/admin/                            @Casualty97
+
+# Role 1: Feedback screen and pledgeboard (pledgeboard moved from Role 2, 31 Oct 2026)
 /backend/features/feedback/                 @userZihan @Casualty97
 /frontend/feedback/                         @userZihan @Casualty97
 /frontend/admin/js/overlays.js              @userZihan @Casualty97
@@ -29,24 +36,17 @@
 /frontend/admin/js/formUi.js                @userZihan @Casualty97
 /backend/features/parameters/               @userZihan @Casualty97
 /frontend/admin/js/parameters.js            @userZihan @Casualty97
+/backend/features/pledgeboard/              @userZihan @Casualty97
+/frontend/Pledgeboard/                      @userZihan @Casualty97
+/frontend/admin/js/pledgeboard.js           @userZihan @Casualty97
 
-# Role 2: Tree, 3D tree, pulse, pledgeboard
+# Role 2: Tree, 3D tree, pulse
 /backend/features/tree/                     @WeijieRP @Casualty97
 /backend/features/pulse/                    @WeijieRP @Casualty97
-/backend/features/pledgeboard/              @WeijieRP @Casualty97
 /frontend/tree/                             @WeijieRP @Casualty97
 /frontend/3dTree/                           @WeijieRP @Casualty97
 /frontend/pulse/                            @WeijieRP @Casualty97
-/frontend/Pledgeboard/                      @WeijieRP @Casualty97
 /frontend/admin/js/tree.js                  @WeijieRP @Casualty97
-/frontend/admin/js/pledgeboard.js           @WeijieRP @Casualty97
-
-# Role 3: Admin screen
-/backend/features/admin/                    @Casualty97
-/backend/features/archive/                  @Casualty97
-/backend/features/analysis/                 @Casualty97
-/backend/features/email/                    @Casualty97
-/frontend/admin/                            @Casualty97
 
 # Role 4: Bluetooth assets, alerts, canvas
 /backend/features/assets/                   @24047966 @Casualty97

@@ -1,6 +1,6 @@
 # Pledgeboard
 
-**Owner:** Role 2, Wei Jie (decided 31 Oct 2026; it is on nobody's task sheet)
+**Owner:** Role 1, Zihan (decided 31 Oct 2026; it is on nobody's task sheet)
 
 **Where the code is**
 

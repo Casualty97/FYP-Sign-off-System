@@ -52,7 +52,7 @@ backend/
   data/                      runtime settings the admin page writes (created at boot, not in git)
 frontend/
   feedback/  js/*.js         kiosk page (Role 1)        admin/  js/*.js   admin page, one file per section
-  tree/  3dTree/  pulse/     wall pages (Role 2)        Pledgeboard/      pledgeboard (Role 2)
+  tree/  3dTree/  pulse/     wall pages (Role 2)        Pledgeboard/      pledgeboard (Role 1)
 database/
   schema.sql                 frozen fresh-install baseline       migrations/   every change since
   migrate.js                 npm run db:migrate | db:status | db:new | db:snapshot
@@ -80,8 +80,8 @@ Every code file starts with an OWNERSHIP block naming the previous-team authors 
 
 | Role | Person | Task sheet | Folders |
 |---|---|---|---|
-| Role 1 | Zihan | Feedback screen: face detection, photo props, RP bear, pledge-first flow, 7 m by 2 m display, tablet battery | `backend/features/feedback`, `frontend/feedback`, overlays, questions, form UI, parameters (shared) |
-| Role 2 | Wei Jie | Tree screen: 3D and 2D animation, new-leaf moment, event-driven refresh, pulse layout | `backend/features/tree`, `pulse`, `pledgeboard`, `frontend/tree`, `3dTree`, `pulse`, `Pledgeboard` |
+| Role 1 | Zihan | Feedback screen: face detection, photo props, RP bear, pledge-first flow, 7 m by 2 m display, tablet battery | `backend/features/feedback`, `pledgeboard`, `frontend/feedback`, `Pledgeboard`, overlays, questions, form UI, parameters (shared) |
+| Role 2 | Wei Jie | Tree screen: 3D and 2D animation, new-leaf moment, event-driven refresh, pulse layout | `backend/features/tree`, `pulse`, `frontend/tree`, `3dTree`, `pulse` |
 | Role 3 | Jun Kai (lead) | Admin screen: policy-based hibernation, archive and export, health monitoring with LLM status, hardware graphs with forecasting, install scripts, email settings | `backend/features/admin`, `archive`, `analysis`, `email`, `scripts/setup`, most of `frontend/admin/js` |
 | Role 4 | Ryan | Server configuration: Bluetooth asset tracking, out-of-range alerts with sound, positioning canvas | `backend/features/assets`, alerts and canvas (new) |
 
