@@ -217,6 +217,12 @@
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
                             System Health
                         </a>
+                        <!-- <Jun Kai start> -->
+                        <a href="#" class="nav-item" onclick="showPage('hardware')">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span>
+                            Hardware
+                        </a>
+                        <!-- <Jun Kai end> -->
                     </nav>
                 </div>
 
@@ -2390,71 +2396,66 @@
                 
 
                 <!-- Email Management Page (DONE BY NADHIRAH)-->
+                <!-- <Jun Kai start> -->
                 <div id="email-management-page" class="page">
-
-                    <div class="page-header">
-                        <h2>Email Management</h2>
-                        <p>Manage SMTP settings and email configurations</p>
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Email</h2>
+                            <p>The mail account the kiosk sends from: the thank-you email with the visitor photo, badge emails and test messages. Pick a provider, save, then send yourself a test.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button class="ui-btn ui-btn-secondary" type="button" onclick="loadEmailConfig()">Reset</button>
+                            <button class="ui-btn ui-btn-primary" type="button" onclick="saveEmailConfig()">Save</button>
+                        </div>
                     </div>
-
-                    <div class="overlay-section user-section">
-
-                        <div class="section-header">
-                            <h3>SMTP Configuration</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" type="button" onclick="loadEmailConfig()">Reset</button>
-                                <button class="btn-primary" type="button" onclick="saveEmailConfig()">Save</button>
+                    <div class="ui-grid-2">
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Mail account</h3>
+                                    <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-form-grid">
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="email-provider">Provider</label>
+                                        <select class="ui-select" id="email-provider" onchange="renderEmailFields()">
+                                            <option value="gmail">Gmail</option>
+                                            <option value="outlook">Outlook (Office 365)</option>
+                                            <option value="custom">Custom SMTP</option>
+                                        </select>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="sender-email">Sender address (From)</label>
+                                        <input class="ui-input" id="sender-email" type="email" placeholder="noreply@yourdomain.com" autocomplete="off">
+                                        <span class="ui-help">Gmail shows its own address as the sender unless this one is a verified alias.</span>
+                                    </div>
+                                    <div class="ui-field-wide" id="email-fields"></div>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Provider -->
-                        <div class="form-group">
-                            <label for="email-provider">Provider</label>
-                            <select id="email-provider" onchange="renderEmailFields()">
-                                <option value="gmail">Gmail</option>
-                                <option value="outlook">Outlook (Office365)</option>
-                                <option value="custom">Custom SMTP</option>
-                            </select>
-                        </div>
-
-                        <!-- Sender Email -->
-                        <div class="form-group">
-                            <label for="sender-email">Sender Email (From)</label>
-                            <input
-                                id="sender-email"
-                                type="email"
-                                placeholder="e.g. noreply@yourdomain.com"
-                            />
-                        </div>
-
-                        <!-- Dynamic Provider Fields -->
-                        <div id="email-fields"></div>
-
-                        <div class="email-divider"></div>
-
-                        <!-- Test Email -->
-                        <div class="form-group">
-                            <label for="email-test-to">Test Email (optional)</label>
-                            <div class="email-test-row">
-                                <input
-                                    id="email-test-to"
-                                    type="email"
-                                    placeholder="Send a test email to..."
-                                />
-                                <button
-                                    class="btn-secondary"
-                                    type="button"
-                                    onclick="sendTestEmail()"
-                                >
-                                    Send Test Email
-                                </button>
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Test message</h3>
+                                    <p>Sends a short email with the saved settings. Save first, then test.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-field">
+                                    <label class="ui-label" for="email-test-to">Send a test to</label>
+                                    <div class="ui-input-row">
+                                        <input class="ui-input" id="email-test-to" type="email" placeholder="you@example.com" autocomplete="off">
+                                        <button class="ui-btn ui-btn-secondary" type="button" onclick="sendTestEmail()">Send test</button>
+                                    </div>
+                                </div>
+                                <div id="email-status" class="ui-status-slot"></div>
                             </div>
                         </div>
-
-                        <!-- Status -->
-                        <div id="email-status" style="margin-top: 12px;"></div>
                     </div>
                 </div>
+                <!-- <Jun Kai end> -->
 
                 <div id="badge-email-templates-page" class="page">
                     <div class="page-header">
@@ -3324,6 +3325,191 @@
                     </div>
                 </div>
 
+                <!-- <Jun Kai start> -->
+                <!-- Hardware monitor (Role 3) -->
+                <div id="hardware-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Hardware</h2>
+                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 min</span> and kept for <span id="hardware-retention-text">30 days</span>. The graphs and the forecast refresh every minute while this page is open.</p>
+                        </div>
+                        <div class="ui-row">
+                            <span id="hardware-sampler-pill" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Loading</span>
+                            <button class="ui-btn ui-btn-secondary" id="hardware-refresh-btn" onclick="loadHardware()">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="hw-tiles">
+                        <div class="hw-tile" id="hardware-tile-cpu">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span><span>CPU</span></div>
+                            <div class="hw-tile-value"><span id="hardware-cpu-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-cpu-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-cpu-hint"></div>
+                        </div>
+                        <div class="hw-tile" id="hardware-tile-memory">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg></span><span>Memory</span></div>
+                            <div class="hw-tile-value"><span id="hardware-memory-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-memory-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-memory-hint"></div>
+                        </div>
+                        <div class="hw-tile" id="hardware-tile-gpu">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span><span>GPU</span></div>
+                            <div class="hw-tile-value"><span id="hardware-gpu-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-gpu-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-gpu-hint"></div>
+                        </div>
+                        <div class="hw-tile" id="hardware-tile-disk">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg></span><span>Disk</span></div>
+                            <div class="hw-tile-value"><span id="hardware-disk-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-disk-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-disk-hint"></div>
+                        </div>
+                    </div>
+                    <div class="hw-toolbar">
+                        <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
+                            <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
+                            <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
+                            <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
+                            <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
+                            <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
+                        </div>
+                        <div class="ui-row">
+                            <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="hardware-table-btn" onclick="toggleHardwareTable()">Table view</button>
+                        </div>
+                    </div>
+                    <div class="hw-charts" id="hardware-charts">
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>CPU</h3>
+                                    <p>Average use. The dashed line is the forecast, the shaded band its typical error.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-cpu-chart" aria-label="CPU usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-cpu-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Memory</h3>
+                                    <p>Share of the installed memory in use.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-memory-chart" aria-label="Memory usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-memory-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>GPU</h3>
+                                    <p>Busiest GPU engine, as Task Manager reports it.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-gpu-chart" aria-label="GPU usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-gpu-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Disk</h3>
+                                    <p>Used space on the project drive. The dashed line continues the growth of the last 30 days.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-disk-chart" aria-label="Disk usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-disk-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui-card" id="hardware-table-card" hidden>
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Values</h3>
+                                <p>The same averages as the graphs, newest first.</p>
+                            </div>
+                        </div>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table">
+                                <thead><tr><th>Time</th><th>CPU %</th><th>Memory %</th><th>GPU %</th><th>Disk %</th><th>Samples</th></tr></thead>
+                                <tbody id="hardware-table-body"><tr><td colspan="6" class="ui-empty">No samples in this range yet</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="ui-grid-2">
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Forecast</h3>
+                                    <p id="hardware-forecast-method">Statistics only, no AI.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-facts">
+                                    <div><span class="ui-fact-label" id="hardware-fc-cpu-label">CPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-cpu">–</span><span class="ui-fact-hint" id="hardware-fc-cpu-hint"></span></div>
+                                    <div><span class="ui-fact-label" id="hardware-fc-memory-label">Memory in 1 day</span><span class="ui-fact-value" id="hardware-fc-memory">–</span><span class="ui-fact-hint" id="hardware-fc-memory-hint"></span></div>
+                                    <div><span class="ui-fact-label" id="hardware-fc-gpu-label">GPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-gpu">–</span><span class="ui-fact-hint" id="hardware-fc-gpu-hint"></span></div>
+                                    <div><span class="ui-fact-label">Disk full in</span><span class="ui-fact-value" id="hardware-fc-disk">–</span><span class="ui-fact-hint" id="hardware-fc-disk-hint"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Sampling</h3>
+                                    <p>How often to measure, how long to keep the samples and how far ahead to forecast.</p>
+                                </div>
+                                <button class="ui-btn ui-btn-primary" id="hardware-settings-save" onclick="saveHardwareSettings()">Save</button>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-form-grid">
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="hardware-interval">Sample every</label>
+                                        <select class="ui-select" id="hardware-interval">
+                                            <option value="15">15 seconds</option>
+                                            <option value="30">30 seconds</option>
+                                            <option value="60">1 minute</option>
+                                            <option value="120">2 minutes</option>
+                                            <option value="300">5 minutes</option>
+                                            <option value="600">10 minutes</option>
+                                        </select>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="hardware-retention">Keep samples for</label>
+                                        <select class="ui-select" id="hardware-retention">
+                                            <option value="7">7 days</option>
+                                            <option value="14">14 days</option>
+                                            <option value="30">30 days</option>
+                                            <option value="60">60 days</option>
+                                            <option value="90">90 days</option>
+                                            <option value="180">180 days</option>
+                                            <option value="365">1 year</option>
+                                        </select>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="hardware-horizon">Forecast ahead</label>
+                                        <select class="ui-select" id="hardware-horizon">
+                                            <option value="6">6 hours</option>
+                                            <option value="12">12 hours</option>
+                                            <option value="24">1 day</option>
+                                            <option value="48">2 days</option>
+                                            <option value="72">3 days</option>
+                                            <option value="168">7 days</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ui-card-body"><dl class="ui-kv" id="hardware-sampler-details"></dl></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- <Jun Kai end> -->
+
                 <div id="server-schedule-page" class="page">
                     <div class="ui-page-header">
                         <div>
@@ -3648,6 +3834,9 @@
     <script src="/admin/js/countdown.js"></script>
     <script src="/admin/js/serverControl.js"></script>
     <script src="/admin/js/health.js"></script>
+    <!-- <Jun Kai start> -->
+    <script src="/admin/js/hardware.js"></script>
+    <!-- <Jun Kai end> -->
     <script src="/admin/js/vips.js"></script>
     <script src="/admin/js/kioskReload.js"></script>
 </body>

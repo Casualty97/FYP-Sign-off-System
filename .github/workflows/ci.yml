@@ -126,6 +126,10 @@ jobs:
             console.log(s);process.exit(errors?1:0);"
       - name: Contract checks
         run: node tests/contracts/run.js
+      # <Jun Kai start>
+      - name: Unit tests
+        run: node --test "tests/unit/**/*.test.js"
+      # <Jun Kai end>
 
   # ------------------------------------------------------------------ boot + endpoints, Linux and Windows
   smoke:

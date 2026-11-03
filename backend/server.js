@@ -152,12 +152,18 @@ const dataRetentionCleanup = require('./features/archive/retention');
 const kioskScheduler = require('./features/serverControl/scheduler');
 const healthRoutes = require('./features/health/routes');
 const healthPublicRoutes = require('./features/health/publicRoutes');
+// <Jun Kai start>
+const hardwareRoutes = require('./features/hardware/routes');
+const hardwareSampler = require('./features/hardware/sampler');
+// <Jun Kai end>
 
 // Import QR code generation
 const QRCode = require('qrcode');
 
 const app = express();
-const PORT = 3000;
+// <Jun Kai start>
+const PORT = Number(process.env.PORT) || 3000;
+// <Jun Kai end>
 const JSON_BODY_LIMIT = '50mb';
 
 
@@ -421,6 +427,9 @@ setTreeDatabase(db);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin/health', healthRoutes);
 app.use('/api/health', healthPublicRoutes);
+// <Jun Kai start>
+app.use('/api/admin/hardware', hardwareRoutes);
+// <Jun Kai end>
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
@@ -700,6 +709,9 @@ function printServerInfo(isHttps) {
     dataRetentionCleanup.initializeCleanup();
     // Schedules (hibernate at stop time, start the kiosk in the morning); off with KIOSK_AUTOMATION=off
     kioskScheduler.start();
+    // <Jun Kai start>
+    hardwareSampler.start();
+    // <Jun Kai end>
 }
 
 // Try to enable HTTPS if selfsigned package is available
