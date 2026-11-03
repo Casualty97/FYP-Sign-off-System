@@ -1878,7 +1878,7 @@ async function analyzeWithLocalGPT(text, signal) {
         const prompt = `Reply ONLY with one word: positive, negative, or neutral. Text: "${text}" `;
 
         const response = await axios.post(
-            'http://localhost:11434/api/generate',
+            (process.env.OLLAMA_URL || 'http://127.0.0.1:11434') + '/api/generate',
             { model: 'phi3', prompt, stream: false },
             { signal }
         );
@@ -1906,7 +1906,7 @@ async function analyzeWithQwen(text, signal) {
         throwIfAnalysisAborted(signal);
         const prompt = `Reply ONLY with one word: positive, negative, or neutral. Text: "${text}" `;
         
-        const response = await axios.post('http://localhost:11434/api/generate', {
+        const response = await axios.post((process.env.OLLAMA_URL || 'http://127.0.0.1:11434') + '/api/generate', {
             model: 'qwen2.5:3b',
             prompt,
             stream: false
@@ -1937,7 +1937,7 @@ async function analyzeWithQwen(text, signal) {
 async function analyzeWithGemma(text, signal) {
     try {
         throwIfAnalysisAborted(signal);
-        const response = await axios.post('http://localhost:11434/api/generate', {
+        const response = await axios.post((process.env.OLLAMA_URL || 'http://127.0.0.1:11434') + '/api/generate', {
             model: 'gemma2:2b',
             prompt: `Reply ONLY with one word: positive, negative, or neutral. Text: "${text}" `,
             stream: false

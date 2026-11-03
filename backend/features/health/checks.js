@@ -65,7 +65,7 @@ async function checkDatabase() {
 async function checkOllama() {
     const base = { key: 'ollama', label: 'Ollama (local LLM)' };
     try {
-        const { value, ms } = await timed(() => getJson(`${OLLAMA_URL}/api/tags`, 4000));
+        const { value, ms } = await timed(() => withTimeout(getJson(`${OLLAMA_URL}/api/tags`, 4000), 4000, 'Ollama'));
         const models = Array.isArray(value.body && value.body.models) ? value.body.models.map((m) => m.name) : [];
         if (value.status !== 200) return { ...base, status: 'down', summary: `Answered HTTP ${value.status}`, detail: { url: OLLAMA_URL }, latencyMs: ms };
         return {

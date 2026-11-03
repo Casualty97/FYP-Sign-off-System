@@ -737,7 +737,7 @@ function showNotification(message, type = 'info') {
     notification.innerHTML = `
         <div class="notification-content">
             <span class="notification-icon">${uiIcon(type === 'success' ? 'check' : type === 'error' ? 'cross' : type === 'warning' ? 'alert' : 'info', 18)}</span>
-            <span>${message}</span>
+            <span>${escapeHtmlSafe(message)}</span>
         </div>
         <button class="notification-close" onclick="this.parentElement.remove()">×</button>
     `;

@@ -125,6 +125,10 @@ async function loadHealth(refresh) {
         console.error('❌ Error loading health:', error);
         const text = document.getElementById('health-summary-text');
         if (text) text.textContent = `Could not run the checks: ${error.message}`;
+        const overall = document.getElementById('health-overall');
+        if (overall) { overall.className = 'ui-pill ui-pill-down'; overall.innerHTML = '<span class="ui-dot"></span>Checks unavailable'; }
+        const at = document.getElementById('health-checked-at');
+        if (at && at.textContent.startsWith('Checked at')) at.textContent = at.textContent.replace('Checked at', 'Cards show the last good check at');
     } finally {
         healthLoading = false;
         if (button) button.disabled = false;
