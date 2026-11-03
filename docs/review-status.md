@@ -5,7 +5,7 @@ Line numbers marked "old" refer to the one-file layout before the restructure (a
 the others refer to the current files. When you fix something, change its status to `fixed` and add the commit.
 
 Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin batch 1, `e71ff16` admin batch 2,
-`0d57c1c` core batch 3, `7f9d9cc` + `f7bfc32` 2 Nov fixes. The feature pages in `docs/features/` carry the same open items per feature.
+`0d57c1c` core batch 3, `7f9d9cc` + `f7bfc32` 2 Nov fixes, PR #4 health page and its review fixes (3 Nov). The feature pages in `docs/features/` carry the same open items per feature.
 
 ## Role 3, Jun Kai (admin page, admin routes, archive and export, email, analysis, server control, themes, core)
 
@@ -86,6 +86,13 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | open | core | kioskServer.js drifted from server.js (no page gates, different static handling) | kioskServer.js | |
 | open | scripts | Simulation_Generator stores bare filenames and needs pngjs, which is not installed; Purge_Actuator leaves photos and tables behind | scripts/setup | |
 | open | archive | the export unlock now goes through auth.loginUser, which bumps last_login on every unlock (minor) | exportRoutes.js 128 | |
+| fixed | setup | a fresh install ran migrate.js baseline after schema.sql, so the first migration (device_heartbeats) was recorded but never applied | scripts/setup/Datastore_Assembly.js 187 | PR #4 |
+| fixed | health | the Ollama probe could hang GET /api/admin/health when the connection dropped after the headers | health/checks.js 68 | PR #4 |
+| fixed | health | npm run smoke (--no-submit) left a fake smoke-tablet-01 row in the real database | tests/smoke.js 127 | PR #4 |
+| fixed | health | a failed health poll kept the previous green pill and "Checked at" time on screen | health.js 124 | PR #4 |
+| fixed | admin page | showNotification rendered server messages as raw HTML (a duplicate schedule name echoed the typed name) | serverControl.js 740 | PR #4 |
+| fixed | analysis | the qwen, gemma and localgpt engines hard-coded localhost:11434 while the health card reads OLLAMA_URL | routes.js 1881, 1909, 1940 | PR #4 |
+| open | health | POST /api/health/heartbeat has no login or rate limit, so anyone on the LAN can add endless device rows (one per made-up id) | health/publicRoutes.js 35 | |
 
 ## Role 1, Zihan (feedback screen, feedback routes, questions, overlays, form UI, pledgeboard)
 

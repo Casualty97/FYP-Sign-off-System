@@ -259,6 +259,7 @@ setTreeDatabase(db);
 
 // ==================== API ROUTES (KIOSK) ====================
 
+app.use('/api/health', require('./features/health/publicRoutes')); // tablet heartbeats
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
 app.use('/api/pulse', pulseRoutes);

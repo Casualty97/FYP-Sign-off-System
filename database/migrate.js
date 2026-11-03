@@ -5,7 +5,7 @@
 //   node database/migrate.js up                apply pending migrations in order (the default)
 //   node database/migrate.js new <name>        create database/migrations/NNN_<name>.sql
 //   node database/migrate.js baseline          mark every migration as applied without running it
-//                                              (done automatically right after a fresh schema.sql install)
+//                                              (only for a database that already has every change by hand)
 //   node database/migrate.js check [--update]  build a scratch database from schema.sql + all migrations and
 //                                              compare it with database/schema.snapshot.sql (--update rewrites it).
 //                                              Needs an admin login: MYSQL_ROOT_USER (default root) and MYSQL_ROOT_PASSWORD.
