@@ -57,7 +57,8 @@ function validateFeedbackSubmission(payload, validationRules = {}, featureFlags 
   const email = getString(userData.email);
   const pledge = getString(userData.pledge);
   const pledgeTopics = normalizePledgeTopics(userData);
-  const pledgeSkipped = Boolean(userData.pledgeSkipped);
+  //change pledgeSkipped to feedbackSkipped to reflect the new feature of skipping feedback (changes made by zihan)
+  const feedbackSkipped = Boolean(userData.feedbackSkipped);
   const photoSkipped = Boolean(userData.photoSkipped); // Optional photo skip - changes made by nick
   const hasPhoto = Boolean(userData.photoId || userData.processedPhotoId || userData.photo || userData.processedPhoto);
   const retention = getString(payload?.retention).toLowerCase();
@@ -81,8 +82,13 @@ function validateFeedbackSubmission(payload, validationRules = {}, featureFlags 
   if (email && !buildPattern(validationRules.emailPattern).test(email)) {
     errors.push({ field: 'email', message: 'Email format is invalid.' });
   }
+  
+  // Feedback may be skipped, but only when the pledge step is on. (zihan)
+  if (feedbackSkipped && !isEnabled(featureFlags.pledgeEnabled)) {
+    errors.push({ field: 'feedback', message: 'Feedback is required when the pledge step is turned off.' });
+  }  
 
-  if (isEnabled(featureFlags.pledgeEnabled) && !pledgeSkipped) {
+  if (isEnabled(featureFlags.pledgeEnabled)) {
     if (isEnabled(validationRules.pledgeRequired) && !pledge) {
       errors.push({ field: 'pledge', message: 'Pledge is required.' });
     }

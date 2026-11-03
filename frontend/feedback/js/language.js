@@ -34,6 +34,8 @@ const translations = {
         feedbackTitle: "Share Your Feedback",
         feedbackDescription: "A few quick taps. Honest answers are perfect.",
         continueToPledge: "Continue to Pledge",
+        skipFeedback: "Skip Feedback",
+        feedbackSkipped: "Feedback skipped",
 
         pledgeTitle: "Make Your Pledge",
         pledgeDescription: "Choose one action you can try after today.",
@@ -130,6 +132,8 @@ const translations = {
         feedbackTitle: "Kongsi Maklum Balas Anda",
         feedbackDescription: "Pandangan anda membantu kami menambah baik dan melayani anda dengan lebih baik",
         continueToPledge: "Teruskan ke Ikrar",
+        skipFeedback: "Langkau Maklum Balas",
+        feedbackSkipped: "Maklum Balas Dilangkau",
 
         pledgeTitle: "Buat Ikrar Anda",
         pledgeDescription: "Kongsikan komitmen anda untuk memberi kesan positif",
@@ -221,6 +225,8 @@ const translations = {
         feedbackTitle: "分享您的反馈",
         feedbackDescription: "您的意见帮助我们改进并更好地为您服务",
         continueToPledge: "继续承诺",
+        skipFeedback: "跳过反馈",
+        feedbackSkipped: "已跳过反馈",
 
         pledgeTitle: "作出您的承诺",
         pledgeDescription: "分享您为带来积极影响所作的承诺",
@@ -312,6 +318,8 @@ const translations = {
         feedbackTitle: "உங்கள் பின்னூட்டத்தை பகிரவும்",
         feedbackDescription: "உங்கள் கருத்துக்கள் எங்களை மேம்படுத்தவும் உங்களுக்கு சிறப்பாக சேவை செய்யவும் உதவுகின்றன",
         continueToPledge: "உறுதிமொழிக்கு தொடர்க",
+        skipFeedback: "பின்னூட்டத்தை தவிர்க்கவும்",
+        feedbackSkipped: "பின்னூட்டம் தவிர்க்கப்பட்டது",
 
         pledgeTitle: "உங்கள் உறுதிமொழியை வழங்கவும்",
         pledgeDescription: "நல்ல மாற்றத்தை உருவாக்கும் உங்கள் உறுதிப்பாட்டைப் பகிரவும்",
@@ -587,6 +595,8 @@ function applyTranslations() {
     setText('feedback-title', t.feedbackTitle);
     setText('feedback-description', t.feedbackDescription);
     setText('continue-to-pledge-text', t.continueToPledge);
+    //added by zihan
+    setText('skip-feedback-text', t.skipFeedback);
     setText('back-from-feedback-text', t.back);
      setText('home-from-feedback-text', getDynamicLanguageText().home); // Home button translation done by nick
 
