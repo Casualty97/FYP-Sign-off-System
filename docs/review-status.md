@@ -5,7 +5,7 @@ Line numbers marked "old" refer to the one-file layout before the restructure (a
 the others refer to the current files. When you fix something, change its status to `fixed` and add the commit.
 
 Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin batch 1, `e71ff16` admin batch 2,
-`0d57c1c` core batch 3. The feature pages in `docs/features/` carry the same open items per feature.
+`0d57c1c` core batch 3, `7f9d9cc` + `f7bfc32` 2 Nov fixes. The feature pages in `docs/features/` carry the same open items per feature.
 
 ## Role 3, Jun Kai (admin page, admin routes, archive and export, email, analysis, server control, themes, core)
 
@@ -77,6 +77,8 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | fixed | server control | schedules were CRUD only; nothing executed them on Windows. Now: scheduler + Windows wake timer (feature A) | backend/features/serverControl/ | hibernation feature, 31 Oct |
 | fixed | server control | the page rejected overnight schedules (stop before start now means the next day) | serverControl.js | hibernation feature, 31 Oct |
 | fixed | parameters | the email-pattern setting is hidden from the Parameter Adjustment form (task-sheet item) | admin.html | hibernation feature, 31 Oct |
+| fixed | parameters | Save still sent the hidden email pattern as the default, overwriting a pattern changed in the JSON file | parameters.js | f7bfc32 |
+| fixed | admin page | the hibernation commit left a literal "$1" where the <title> tag was (text at the top of the page, no tab title) | admin.html 116 | 7f9d9cc |
 | open | server control | restart-app.bat and startup-monitor.bat can double-launch the servers | project root | |
 | open | core | only 39 of about 108 admin routes use auth.requireAuth; the router is mounted with no guard | server.js 409 | |
 | open | core | static files are served before the page gates, so /tree/tree.html bypasses the 2D/3D and mobile gates | server.js 409 | |
