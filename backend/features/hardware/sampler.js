@@ -21,8 +21,10 @@ const state = {
     lastError: null,
     sampleCount: 0,
     lastPrune: 0,
+    gpuFailures: 0,
     loggedErrors: new Set()
 };
+const GPU_FAILURES_BEFORE_GIVING_UP = 3;
 
 const run = (sql, params) => new Promise((resolve, reject) => db.run(sql, params, (err, result) => (err ? reject(err) : resolve(result))));
 
@@ -37,8 +39,16 @@ async function takeSample() {
     const memory = collect.memory();
     const disk = await collect.disk();
     let gpu = null;
-    try { gpu = await collect.gpu(state.gpu.source); }
-    catch (error) { logOnce(`GPU read failed (${error.message}); GPU stays empty until the next restart`); state.gpu = { source: 'none', name: state.gpu.name }; }
+    try {
+        gpu = await collect.gpu(state.gpu.source);
+        state.gpuFailures = 0;
+    } catch (error) {
+        state.gpuFailures++;
+        if (state.gpuFailures >= GPU_FAILURES_BEFORE_GIVING_UP) {
+            logOnce(`GPU read failed ${state.gpuFailures} times (${error.message}); GPU stays empty until the next restart`);
+            state.gpu = { source: 'none', name: state.gpu.name };
+        }
+    }
     return { cpu, memory, disk, gpu, at: new Date().toISOString() };
 }
 
@@ -92,7 +102,10 @@ function start() {
     if (state.started) return;
     state.started = true;
     state.meter = new collect.CpuMeter();
-    applySettings(settings.read());
+    let current;
+    try { current = settings.read(); }
+    catch (error) { logOnce(`settings file unreadable (${error.message}); using the defaults`); current = { ...settings.DEFAULTS }; }
+    applySettings(current);
     collect.detectGpu().then((gpu) => { state.gpu = gpu; }).catch(() => { state.gpu = { source: 'none', name: null }; });
     schedule(FIRST_SAMPLE_DELAY_MS);
     console.log(`📈 Hardware sampler on: every ${state.intervalSeconds} s, kept ${state.retentionDays} days`);

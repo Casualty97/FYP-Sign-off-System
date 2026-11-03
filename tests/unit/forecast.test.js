@@ -50,4 +50,44 @@ test('bucketAverage averages into fixed buckets and skips nulls', () => {
     const out = forecast.bucketAverage(rows, 60000, ['cpu']);
     assert.deepEqual(out, [{ t: 0, n: 2, cpu: 15 }, { t: 60000, n: 2, cpu: 40 }]);
 });
+
+// deterministic noise so the test never flakes
+function noise(seed) {
+    let s = seed;
+    return () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296 - 0.5; };
+}
+
+test('a steady load with noise forecasts close to its average, with a band that widens', () => {
+    const rnd = noise(7);
+    const values = Array.from({ length: 144 }, () => 20 + rnd() * 6); // 20 % plus or minus 3
+    const result = forecast.holtForecast(values, 144);
+    const end = result.points[143];
+    assert.ok(Math.abs(end.value - 20) < 5, `24 h ahead should stay near 20, got ${end.value}`);
+    assert.ok(result.rmse > 0 && result.rmse < 4, `rmse ${result.rmse}`);
+    assert.ok(end.high - end.low > result.points[0].high - result.points[0].low, 'band widens with the horizon');
+    assert.ok(end.low < end.value && end.value < end.high);
+});
+
+test('a noisy rising line keeps its slope', () => {
+    const rnd = noise(11);
+    const values = Array.from({ length: 144 }, (_, i) => 30 + i * 0.2 + rnd() * 2);
+    const result = forecast.holtForecast(values, 60);
+    const slope = (result.points[59].value - result.points[0].value) / 59;
+    assert.ok(Math.abs(slope - 0.2) < 0.08, `slope ${slope} should be close to 0.2`);
+});
+
+test('holtForecast uses only the unbroken run of readings after a gap', () => {
+    const tail = [40, 41, 42, 43, 44, 45];
+    const withGap = [10, 12, 14, 16, null, ...tail];
+    assert.deepEqual(forecast.holtForecast(withGap, 3), forecast.holtForecast(tail, 3));
+});
+
+test('diskForecast reports a shrinking disk as not growing', () => {
+    const day = 86400000;
+    const points = Array.from({ length: 8 }, (_, i) => ({ t: i * day, v: 150 - i * 2 }));
+    const result = forecast.diskForecast(points, 200);
+    assert.equal(result.daysUntilFull, null);
+    assert.equal(result.gbPerDay, -2);
+    assert.equal(result.totalGb, 200);
+});
 // <Jun Kai end>

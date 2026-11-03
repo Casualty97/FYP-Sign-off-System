@@ -11,7 +11,7 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 // One pass of Holt's method. Returns the final level and trend plus the one-step-ahead error.
 function holt(values, alpha, beta) {
     let level = values[0];
-    let trend = values.length > 1 ? values[1] - values[0] : 0;
+    let trend = 0; // learned from the data: one noisy first difference must not steer the whole forecast
     let squaredError = 0;
     for (let t = 1; t < values.length; t++) {
         const predicted = level + trend;
@@ -35,10 +35,13 @@ function fitHolt(values) {
     return best;
 }
 
-// values: evenly spaced readings; steps: how many future points to produce.
-// Returns null with fewer than 6 readings. The band grows with the horizon (typical error * sqrt(h)).
+// values: evenly spaced readings, oldest first; steps: how many future points to produce.
+// Only the unbroken run of readings up to the latest one is used (a gap such as a night in hibernation is
+// not a step). Returns null with fewer than 6 readings. The band grows with the horizon (typical error * sqrt(h)).
 function holtForecast(values, steps, { min = 0, max = 100 } = {}) {
-    const clean = values.filter((v) => Number.isFinite(v));
+    let start = values.length;
+    while (start > 0 && Number.isFinite(values[start - 1])) start--;
+    const clean = values.slice(start);
     if (clean.length < 6 || steps < 1) return null;
     const fit = fitHolt(clean);
     const points = [];
@@ -72,11 +75,17 @@ function linearTrend(points) {
 function diskForecast(points, totalGb) {
     const fit = linearTrend(points);
     if (!fit || !totalGb) return null;
-    const gbPerDay = fit.slope * 86400000;
+    const gbPerDay = Math.round(fit.slope * 86400000 * 100) / 100;
     const lastUsed = points[points.length - 1].v;
     const freeGb = totalGb - lastUsed;
-    const daysUntilFull = gbPerDay > 0.01 ? freeGb / gbPerDay : null;
-    return { gbPerDay: round1(gbPerDay), daysUntilFull: daysUntilFull === null ? null : Math.max(0, Math.round(daysUntilFull)), spanDays: round1((points[points.length - 1].t - points[0].t) / 86400000) };
+    const daysUntilFull = gbPerDay >= 0.01 ? freeGb / gbPerDay : null;
+    return {
+        gbPerDay,
+        daysUntilFull: daysUntilFull === null ? null : Math.max(0, Math.round(daysUntilFull)),
+        spanDays: round1((points[points.length - 1].t - points[0].t) / 86400000),
+        totalGb,
+        lastUsedGb: lastUsed
+    };
 }
 
 // Averages rows into fixed buckets: rows [{ t, ...numbers }] -> [{ t, n, ...averages }]

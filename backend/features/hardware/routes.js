@@ -44,14 +44,20 @@ async function bucketedRows(secondsBack, bucketSeconds) {
 
 async function buildForecast(horizonHours) {
     const steps = Math.round((horizonHours * 3600) / FORECAST_BUCKET_SECONDS);
-    const history = await bucketedRows(Math.max(24 * 3600, 2 * horizonHours * 3600), FORECAST_BUCKET_SECONDS);
+    const windowSeconds = Math.max(24 * 3600, 2 * horizonHours * 3600);
+    const buckets = await bucketedRows(windowSeconds, FORECAST_BUCKET_SECONDS);
+    // only the unbroken run of buckets up to the latest one: a gap (the PC was hibernated) is not a step
+    let cut = buckets.length - 1;
+    while (cut > 0 && buckets[cut].t - buckets[cut - 1].t <= FORECAST_BUCKET_SECONDS * 1500) cut--;
+    const history = buckets.slice(Math.max(0, cut));
     const lastT = history.length ? history[history.length - 1].t : null;
     const stamp = (series) => series && { ...series, points: series.points.map((p, i) => ({ t: lastT + (i + 1) * FORECAST_BUCKET_SECONDS * 1000, ...p })) };
     const diskPoints = (await bucketedRows(30 * 86400, 3600)).filter((p) => p.diskUsedGb !== null).map((p) => ({ t: p.t, v: p.diskUsedGb }));
     const diskTotal = diskPoints.length ? history.concat().reverse().find((p) => p.diskTotalGb)?.diskTotalGb : null;
     return {
-        method: 'Holt linear trend (double exponential smoothing) over the last 24 hours, 10-minute averages; disk: straight-line fit over the last 30 days. Statistics only, no AI.',
+        method: `Holt linear trend (double exponential smoothing) over the unbroken run of 10-minute averages in the last ${Math.round(windowSeconds / 3600)} hours; disk: straight-line fit over the last 30 days. Statistics only, no AI.`,
         horizonHours,
+        windowHours: Math.round(windowSeconds / 3600),
         stepSeconds: FORECAST_BUCKET_SECONDS,
         basedOnPoints: history.length,
         cpu: stamp(forecast.holtForecast(history.map((p) => p.cpu), steps)),
@@ -85,7 +91,7 @@ router.get('/overview', auth.requireAuth, async (req, res) => {
 
 router.get('/series', auth.requireAuth, async (req, res) => {
     try {
-        const range = RANGES[req.query.range] ? req.query.range : '24h';
+        const range = typeof req.query.range === 'string' && Object.prototype.hasOwnProperty.call(RANGES, req.query.range) ? req.query.range : '24h';
         const [secondsBack, bucketSeconds] = RANGES[range];
         const points = await bucketedRows(secondsBack, bucketSeconds);
         const current = settings.read();

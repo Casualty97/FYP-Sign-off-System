@@ -14,7 +14,8 @@ const run = (file, args, timeout = 10000) => new Promise((resolve, reject) => {
     execFile(file, args, { timeout, windowsHide: true, maxBuffer: 4 * MB }, (error, stdout) => (error ? reject(error) : resolve(String(stdout))));
 });
 const round1 = (n) => Math.round(n * 10) / 10;
-const pct = (n) => Math.min(100, Math.max(0, round1(n)));
+const pct = (n) => (Number.isFinite(n) ? Math.min(100, Math.max(0, round1(n))) : null);
+const num = (s) => { const n = Number(String(s).trim()); return Number.isFinite(n) ? n : null; };
 
 function cpuTimes() {
     let idle = 0;
@@ -60,6 +61,7 @@ function parseTypeperf(output) {
     const rows = output.split(/\r?\n/).filter((line) => line.startsWith('"')).map((line) => line.slice(1, -1).split('","'));
     if (rows.length < 2) return null;
     const [header, data] = rows;
+    // Task Manager's "GPU %" = the busiest engine type of one adapter, each engine summed over its processes
     const byEngine = {};
     let dedicated = 0;
     let shared = 0;
@@ -69,22 +71,25 @@ function parseTypeperf(output) {
         const value = parseFloat(data[i]);
         if (!Number.isFinite(value)) continue;
         if (/\\Utilization Percentage$/.test(name)) {
+            const adapter = (name.match(/luid_(0x[0-9A-Fa-f]+_0x[0-9A-Fa-f]+)/) || [])[1] || 'gpu';
             const type = (name.match(/engtype_([A-Za-z0-9]+)/) || [])[1] || 'other';
-            byEngine[type] = (byEngine[type] || 0) + value;
+            const key = `${adapter}:${type}`;
+            byEngine[key] = (byEngine[key] || 0) + value;
             seen = true;
         } else if (/\\Dedicated Usage$/.test(name)) dedicated += value;
         else if (/\\Shared Usage$/.test(name)) shared += value;
     }
     if (!seen) return null;
-    const percent = pct(Math.max(0, ...Object.values(byEngine)));
+    const busiest = Object.entries(byEngine).sort((a, b) => b[1] - a[1])[0];
     const usedMb = Math.round((dedicated + shared) / MB);
-    return { percent, memoryUsedMb: usedMb || null, memoryTotalMb: null, busiestEngine: Object.entries(byEngine).sort((a, b) => b[1] - a[1])[0][0] };
+    return { percent: pct(busiest[1]), memoryUsedMb: usedMb || null, memoryTotalMb: null, busiestEngine: busiest[0].split(':')[1] };
 }
 
 async function readNvidia() {
     const out = await run('nvidia-smi', ['--query-gpu=name,utilization.gpu,memory.used,memory.total', '--format=csv,noheader,nounits'], 8000);
     const [name, util, used, total] = out.trim().split('\n')[0].split(',').map((s) => s.trim());
-    return { name, percent: pct(Number(util)), memoryUsedMb: Math.round(Number(used)), memoryTotalMb: Math.round(Number(total)) };
+    const mb = (s) => (num(s) === null ? null : Math.round(num(s))); // nvidia-smi prints [N/A] for some cards
+    return { name, percent: pct(num(util)), memoryUsedMb: mb(used), memoryTotalMb: mb(total) };
 }
 
 async function readCounters() {

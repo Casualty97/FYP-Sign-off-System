@@ -7833,6 +7833,9 @@ input:checked + .slider:before {
 .ui-input-row .ui-input { flex: 1; }
 .ui-help { font-size: 12px; line-height: 1.4; color: var(--color-muted); }
 .ui-status-slot { min-height: 28px; margin-top: 14px; }
+/* the previous team's page-wide rules for this page must not resize the kit fields */
+#email-management-page select.ui-select, #email-management-page input.ui-input { height: 38px; padding: 0 12px; margin: 0; border: 1px solid var(--theme-border-color); border-radius: 8px; font-size: 14px; background-color: var(--theme-card-bg); color: var(--theme-text-color); }
+#email-management-page select.ui-select { padding-right: 34px; }
 
 /* hardware page */
 .hw-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 20px; }

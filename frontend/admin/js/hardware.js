@@ -9,6 +9,7 @@ let hardwareLoading = false;
 let hardwareDrawn = false;
 let hardwareTableOpen = false;
 let hardwareSettingsFilled = false;
+let hardwarePendingReload = false;
 let hardwareLastPoints = [];
 const hardwareCharts = {};
 
@@ -50,7 +51,7 @@ function hardwareTone(percent) {
 
 // Round ticks on the time axis (every 10 min, hour, 4 h, day or 5 days, aligned to local time)
 function hardwareBuildTicks(scale) {
-    const step = HARDWARE_RANGES[hardwareRange].tick;
+    const step = HARDWARE_RANGES[(scale.chart && scale.chart.$hardwareRange) || hardwareRange].tick;
     const offset = new Date(scale.min).getTimezoneOffset() * 60000;
     const ticks = [];
     for (let t = Math.ceil((scale.min - offset) / step) * step + offset; t <= scale.max; t += step) ticks.push({ value: t });
@@ -105,13 +106,13 @@ function hardwareChartConfig(key) {
             responsive: true,
             maintainAspectRatio: false,
             animation: HARDWARE_REDUCE_MOTION ? false : { duration: 300 },
-            interaction: { mode: 'index', intersect: false },
+            interaction: { mode: 'nearest', axis: 'x', intersect: false },
             layout: { padding: { top: 6, right: 10 } },
             scales: {
                 x: {
                     type: 'linear',
                     afterBuildTicks: hardwareBuildTicks,
-                    ticks: { maxRotation: 0, autoSkip: true, color: theme.muted, font: { size: 11 }, padding: 6, callback: (value) => hardwareTimeLabel(value, hardwareRange === '7d' || hardwareRange === '30d') },
+                    ticks: { maxRotation: 0, autoSkip: true, color: theme.muted, font: { size: 11 }, padding: 6, callback(value) { const key = (this.chart && this.chart.$hardwareRange) || hardwareRange; return hardwareTimeLabel(value, key === '7d' || key === '30d'); } },
                     grid: { display: false },
                     border: { color: theme.grid }
                 },
@@ -151,15 +152,24 @@ function ensureHardwareCharts() {
 
 function renderHardwareSeries(data) {
     const points = data.points || [];
-    const range = HARDWARE_RANGES[hardwareRange];
+    const rangeKey = HARDWARE_RANGES[data.range] ? data.range : hardwareRange;
+    const range = HARDWARE_RANGES[rangeKey];
     const forecast = data.forecast || {};
     const theme = hardwareTheme();
     const now = Date.now();
     const lastT = points.length ? points[points.length - 1].t : null;
     const showForecast = range.forecast && lastT !== null;
+    const horizonLimit = lastT === null ? now : lastT + range.seconds * 1000; // the forecast never squeezes the history
     hardwareLastPoints = points;
     const note = document.getElementById('hardware-series-note');
     if (note) note.textContent = points.length ? range.text : `${range.text} (no samples yet)`;
+    if (typeof Chart === 'undefined') {
+        for (const key of HARDWARE_METRICS) {
+            const empty = document.getElementById(`hardware-${key}-empty`);
+            if (empty) { empty.hidden = false; empty.textContent = 'The graph library did not load (no internet). Use Table view.'; }
+        }
+        return;
+    }
     for (const key of HARDWARE_METRICS) {
         const chart = hardwareCharts[key];
         if (!chart) continue;
@@ -169,23 +179,25 @@ function renderHardwareSeries(data) {
         let horizonEnd = now;
         const fc = forecast[key];
         const lastValue = history.length ? history[history.length - 1].y : null;
+        const shown = fc && fc.points ? fc.points.filter((p) => p.t <= horizonLimit) : [];
         if (showForecast && key === 'disk' && forecast.disk && forecast.disk.gbPerDay !== null && lastValue !== null && forecast.disk.totalGb) {
-            const hours = forecast.horizonHours || 24;
+            const hours = Math.min(forecast.horizonHours || 24, range.seconds / 3600);
             const end = lastT + hours * 3600000;
             const endValue = Math.min(100, Math.max(0, lastValue + (forecast.disk.gbPerDay / forecast.disk.totalGb) * 100 * (hours / 24)));
             projected.data = [{ x: lastT, y: lastValue }, { x: end, y: endValue }];
             low.data = []; high.data = [];
             horizonEnd = end;
-        } else if (showForecast && fc && fc.points && fc.points.length && lastValue !== null) {
-            projected.data = [{ x: lastT, y: lastValue }, ...fc.points.map((p) => ({ x: p.t, y: p.value }))];
-            low.data = [{ x: lastT, y: lastValue }, ...fc.points.map((p) => ({ x: p.t, y: p.low }))];
-            high.data = [{ x: lastT, y: lastValue }, ...fc.points.map((p) => ({ x: p.t, y: p.high }))];
-            horizonEnd = fc.points[fc.points.length - 1].t;
+        } else if (showForecast && shown.length && lastValue !== null) {
+            projected.data = [{ x: lastT, y: lastValue }, ...shown.map((p) => ({ x: p.t, y: p.value }))];
+            low.data = [{ x: lastT, y: lastValue }, ...shown.map((p) => ({ x: p.t, y: p.low }))];
+            high.data = [{ x: lastT, y: lastValue }, ...shown.map((p) => ({ x: p.t, y: p.high }))];
+            horizonEnd = shown[shown.length - 1].t;
         } else {
             projected.data = []; low.data = []; high.data = [];
         }
         chart.$hardwareNow = showForecast && projected.data.length ? lastT : null;
         chart.$hardwareTheme = theme;
+        chart.$hardwareRange = rangeKey;
         chart.options.scales.x.min = now - range.seconds * 1000;
         chart.options.scales.x.max = horizonEnd;
         chart.options.scales.x.ticks.color = theme.muted;
@@ -228,7 +240,7 @@ function renderHardwareTiles(overview) {
     const ago = hardwareAgo(latest.at);
     set('hardware-cpu-value', latest.cpu === null || latest.cpu === undefined ? '–' : latest.cpu.toFixed(0));
     meter('cpu', latest.cpu);
-    set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'Measured from the second sample on' : `Average over the last interval, sampled ${ago}`);
+    set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'No CPU reading in the last sample' : `Average over the last interval, sampled ${ago}`);
     set('hardware-memory-value', latest.memory ? latest.memory.percent.toFixed(0) : '–');
     meter('memory', latest.memory ? latest.memory.percent : null);
     set('hardware-memory-hint', latest.memory ? `${gb(latest.memory.usedMb)} of ${gb(latest.memory.totalMb)} GB in use` : '');
@@ -322,7 +334,8 @@ function hardwareShowError(message) {
 
 async function loadHardware() {
     const page = document.getElementById('hardware-page');
-    if (!page || hardwareLoading) return;
+    if (!page) return;
+    if (hardwareLoading) { hardwarePendingReload = true; return; }
     hardwareLoading = true;
     ensureHardwareCharts();
     const grid = document.getElementById('hardware-charts');
@@ -350,6 +363,7 @@ async function loadHardware() {
         hardwareLoading = false;
         if (grid) grid.classList.remove('is-loading');
         if (button) button.disabled = false;
+        if (hardwarePendingReload) { hardwarePendingReload = false; loadHardware(); }
     }
 }
 
