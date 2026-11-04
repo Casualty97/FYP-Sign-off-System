@@ -182,10 +182,10 @@ async function setup() {
         }
 
         console.log('    ✅ Schema loaded successfully\n');
-        // A fresh schema.sql already contains every change, so record the migrations as applied
+        // schema.sql is the frozen baseline: apply every migration on top of it
         const { spawnSync } = require('child_process');
-        const baselineRun = spawnSync(process.execPath, [path.join(__dirname, '..', '..', 'database', 'migrate.js'), 'baseline'], { stdio: 'inherit' });
-        if (baselineRun.status !== 0) throw new Error('migration baseline failed (database/migrate.js)');
+        const migrateRun = spawnSync(process.execPath, [path.join(__dirname, '..', '..', 'database', 'migrate.js'), 'up'], { stdio: 'inherit' });
+        if (migrateRun.status !== 0) throw new Error('migrations failed (database/migrate.js up)');
 
         // Verify all tables were created successfully
         console.log('🔍 [6/9] Verifying tables...');

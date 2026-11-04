@@ -202,7 +202,6 @@ jobs:
       - name: Create the database and apply schema.sql twice
         run: node tests/ci-db-setup.js
       - name: Migrations apply cleanly and the schema snapshot is current
-        if: runner.os == 'Linux'
         run: |
           node database/migrate.js status
           node database/migrate.js up
