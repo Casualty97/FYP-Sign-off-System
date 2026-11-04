@@ -29,7 +29,7 @@ The visitor flow on the tablets: landing page with the QR code and the RP bear, 
 
 - Face detection must block the photo when no face is in front (already the case; supervisor confirmed the task-sheet wording was inverted).
 - RP photo props and a more interactive RP bear.
-- Pledge required, feedback skippable; admin-editable titles and button names.
+- Pledge required, feedback skippable; admin-editable titles and button names. (skip pledged removed, skip feedback added)
 - Display is 7 m by 2 m.
 - Tablet battery level reported to the server (needs HTTPS: navigator.getBattery on Android Chrome).
 

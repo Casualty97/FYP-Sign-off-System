@@ -111,7 +111,11 @@ function updateConfirmationDetails() {
     
     // Show how many questions were answered
     const answeredCount = Object.keys(userData.answers || {}).length;
-    setConfirmationValue('confirm-questions', getDynamicLanguageText().questionsAnswered(answeredCount));
+    // in the confimration page, if the user skipped the feedback, show "Feedback skipped" instead of "0 answers recorded" (zihan)
+    setConfirmationValue('confirm-questions', userData.feedbackSkipped
+        ? getDynamicLanguageText().feedbackSkipped
+        : getDynamicLanguageText().questionsAnswered(answeredCount));
+    
 }
 
 // Go back from confirmation to style page
@@ -943,7 +947,10 @@ function setupJourneyPassport(data) {
         null,
         '',
         'passport-feedback-detail',
-        `${Object.keys(userData.answers || {}).length} feedback ${Object.keys(userData.answers || {}).length === 1 ? 'answer' : 'answers'} recorded.`
+        //updated text under the "Feedback" stamp on the thank-you page (zihan)
+        userData.feedbackSkipped
+            ? getDynamicLanguageText().feedbackSkipped
+            : `${Object.keys(userData.answers || {}).length} feedback ${Object.keys(userData.answers || {}).length === 1 ? 'answer' : 'answers'} recorded.`
     );
 
     setPassportStamp(

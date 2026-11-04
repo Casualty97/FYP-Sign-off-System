@@ -395,6 +395,11 @@
                     <span id="continue-to-pledge-text">Continue to Pledge</span>
                     <span class="arrow">→</span>
                 </button>
+
+                <!--skip feedback button added (zihan)-->
+                 <button type="button" id="skip-feedback-button" class="skip-pledge-button" onclick="skipFeedback()" style="margin-top: 15px;">
+                    <span id="skip-feedback-text">Skip Feedback</span>
+                </button>
                 
                 <button type="button" class="secondary-button" onclick="goBackToDetails()" style="margin-top: 15px;">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -524,9 +529,7 @@
                         <span class="arrow">→</span>
                     </button>
                     
-                    <button type="button" class="skip-pledge-button" onclick="skipPledge()">
-                        <span id="skip-pledge-text">I do not want to make a pledge</span>
-                    </button>
+                    <!--skip pledge button removed (zihan)-->
 
                     <button type="button" class="secondary-button" onclick="goBackToFeedback()">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

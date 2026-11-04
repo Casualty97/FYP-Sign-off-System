@@ -6,6 +6,8 @@
 function submitFeedback(event) {
     event.preventDefault();
     clearValidationMessages();
+    // reset feedbackSkipped to false incase previous user skipped feedback, preventing current user answers to being applied (zihan)
+    userData.feedbackSkipped = false;
     
     // Collect all answers
     userData.answers = {};
@@ -57,6 +59,18 @@ function submitFeedback(event) {
     }
 
     cheerRpBear('Feedback done. Let us turn that into a small action.');
+    showFlowPage('pledge-page');
+    resetInactivityTimer();
+}
+
+// Let the visitor skip the feedback questions and go straight to the pledge (zihan)
+function skipFeedback() {
+    if (getFeatureFlags().pledgeEnabled === false) return;
+
+    clearValidationMessages();
+    userData.feedbackSkipped = true;
+    userData.answers = {};
+    cheerRpBear('No problem, feedback skipped. Your pledge is the important part!');
     showFlowPage('pledge-page');
     resetInactivityTimer();
 }
@@ -199,8 +213,9 @@ function submitPledge(event) {
     userData.pledgeSkipped = false;
 
     if (rules.pledgeRequired !== false && !userData.pledge) {
-        showFieldError('pledge-text', 'Write one short action you will try. You can also skip the pledge below.');
-        nudgeRpBear('Write one short action, or use Skip Pledge if you prefer.');
+        //ask user to write a pledge if they haven't done so (zihan)
+        showFieldError('pledge-text', 'Write one short action you will try before continuing.');
+        nudgeRpBear('Write one short action to continue. A small pledge is perfect.');
         return;
     }
 
@@ -226,6 +241,7 @@ function submitPledge(event) {
 }
 
 function skipPledge() {
+    if (getFeatureFlags().pledgeEnabled !== false) return;
     userData.pledge = '';
     userData.pledgeTopic = '';
     userData.pledgeTopics = [];
