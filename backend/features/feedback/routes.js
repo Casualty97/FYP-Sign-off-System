@@ -652,7 +652,9 @@ router.post('/submit-feedback', async (req, res) => {
             });
         }
 
-        const normalizedPledgeTopics = userData.pledgeSkipped ? [] : normalizePledgeTopics(userData);
+          // A visitor cannot skip the pledge while the pledge step is on, so the flag only counts when it is off.
+        const pledgeStepSkipped = Boolean(userData.pledgeSkipped) && featureFlags.pledgeEnabled === false;
+        const normalizedPledgeTopics = pledgeStepSkipped ? [] : normalizePledgeTopics(userData);
         userData.pledgeTopics = normalizedPledgeTopics;
         userData.pledgeTopic = normalizedPledgeTopics[0] || '';
 
