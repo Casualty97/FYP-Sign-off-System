@@ -3387,12 +3387,33 @@
                         </div>
                     </div>
                     <div class="hw-toolbar">
-                        <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
-                            <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
-                            <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
-                            <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
-                            <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
-                            <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
+                        <div class="hw-range" id="hardware-range-wrap">
+                            <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
+                                <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
+                                <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
+                                <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
+                                <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
+                                <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
+                                <button type="button" class="hw-seg-btn" data-range="custom" id="hardware-range-custom-btn" onclick="toggleHardwareRangeForm()" aria-expanded="false" aria-controls="hardware-range-form">Custom</button>
+                            </div>
+                            <form class="hw-range-form" id="hardware-range-form" hidden novalidate onsubmit="applyHardwareCustomRange(event)">
+                                <label class="ui-label" for="hardware-range-amount">Show the last</label>
+                                <div class="hw-range-inputs">
+                                    <input class="ui-input" type="number" id="hardware-range-amount" min="1" step="1" inputmode="numeric" aria-describedby="hardware-range-hint">
+                                    <select class="ui-select" id="hardware-range-unit" aria-label="Unit of the time range">
+                                        <option value="h">hours</option>
+                                        <option value="d">days</option>
+                                        <option value="w">weeks</option>
+                                        <option value="mo">months</option>
+                                        <option value="y">years</option>
+                                    </select>
+                                </div>
+                                <p class="ui-help" id="hardware-range-hint">From 1 hour to 5 years.</p>
+                                <div class="hw-range-actions">
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHardwareRangeForm(true)">Cancel</button>
+                                    <button type="submit" class="ui-btn ui-btn-primary">Show</button>
+                                </div>
+                            </form>
                         </div>
                         <div class="ui-row">
                             <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
@@ -3633,17 +3654,23 @@
                     <div class="ui-card" id="policy-preview-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Next 7 days</h3>
-                                <p>What the policies add up to. Point at a bar to see which policy decides it.</p>
+                                <h3 id="policy-preview-title">Next 7 days</h3>
+                                <p>What the policies add up to. Pick a date to see another week, and point at a bar to see which policy decides it.</p>
                             </div>
-                            <div class="policy-legend" aria-hidden="true">
-                                <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
-                                <span><i class="policy-swatch policy-swatch-stop"></i>Stopped by a policy</span>
+                            <div class="policy-preview-nav" role="group" aria-label="Days shown">
+                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(-7)" aria-label="Previous 7 days" title="Previous 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                                <input type="date" class="ui-input policy-preview-date" id="policy-preview-date" aria-label="First day shown" onchange="setPolicyPreviewStart(this.value)">
+                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(7)" aria-label="Next 7 days" title="Next 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                                <button type="button" class="ui-btn ui-btn-secondary" id="policy-preview-today" onclick="setPolicyPreviewStart('')" disabled>Today</button>
                             </div>
                         </div>
                         <div class="ui-card-body">
                             <div class="policy-preview" id="policy-preview"></div>
                             <div class="policy-tip" id="policy-tip" role="tooltip" hidden></div>
+                            <div class="policy-legend" aria-hidden="true">
+                                <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
+                                <span><i class="policy-swatch policy-swatch-stop"></i>Stopped by a policy</span>
+                            </div>
                         </div>
                     </div>
                     <!-- <Jun Kai end> -->
@@ -3679,15 +3706,6 @@
                                 </div>
                             </div>
                             <p class="ui-note" id="mode-hint">Switch to manual mode to use the start and stop controls.</p>
-                        </div>
-                        <div class="ui-card-body">
-                            <div class="ui-row ui-row-between">
-                                <div>
-                                    <div class="ui-mode-label">Daily operation</div>
-                                    <div class="ui-mode-desc" id="daily-operation-hint">Use this at the end of the day to stop the kiosk, then again next morning to start it.</div>
-                                </div>
-                                <button class="ui-btn ui-btn-primary" onclick="toggleDailyOperation()" id="daily-operation-toggle-btn">Checking</button>
-                            </div>
                         </div>
                     </div>
                 </div>

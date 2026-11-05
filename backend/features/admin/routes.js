@@ -7360,11 +7360,22 @@ router.post('/server-schedules/reorder', auth.requireAuth, (req, res) => {
   }
 });
 
-// GET /api/admin/server-schedules/preview?days=7  which policy decides each part of the next days
+// GET /api/admin/server-schedules/preview?days=7[&from=2026-11-10]  which policy decides each part of those days;
+// manual: true in manual mode, where the policies are paused and the page shows the days empty
 router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
   try {
     const days = Math.min(14, Math.max(1, parseInt(req.query.days, 10) || 7));
-    res.json({ success: true, preview: schedulePolicies.preview(readSchedulesConfig().schedules, new Date(), days) });
+    const now = new Date();
+    let start = now;
+    if (req.query.from !== undefined) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(req.query.from));
+      start = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+      if (!start || start.getMonth() !== Number(m[2]) - 1 || Math.abs(start - now) > 10 * 366 * 86400000) {
+        return res.status(400).json({ success: false, error: 'from must be a date like 2026-11-10, within 10 years of today' });
+      }
+    }
+    const manual = serverControl.readModeConfig().mode !== 'auto';
+    res.json({ success: true, preview: { ...schedulePolicies.preview(readSchedulesConfig().schedules, now, days, start), manual } });
   } catch (err) {
     console.error('❌ Error building the policy preview:', err);
     res.status(500).json({ success: false, error: 'Failed to build the preview' });

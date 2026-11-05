@@ -164,14 +164,15 @@ function wakeTimes(policies, now, { days = 14, leadMinutes = 3, max = 40 } = {})
     return { times: all.slice(0, max), dropped: Math.max(0, all.length - max) };
 }
 
-// The next `days` days cut per day for the preview chart (minutes from local midnight)
-function preview(policies, now, days = 7) {
+// `days` days from `start` (today, or the date the admin picked), cut per day for the preview chart (minutes from
+// local midnight)
+function preview(policies, now, days = 7, start = now) {
     const minutes = (date, base) => Math.round((date - base) / 60000);
     const hhmm = (date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
     const out = [];
     for (let i = 0; i < days; i++) {
-        const from = dayStart(now, i);
-        const to = dayStart(now, i + 1);
+        const from = dayStart(start, i);
+        const to = dayStart(start, i + 1);
         const segments = timeline(policies, from, to).filter((s) => s.policy).map((s) => ({
             startMin: minutes(s.start, from),
             endMin: minutes(s.end, from),
@@ -185,7 +186,7 @@ function preview(policies, now, days = 7) {
         }));
         out.push({ date: localYmd(from), weekday: from.getDay(), segments });
     }
-    return { today: localYmd(now), nowMin: minutes(now, dayStart(now)), days: out };
+    return { today: localYmd(now), start: localYmd(dayStart(start)), nowMin: minutes(now, dayStart(now)), days: out };
 }
 
 // Default priority: more specific first (one date > weekdays > months > every day), then Stop before Active

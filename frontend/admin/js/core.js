@@ -64,7 +64,6 @@
 //    function resetParametersToDefaults - Restore parameter defaults from admin UI (DONE BY CAEDEN)
 //    function translateAdminTextToEnglish - Translate visitor pledge and answer text to English in admin popups (Done by Caeden)
 //    function runConfiguredArchiveNow - Run configurable feedback auto-archive update from admin UI (Done by Caeden)
-//    function toggleDailyOperation    - One-button End Day / Start Day kiosk control (Done by Caeden)
 //
 // 2. DASHBOARD INTERVENTION ALERTS
 //    function loadInterventionAlerts  - Fetch food waste, pledge, negative feedback and upload risk alerts for dashboard (DONE BY CAEDEN)

@@ -8015,4 +8015,23 @@ input:checked + .slider:before {
 .health-rename .ui-input { grid-column: 1 / -1; width: 100%; min-width: 180px; height: 34px; }
 .health-rename .ui-help { grid-column: 1 / -1; margin: 0 0 2px; }
 .health-rename .ui-btn { height: 32px; padding: 0 12px; }
+.hw-range { position: relative; }
+.hw-range-form { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: 290px; display: grid; gap: 8px; padding: 14px; background: var(--theme-card-bg); border: 1px solid var(--theme-border-color); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16); }
+.hw-range-form[hidden] { display: none; }
+.hw-range-inputs { display: flex; gap: 8px; }
+.hw-range-inputs .ui-input { flex: 1 1 auto; min-width: 0; }
+.hw-range-inputs .ui-select { flex: 0 0 auto; width: auto; min-width: 116px; }
+.hw-range-form .ui-help { margin: 0; }
+.hw-range-form .ui-help.is-error { color: #b91c1c; }
+.hw-range-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px; }
+.hw-range-actions .ui-btn { height: 34px; }
+.hw-seg-btn:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: -2px; }
+@media (max-width: 720px) { .hw-range-form { left: 0; right: auto; width: min(290px, calc(100vw - 48px)); } }
+.policy-drop { position: absolute; left: 12px; right: 12px; top: 0; z-index: 0; border: 2px dashed var(--color-muted); border-radius: 10px; background: var(--theme-bg-color); opacity: 0.85; pointer-events: none; }
+.policy-drop.is-live { transition: top 160ms ease, height 160ms ease; }
+.policy-preview-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.policy-preview-date { width: 160px; height: 36px; }
+#policy-preview-card .policy-legend { margin-top: 14px; }
+.policy-preview-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: var(--theme-bg-color); color: var(--color-dark-gray); font-size: 13px; line-height: 1.45; }
+@media (prefers-reduced-motion: reduce) { .policy-drop.is-live { transition: none; } }
 /* <Jun Kai end> */

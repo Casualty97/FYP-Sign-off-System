@@ -31,6 +31,11 @@ const HARDWARE_SETTING_FIELDS = {
     horizon: { key: 'forecastHours', words: [[24, 'day'], [1, 'hour']] }
 };
 let hardwareLimits = { intervalSeconds: [15, 600], retentionDays: [1, 365], forecastHours: [1, 168] };
+// Custom graph ranges such as "3mo" (the last 3 months): the server works out the exact seconds and the bucket size
+const HARDWARE_RANGE_UNITS = { h: ['hour', 3600], d: ['day', 86400], w: ['week', 604800], mo: ['month', 2629800], y: ['year', 31557600] };
+const HARDWARE_RANGE_MAX = { h: 43824, d: 1826, w: 260, mo: 60, y: 5 }; // 5 years in each unit
+const HARDWARE_RANGE_SAME = { '1d': '24h', '1w': '7d' };
+let hardwareRetentionDays = 30;
 
 function hardwareTheme() {
     const css = getComputedStyle(document.documentElement);
@@ -56,12 +61,74 @@ function hardwareTone(percent) {
     return percent >= 95 ? 'down' : percent >= 85 ? 'warn' : 'ok';
 }
 
-// Round ticks on the time axis (every 10 min, hour, 4 h, day or 5 days, aligned to local time)
+// "3mo" -> { amount: 3, unit: 'mo' }, or null for a preset or anything else
+function hardwareCustomRange(key) {
+    const m = /^(\d{1,5})(h|d|w|mo|y)$/.exec(String(key || ''));
+    return m && !HARDWARE_RANGES[key] ? { amount: Number(m[1]), unit: m[2] } : null;
+}
+
+// 3 months -> "3 months"; with short, 1 month -> "month" (for "last month")
+function hardwareRangeWords(amount, unit, short) {
+    const word = HARDWARE_RANGE_UNITS[unit][0];
+    if (amount === 1) return short ? word : `1 ${word}`;
+    return `${amount} ${word}s`;
+}
+
+// 43200 -> "12 hours", 86400 -> "day"
+function hardwareBucketWords(seconds) {
+    for (const [size, word] of [[604800, 'week'], [86400, 'day'], [3600, 'hour'], [60, 'minute']]) {
+        if (seconds % size === 0) return seconds === size ? word : `${seconds / size} ${word}s`;
+    }
+    return `${seconds} seconds`;
+}
+
+// Ticks for a custom range: round steps up to two months, then the first day of every 1, 2, 3, 6 or 12 months
+function hardwareTickPlan(seconds) {
+    if (seconds >= 60 * 86400) {
+        const months = seconds / HARDWARE_RANGE_UNITS.mo[1];
+        return { months: [1, 2, 3, 6, 12].find((k) => months / k <= 8) || 12, label: 'month' };
+    }
+    const step = [600, 1800, 3600, 7200, 14400, 21600, 43200, 86400, 172800, 432000, 604800, 1209600].map((s) => s * 1000).find((s) => (seconds * 1000) / s <= 8) || 1209600000;
+    return { step, label: step >= 86400000 ? 'date' : seconds > 86400 ? 'datetime' : 'time' };
+}
+
+// What the graphs need to know about a range: the preset values, or worked out for a custom one
+function hardwareRangeInfo(key, data) {
+    const preset = HARDWARE_RANGES[key];
+    if (preset) return { ...preset, plan: { step: preset.tick, label: key === '7d' || key === '30d' ? 'datetime' : 'time' } };
+    const custom = hardwareCustomRange(key) || { amount: 1, unit: 'd' };
+    const seconds = (data && data.seconds) || custom.amount * HARDWARE_RANGE_UNITS[custom.unit][1];
+    const bucket = data && data.bucketSeconds;
+    return {
+        seconds,
+        text: `Averages per ${bucket ? hardwareBucketWords(bucket) : 'period'}, last ${hardwareRangeWords(custom.amount, custom.unit, true)}`,
+        forecast: seconds >= 86400 && seconds <= 31 * 86400,
+        plan: hardwareTickPlan(seconds)
+    };
+}
+
+function hardwareTickLabel(ms, label) {
+    const d = new Date(ms);
+    if (label === 'month') return d.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' });
+    if (label === 'date') return d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+    return hardwareTimeLabel(ms, label === 'datetime');
+}
+
+// Round ticks on the time axis, aligned to local time (month ticks on the 1st, counted from January)
 function hardwareBuildTicks(scale) {
-    const step = HARDWARE_RANGES[(scale.chart && scale.chart.$hardwareRange) || hardwareRange].tick;
-    const offset = new Date(scale.min).getTimezoneOffset() * 60000;
+    const plan = (scale.chart && scale.chart.$hardwarePlan) || hardwareRangeInfo(hardwareRange).plan;
     const ticks = [];
-    for (let t = Math.ceil((scale.min - offset) / step) * step + offset; t <= scale.max; t += step) ticks.push({ value: t });
+    if (plan.months) {
+        const d = new Date(scale.min);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(1);
+        if (d.getTime() < scale.min) d.setMonth(d.getMonth() + 1);
+        while (d.getMonth() % plan.months !== 0) d.setMonth(d.getMonth() + 1);
+        for (; d.getTime() <= scale.max; d.setMonth(d.getMonth() + plan.months)) ticks.push({ value: d.getTime() });
+    } else {
+        const offset = new Date(scale.min).getTimezoneOffset() * 60000;
+        for (let t = Math.ceil((scale.min - offset) / plan.step) * plan.step + offset; t <= scale.max; t += plan.step) ticks.push({ value: t });
+    }
     scale.ticks = ticks;
 }
 
@@ -119,7 +186,7 @@ function hardwareChartConfig(key) {
                 x: {
                     type: 'linear',
                     afterBuildTicks: hardwareBuildTicks,
-                    ticks: { maxRotation: 0, autoSkip: true, color: theme.muted, font: { size: 11 }, padding: 6, callback(value) { const key = (this.chart && this.chart.$hardwareRange) || hardwareRange; return hardwareTimeLabel(value, key === '7d' || key === '30d'); } },
+                    ticks: { maxRotation: 0, autoSkip: true, color: theme.muted, font: { size: 11 }, padding: 6, callback(value) { const plan = (this.chart && this.chart.$hardwarePlan) || hardwareRangeInfo(hardwareRange).plan; return hardwareTickLabel(value, plan.label); } },
                     grid: { display: false },
                     border: { color: theme.grid }
                 },
@@ -159,8 +226,8 @@ function ensureHardwareCharts() {
 
 function renderHardwareSeries(data) {
     const points = data.points || [];
-    const rangeKey = HARDWARE_RANGES[data.range] ? data.range : hardwareRange;
-    const range = HARDWARE_RANGES[rangeKey];
+    const rangeKey = data.range || hardwareRange;
+    const range = hardwareRangeInfo(rangeKey, data);
     const forecast = data.forecast || {};
     const theme = hardwareTheme();
     const now = Date.now();
@@ -169,7 +236,11 @@ function renderHardwareSeries(data) {
     const horizonLimit = lastT === null ? now : lastT + range.seconds * 1000; // the forecast never squeezes the history
     hardwareLastPoints = points;
     const note = document.getElementById('hardware-series-note');
-    if (note) note.textContent = points.length ? range.text : `${range.text} (no samples yet)`;
+    if (note) {
+        const text = points.length ? range.text : `${range.text} (no samples yet)`;
+        // a range longer than the samples are kept is partly empty: say why
+        note.textContent = range.seconds > hardwareRetentionDays * 86400 ? `${text}. Samples are kept for ${hardwareSpell('retention', hardwareRetentionDays)}.` : text;
+    }
     if (typeof Chart === 'undefined') {
         for (const key of HARDWARE_METRICS) {
             const empty = document.getElementById(`hardware-${key}-empty`);
@@ -205,6 +276,7 @@ function renderHardwareSeries(data) {
         chart.$hardwareNow = showForecast && projected.data.length ? lastT : null;
         chart.$hardwareTheme = theme;
         chart.$hardwareRange = rangeKey;
+        chart.$hardwarePlan = range.plan;
         chart.options.scales.x.min = now - range.seconds * 1000;
         chart.options.scales.x.max = horizonEnd;
         chart.options.scales.x.ticks.color = theme.muted;
@@ -304,6 +376,7 @@ function renderHardwareSettings(overview) {
     const stored = overview.stored || {};
     const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
     if (overview.limits) hardwareLimits = { ...hardwareLimits, ...overview.limits };
+    hardwareRetentionDays = settings.retentionDays || 30;
     set('hardware-interval-text', hardwareSpell('interval', settings.intervalSeconds || 60));
     set('hardware-retention-text', hardwareSpell('retention', settings.retentionDays || 30));
     if (!hardwareSettingsFilled) {
@@ -373,11 +446,96 @@ async function loadHardware() {
     }
 }
 
+function hardwareRangeButtons(key) {
+    const custom = hardwareCustomRange(key);
+    document.querySelectorAll('#hardware-range .hw-seg-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.range === (custom ? 'custom' : key)));
+    const button = document.getElementById('hardware-range-custom-btn');
+    if (button) button.textContent = custom ? hardwareRangeWords(custom.amount, custom.unit) : 'Custom';
+}
+
+// A preset ("7d") or a custom range ("3mo"); a custom range that equals a preset uses the preset button
 function setHardwareRange(range) {
-    if (!HARDWARE_RANGES[range] || range === hardwareRange) return;
-    hardwareRange = range;
-    document.querySelectorAll('#hardware-range .hw-seg-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.range === range));
+    closeHardwareRangeForm(false);
+    const key = HARDWARE_RANGE_SAME[range] || range;
+    if (!HARDWARE_RANGES[key] && !hardwareCustomRange(key)) return;
+    hardwareRangeButtons(key);
+    if (key === hardwareRange) return;
+    hardwareRange = key;
     loadHardware();
+}
+
+function toggleHardwareRangeForm() {
+    const form = document.getElementById('hardware-range-form');
+    if (!form) return;
+    if (!form.hidden) {
+        closeHardwareRangeForm(true);
+        return;
+    }
+    bindHardwareRangeForm();
+    const current = hardwareCustomRange(hardwareRange);
+    const amount = document.getElementById('hardware-range-amount');
+    document.getElementById('hardware-range-unit').value = current ? current.unit : 'mo';
+    amount.value = String(current ? current.amount : 3);
+    hardwareRangeHint('');
+    form.hidden = false;
+    document.getElementById('hardware-range-custom-btn').setAttribute('aria-expanded', 'true');
+    amount.focus();
+    amount.select();
+}
+
+function closeHardwareRangeForm(focusButton) {
+    const form = document.getElementById('hardware-range-form');
+    if (!form || form.hidden) return;
+    form.hidden = true;
+    const button = document.getElementById('hardware-range-custom-btn');
+    if (!button) return;
+    button.setAttribute('aria-expanded', 'false');
+    if (focusButton) button.focus();
+}
+
+function hardwareRangeHint(error) {
+    const hint = document.getElementById('hardware-range-hint');
+    const amount = document.getElementById('hardware-range-amount');
+    if (hint) {
+        hint.textContent = error || 'From 1 hour to 5 years.';
+        hint.classList.toggle('is-error', !!error);
+    }
+    if (amount && error) amount.setAttribute('aria-invalid', 'true');
+    else if (amount) amount.removeAttribute('aria-invalid');
+}
+
+function applyHardwareCustomRange(event) {
+    if (event) event.preventDefault();
+    const amountInput = document.getElementById('hardware-range-amount');
+    const unit = document.getElementById('hardware-range-unit').value;
+    const amount = Number(amountInput.value);
+    let error = '';
+    if (!amountInput.value.trim() || !Number.isInteger(amount) || amount < 1) error = 'Enter a whole number.';
+    else if (amount > HARDWARE_RANGE_MAX[unit]) error = 'Choose up to 5 years.';
+    if (error) {
+        hardwareRangeHint(error);
+        amountInput.focus();
+        return;
+    }
+    setHardwareRange(`${amount}${unit}`);
+    const button = document.getElementById('hardware-range-custom-btn');
+    if (button) button.focus();
+}
+
+// Escape and a click outside close the custom range form
+function bindHardwareRangeForm() {
+    const form = document.getElementById('hardware-range-form');
+    if (!form || form.dataset.bound) return;
+    form.dataset.bound = '1';
+    form.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        closeHardwareRangeForm(true);
+    });
+    document.addEventListener('mousedown', (event) => {
+        const wrap = document.getElementById('hardware-range-wrap');
+        if (!form.hidden && wrap && !wrap.contains(event.target)) closeHardwareRangeForm(false);
+    });
 }
 
 function toggleHardwareTable() {
