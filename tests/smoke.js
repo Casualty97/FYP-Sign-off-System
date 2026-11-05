@@ -129,7 +129,9 @@ function tinyPng() {
 
     // These write rows, so not in --no-submit mode: one tablet heartbeat, then one visitor submission end to end
     if (!ARGS.has('--no-submit')) {
-      await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', battery: 88, charging: false, page: 'feedback' }));
+      // <Jun Kai start>
+      await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', page: 'feedback' }));
+      // <Jun Kai end>
       const stamp = Date.now();
       let photoId = null;
       try {

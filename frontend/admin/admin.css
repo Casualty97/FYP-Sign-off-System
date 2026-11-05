@@ -7798,11 +7798,6 @@ input:checked + .slider:before {
 .health-card-summary { margin-top: 12px; font-size: 14px; color: var(--theme-text-color); line-height: 1.45; }
 .health-card-detail { margin-top: 8px; font-size: 12px; line-height: 1.55; color: var(--color-dark-gray); }
 .health-cached { font-size: 11px; color: var(--color-muted); margin-left: 6px; }
-.health-battery { display: inline-block; width: 64px; height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; vertical-align: middle; margin-right: 8px; }
-.health-battery-bar { height: 100%; }
-.health-battery-good { background: #16a34a; }
-.health-battery-mid { background: #d97706; }
-.health-battery-low { background: #dc2626; }
 .health-row-offline td { color: var(--color-muted); }
 .health-device { font-weight: 600; color: var(--theme-text-color); }
 
