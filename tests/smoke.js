@@ -127,6 +127,8 @@ function tinyPng() {
       // <Jun Kai start>
       await expect('GET /api/admin/hardware/overview with the session', `${BASE}/api/admin/hardware/overview`, (r) => r.body && r.body.success === true && !!r.body.overview && typeof r.body.overview.settings === 'object' || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/hardware/series?range=1h with the session', `${BASE}/api/admin/hardware/series?range=1h`, (r) => r.body && r.body.success === true && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/server-schedules/preview with the session', `${BASE}/api/admin/server-schedules/preview?days=7`, (r) => r.body && r.body.success === true && !!r.body.preview && Array.isArray(r.body.preview.days) && r.body.preview.days.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 8 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai end>
       await expect('GET /api/admin/server/automation with the session', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.success === true && r.body.automation && r.body.automation.enabled === false || `automation=${JSON.stringify(r.body && r.body.automation).slice(0, 120)}`, { headers: { cookie } });
     }

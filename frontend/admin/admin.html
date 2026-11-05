@@ -3286,8 +3286,25 @@
                             <h2>System health</h2>
                             <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation. Refreshes every 30 seconds while this page is open.</p>
                         </div>
-                        <button class="ui-btn ui-btn-secondary" id="health-refresh-btn" onclick="loadHealth('email')">Check now</button>
+                        <!-- <Jun Kai start> -->
+                        <div class="ui-row">
+                            <button class="ui-btn ui-btn-secondary" id="health-customise-btn" onclick="toggleHealthCustomise()" aria-expanded="false" aria-controls="health-customise">Customise<span class="health-hidden-count" id="health-hidden-count" hidden></span></button>
+                            <button class="ui-btn ui-btn-secondary" id="health-refresh-btn" onclick="loadHealth('email')">Check now</button>
+                        </div>
                     </div>
+                    <div class="ui-card health-customise" id="health-customise" hidden>
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Monitoring options</h3>
+                                <p>Choose what this page checks and shows. Your choice is saved for your account.</p>
+                            </div>
+                            <button class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button>
+                        </div>
+                        <div class="ui-card-body">
+                            <div class="health-options" id="health-options"></div>
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
                     <div class="ui-card">
                         <div class="ui-card-body ui-row ui-row-between">
                             <div class="ui-row">
@@ -3298,8 +3315,8 @@
                         </div>
                     </div>
                     <div class="health-grid" id="health-cards"></div>
-                    <div class="ui-grid-2">
-                        <div class="ui-card">
+                    <div class="ui-grid-2" id="health-panels">
+                        <div class="ui-card" id="health-tablets-card">
                             <div class="ui-card-header">
                                 <div>
                                     <h3>Tablets</h3>
@@ -3315,7 +3332,7 @@
                                 <!-- <Jun Kai end> -->
                             </div>
                         </div>
-                        <div class="ui-card">
+                        <div class="ui-card" id="health-server-card">
                             <div class="ui-card-header">
                                 <div>
                                     <h3>Server PC</h3>
@@ -3516,9 +3533,9 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Operating hours</h2>
-                            <p>When the kiosk runs. In automatic mode the PC hibernates at the stop time and wakes itself a few minutes before the start time.</p>
+                            <p>Policies decide when the kiosk runs. In automatic mode the PC hibernates when the kiosk switches off and wakes itself a few minutes before it switches on.</p>
                         </div>
-                        <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New schedule</button>
+                        <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New policy</button>
                     </div>
 
                     <div class="ui-card" id="automation-card">
@@ -3561,42 +3578,56 @@
                         </div>
                     </div>
 
-                    <div class="ui-card">
+                    <!-- <Jun Kai start> -->
+                    <div class="ui-card" id="policies-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Schedules</h3>
-                                <p>Daily, weekly or single-date operating hours. A stop time earlier than the start time means the next day.</p>
+                                <h3>Policies</h3>
+                                <p>The first policy in the list that covers a moment decides it. Drag the handle to change the order.</p>
                             </div>
                             <div class="ui-row">
+                                <button class="ui-btn ui-btn-secondary" onclick="resetPolicyOrder()">Default order</button>
                                 <button class="ui-btn ui-btn-secondary" onclick="enableAllSchedules()">Enable all</button>
                                 <button class="ui-btn ui-btn-secondary" onclick="disableAllSchedules()">Disable all</button>
                             </div>
                         </div>
-                        <div class="ui-table-wrap">
-                            <table class="ui-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Repeats</th>
-                                        <th>Days / date</th>
-                                        <th>Start</th>
-                                        <th>Stop</th>
-                                        <th>Status</th>
-                                        <th class="ui-th-actions"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="schedules-table-body">
-                                    <tr><td colspan="7" class="ui-empty">Loading schedules</td></tr>
-                                </tbody>
-                            </table>
+                        <div class="policy-head" aria-hidden="true">
+                            <span></span><span>#</span><span>Policy</span><span>Does</span><span>Hours</span><span>Enabled</span><span></span>
+                        </div>
+                        <ol class="policy-list" id="policy-list" aria-label="Policies, highest priority first">
+                            <li class="policy-empty">Loading policies</li>
+                        </ol>
+                        <div class="ui-card-body policy-rules">
+                            <p class="ui-help">New policies are placed for you: a single date goes above weekdays, weekdays above months, months above every day, and at the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
+                        </div>
+                        <div class="ui-sr-only" id="policy-live" aria-live="polite"></div>
+                    </div>
+
+                    <div class="ui-card" id="policy-preview-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Next 7 days</h3>
+                                <p>What the policies add up to. Point at a bar to see which policy decides it.</p>
+                            </div>
+                            <div class="policy-legend" aria-hidden="true">
+                                <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
+                                <span><i class="policy-swatch policy-swatch-stop"></i>Stopped by a policy</span>
+                            </div>
+                        </div>
+                        <div class="ui-card-body">
+                            <div class="policy-preview" id="policy-preview"></div>
+                            <div class="policy-tip" id="policy-tip" role="tooltip" hidden></div>
                         </div>
                     </div>
+                    <!-- <Jun Kai end> -->
 
                     <div class="ui-card">
                         <div class="ui-card-header">
                             <div>
                                 <h3>Controls</h3>
-                                <p>Automatic mode follows the schedules. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
+                                <!-- <Jun Kai start> -->
+                                <p>Automatic mode follows the policies. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
+                                <!-- <Jun Kai end> -->
                             </div>
                             <div id="server-status-indicator"><span class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking status</span></div>
                         </div>
@@ -3609,7 +3640,9 @@
                                     </label>
                                     <div>
                                         <div id="mode-status" class="ui-mode-label">Automatic mode</div>
-                                        <div id="mode-description" class="ui-mode-desc">Schedules run the kiosk and hibernate the PC</div>
+                                        <!-- <Jun Kai start> -->
+                                        <div id="mode-description" class="ui-mode-desc">Policies run the kiosk and hibernate the PC</div>
+                                        <!-- <Jun Kai end> -->
                                     </div>
                                 </div>
                                 <div class="ui-row">
@@ -3632,110 +3665,94 @@
                     </div>
                 </div>
 
-                <!-- Schedule modal (DONE BY BERNISSA) -->
-                <div id="schedule-modal" class="modal schedule-modal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3 class="modal-title">Add New Schedule</h3>
+                <!-- <Jun Kai start> -->
+                <!-- Policy form (replaces the previous team's schedule modal) -->
+                <div id="schedule-modal" class="modal schedule-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="policy-modal-title">
+                    <div class="modal-content policy-modal">
+                        <div class="policy-modal-header">
+                            <div>
+                                <h3 class="modal-title" id="policy-modal-title">New policy</h3>
+                                <p class="ui-help">Active keeps the kiosk running for these hours. Stop keeps it off, even when an Active policy says otherwise.</p>
+                            </div>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="closeModal('schedule-modal')" aria-label="Close">&times;</button>
                         </div>
-                        <div class="modal-body">
-                            <form id="schedule-form" onsubmit="event.preventDefault(); saveSchedule();">
-                                <div class="form-group">
-                                    <label for="schedule-name">Schedule Name *</label>
-                                    <input type="text" id="schedule-name" name="schedule-name" 
-                                        placeholder="e.g., Morning Start Schedule" required>
+                        <form id="schedule-form" class="policy-form" onsubmit="event.preventDefault(); saveSchedule();" novalidate>
+                            <div class="ui-form-grid">
+                                <div class="ui-field ui-field-wide">
+                                    <label class="ui-label" for="schedule-name">Name</label>
+                                    <input class="ui-input" type="text" id="schedule-name" maxlength="80" placeholder="For example: Weekday hours" autocomplete="off">
                                 </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="schedule-type">Schedule Type *</label>
-                                        <select id="schedule-type" name="schedule-type" required onchange="updateFormFields()">
-                                            <option value="daily">Daily</option>
-                                            <option value="weekly">Weekly</option>
-                                            <option value="specific_date">Specific Date</option>
-                                        </select>
+                                <div class="ui-field ui-field-wide">
+                                    <span class="ui-label" id="policy-action-label">The kiosk</span>
+                                    <div class="ui-segmented" role="radiogroup" aria-labelledby="policy-action-label">
+                                        <label><input type="radio" name="policy-action" value="active" checked onchange="updateFormFields()"><span><strong>Active</strong><small>runs</small></span></label>
+                                        <label><input type="radio" name="policy-action" value="stop" onchange="updateFormFields()"><span><strong>Stop</strong><small>is off</small></span></label>
                                     </div>
                                 </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="start-time">Start Time *</label>
-                                        <input type="time" id="start-time" name="start-time" required 
-                                            oninput="validateTimes()">
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label for="end-time">Stop Time *</label>
-                                        <input type="time" id="end-time" name="end-time" required 
-                                            oninput="validateTimes()">
-                                    </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="schedule-type">Repeats</label>
+                                    <select class="ui-select" id="schedule-type" onchange="updateFormFields()">
+                                        <option value="daily">Every day</option>
+                                        <option value="weekly">Selected weekdays</option>
+                                        <option value="monthly">Selected months</option>
+                                        <option value="specific_date">One date</option>
+                                    </select>
                                 </div>
-                                
-                                <!-- Weekly schedule options (DONE BY BERNISSA) -->
-                                <div id="weekly-days-section" style="display: none;">
-                                    <div class="form-group">
-                                        <label>Days of Week *</label>
-                                        <div class="days-selection">
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-1" name="day" value="1">
-                                                <label for="day-1">S</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-2" name="day" value="2">
-                                                <label for="day-2">M</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-3" name="day" value="3">
-                                                <label for="day-3">T</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-4" name="day" value="4">
-                                                <label for="day-4">W</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-5" name="day" value="5">
-                                                <label for="day-5">T</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-6" name="day" value="6">
-                                                <label for="day-6">F</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-7" name="day" value="7">
-                                                <label for="day-7">S</label>
-                                            </div>
-                                        </div>
+                                <div class="ui-field" id="specific-date-section" hidden>
+                                    <label class="ui-label" for="specific-date">Date</label>
+                                    <input class="ui-input" type="date" id="specific-date" onchange="updateFormFields()">
+                                </div>
+                                <div class="ui-field ui-field-wide" id="weekly-days-section" hidden>
+                                    <span class="ui-label" id="policy-days-label">Weekdays</span>
+                                    <div class="ui-chips" role="group" aria-labelledby="policy-days-label">
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="2" onchange="updateFormFields()"><span>Mon</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="3" onchange="updateFormFields()"><span>Tue</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="4" onchange="updateFormFields()"><span>Wed</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="5" onchange="updateFormFields()"><span>Thu</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="6" onchange="updateFormFields()"><span>Fri</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="7" onchange="updateFormFields()"><span>Sat</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="1" onchange="updateFormFields()"><span>Sun</span></label>
                                     </div>
                                 </div>
-                                
-                                <!-- Specific date option (DONE BY BERNISSA) -->
-                                <div id="specific-date-section" style="display: none;">
-                                    <div class="form-group">
-                                        <label for="specific-date">Specific Date *</label>
-                                        <input type="date" id="specific-date" name="specific-date">
+                                <div class="ui-field ui-field-wide" id="monthly-section" hidden>
+                                    <span class="ui-label" id="policy-months-label">Months</span>
+                                    <div class="ui-chips" role="group" aria-labelledby="policy-months-label">
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="1" onchange="updateFormFields()"><span>Jan</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="2" onchange="updateFormFields()"><span>Feb</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="3" onchange="updateFormFields()"><span>Mar</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="4" onchange="updateFormFields()"><span>Apr</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="5" onchange="updateFormFields()"><span>May</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="6" onchange="updateFormFields()"><span>Jun</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="7" onchange="updateFormFields()"><span>Jul</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="8" onchange="updateFormFields()"><span>Aug</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="9" onchange="updateFormFields()"><span>Sep</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="10" onchange="updateFormFields()"><span>Oct</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="11" onchange="updateFormFields()"><span>Nov</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="12" onchange="updateFormFields()"><span>Dec</span></label>
                                     </div>
                                 </div>
-                                
-                                <!-- Status toggle (DONE BY BERNISSA) -->
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="is-active" name="is-active" checked>
-                                        <span>Activate this schedule immediately</span>
-                                    </label>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="start-time">Starts</label>
+                                    <input class="ui-input" type="time" id="start-time" value="08:00" oninput="updateFormFields()">
                                 </div>
-                                
-                                <div class="modal-footer">
-                                    <button type="button" class="btn-secondary" onclick="closeModal('schedule-modal')">
-                                        Cancel
-                                    </button>
-                                    <button type="submit" class="btn-primary modal-submit-btn">
-                                        Create Schedule
-                                    </button>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="end-time">Stops</label>
+                                    <input class="ui-input" type="time" id="end-time" value="18:00" oninput="updateFormFields()">
                                 </div>
-                            </form>
-                        </div>
+                                <div class="ui-field ui-field-wide policy-checks">
+                                    <label class="ui-check"><input type="checkbox" id="policy-all-day" onchange="updateFormFields()"><span>All day</span></label>
+                                    <label class="ui-check"><input type="checkbox" id="is-active" checked onchange="updateFormFields()"><span>Enabled</span></label>
+                                </div>
+                                <p class="policy-summary ui-field-wide" id="policy-summary" aria-live="polite"></p>
+                            </div>
+                            <div class="policy-modal-footer">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="closeModal('schedule-modal')">Cancel</button>
+                                <button type="submit" class="ui-btn ui-btn-primary modal-submit-btn">Create policy</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
+                <!-- <Jun Kai end> -->
 
                 <div id="server-status-modal" class="modal" style="display: none;">
                     <div class="modal-content" style="max-width: 500px;">
