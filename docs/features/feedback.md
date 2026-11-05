@@ -7,6 +7,10 @@
 - backend/features/feedback/ (routes.js, validationRules.js, pledgeSentiment.js)
 - frontend/feedback/ (feedback.html, feedback.css, js/*.js in load order: core, bear, lostFound, flowPages, faceDetect, faceFilters, init, inactivity, questions, submit, photo, overlays, navigation, backNavigation, events, config, language)
 
+**What has been done**
+- admin Pledge Step and Pledge Required checkboxes are removed and the pledge is always required.
+- feedback are able to be skipped
+
 **What it does**
 
 The visitor flow on the tablets: landing page with the QR code and the RP bear, consent, details, feedback questions, pledge, photo with face detection and filters, thank-you page and email. Server side it validates the submission, encrypts the email, stores the feedback and answers, picks badges and sends the thank-you email.

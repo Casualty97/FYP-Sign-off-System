@@ -57,8 +57,7 @@ function validateFeedbackSubmission(payload, validationRules = {}, featureFlags 
   const email = getString(userData.email);
   const pledge = getString(userData.pledge);
   const pledgeTopics = normalizePledgeTopics(userData);
-  //change pledgeSkipped to feedbackSkipped to reflect the new feature of skipping feedback (changes made by zihan)
-  const feedbackSkipped = Boolean(userData.feedbackSkipped);
+  //pledge skipped removed (zihan)
   const photoSkipped = Boolean(userData.photoSkipped); // Optional photo skip - changes made by nick
   const hasPhoto = Boolean(userData.photoId || userData.processedPhotoId || userData.photo || userData.processedPhoto);
   const retention = getString(payload?.retention).toLowerCase();
@@ -83,32 +82,27 @@ function validateFeedbackSubmission(payload, validationRules = {}, featureFlags 
     errors.push({ field: 'email', message: 'Email format is invalid.' });
   }
   
-  // Feedback may be skipped, but only when the pledge step is on. (zihan)
-  if (feedbackSkipped && !isEnabled(featureFlags.pledgeEnabled)) {
-    errors.push({ field: 'feedback', message: 'Feedback is required when the pledge step is turned off.' });
-  }  
+  // The pledge is always required (the admin can no longer turn it off), so these checks always run. (zihan)
 
-  if (isEnabled(featureFlags.pledgeEnabled)) {
-    if (isEnabled(validationRules.pledgeRequired) && !pledge) {
-      errors.push({ field: 'pledge', message: 'Pledge is required.' });
-    }
+  if (!pledge) {
+    errors.push({ field: 'pledge', message: 'Pledge is required.' });
+  }
 
-    if (pledge && pledge.length < Number(validationRules.pledgeMinLength || 0)) {
-      errors.push({ field: 'pledge', message: `Pledge must be at least ${validationRules.pledgeMinLength} characters.` });
-    }
+  if (pledge && pledge.length < Number(validationRules.pledgeMinLength || 0)) {
+    errors.push({ field: 'pledge', message: `Pledge must be at least ${validationRules.pledgeMinLength} characters.` });
+  }
 
-    if (pledge && pledge.length > Number(validationRules.pledgeMaxLength || 9999)) {
-      errors.push({ field: 'pledge', message: `Pledge must be ${validationRules.pledgeMaxLength} characters or fewer.` });
-    }
+  if (pledge && pledge.length > Number(validationRules.pledgeMaxLength || 9999)) {
+    errors.push({ field: 'pledge', message: `Pledge must be ${validationRules.pledgeMaxLength} characters or fewer.` });
+  }
 
-    if (isEnabled(validationRules.pledgeTopicRequired) && pledgeTopics.length === 0) {
-      errors.push({ field: 'pledgeTopic', message: 'Pledge topic is required.' });
-    }
+  if (isEnabled(validationRules.pledgeTopicRequired) && pledgeTopics.length === 0) {
+    errors.push({ field: 'pledgeTopic', message: 'Pledge topic is required.' });
+  }
 
-    const invalidTopic = pledgeTopics.find(topic => !ALLOWED_PLEDGE_TOPICS.has(topic));
-    if (invalidTopic) {
-      errors.push({ field: 'pledgeTopic', message: `Pledge topic "${invalidTopic}" is not supported.` });
-    }
+  const invalidTopic = pledgeTopics.find(topic => !ALLOWED_PLEDGE_TOPICS.has(topic));
+  if (invalidTopic) {
+    errors.push({ field: 'pledgeTopic', message: `Pledge topic "${invalidTopic}" is not supported.` });
   }
 
   const anyPhotoFeatureEnabled = isEnabled(featureFlags.cameraCaptureEnabled) || isEnabled(featureFlags.photoUploadEnabled);

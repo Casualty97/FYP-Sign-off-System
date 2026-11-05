@@ -52,21 +52,15 @@ function submitFeedback(event) {
         return;
     }
 
-    if (getFeatureFlags().pledgeEnabled === false) {
-        cheerRpBear('Feedback captured. Pledge is skipped by settings, so we can move ahead.');
-        skipPledge();
-        return;
-    }
+    //pledge enabled feature flags removed (zihan)
 
     cheerRpBear('Feedback done. Let us turn that into a small action.');
     showFlowPage('pledge-page');
     resetInactivityTimer();
 }
 
-// Let the visitor skip the feedback questions and go straight to the pledge (zihan)
+// The pledge is always required, so skipping feedback still leaves a pledge (zihan)
 function skipFeedback() {
-    if (getFeatureFlags().pledgeEnabled === false) return;
-
     clearValidationMessages();
     userData.feedbackSkipped = true;
     userData.answers = {};
@@ -212,7 +206,7 @@ function submitPledge(event) {
     userData.pledgeTopic = userData.pledgeTopics[0] || '';
     userData.pledgeSkipped = false;
 
-    if (rules.pledgeRequired !== false && !userData.pledge) {
+    if (!userData.pledge) {
         //ask user to write a pledge if they haven't done so (zihan)
         showFieldError('pledge-text', 'Write one short action you will try before continuing.');
         nudgeRpBear('Write one short action to continue. A small pledge is perfect.');
@@ -240,25 +234,6 @@ function submitPledge(event) {
     continueAfterPledgeChoice();
 }
 
-function skipPledge() {
-    if (getFeatureFlags().pledgeEnabled !== false) return;
-    userData.pledge = '';
-    userData.pledgeTopic = '';
-    userData.pledgeTopics = [];
-    userData.pledgeSkipped = true;
-
-    const pledgeText = document.getElementById('pledge-text');
-    const pledgeTopic = document.getElementById('pledge-topic');
-    const charCount = document.getElementById('char-count');
-    if (pledgeText) pledgeText.value = '';
-    if (pledgeTopic) pledgeTopic.value = '';
-    document.querySelectorAll('input[name="pledge-topics"]').forEach(input => {
-        input.checked = false;
-    });
-    if (charCount) charCount.textContent = '0';
-    updatePledgeCoach();
-
-    continueAfterPledgeChoice();
-}
+//whole skip pledge function removed (zihan)
 
 

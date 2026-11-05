@@ -372,7 +372,7 @@ function populateParameterForm(config) {
     setCheckedValue('flag-cameraCaptureEnabled', flags.cameraCaptureEnabled);
     setCheckedValue('flag-photoUploadEnabled', flags.photoUploadEnabled);
     setCheckedValue('flag-beautyFilterEnabled', flags.beautyFilterEnabled);
-    setCheckedValue('flag-pledgeEnabled', flags.pledgeEnabled);
+    //pledge enabled checkbox removed (zihan)
     setCheckedValue('flag-badgeEmailEnabled', flags.badgeEmailEnabled);
     setCheckedValue('flag-thankYouEmailEnabled', flags.thankYouEmailEnabled);
     setCheckedValue('flag-socialSharingEnabled', flags.socialSharingEnabled);
@@ -385,7 +385,7 @@ function populateParameterForm(config) {
     setInputValue('rule-emailPattern', rules.emailPattern);
     setInputValue('rule-dailySubmissionLimitPerEmail', typeof rules.dailySubmissionLimitPerEmail === 'undefined' ? 1 : rules.dailySubmissionLimitPerEmail);
     setCheckedValue('rule-requiredQuestionsEnabled', rules.requiredQuestionsEnabled);
-    setCheckedValue('rule-pledgeRequired', rules.pledgeRequired);
+    //pledge required set checked value removed (zihan)
     setInputValue('rule-pledgeMinLength', rules.pledgeMinLength);
     setInputValue('rule-pledgeMaxLength', rules.pledgeMaxLength);
     setCheckedValue('rule-pledgeTopicRequired', rules.pledgeTopicRequired);
@@ -568,7 +568,7 @@ function collectParameterForm() {
             cameraCaptureEnabled: getCheckedValue('flag-cameraCaptureEnabled'),
             photoUploadEnabled: getCheckedValue('flag-photoUploadEnabled'),
             beautyFilterEnabled: getCheckedValue('flag-beautyFilterEnabled'),
-            pledgeEnabled: getCheckedValue('flag-pledgeEnabled'),
+            //pledge enabled get checked value removed (zihan)
             badgeEmailEnabled: getCheckedValue('flag-badgeEmailEnabled'),
             thankYouEmailEnabled: getCheckedValue('flag-thankYouEmailEnabled'),
             socialSharingEnabled: getCheckedValue('flag-socialSharingEnabled'),
@@ -583,7 +583,7 @@ function collectParameterForm() {
             emailPattern: getInputValue('rule-emailPattern') || '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$',
             dailySubmissionLimitPerEmail: Math.max(0, Number(getInputValue('rule-dailySubmissionLimitPerEmail')) || 0),
             requiredQuestionsEnabled: getCheckedValue('rule-requiredQuestionsEnabled'),
-            pledgeRequired: getCheckedValue('rule-pledgeRequired'),
+            // pledge required  get checked removed (zihan)
             pledgeMinLength: Number(getInputValue('rule-pledgeMinLength')) || 0,
             pledgeMaxLength: Number(getInputValue('rule-pledgeMaxLength')) || 500,
             pledgeTopicRequired: getCheckedValue('rule-pledgeTopicRequired'),

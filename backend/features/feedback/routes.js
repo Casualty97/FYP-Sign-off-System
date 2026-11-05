@@ -652,9 +652,8 @@ router.post('/submit-feedback', async (req, res) => {
             });
         }
 
-          // A visitor cannot skip the pledge while the pledge step is on, so the flag only counts when it is off.
-        const pledgeStepSkipped = Boolean(userData.pledgeSkipped) && featureFlags.pledgeEnabled === false;
-        const normalizedPledgeTopics = pledgeStepSkipped ? [] : normalizePledgeTopics(userData);
+        // The pledge is always required, so topics are always read from the submission (zihan)
+        const normalizedPledgeTopics = normalizePledgeTopics(userData);
         userData.pledgeTopics = normalizedPledgeTopics;
         userData.pledgeTopic = normalizedPledgeTopics[0] || '';
 

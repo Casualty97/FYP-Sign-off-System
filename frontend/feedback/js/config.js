@@ -158,11 +158,7 @@ function applyParameterOverrides() {
     document.documentElement.style.setProperty('--feedback-accent-dark', shadeHexColor(accentColor, -36));
     document.documentElement.style.setProperty('--celebration-leaf-scale', badgeLeafStyles.leafScale);
 
-    const pledgePage = document.getElementById('pledge-page');
-    if (pledgePage) pledgePage.dataset.featureEnabled = String(flags.pledgeEnabled !== false);
-    // Feedback can only be skipped while the pledge step is on (zihan)
-    const skipFeedbackButton = document.getElementById('skip-feedback-button');
-    if (skipFeedbackButton) skipFeedbackButton.style.display = flags.pledgeEnabled === false ? 'none' : '';
+    //pledge page config deleted (zihan)
 
     const photoPage = document.getElementById('photo-page');
     if (photoPage) photoPage.dataset.featureEnabled = String(flags.cameraCaptureEnabled !== false);
@@ -216,7 +212,7 @@ function getFeatureFlags() {
         cameraCaptureEnabled: true,
         photoUploadEnabled: true,
         beautyFilterEnabled: true,
-        pledgeEnabled: true,
+        //pledge feature flag removed (zihan)
         badgeEmailEnabled: true,
         thankYouEmailEnabled: true,
         socialSharingEnabled: true,

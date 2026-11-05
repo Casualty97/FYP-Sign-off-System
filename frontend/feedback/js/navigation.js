@@ -926,20 +926,13 @@ function setupJourneyPassport(data) {
     const currentBadges = getCurrentPassportBadges(data);
     const currentBadgeNames = currentBadges.map(badge => badge.name).filter(Boolean).join(', ') || reward.badgeName;
     const photoStatus = getPassportPhotoStatus(data);
-    const pledgeEnabled = flags.pledgeEnabled !== false;
-    const pledgeMade = pledgeEnabled && !userData.pledgeSkipped && Boolean((userData.pledge || '').trim());
-    const pledgeTitle = !pledgeEnabled
-        ? 'Pledge step disabled'
-        : pledgeMade
-            ? 'Pledge made'
-            : 'Pledge skipped';
-    const pledgeDetail = !pledgeEnabled
-        ? 'The admin setting has pledge collection turned off.'
-        : pledgeMade
-            ? (formatPledgeTopicList(userData.pledgeTopics || (userData.pledgeTopic ? [userData.pledgeTopic] : []))
-                ? `Added under ${formatPledgeTopicList(userData.pledgeTopics || (userData.pledgeTopic ? [userData.pledgeTopic] : []))}.`
-                : 'Your action joined the pledgeboard.')
-            : 'You chose to finish with feedback only.';
+
+        // The pledge is always required now, so a visitor who reaches this page has made one (zihan)
+    const pledgeMade = Boolean((userData.pledge || '').trim());
+    const pledgeTitle = pledgeMade ? 'Pledge made' : 'Pledge missing';
+    const pledgeDetail = formatPledgeTopicList(userData.pledgeTopics || (userData.pledgeTopic ? [userData.pledgeTopic] : []))
+        ? `Added under ${formatPledgeTopicList(userData.pledgeTopics || (userData.pledgeTopic ? [userData.pledgeTopic] : []))}.`
+        : 'Your action joined the pledgeboard.';
 
     setPassportStamp(
         'passport-feedback-stamp',
