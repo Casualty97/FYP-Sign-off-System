@@ -7242,213 +7242,135 @@ const serverControl = require('../serverControl/control');
 const scheduler = require('../serverControl/scheduler');
 const { readSchedulesConfig, writeSchedulesConfig, readModeConfig, writeModeConfig, resolveKioskStatus, logKioskStatusIfNeeded } = serverControl;
 
-// GET /api/admin/server-schedules
-// Fetch all schedules
+// <Jun Kai start>
+// Schedules are "policies" since supervisor meeting 03 (4 Nov 2026): Active or Stop, list order = priority.
+// The rules live in features/serverControl/policies.js.
+const schedulePolicies = require('../serverControl/policies');
+
+const sameName = (a, b) => String(a || '').trim().replace(/\s+/g, ' ').toLowerCase() === String(b || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+// Where a saved policy ended up, for the toast on the page
+function placement(list, policy) {
+  const index = list.indexOf(policy);
+  const below = list[index + 1] || null;
+  const above = index > 0 ? list[index - 1] : null;
+  const beatenBy = list.slice(0, index).filter((other) => other.is_active !== false
+    && schedulePolicies.actionOf(other) !== schedulePolicies.actionOf(policy)
+    && schedulePolicies.overlaps(other, policy, new Date())).map((other) => other.schedule_name);
+  return {
+    beatenBy,
+    position: index + 1,
+    total: list.length,
+    placedAbove: below && schedulePolicies.rank(policy) > schedulePolicies.rank(below) ? below.schedule_name : null,
+    reason: below && schedulePolicies.rank(policy) > schedulePolicies.rank(below) ? schedulePolicies.placementReason(policy, below) : null,
+    placedBelow: above ? above.schedule_name : null
+  };
+}
+
+// GET /api/admin/server-schedules  in priority order
 router.get('/server-schedules', auth.requireAuth, (req, res) => {
-  console.log('📅 Fetching server schedules...');
-  
   try {
     const config = readSchedulesConfig();
-    
-    console.log(`✅ Loaded ${config.schedules.length} schedules`);
-    res.json({ 
-      success: true, 
-      schedules: config.schedules 
-    });
-    
+    res.json({ success: true, schedules: config.schedules.map((s) => ({ ...s, action: schedulePolicies.actionOf(s) })) });
   } catch (err) {
     console.error('❌ Error fetching schedules:', err);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to load schedules' 
-    });
+    res.status(500).json({ success: false, error: 'Failed to load the policies' });
   }
 });
 
-// POST /api/admin/server-schedules
-// Add new schedule
+// POST /api/admin/server-schedules  new policy, placed just above the first policy it outranks
 router.post('/server-schedules', auth.requireAuth, (req, res) => {
-  const {
-    schedule_name,
-    schedule_type,
-    start_time,
-    end_time,
-    days_of_week,
-    specific_date,
-    is_active
-  } = req.body;
-  
-  const username = req.session?.user?.username || 'unknown';
-  
-  console.log('➕ Adding new schedule:', { schedule_name, schedule_type, username });
-  
-  // Validation
-  if (!schedule_name || !schedule_type || !start_time || !end_time) {
-    return res.status(400).json({
-      success: false,
-      error: 'Missing required fields: schedule_name, schedule_type, start_time, end_time'
-    });
-  }
-  
-  const validScheduleTypes = ['daily', 'weekly', 'specific_date'];
-  if (!validScheduleTypes.includes(schedule_type)) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid schedule type. Must be: daily, weekly, or specific_date'
-    });
-  }
-  
-  if (schedule_type === 'weekly' && (!days_of_week || days_of_week.trim() === '')) {
-    return res.status(400).json({
-      success: false,
-      error: 'Days of week are required for weekly schedules'
-    });
-  }
-  
-  if (schedule_type === 'specific_date' && !specific_date) {
-    return res.status(400).json({
-      success: false,
-      error: 'Specific date is required for specific_date schedules'
-    });
-  }
-  
+  const checked = schedulePolicies.normalize(req.body || {});
+  if (checked.error) return res.status(400).json({ success: false, error: checked.error });
   try {
     const config = readSchedulesConfig();
-    
-    // Check for duplicate names (case-insensitive, trimmed)
-    if (schedule_name) {
-      const trimmedName = schedule_name.trim().replace(/\s+/g, ' ');
-      const duplicate = config.schedules.find(s => 
-        s.schedule_name.trim().replace(/\s+/g, ' ').toLowerCase() === trimmedName.toLowerCase()
-      );
-      
-      if (duplicate) {
-        return res.status(400).json({
-          success: false,
-          error: `Schedule with name "${trimmedName}" already exists`
-        });
-      }
+    if (config.schedules.some((s) => sameName(s.schedule_name, checked.policy.schedule_name))) {
+      return res.status(400).json({ success: false, error: `A policy called "${checked.policy.schedule_name}" already exists` });
     }
-    
-    // Create new schedule
-    const newSchedule = {
-      id: Date.now(), // ID generation
-      schedule_name: schedule_name.trim().replace(/\s+/g, ' '),
-      schedule_type,
-      start_time,
-      end_time,
-      days_of_week: days_of_week || null,
-      specific_date: specific_date || null,
-      is_active: is_active !== false, // Default to true
-      created_by: username,
+    const policy = {
+      id: Date.now(),
+      ...checked.policy,
+      created_by: req.session?.user?.username || 'unknown',
       created_at: new Date().toLocaleString('sv-SE')
     };
-    
-    config.schedules.push(newSchedule);
-    
-    if (!writeSchedulesConfig(config)) {
-      throw new Error('Failed to write config file');
-    }
-    
-    console.log(`✅ Schedule "${schedule_name}" added successfully`);
-    
-    res.json({
-      success: true,
-      message: 'Schedule created successfully',
-      schedule: newSchedule
-    });
-    
+    config.schedules.splice(schedulePolicies.insertIndex(config.schedules, policy), 0, policy);
+    if (!writeSchedulesConfig(config)) throw new Error('Failed to write config file');
+    console.log(`✅ Policy "${policy.schedule_name}" added (${policy.action}, ${policy.schedule_type})`);
+    res.json({ success: true, message: 'Policy created', schedule: policy, ...placement(config.schedules, policy) });
   } catch (err) {
-    console.error('❌ Error adding schedule:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create schedule'
-    });
+    console.error('❌ Error adding policy:', err);
+    res.status(500).json({ success: false, error: 'Failed to create the policy' });
   }
 });
 
-// PUT /api/admin/server-schedules/:id
-// Update existing schedule
+// PUT /api/admin/server-schedules/:id  edit; the policy only moves when its kind (repeat type or Active/Stop) changes
 router.put('/server-schedules/:id', auth.requireAuth, (req, res) => {
-  const scheduleId = parseInt(req.params.id);
-  const {
-    schedule_name,
-    schedule_type,
-    start_time,
-    end_time,
-    days_of_week,
-    specific_date,
-    is_active
-  } = req.body;
-  
-  console.log(`✏️  Updating schedule ID ${scheduleId}`);
-  
+  const scheduleId = parseInt(req.params.id, 10);
   try {
     const config = readSchedulesConfig();
-    const scheduleIndex = config.schedules.findIndex(s => s.id === scheduleId);
-    
-    if (scheduleIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: 'Schedule not found'
-      });
+    const index = config.schedules.findIndex((s) => s.id === scheduleId);
+    if (index === -1) return res.status(404).json({ success: false, error: 'Policy not found' });
+    const existing = config.schedules[index];
+    const checked = schedulePolicies.normalize(req.body || {}, existing);
+    if (checked.error) return res.status(400).json({ success: false, error: checked.error });
+    if (config.schedules.some((s) => s.id !== scheduleId && sameName(s.schedule_name, checked.policy.schedule_name))) {
+      return res.status(400).json({ success: false, error: `A policy called "${checked.policy.schedule_name}" already exists` });
     }
-    
-    // Check for duplicate name (excluding current schedule)
-    let updatedScheduleName = config.schedules[scheduleIndex].schedule_name;
-    if (schedule_name) {
-      // Trim and normalize the new name
-      const trimmedName = schedule_name.trim().replace(/\s+/g, ' ');
-      
-      // Check if any OTHER schedule has this name (case-insensitive)
-      const duplicate = config.schedules.find(s => 
-        s.id !== scheduleId && 
-        s.schedule_name.trim().replace(/\s+/g, ' ').toLowerCase() === trimmedName.toLowerCase()
-      );
-      
-      if (duplicate) {
-        return res.status(400).json({
-          success: false,
-          error: `Schedule with name "${trimmedName}" already exists`
-        });
-      }
-      
-      updatedScheduleName = trimmedName;
+    const updated = { ...existing, ...checked.policy, id: existing.id, updated_at: new Date().toLocaleString('sv-SE') };
+    const moved = schedulePolicies.rank(updated) !== schedulePolicies.rank(existing);
+    if (moved) {
+      config.schedules.splice(index, 1);
+      config.schedules.splice(schedulePolicies.insertIndex(config.schedules, updated), 0, updated);
+    } else {
+      config.schedules[index] = updated;
     }
-    
-    // Update schedule
-    config.schedules[scheduleIndex] = {
-      ...config.schedules[scheduleIndex],
-      schedule_name: updatedScheduleName,
-      schedule_type: schedule_type || config.schedules[scheduleIndex].schedule_type,
-      start_time: start_time || config.schedules[scheduleIndex].start_time,
-      end_time: end_time || config.schedules[scheduleIndex].end_time,
-      days_of_week: days_of_week !== undefined ? days_of_week : config.schedules[scheduleIndex].days_of_week,
-      specific_date: specific_date !== undefined ? specific_date : config.schedules[scheduleIndex].specific_date,
-      is_active: is_active !== undefined ? is_active : config.schedules[scheduleIndex].is_active,
-      updated_at: new Date().toLocaleString('sv-SE')
-    };
-    
-    if (!writeSchedulesConfig(config)) {
-      throw new Error('Failed to write config file');
-    }
-    
-    console.log(`✅ Schedule updated successfully`);
-    
-    res.json({
-      success: true,
-      message: 'Schedule updated successfully',
-      schedule: config.schedules[scheduleIndex]
-    });
-    
+    if (!writeSchedulesConfig(config)) throw new Error('Failed to write config file');
+    const where = placement(config.schedules, updated);
+    if (!moved) { where.placedAbove = null; where.reason = null; }
+    res.json({ success: true, message: 'Policy updated', schedule: updated, moved, ...where });
   } catch (err) {
-    console.error('❌ Error updating schedule:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update schedule'
-    });
+    console.error('❌ Error updating policy:', err);
+    res.status(500).json({ success: false, error: 'Failed to update the policy' });
   }
 });
+
+// POST /api/admin/server-schedules/reorder  { ids: [...] } after a drag, or { order: 'default' } to re-sort.
+// (POST, because PUT /server-schedules/:id would take "reorder" for an id.)
+router.post('/server-schedules/reorder', auth.requireAuth, (req, res) => {
+  try {
+    const config = readSchedulesConfig();
+    const body = req.body || {};
+    let ordered;
+    if (body.order === 'default') {
+      ordered = schedulePolicies.defaultOrder(config.schedules);
+    } else {
+      const ids = Array.isArray(body.ids) ? body.ids.map(Number) : null;
+      const known = new Map(config.schedules.map((s) => [s.id, s]));
+      if (!ids || ids.length !== known.size || new Set(ids).size !== ids.length || ids.some((id) => !known.has(id))) {
+        return res.status(400).json({ success: false, error: 'The list changed while you were moving it. Reload the page and try again.' });
+      }
+      ordered = ids.map((id) => known.get(id));
+    }
+    config.schedules = ordered;
+    if (!writeSchedulesConfig(config)) throw new Error('Failed to write config file');
+    res.json({ success: true, schedules: ordered.map((s) => ({ ...s, action: schedulePolicies.actionOf(s) })) });
+  } catch (err) {
+    console.error('❌ Error reordering policies:', err);
+    res.status(500).json({ success: false, error: 'Failed to save the order' });
+  }
+});
+
+// GET /api/admin/server-schedules/preview?days=7  which policy decides each part of the next days
+router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
+  try {
+    const days = Math.min(14, Math.max(1, parseInt(req.query.days, 10) || 7));
+    res.json({ success: true, preview: schedulePolicies.preview(readSchedulesConfig().schedules, new Date(), days) });
+  } catch (err) {
+    console.error('❌ Error building the policy preview:', err);
+    res.status(500).json({ success: false, error: 'Failed to build the preview' });
+  }
+});
+// <Jun Kai end>
 
 // DELETE /api/admin/server-schedules/:id
 // Delete schedule

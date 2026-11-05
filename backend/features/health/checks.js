@@ -204,11 +204,14 @@ function checkAutomation() {
     return new Promise((resolve) => {
         scheduler.getStatus((a) => {
             let status = 'ok';
-            let summary = `${a.activeSchedules} active schedule${a.activeSchedules === 1 ? '' : 's'}, AUTO mode`;
+            // <Jun Kai start>
+            let summary = `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'}, AUTO mode`;
             if (!a.enabled) { status = 'unknown'; summary = 'Automation is off on this machine'; }
-            else if (a.mode !== 'auto') { status = 'warn'; summary = 'Manual mode: schedules are paused'; }
-            else if (!a.activeSchedules) { status = 'warn'; summary = 'AUTO mode but no active schedule'; }
-            else if (a.wake && a.wake.supported && a.wake.task && !a.wake.task.exists) { status = 'warn'; summary += ', wake timer missing'; }
+            else if (a.mode !== 'auto') { status = 'warn'; summary = 'Manual mode: policies are paused'; }
+            else if (!a.activeSchedules) { status = 'warn'; summary = 'AUTO mode but no enabled policy'; }
+            else if (!a.activePolicies) { status = 'warn'; summary = 'AUTO mode but no Active policy, so the kiosk never runs'; }
+            else if (a.wakeNeeded && a.wake && a.wake.supported && a.wake.task && !a.wake.task.exists) { status = 'warn'; summary += ', wake timer missing'; }
+            // <Jun Kai end>
             else if (a.wake && a.wake.wakeTimersAllowed === false) { status = 'warn'; summary += ', wake timers blocked by Windows'; }
             resolve({
                 ...base,
@@ -227,10 +230,15 @@ function checkAutomation() {
     });
 }
 
-async function runAll({ refreshEmail = false } = {}) {
-    const checks = await Promise.all([
-        checkDatabase(), checkKiosk(), checkDisk(), checkServer(), checkOllama(), checkEmail(refreshEmail), checkTablets(), checkAutomation()
-    ]);
+// <Jun Kai start>
+// `skip`: the checks this admin removed from the page; they are not run at all
+async function runAll({ refreshEmail = false, skip = [] } = {}) {
+    const all = {
+        database: checkDatabase, kiosk: checkKiosk, disk: checkDisk, server: checkServer,
+        ollama: checkOllama, email: () => checkEmail(refreshEmail), tablets: checkTablets, automation: checkAutomation
+    };
+    const checks = await Promise.all(Object.keys(all).filter((key) => !skip.includes(key)).map((key) => all[key]()));
+    // <Jun Kai end>
     const counts = { ok: 0, warn: 0, down: 0, unknown: 0 };
     for (const check of checks) counts[check.status] = (counts[check.status] || 0) + 1;
     return {
