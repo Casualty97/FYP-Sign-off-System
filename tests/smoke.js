@@ -131,6 +131,14 @@ function tinyPng() {
     if (!ARGS.has('--no-submit')) {
       // <Jun Kai start>
       await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', page: 'feedback' }));
+      // a failing tablets query only turns the card to unknown, so check the row really comes back
+      if (cookie) {
+        await expect('GET /api/admin/health lists the smoke tablet', `${BASE}/api/admin/health`, (r) => {
+          const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
+          const devices = (tablets && tablets.detail && tablets.detail.devices) || [];
+          return devices.some((d) => d.device_id === 'smoke-tablet-01') || `tablets: ${JSON.stringify(tablets && { status: tablets.status, summary: tablets.summary }).slice(0, 160)}`;
+        }, { headers: { cookie } });
+      }
       // <Jun Kai end>
       const stamp = Date.now();
       let photoId = null;
