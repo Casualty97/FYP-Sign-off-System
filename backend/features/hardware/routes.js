@@ -85,7 +85,7 @@ router.get('/overview', auth.requireAuth, async (req, res) => {
             }
         }
         const counts = await all('SELECT COUNT(*) AS total, SUM(sampled_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS day FROM hardware_samples', []);
-        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0) }, serverTime: new Date().toISOString() } });
+        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), limits: settings.LIMITS, stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0) }, serverTime: new Date().toISOString() } });
     } catch (error) { fail(res, error, 'overview'); }
 });
 

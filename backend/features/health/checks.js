@@ -10,6 +10,9 @@ const paths = require('../../core/paths');
 const serverControl = require('../serverControl/control');
 const scheduler = require('../serverControl/scheduler');
 const emailService = require('../email/service');
+// <Jun Kai start>
+const tabletNames = require('./tabletNames');
+// <Jun Kai end>
 
 const OLLAMA_URL = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
 const EMAIL_CACHE_MS = 5 * 60 * 1000; // an SMTP verify talks to Gmail, so keep the result for a while
@@ -182,7 +185,8 @@ async function checkTablets() {
             FROM device_heartbeats
             ORDER BY last_seen DESC
             LIMIT 50`, []);
-        const devices = rows.map((r) => ({ ...r, online: r.seconds_ago <= TABLET_ONLINE_SECONDS }));
+        const names = tabletNames.all();
+        const devices = tabletNames.sortDevices(rows.map((r) => ({ ...r, name: names[r.device_id] || null, online: r.seconds_ago <= TABLET_ONLINE_SECONDS })));
         const online = devices.filter((d) => d.online);
         let status = 'ok';
         let summary = `${online.length} online of ${devices.length} known`;

@@ -24,6 +24,13 @@ const HARDWARE_RANGES = {
 };
 const HARDWARE_REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const HARDWARE_GPU_SOURCE = { 'nvidia-smi': 'nvidia-smi', 'windows-counters': 'Windows performance counters', none: 'No GPU reading on this PC', detecting: 'Looking for a GPU' };
+// Sampling card: each select has presets plus Custom; the units turn the typed number into the stored one
+const HARDWARE_SETTING_FIELDS = {
+    interval: { key: 'intervalSeconds', words: [[60, 'minute'], [1, 'second']] },
+    retention: { key: 'retentionDays', words: [[1, 'day']] },
+    horizon: { key: 'forecastHours', words: [[24, 'day'], [1, 'hour']] }
+};
+let hardwareLimits = { intervalSeconds: [15, 600], retentionDays: [1, 365], forecastHours: [1, 168] };
 
 function hardwareTheme() {
     const css = getComputedStyle(document.documentElement);
@@ -296,13 +303,12 @@ function renderHardwareSettings(overview) {
     const sampler = overview.sampler || {};
     const stored = overview.stored || {};
     const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-    const seconds = (s) => (s % 60 === 0 ? `${s / 60} min` : `${s} s`);
-    set('hardware-interval-text', seconds(settings.intervalSeconds || 60));
-    set('hardware-retention-text', `${settings.retentionDays || 30} days`);
+    if (overview.limits) hardwareLimits = { ...hardwareLimits, ...overview.limits };
+    set('hardware-interval-text', hardwareSpell('interval', settings.intervalSeconds || 60));
+    set('hardware-retention-text', hardwareSpell('retention', settings.retentionDays || 30));
     if (!hardwareSettingsFilled) {
-        for (const [id, key] of [['hardware-interval', 'intervalSeconds'], ['hardware-retention', 'retentionDays'], ['hardware-horizon', 'forecastHours']]) {
-            const el = document.getElementById(id);
-            if (el && settings[key] !== undefined) el.value = String(settings[key]);
+        for (const [name, field] of Object.entries(HARDWARE_SETTING_FIELDS)) {
+            if (settings[field.key] !== undefined) fillHardwareField(name, settings[field.key]);
         }
         hardwareSettingsFilled = true;
     }
@@ -386,9 +392,106 @@ function toggleHardwareTable() {
     else ensureHardwareCharts();
 }
 
+// 90 -> "90 seconds", 600 -> "10 minutes", 48 hours -> "2 days"
+function hardwareSpell(name, value) {
+    for (const [factor, word] of HARDWARE_SETTING_FIELDS[name].words) {
+        if (value % factor === 0) {
+            const n = value / factor;
+            return `${n} ${word}${n === 1 ? '' : 's'}`;
+        }
+    }
+    return String(value);
+}
+
+function hardwareFieldParts(name) {
+    const get = (suffix) => document.getElementById(`hardware-${name}${suffix}`);
+    return { select: get(''), box: get('-custom'), amount: get('-amount'), unit: get('-unit'), hint: get('-hint') };
+}
+
+function hardwareShowCustom(name, show) {
+    const { box, amount, hint } = hardwareFieldParts(name);
+    const [min, max] = hardwareLimits[HARDWARE_SETTING_FIELDS[name].key];
+    if (box) box.hidden = !show;
+    if (amount) amount.removeAttribute('aria-invalid');
+    if (hint) {
+        hint.hidden = !show;
+        hint.classList.remove('is-error');
+        hint.textContent = `From ${hardwareSpell(name, min)} to ${hardwareSpell(name, max)}.`;
+    }
+}
+
+// the largest unit that divides the value: 180 seconds -> 3 minutes, 36 hours -> 36 hours
+function hardwareSetAmount(name, value) {
+    const { amount, unit } = hardwareFieldParts(name);
+    if (!amount) return;
+    let factor = 1;
+    if (unit) {
+        factor = [...unit.options].map((o) => Number(o.value)).sort((a, b) => b - a).find((f) => value % f === 0) || 1;
+        unit.value = String(factor);
+    }
+    amount.value = String(value / factor);
+}
+
+// A saved value goes back into its preset, or into Custom when no preset has it
+function fillHardwareField(name, value) {
+    const { select } = hardwareFieldParts(name);
+    if (!select) return;
+    const preset = [...select.options].some((o) => o.value === String(value));
+    select.value = preset ? String(value) : 'custom';
+    select.dataset.last = String(value);
+    if (!preset) hardwareSetAmount(name, value);
+    hardwareShowCustom(name, !preset);
+}
+
+// onchange of a select: Custom opens the number box with the value that was chosen before
+function hardwareSettingChanged(name) {
+    const { select, amount } = hardwareFieldParts(name);
+    if (!select) return;
+    if (select.value !== 'custom') {
+        select.dataset.last = select.value;
+        hardwareShowCustom(name, false);
+        return;
+    }
+    hardwareSetAmount(name, Number(select.dataset.last) || hardwareLimits[HARDWARE_SETTING_FIELDS[name].key][0]);
+    hardwareShowCustom(name, true);
+    if (amount) amount.focus();
+}
+
+// { value } or { error } for one setting
+function readHardwareField(name) {
+    const { select, amount, unit } = hardwareFieldParts(name);
+    if (select.value !== 'custom') return { value: Number(select.value) };
+    const typed = Number(amount.value);
+    if (!amount.value.trim() || !Number.isInteger(typed) || typed < 1) return { error: 'Enter a whole number.' };
+    const value = typed * (unit ? Number(unit.value) : 1);
+    const [min, max] = hardwareLimits[HARDWARE_SETTING_FIELDS[name].key];
+    if (value < min || value > max) return { error: `Choose from ${hardwareSpell(name, min)} to ${hardwareSpell(name, max)}.` };
+    return { value };
+}
+
+function hardwareFieldError(name, message) {
+    const { amount, hint } = hardwareFieldParts(name);
+    if (hint) {
+        hint.hidden = false;
+        hint.textContent = message;
+        hint.classList.add('is-error');
+    }
+    if (amount) {
+        amount.setAttribute('aria-invalid', 'true');
+        amount.focus();
+    }
+}
+
 async function saveHardwareSettings() {
-    const value = (id) => Number(document.getElementById(id).value);
-    const payload = { intervalSeconds: value('hardware-interval'), retentionDays: value('hardware-retention'), forecastHours: value('hardware-horizon') };
+    const payload = {};
+    for (const [name, field] of Object.entries(HARDWARE_SETTING_FIELDS)) {
+        const result = readHardwareField(name);
+        if (result.error) {
+            hardwareFieldError(name, result.error);
+            return;
+        }
+        payload[field.key] = result.value;
+    }
     const button = document.getElementById('hardware-settings-save');
     if (button) button.disabled = true;
     try {
