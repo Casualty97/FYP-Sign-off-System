@@ -7254,7 +7254,11 @@ function placement(list, policy) {
   const index = list.indexOf(policy);
   const below = list[index + 1] || null;
   const above = index > 0 ? list[index - 1] : null;
+  const beatenBy = list.slice(0, index).filter((other) => other.is_active !== false
+    && schedulePolicies.actionOf(other) !== schedulePolicies.actionOf(policy)
+    && schedulePolicies.overlaps(other, policy, new Date())).map((other) => other.schedule_name);
   return {
+    beatenBy,
     position: index + 1,
     total: list.length,
     placedAbove: below && schedulePolicies.rank(policy) > schedulePolicies.rank(below) ? below.schedule_name : null,

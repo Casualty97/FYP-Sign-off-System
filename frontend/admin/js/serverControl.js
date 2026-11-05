@@ -12,6 +12,8 @@ let policyDrag = null;
 let policyOrderSaving = false;
 let policyFormTried = false;
 let policyFormTimes = { start: '08:00', end: '18:00' };
+let policyPendingList = null;
+let policyPreviewKey = null;
 
 const POLICY_DAYS = [[2, 'Mon'], [3, 'Tue'], [4, 'Wed'], [5, 'Thu'], [6, 'Fri'], [7, 'Sat'], [1, 'Sun']];
 const POLICY_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -96,6 +98,10 @@ function loadSchedules(highlightId) {
 function renderPolicies(list) {
     const ol = document.getElementById('policy-list');
     if (!ol) return;
+    if (policyDrag) {
+        policyPendingList = list;
+        return;
+    }
     initPolicyDrag(ol);
     if (!list || !list.length) {
         ol.innerHTML = '<li class="policy-empty">No policies yet. Use New policy to set when the kiosk runs.</li>';
@@ -274,9 +280,13 @@ function updateFormFields() {
 
 function policyPlacementMessage(data, created) {
     const name = data.schedule ? `"${data.schedule.schedule_name}"` : 'The policy';
-    if (!created && !data.moved) return `${name} saved.`;
-    if (data.placedAbove) return `${name} is priority ${data.position} of ${data.total}, above "${data.placedAbove}": ${data.reason}.`;
-    return `${name} is priority ${data.position} of ${data.total}.`;
+    const above = (data.beatenBy || []).map((n) => `"${n}"`);
+    const one = above.length === 1;
+    const listed = above.length > 3 ? `${above.slice(0, 3).join(', ')} and others` : above.length > 1 ? `${above.slice(0, -1).join(', ')} and ${above[above.length - 1]}` : above[0];
+    const beaten = above.length ? ` ${listed} ${one ? 'is' : 'are'} higher and still win${one ? 's' : ''} where ${one ? 'both apply' : 'they overlap'}: drag ${name} above ${one ? 'it' : 'them'} if it should win.` : '';
+    if (!created && !data.moved) return `${name} saved.${beaten}`;
+    if (data.placedAbove) return `${name} is priority ${data.position} of ${data.total}, above "${data.placedAbove}": ${data.reason}.${beaten}`;
+    return `${name} is priority ${data.position} of ${data.total}.${beaten}`;
 }
 
 function saveSchedule() {
@@ -300,7 +310,7 @@ function saveSchedule() {
         .then(({ response, data }) => {
             if (!response.ok || !data.success) throw new Error(data.error || 'Could not save the policy');
             closeModal('schedule-modal');
-            showNotification(policyPlacementMessage(data, created), 'success');
+            showNotification(policyPlacementMessage(data, created), data.beatenBy && data.beatenBy.length ? 'warning' : 'success');
             return loadSchedules(data.schedule && data.schedule.id);
         })
         .catch((error) => {
@@ -404,7 +414,7 @@ function policyFlip(ol, still, change) {
 
 function policyPointerDown(event) {
     const handle = event.target.closest('.policy-handle');
-    if (!handle || event.button !== 0 || policyOrderSaving) return;
+    if (!handle || event.button !== 0 || policyOrderSaving || policyDrag) return;
     const row = handle.closest('.policy-row');
     const ol = row.parentElement;
     event.preventDefault();
@@ -452,7 +462,24 @@ function policyPointerUp(event) {
         policyRows(drag.ol).forEach((row) => { row.style.transition = ''; });
     }, 170);
     const after = policyRows(drag.ol).map((r) => r.dataset.id);
-    if (after.join(',') !== drag.before.join(',')) savePolicyOrder(after, drag.before, drag.row);
+    const pending = policyPendingList;
+    policyPendingList = null;
+    if (event.type === 'pointercancel') {
+        if (after.join(',') !== drag.before.join(',')) restorePolicyOrder(drag.ol, drag.before);
+        if (pending) loadSchedules();
+        return;
+    }
+    if (after.join(',') !== drag.before.join(',')) {
+        savePolicyOrder(after, drag.before, drag.row).then(() => { if (pending) loadSchedules(); });
+    } else if (pending) {
+        renderPolicies(pending);
+    }
+}
+
+function restorePolicyOrder(ol, ids) {
+    const byId = new Map(policyRows(ol).map((row) => [row.dataset.id, row]));
+    ids.forEach((id) => { if (byId.has(id)) ol.appendChild(byId.get(id)); });
+    renumberPolicies(ol);
 }
 
 function policyKeyDown(event) {
@@ -487,9 +514,12 @@ function savePolicyOrder(ids, previous, movedRow) {
         })
         .catch((error) => {
             showNotification(error.message, 'error');
-            const byId = new Map(policyRows(ol).map((row) => [row.dataset.id, row]));
-            previous.forEach((id) => { if (byId.has(id)) ol.appendChild(byId.get(id)); });
-            renumberPolicies(ol);
+            const handle = movedRow && movedRow.querySelector('.policy-handle');
+            const hadFocus = handle && document.activeElement === handle;
+            restorePolicyOrder(ol, previous);
+            if (hadFocus) handle.focus();
+            const live = document.getElementById('policy-live');
+            if (live) live.textContent = `The order was not saved: ${error.message}`;
         })
         .finally(() => {
             policyOrderSaving = false;
@@ -511,21 +541,35 @@ function loadPolicyPreview() {
 function renderPolicyPreview(preview) {
     const box = document.getElementById('policy-preview');
     if (!box || !preview) return;
+    // the 60 s refresh only moves the "now" line when the bars did not change, so keyboard focus stays put
+    const key = JSON.stringify(preview.days);
+    const nowLine = box.querySelector('.policy-now');
+    if (key === policyPreviewKey && nowLine) {
+        nowLine.style.left = `${(preview.nowMin / 14.4).toFixed(3)}%`;
+        return;
+    }
+    policyPreviewKey = key;
+    const focused = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.slot : null;
     const axis = ['00:00', '06:00', '12:00', '18:00', '24:00'].map((t, i) => `<span style="left:${i * 25}%">${t}</span>`).join('');
     const rows = preview.days.map((day) => {
         const [y, m, d] = day.date.split('-').map(Number);
         const isToday = day.date === preview.today;
         const label = isToday ? 'Today' : new Date(y, m - 1, d).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' });
         const segments = day.segments.map((s) => {
-            const tip = `${s.name}|${s.on ? 'Active: the kiosk runs' : 'Stop: the kiosk is off'}|${s.from} to ${s.to}, priority ${s.position}`;
+            const what = s.on ? 'Active: the kiosk runs' : 'Stop: the kiosk is off';
+            const when = `${s.from} to ${s.to}, priority ${s.position}`;
             const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'kiosk off'}, priority ${s.position}`;
-            return `<span class="policy-seg policy-seg-${s.on ? 'on' : 'stop'}" style="left:${(s.startMin / 14.4).toFixed(3)}%;width:${((s.endMin - s.startMin) / 14.4).toFixed(3)}%" tabindex="0" data-tip="${escapeHtmlSafe(tip)}" aria-label="${escapeHtmlSafe(words)}"><span class="policy-seg-label">${escapeHtmlSafe(s.name)}</span></span>`;
+            return `<span class="policy-seg policy-seg-${s.on ? 'on' : 'stop'}" role="img" style="left:${(s.startMin / 14.4).toFixed(3)}%;width:${((s.endMin - s.startMin) / 14.4).toFixed(3)}%" tabindex="0" data-slot="${day.date}-${s.startMin}" data-name="${escapeHtmlSafe(s.name)}" data-what="${escapeHtmlSafe(what)}" data-when="${escapeHtmlSafe(when)}" aria-label="${escapeHtmlSafe(words)}"><span class="policy-seg-label">${escapeHtmlSafe(s.name)}</span></span>`;
         }).join('');
         const now = isToday ? `<span class="policy-now" style="left:${(preview.nowMin / 14.4).toFixed(3)}%"></span>` : '';
         return `<div class="policy-day"><span class="policy-day-label${isToday ? ' is-today' : ''}">${escapeHtmlSafe(label)}</span><div class="policy-track">${segments}${now}</div></div>`;
     }).join('');
     box.innerHTML = `<div class="policy-axis"><span></span><div class="policy-axis-track">${axis}</div></div>${rows}`;
     bindPolicyTips(box);
+    if (focused) {
+        const again = box.querySelector(`[data-slot="${focused}"]`);
+        if (again) again.focus();
+    }
 }
 
 function bindPolicyTips(box) {
@@ -536,8 +580,7 @@ function bindPolicyTips(box) {
     const show = (event) => {
         const seg = event.target.closest('.policy-seg');
         if (!seg) return;
-        const [name, what, when] = seg.dataset.tip.split('|');
-        tip.innerHTML = `<strong>${escapeHtmlSafe(name)}</strong>${escapeHtmlSafe(what)}<br>${escapeHtmlSafe(when)}`;
+        tip.innerHTML = `<strong>${escapeHtmlSafe(seg.dataset.name)}</strong>${escapeHtmlSafe(seg.dataset.what)}<br>${escapeHtmlSafe(seg.dataset.when)}`;
         tip.hidden = false;
         const r = seg.getBoundingClientRect();
         const w = tip.offsetWidth;

@@ -162,6 +162,17 @@ test('a policy change that turns the kiosk off now is a switch-off; a very short
     assert.equal(gap.hibernate, false, 'back on in 2 minutes: the wake timer would already be gone');
 });
 
+test('overlaps tells whether two policies ever cover the same moment', () => {
+    const hours = weekdays({});
+    const lunch = make({ schedule_name: 'lunch', start_time: '12:00', end_time: '13:00', action: 'stop' });
+    const night = make({ schedule_name: 'night', start_time: '22:00', end_time: '02:00' });
+    const sundays = make({ schedule_type: 'weekly', days_of_week: '1', start_time: '09:00', end_time: '17:00' });
+    assert.equal(policies.overlaps(hours, lunch, at(9, 0), 14), true);
+    assert.equal(policies.overlaps(hours, night, at(9, 0), 14), false);
+    assert.equal(policies.overlaps(hours, sundays, at(9, 0), 14), false);
+    assert.equal(policies.overlaps(night, make({ start_time: '01:00', end_time: '03:00' }), at(9, 0), 3), true, 'overnight windows count');
+});
+
 test('normalize keeps saved values for null fields and checks the types', () => {
     const saved = { schedule_name: 'lunch', action: 'stop', schedule_type: 'daily', start_time: '12:00', end_time: '13:00', is_active: true };
     assert.equal(policies.normalize({ action: null }, saved).policy.action, 'stop');

@@ -219,6 +219,23 @@ function defaultOrder(list) {
     return list.map((policy, i) => ({ policy, i })).sort((a, b) => rank(b.policy) - rank(a.policy) || a.i - b.i).map((x) => x.policy);
 }
 
+// True when the two policies cover a common moment in the next `days` days (enabled or not)
+function overlaps(a, b, from, days = 400) {
+    const on = (p) => ({ ...p, is_active: true });
+    const pa = on(a);
+    const pb = on(b);
+    for (let i = -1; i < days; i++) {
+        const day = dayStart(from, i);
+        const wa = windowOn(pa, day);
+        if (!wa) continue;
+        for (const d of [day, dayStart(day, -1), dayStart(day, 1)]) {
+            const wb = windowOn(pb, d);
+            if (wb && wa.startAt < wb.endAt && wb.startAt < wa.endAt) return true;
+        }
+    }
+    return false;
+}
+
 function placementReason(policy, below) {
     if (!below) return null;
     if ((SPECIFICITY[policy.schedule_type] || 0) > (SPECIFICITY[below.schedule_type] || 0)) {
@@ -290,6 +307,6 @@ function normalize(input, previous = {}) {
 module.exports = {
     TYPES, SPECIFICITY, TYPE_LABEL,
     actionOf, isEnabled, parseTime, numberList, localYmd, appliesOn, windowOn, winnerAt, timeline, transitions,
-    decide, offReason, status, wakeTimes, preview, rank, insertIndex, defaultOrder, placementReason, normalize
+    decide, offReason, status, wakeTimes, preview, rank, insertIndex, defaultOrder, placementReason, normalize, overlaps
 };
 // <Jun Kai end>

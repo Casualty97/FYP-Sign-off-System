@@ -7946,11 +7946,11 @@ input:checked + .slider:before {
 .policy-day-label { font-size: 13px; color: var(--color-dark-gray); white-space: nowrap; }
 .policy-day-label.is-today { font-weight: 700; color: var(--theme-text-color); }
 .policy-track { position: relative; height: 24px; border-radius: 6px; background: linear-gradient(90deg, transparent calc(25% - 1px), var(--theme-border-color) calc(25% - 1px), var(--theme-border-color) 25%, transparent 25%, transparent calc(50% - 1px), var(--theme-border-color) calc(50% - 1px), var(--theme-border-color) 50%, transparent 50%, transparent calc(75% - 1px), var(--theme-border-color) calc(75% - 1px), var(--theme-border-color) 75%, transparent 75%), var(--theme-bg-color); }
-.policy-seg { position: absolute; top: 3px; bottom: 3px; min-width: 3px; display: flex; align-items: center; padding: 0 7px; overflow: hidden; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; outline: none; }
+.policy-seg { position: absolute; top: 3px; bottom: 3px; min-width: 2px; display: flex; align-items: center; padding: 0; overflow: hidden; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; outline: none; }
 .policy-seg-on { color: #ffffff; }
 .policy-seg-stop { color: #334155; }
 .policy-seg:focus-visible { box-shadow: 0 0 0 2px var(--theme-card-bg), 0 0 0 4px #2a78d6; }
-.policy-seg-label { overflow: hidden; text-overflow: ellipsis; }
+.policy-seg-label { padding: 0 7px; overflow: hidden; text-overflow: ellipsis; }
 .policy-now { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--theme-text-color); opacity: 0.75; pointer-events: none; }
 .policy-tip { position: fixed; z-index: 5; max-width: 280px; padding: 8px 10px; border-radius: 8px; background: #0f172a; color: #f8fafc; font-size: 12px; line-height: 1.45; box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28); pointer-events: none; }
 .policy-tip strong { display: block; font-size: 12px; }
