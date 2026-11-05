@@ -126,6 +126,10 @@ jobs:
             console.log(s);process.exit(errors?1:0);"
       - name: Contract checks
         run: node tests/contracts/run.js
+      # <Jun Kai start>
+      - name: Unit tests
+        run: node --test "tests/unit/**/*.test.js"
+      # <Jun Kai end>
 
   # ------------------------------------------------------------------ boot + endpoints, Linux and Windows
   smoke:
@@ -202,7 +206,6 @@ jobs:
       - name: Create the database and apply schema.sql twice
         run: node tests/ci-db-setup.js
       - name: Migrations apply cleanly and the schema snapshot is current
-        if: runner.os == 'Linux'
         run: |
           node database/migrate.js status
           node database/migrate.js up

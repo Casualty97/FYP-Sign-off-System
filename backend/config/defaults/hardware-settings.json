@@ -1,0 +1,5 @@
+{
+  "intervalSeconds": 60,
+  "retentionDays": 30,
+  "forecastHours": 24
+}

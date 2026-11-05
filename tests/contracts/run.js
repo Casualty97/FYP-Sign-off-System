@@ -248,8 +248,9 @@ check('env: process.env names and backend/.env.example agree', () => {
 });
 
 // ---------------------------------------------------------------- 7. SQL tables exist
-check('sql: every table name in backend SQL exists in database/schema.sql', () => {
-  const schema = read('database/schema.sql');
+check('sql: every table name in backend SQL exists in database/schema.sql or a migration', () => {
+  const migrationFiles = fs.readdirSync(path.join(ROOT, 'database/migrations')).filter((f) => f.endsWith('.sql')).sort();
+  const schema = read('database/schema.sql') + String.fromCharCode(10) + migrationFiles.map((f) => read('database/migrations/' + f)).join(String.fromCharCode(10));
   const tables = new Set([...schema.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?(\w+)`?/gi)].map((m) => m[1].toLowerCase()));
   const KW = new Set(['select', 'dual', 'information_schema', 'current_timestamp', 'where', 'set', 'values', 'and', 'or', 'on', 'as', 'the', 'a', 'to', 'new', 'if', 'is']);
   const problems = []; const seen = new Set();

@@ -3,21 +3,12 @@
 // ==================== 28. EMAIL MANAGEMENT ====================
 // Dynamic SMTP fields + load/save/test
 
+// <Jun Kai start>
 function setEmailStatus(type, message) {
   const el = document.getElementById('email-status');
   if (!el) return;
-
-  // simple badge look (same idea as your form management status)
-  let bg = '#eef2ff', border = '#c7d2fe', text = '#1e3a8a';
-  if (type === 'success') { bg = '#ecfdf5'; border = '#a7f3d0'; text = '#065f46'; }
-  if (type === 'error')   { bg = '#fef2f2'; border = '#fecaca'; text = '#991b1b'; }
-  if (type === 'info')    { bg = '#eff6ff'; border = '#bfdbfe'; text = '#1d4ed8'; }
-
-  el.innerHTML = `
-    <div style="display:inline-block;padding:10px 14px;border-radius:10px;border:1px solid ${border};background:${bg};color:${text};font-weight:600;">
-      ${message}
-    </div>
-  `;
+  const tone = type === 'success' ? 'ok' : type === 'error' ? 'down' : 'info';
+  el.innerHTML = `<span class="ui-pill ui-pill-${tone}"><span class="ui-dot"></span>${escapeHtmlSafe(message)}</span>`;
 }
 
 function renderEmailFields() {
@@ -27,61 +18,59 @@ function renderEmailFields() {
 
   if (provider === 'gmail') {
     container.innerHTML = `
-      <div class="form-group">
-        <label for="gmail-user">Gmail Username</label>
-        <input id="gmail-user" type="email" placeholder="e.g. yourgmail@gmail.com" />
-      </div>
-
-      <div class="form-group">
-        <label for="gmail-pass">Gmail App Password</label>
-        <input id="gmail-pass" type="password" placeholder="16-character app password" />
-      </div>
-    `;
+      <div class="ui-form-grid">
+        <div class="ui-field">
+          <label class="ui-label" for="gmail-user">Gmail address</label>
+          <input class="ui-input" id="gmail-user" type="email" placeholder="yourname@gmail.com" autocomplete="off">
+        </div>
+        <div class="ui-field">
+          <label class="ui-label" for="gmail-pass">Gmail App Password</label>
+          <input class="ui-input" id="gmail-pass" type="password" placeholder="16 letters, no spaces" autocomplete="off">
+          <span class="ui-help">Made under Google Account, Security, App passwords. Gmail refuses the normal account password.</span>
+        </div>
+      </div>`;
   } else if (provider === 'outlook') {
     container.innerHTML = `
-      <div class="form-group">
-        <label for="outlook-user">Outlook Username</label>
-        <input id="outlook-user" type="email" placeholder="e.g. yourname@company.com" />
-      </div>
-
-      <div class="form-group">
-        <label for="outlook-pass">Outlook Password</label>
-        <input id="outlook-pass" type="password" placeholder="Your Outlook password" />
-      </div>
-    `;
+      <div class="ui-form-grid">
+        <div class="ui-field">
+          <label class="ui-label" for="outlook-user">Outlook address</label>
+          <input class="ui-input" id="outlook-user" type="email" placeholder="yourname@company.com" autocomplete="off">
+        </div>
+        <div class="ui-field">
+          <label class="ui-label" for="outlook-pass">Outlook password</label>
+          <input class="ui-input" id="outlook-pass" type="password" placeholder="Account password" autocomplete="off">
+        </div>
+      </div>`;
   } else {
-    // custom
     container.innerHTML = `
-      <div class="form-group">
-        <label for="smtp-host">SMTP Host</label>
-        <input id="smtp-host" type="text" placeholder="e.g. smtp.yourdomain.com" />
-      </div>
-
-      <div class="form-group">
-        <label for="smtp-port">SMTP Port</label>
-        <input id="smtp-port" type="number" placeholder="e.g. 587" />
-      </div>
-
-      <div class="form-group">
-        <label for="smtp-secure">Secure (TLS/SSL)</label>
-        <select id="smtp-secure">
-          <option value="false">false (STARTTLS, common for 587)</option>
-          <option value="true">true (SSL, common for 465)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="smtp-user">SMTP Username</label>
-        <input id="smtp-user" type="text" placeholder="SMTP username" />
-      </div>
-
-      <div class="form-group">
-        <label for="smtp-pass">SMTP Password</label>
-        <input id="smtp-pass" type="password" placeholder="SMTP password" />
-      </div>
-    `;
+      <div class="ui-form-grid">
+        <div class="ui-field">
+          <label class="ui-label" for="smtp-host">SMTP host</label>
+          <input class="ui-input" id="smtp-host" type="text" placeholder="smtp.yourdomain.com" autocomplete="off">
+        </div>
+        <div class="ui-field">
+          <label class="ui-label" for="smtp-port">SMTP port</label>
+          <input class="ui-input" id="smtp-port" type="number" placeholder="587" autocomplete="off">
+        </div>
+        <div class="ui-field">
+          <label class="ui-label" for="smtp-secure">Connection</label>
+          <select class="ui-select" id="smtp-secure">
+            <option value="false">STARTTLS (usually port 587)</option>
+            <option value="true">SSL (usually port 465)</option>
+          </select>
+        </div>
+        <div class="ui-field">
+          <label class="ui-label" for="smtp-user">SMTP username</label>
+          <input class="ui-input" id="smtp-user" type="text" placeholder="Username" autocomplete="off">
+        </div>
+        <div class="ui-field">
+          <label class="ui-label" for="smtp-pass">SMTP password</label>
+          <input class="ui-input" id="smtp-pass" type="password" placeholder="Password" autocomplete="off">
+        </div>
+      </div>`;
   }
 }
+// <Jun Kai end>
 
 async function loadEmailConfig() {
   try {

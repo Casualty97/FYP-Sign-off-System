@@ -603,22 +603,24 @@ const themeConfig = {
             }
         },
         
+        // <Jun Kai start>  (the page now uses the admin UI kit classes)
         'email-management-page': {
             general: {
                 'page-background': ['#email-management-page'],
-                'primary-text': ['#email-management-page .page-header h2'],
-                'secondary-text': ['#email-management-page .page-header p']
+                'primary-text': ['#email-management-page .ui-page-header h2'],
+                'secondary-text': ['#email-management-page .ui-page-header p']
             },
             card: {
-                'card-background': ['#email-management-page .email-config-card'],
-                'card-primary-text': ['#email-management-page .section-header h3'],
-                'card-secondary-text': ['#email-management-page label']
+                'card-background': ['#email-management-page .ui-card'],
+                'card-primary-text': ['#email-management-page .ui-card-header h3'],
+                'card-secondary-text': ['#email-management-page .ui-label']
             },
             buttons: {
-                'button-color': ['#email-management-page .btn-primary', '#email-management-page .btn-secondary'],
-                'button-text-color': ['#email-management-page .btn-primary', '#email-management-page .btn-secondary']
+                'button-color': ['#email-management-page .ui-btn-primary', '#email-management-page .ui-btn-secondary'],
+                'button-text-color': ['#email-management-page .ui-btn-primary', '#email-management-page .ui-btn-secondary']
             }
         },
+        // <Jun Kai end>
         
         'form-management-page': {
             general: {

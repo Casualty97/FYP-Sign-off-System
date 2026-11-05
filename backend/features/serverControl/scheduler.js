@@ -1,40 +1,50 @@
 // Owner: Role 3, Jun Kai.
-// Runs the saved schedules. Started by backend/server.js only. Once a minute, in AUTO mode:
-//  - a schedule's stop time has just passed and no other schedule is open -> hibernate the PC (once per stop)
-//  - a schedule window is open and the kiosk server is not reachable -> start it (this is also what brings the
-//    kiosk back after the Windows wake timer resumes the PC in the morning)
+// Runs the saved policies. Started by backend/server.js only. Once a minute, in AUTO mode:
+//  - the policies have just switched the kiosk off (an Active policy ended or a Stop policy began) -> hibernate the
+//    PC (once per switch)
+//  - the policies say the kiosk runs and the kiosk server is not reachable -> start it (this is also what brings the
+//    kiosk back after the Windows wake timer resumes the PC)
 // KIOSK_AUTOMATION=off disables everything (CI, laptops); KIOSK_AUTOMATION=dry-run logs instead of acting.
 const control = require('./control');
 const wakeTask = require('./wakeTask');
+// <Jun Kai start>
+const policies = require('./policies');
 
-const state = { started: false, enabled: true, dryRun: false, lastTick: null, lastStartAttempt: 0, timer: null };
+const state = { started: false, enabled: true, dryRun: false, lastTick: null, lastStartAttempt: 0, timer: null, wakeSyncDay: null, lastOn: null };
 
 function automationSetting() {
     const value = String(process.env.KIOSK_AUTOMATION || 'on').toLowerCase();
     return ['off', 'dry-run'].includes(value) ? value : 'on';
 }
 
+// The wake task covers 14 days, so rebuild it on the first tick of each day (also right after the PC resumes)
+function syncWakeDaily(list, now) {
+    const today = policies.localYmd(now);
+    if (state.wakeSyncDay === today) return;
+    state.wakeSyncDay = today;
+    wakeTask.sync(list);
+}
+
 function tick(now = new Date()) {
     state.lastTick = now.toISOString();
+    const list = control.readSchedulesConfig().schedules;
+    syncWakeDaily(list, now);
+    // worked out in manual mode too, so switching back to automatic at night is not mistaken for a switch-off
+    const decision = policies.decide(list, now, control.readAutomation().lastHibernateKey, { lastOn: state.lastOn });
+    state.lastOn = decision.on;
     if (control.readModeConfig().mode !== 'auto') return;
 
-    const schedules = control.readSchedulesConfig().schedules.filter((s) => s.is_active !== false);
-    if (!schedules.length) return;
-    const running = control.shouldBeRunning(schedules, now);
-    const lastKey = control.readAutomation().lastHibernateKey;
-    const due = control.stopsDue(schedules, now).filter((w) => control.stopKey(w) !== lastKey);
-
-    if (due.length && !running) {
-        control.setLastHibernateKey(control.stopKey(due[0]));
-        control.hibernateNow(`"${due[0].schedule.schedule_name}" stop time ${due[0].schedule.end_time}`, { dryRun: state.dryRun });
+    if (decision.hibernate) {
+        control.setLastHibernateKey(decision.key);
+        control.hibernateNow(`the kiosk switched off: ${policies.offReason(decision.due)}`, { dryRun: state.dryRun });
         return;
     }
 
-    if (running && Date.now() - state.lastStartAttempt > 5 * 60 * 1000) {
+    if (decision.on && Date.now() - state.lastStartAttempt > 5 * 60 * 1000) {
         control.resolveKioskStatus((status) => {
             if (status.running) return;
             state.lastStartAttempt = Date.now();
-            control.recordEvent('start', `"${running.schedule.schedule_name}" is open and the kiosk server is not reachable`, state.dryRun);
+            control.recordEvent('start', `"${decision.winner.policy.schedule_name}" is in force and the kiosk server is not reachable`, state.dryRun);
             if (state.dryRun) return;
             control.startKiosk((result) => {
                 control.recordEvent(result.success ? 'start-ok' : 'start-failed', result.message || result.error);
@@ -54,9 +64,9 @@ function start() {
         return;
     }
     wakeTask.setDryRun(state.dryRun);
-    control.onSchedulesChanged((schedules) => wakeTask.sync(schedules));
-    wakeTask.sync(control.readSchedulesConfig().schedules);
-    console.log(`⏰ Kiosk automation ${state.dryRun ? 'in DRY RUN (actions are only logged)' : 'on'}: schedules apply in AUTO mode`);
+    control.onSchedulesChanged((list) => wakeTask.sync(list));
+    syncWakeDaily(control.readSchedulesConfig().schedules, new Date());
+    console.log(`⏰ Kiosk automation ${state.dryRun ? 'in DRY RUN (actions are only logged)' : 'on'}: policies apply in AUTO mode`);
     setTimeout(() => {
         tick();
         state.timer = setInterval(() => tick(), 60000);
@@ -65,21 +75,25 @@ function start() {
 
 function getStatus(callback) {
     const now = new Date();
-    const schedules = control.readSchedulesConfig().schedules.filter((s) => s.is_active !== false);
-    const transitions = control.nextTransitions(schedules, now);
+    const list = control.readSchedulesConfig().schedules;
+    const enabledList = list.filter(policies.isEnabled);
+    const current = policies.status(list, now);
     const automation = control.readAutomation();
+    const until = current.until ? current.until.toISOString() : null;
     wakeTask.status((wake) => {
         callback({
             enabled: state.enabled,
             dryRun: state.dryRun,
             mode: control.readModeConfig().mode,
             lastTick: state.lastTick,
-            activeSchedules: schedules.length,
-            currentWindow: transitions.current
-                ? { schedule: transitions.current.schedule.schedule_name, until: transitions.current.endAt.toISOString() }
-                : null,
-            nextStart: transitions.nextStart ? transitions.nextStart.toISOString() : null,
-            nextStop: transitions.nextStop ? transitions.nextStop.toISOString() : null,
+            activeSchedules: enabledList.length,
+            stopPolicies: enabledList.filter((p) => policies.actionOf(p) === 'stop').length,
+            activePolicies: enabledList.filter((p) => policies.actionOf(p) === 'active').length,
+            wakeNeeded: policies.wakeTimes(list, now).times.length > 0,
+            currentWindow: current.on && current.policy ? { schedule: current.policy.schedule_name, until } : null,
+            stoppedBy: !current.on && current.policy ? { schedule: current.policy.schedule_name, until } : null,
+            nextStart: current.nextStart ? current.nextStart.toISOString() : null,
+            nextStop: current.nextStop ? current.nextStop.toISOString() : null,
             events: automation.events.slice(-10).reverse(),
             wake
         });
@@ -87,3 +101,4 @@ function getStatus(callback) {
 }
 
 module.exports = { start, tick, getStatus };
+// <Jun Kai end>
