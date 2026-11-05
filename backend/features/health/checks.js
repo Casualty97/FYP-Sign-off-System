@@ -221,11 +221,14 @@ function checkAutomation() {
                 ...base,
                 status,
                 summary,
+                // <Jun Kai start>
+                // manual mode pauses the policies: no planned stop or start, and no wake-ups
                 detail: {
                     mode: a.mode,
-                    nextStop: a.nextStop,
-                    nextStart: a.nextStart,
-                    wakeTask: a.wake && a.wake.task ? (a.wake.task.exists ? 'set' : 'missing') : 'not available',
+                    nextStop: a.mode === 'auto' ? a.nextStop : null,
+                    nextStart: a.mode === 'auto' ? a.nextStart : null,
+                    wakeTask: a.mode !== 'auto' ? 'paused in manual mode' : a.wake && a.wake.task ? (a.wake.task.exists ? 'set' : 'missing') : 'not available',
+                    // <Jun Kai end>
                     lastEvent: a.events && a.events[0] ? a.events[0] : null
                 },
                 latencyMs: null

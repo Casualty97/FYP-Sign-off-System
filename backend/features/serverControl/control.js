@@ -67,7 +67,7 @@ function writeModeConfig(config) {
     try {
         config.last_updated = new Date().toISOString();
         writeJsonAtomic(MODE_FILE, config);
-        console.log(`✅ Mode file updated: ${config.mode}`);
+        console.debug(`✅ Mode file updated: ${config.mode}`);
         return true;
     } catch (error) {
         console.error('❌ Error writing mode file:', error);
@@ -143,18 +143,17 @@ function resolveKioskStatus(callback) {
     });
 }
 
+// <Jun Kai start>
 let lastKioskStatusLogKey = null;
-let lastKioskStatusLogAt = 0;
 
+// The admin page asks every few seconds, so only a change is worth a line
 function logKioskStatusIfNeeded(result) {
-    const now = Date.now();
     const logKey = `${result.status}|${result.source}`;
-    if (logKey !== lastKioskStatusLogKey || now - lastKioskStatusLogAt >= 60000) {
-        console.log(`📊 Kiosk service status: ${result.status} (${result.source})`);
-        lastKioskStatusLogKey = logKey;
-        lastKioskStatusLogAt = now;
-    }
+    if (logKey === lastKioskStatusLogKey) return;
+    lastKioskStatusLogKey = logKey;
+    console.log(`📊 Kiosk service status: ${result.status} (${result.source})`);
 }
+// <Jun Kai end>
 
 // ---------------------------------------------------------------- actions
 // Starts the kiosk server if it is not reachable. callback({ success, message | error, ... })

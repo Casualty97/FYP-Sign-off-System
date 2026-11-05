@@ -76,21 +76,21 @@ const DEFAULT_PLEDGE_TOPICS = [
 
 // Check if data export is unlocked in session
 function requireDataExportUnlocked(req, res, next) {
-    console.log('🔍 Data Export Middleware Check:');
-    console.log('   - Session exists:', !!req.session);
-    console.log('   - Session.user exists:', !!req.session?.user);
-    console.log('   - User role:', req.session?.user?.role);
-    console.log('   - Export unlocked:', req.session?.data_export_unlocked);
-    console.log('   - Unlock time:', req.session?.data_export_unlock_time);
+    console.debug('🔍 Data Export Middleware Check:');
+    console.debug('   - Session exists:', !!req.session);
+    console.debug('   - Session.user exists:', !!req.session?.user);
+    console.debug('   - User role:', req.session?.user?.role);
+    console.debug('   - Export unlocked:', req.session?.data_export_unlocked);
+    console.debug('   - Unlock time:', req.session?.data_export_unlock_time);
     
     if (!req.session || !req.session.user) {
-        console.log('❌ Authentication failed: No session or user');
+        console.debug('❌ Authentication failed: No session or user');
         return res.status(401).json({ error: 'Authentication required. Please log in.' });
     }
     
     // Check if user has system_admin role
     if (req.session.user.role !== 'system_admin') {
-        console.log('❌ Authorization failed: User role is', req.session.user.role);
+        console.debug('❌ Authorization failed: User role is', req.session.user.role);
         return res.status(403).json({ error: 'System Administrator privileges required' });
     }
     
@@ -100,16 +100,16 @@ function requireDataExportUnlocked(req, res, next) {
         const now = new Date();
         const minutesPassed = (now - unlockTime) / (1000 * 60);
         
-        console.log('   - Minutes since unlock:', minutesPassed.toFixed(2));
+        console.debug('   - Minutes since unlock:', minutesPassed.toFixed(2));
         
         if (minutesPassed < 30) {
-            console.log('✅ Data export access granted');
+            console.debug('✅ Data export access granted');
             return next();
         }
         
-        console.log('❌ Session expired:', minutesPassed.toFixed(2), 'minutes passed');
+        console.debug('❌ Session expired:', minutesPassed.toFixed(2), 'minutes passed');
     } else {
-        console.log('❌ Data export not unlocked');
+        console.debug('❌ Data export not unlocked');
     }
     
     return res.status(401).json({ error: 'Data export session expired. Please unlock again.' });
@@ -136,7 +136,7 @@ router.post('/unlock', async (req, res) => {
                 return res.status(401).json({ error: 'Invalid password' });
             }
             
-            console.log('✅ Login successful for data export:', username, 'Role:', user.role);
+            console.debug('✅ Login successful for data export:', username, 'Role:', user.role);
             
             if (user.role !== 'system_admin') {
                 logAudit('DATA_EXPORT_UNLOCK_DENIED', username, null, null, req);
@@ -159,8 +159,8 @@ router.post('/unlock', async (req, res) => {
                     return res.status(500).json({ error: 'Failed to save session' });
                 }
                 
-                console.log('✅ Data export unlocked for:', username);
-                console.log('✅ Session saved successfully');
+                console.debug('✅ Data export unlocked for:', username);
+                console.debug('✅ Session saved successfully');
                 logAudit('DATA_EXPORT_UNLOCKED', username, null, null, req);
                 
                 res.json({

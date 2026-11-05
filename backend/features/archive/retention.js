@@ -90,7 +90,7 @@ function isExpired(createdAt, retentionPeriod, feedbackId) {
             (singaporeTime - created) / (1000 * 60 * 60 * 24)
         );
 
-        console.log(
+        console.debug(
             `📅 Checking: ID ${feedbackId ?? 'N/A'}, ` +
             `Created: ${created.toLocaleDateString()}, Days old: ${daysDifference}, Retention: ${retentionDays} days`
         );
@@ -110,21 +110,21 @@ function deletePhotoFile(photoPath) {
     if (fs.existsSync(fullPath)) {
         try {
             fs.unlinkSync(fullPath);
-            console.log(`   ✅ Deleted photo: ${path.basename(photoPath)}`);
+            console.debug(`   ✅ Deleted photo: ${path.basename(photoPath)}`);
         } catch (error) {
             console.error(`   ❌ Error deleting ${photoPath}:`, error.message);
         }
     } else {
-        console.log(`   ⚠️  Photo not found: ${photoPath}`);
+        console.debug(`   ⚠️  Photo not found: ${photoPath}`);
     }
 }
 
 // Main cleanup function removes expired emails and photos
 function cleanupExpiredData() {
-    console.log('\n🧹 ============================================');
-    console.log('   DATA RETENTION CLEANUP STARTED');
-    console.log('   Time:', new Date().toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }));
-    console.log('============================================');
+    console.debug('\n🧹 ============================================');
+    console.debug('   DATA RETENTION CLEANUP STARTED');
+    console.debug('   Time:', new Date().toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }));
+    console.debug('============================================');
 
     const retentionLabel = getTemporaryRetentionLabel();
 
@@ -152,12 +152,12 @@ function cleanupExpiredData() {
         }
 
         if (rows.length === 0) {
-            console.log(`📋 No feedback entries with temporary retention (${retentionLabel}) found`);
-            console.log('============================================\n');
+            console.debug(`📋 No feedback entries with temporary retention (${retentionLabel}) found`);
+            console.debug('============================================\n');
             return;
         }
 
-        console.log(`\n📋 Found ${rows.length} feedback entries with temporary retention (${retentionLabel})\n`);
+        console.debug(`\n📋 Found ${rows.length} feedback entries with temporary retention (${retentionLabel})\n`);
 
         let expiredCount = 0;
         let processedCount = 0;
@@ -165,8 +165,8 @@ function cleanupExpiredData() {
         rows.forEach(feedback => {
             if (isExpired(feedback.created_at, feedback.data_retention, feedback.id)) {
                 expiredCount++;
-                console.log(`\n⏰ EXPIRED - Feedback ID: ${feedback.id}, User: ${feedback.name}`);
-                console.log(`   Created: ${new Date(feedback.created_at).toLocaleDateString()}`);
+                console.debug(`\n⏰ EXPIRED - Feedback ID: ${feedback.id}, User: ${feedback.name}`);
+                console.debug(`   Created: ${new Date(feedback.created_at).toLocaleDateString()}`);
 
                 // Delete photos from filesystem for this submission
                 if (feedback.photo_path) {
@@ -192,7 +192,7 @@ function cleanupExpiredData() {
                             checkErr.message
                         );
                     } else if (row && row.count > 0) {
-                        console.log(
+                        console.debug(
                             `   ℹ️  Skipping email clear for user ${feedback.user_id} (has longterm feedback)`
                         );
                     } else {
@@ -209,7 +209,7 @@ function cleanupExpiredData() {
                                     updateErr.message
                                 );
                             } else {
-                                console.log(`   ✅ Cleared encrypted email for user ${feedback.user_id}`);
+                                console.debug(`   ✅ Cleared encrypted email for user ${feedback.user_id}`);
                             }
                         });
                     }
@@ -227,7 +227,7 @@ function cleanupExpiredData() {
                     if (photoErr) {
                         console.error('   ❌ Error clearing photo paths:', photoErr.message);
                     } else {
-                        console.log('   ✅ Cleared photo paths in database');
+                        console.debug('   ✅ Cleared photo paths in database');
                     }
                 });
             }
@@ -236,12 +236,15 @@ function cleanupExpiredData() {
 
             // Display final summary after processing all entries
             if (processedCount === rows.length) {
-                console.log('\n============================================');
-                console.log('📊 CLEANUP SUMMARY:');
-                console.log(`   • Total checked: ${rows.length}`);
-                console.log(`   • Expired & cleaned: ${expiredCount}`);
-                console.log(`   • Still valid: ${rows.length - expiredCount}`);
-                console.log('============================================\n');
+                console.debug('\n============================================');
+                console.debug('📊 CLEANUP SUMMARY:');
+                console.debug(`   • Total checked: ${rows.length}`);
+                console.debug(`   • Expired & cleaned: ${expiredCount}`);
+                console.debug(`   • Still valid: ${rows.length - expiredCount}`);
+                console.debug('============================================\n');
+                // <Jun Kai start>
+                if (expiredCount) console.log(`🧹 Retention cleanup: ${expiredCount} expired feedback entr${expiredCount === 1 ? 'y' : 'ies'} cleaned (photos deleted, emails cleared)`);
+                // <Jun Kai end>
             }
         });
     });
@@ -249,12 +252,12 @@ function cleanupExpiredData() {
 
 // Cleanup audit logs older than 1 year
 function cleanupAuditLogs() {
-    console.log('\n🗂️  ============================================');
-    console.log('   AUDIT LOG CLEANUP STARTED (1 YEAR RETENTION)');
-    console.log('   Time:', new Date().toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }));
-    console.log('============================================');
+    console.debug('\n🗂️  ============================================');
+    console.debug('   AUDIT LOG CLEANUP STARTED (1 YEAR RETENTION)');
+    console.debug('   Time:', new Date().toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }));
+    console.debug('============================================');
 
-    console.log(`📅 Deleting audit logs older than 1 year (using MySQL NOW())`);
+    console.debug(`📅 Deleting audit logs older than 1 year (using MySQL NOW())`);
 
     // Count how many logs will be deleted using MySQL's native date functions
     const countQuery = `
@@ -272,12 +275,12 @@ function cleanupAuditLogs() {
         const logsToDelete = countResult ? countResult.count : 0;
 
         if (logsToDelete === 0) {
-            console.log('📋 No audit logs older than 1 year found');
-            console.log('============================================\n');
+            console.debug('📋 No audit logs older than 1 year found');
+            console.debug('============================================\n');
             return;
         }
 
-        console.log(`\n🗑️  Found ${logsToDelete} audit logs older than 1 year`);
+        console.debug(`\n🗑️  Found ${logsToDelete} audit logs older than 1 year`);
 
         // Delete old audit logs using MySQL's native date calculation
         const deleteQuery = `
@@ -292,7 +295,7 @@ function cleanupAuditLogs() {
             }
 
             console.log(`✅ Successfully deleted ${this.changes} audit log entries`);
-            console.log('============================================\n');
+            console.debug('============================================\n');
         });
     });
 }
@@ -300,40 +303,40 @@ function cleanupAuditLogs() {
 // =================== 3. INITIALIZATION & SCHEDULING =================== 
 // Initialize cleanup system with scheduled intervals
 function initializeCleanup() {
-    console.log('\n🚀 ============================================');
-    console.log('   DATA RETENTION CLEANUP SYSTEM');
-    console.log('============================================');
-    console.log('⏰ Cleanup Schedule:');
-    console.log(`   FEEDBACK (temporary retention: ${getTemporaryRetentionLabel()}):`);
-    console.log('     1. On server startup (in 5 seconds)');
-    console.log('     2. Every 6 hours while running');
-    console.log('   AUDIT LOGS (1-year retention):');
-    console.log('     1. On server startup (in 10 seconds)');
-    console.log('     2. Every 24 hours while running');
-    console.log('   3. Manual trigger via admin panel');
-    console.log('============================================\n');
+    console.debug('\n🚀 ============================================');
+    console.debug('   DATA RETENTION CLEANUP SYSTEM');
+    console.debug('============================================');
+    console.debug('⏰ Cleanup Schedule:');
+    console.debug(`   FEEDBACK (temporary retention: ${getTemporaryRetentionLabel()}):`);
+    console.debug('     1. On server startup (in 5 seconds)');
+    console.debug('     2. Every 6 hours while running');
+    console.debug('   AUDIT LOGS (1-year retention):');
+    console.debug('     1. On server startup (in 10 seconds)');
+    console.debug('     2. Every 24 hours while running');
+    console.debug('   3. Manual trigger via admin panel');
+    console.debug('============================================\n');
 
     // Run feedback cleanup 5 seconds after server starts
     setTimeout(() => {
-        console.log('🔄 Running initial feedback cleanup on server startup...');
+        console.debug('🔄 Running initial feedback cleanup on server startup...');
         cleanupExpiredData();
     }, 5000);
 
     // Run audit log cleanup 10 seconds after server starts
     setTimeout(() => {
-        console.log('🔄 Running initial audit log cleanup on server startup...');
+        console.debug('🔄 Running initial audit log cleanup on server startup...');
         cleanupAuditLogs();
     }, 10000);
 
     // Run feedback cleanup every 6 hours
     setInterval(() => {
-        console.log('🔄 Running scheduled feedback cleanup (6-hour interval)...');
+        console.debug('🔄 Running scheduled feedback cleanup (6-hour interval)...');
         cleanupExpiredData();
     }, 6 * 60 * 60 * 1000);
 
     // Run audit log cleanup every 24 hours
     setInterval(() => {
-        console.log('🔄 Running scheduled audit log cleanup (24-hour interval)...');
+        console.debug('🔄 Running scheduled audit log cleanup (24-hour interval)...');
         cleanupAuditLogs();
     }, 24 * 60 * 60 * 1000);
 }

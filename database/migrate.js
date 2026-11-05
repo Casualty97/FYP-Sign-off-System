@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-require('dotenv').config({ path: path.join(__dirname, '..', 'backend', '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', 'backend', '.env'), quiet: true });
 const mysql = require('mysql2/promise');
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');

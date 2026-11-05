@@ -1085,8 +1085,9 @@ function renderAutomationStatus(a) {
             : (wake.task.nextRun ? `Next wake ${wake.task.nextRun}` : 'Scheduled task present'));
     } else {
         // <Jun Kai start>
-        setAutomationText('automation-wake-status', a.wakeNeeded ? 'Missing' : 'Not needed');
-        setAutomationText('automation-wake-detail', a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
+        const paused = a.mode && a.mode !== 'auto';
+        setAutomationText('automation-wake-status', paused ? 'Paused' : a.wakeNeeded ? 'Missing' : 'Not needed');
+        setAutomationText('automation-wake-detail', paused ? 'Manual mode: the policies do not wake the PC' : a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
         // <Jun Kai end>
     }
 

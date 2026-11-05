@@ -109,7 +109,10 @@
 
 // ==================== 1. IMPORTS & INITIALIZATION ====================
 
-require('dotenv').config({ path: require('path').join(__dirname, '.env') }); // backend/.env regardless of the working directory
+require('dotenv').config({ path: require('path').join(__dirname, '.env'), quiet: true }); // backend/.env regardless of the working directory
+// <Jun Kai start>
+require('./core/log').setupLogging(); // request chatter only with LOG_LEVEL=debug
+// <Jun Kai end>
 const express = require('express');
 const https = require('https');
 const http = require('http');
@@ -685,22 +688,22 @@ function printServerInfo(isHttps) {
         console.log('   No network interfaces found');
     }
     
-    console.log('\n📱 Mobile Access (QR Code URLs):');
-    console.log(`   Feedback: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/feedback`);
-    console.log(`   Pledgeboard: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/pledgeboard`);
-    console.log(`   QR API: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/api/generate-qr`);
+    console.debug('\n📱 Mobile Access (QR Code URLs):');
+    console.debug(`   Feedback: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/feedback`);
+    console.debug(`   Pledgeboard: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/pledgeboard`);
+    console.debug(`   QR API: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/api/generate-qr`);
     
     // Platform-specific tips
     if (platform === 'win32') {
-        console.log('\n💡 Windows Tips:');
-        console.log('   • Use start-simple.bat for easy testing');
-        console.log('   • Check firewall for ports 3000-3002');
-        console.log('   • For production, use Linux with systemd');
+        console.debug('\n💡 Windows Tips:');
+        console.debug('   • Use start-simple.bat for easy testing');
+        console.debug('   • Check firewall for ports 3000-3002');
+        console.debug('   • For production, use Linux with systemd');
     } else if (platform === 'linux') {
-        console.log('\n💡 Linux Tips:');
-        console.log('   • Use systemctl for service management');
-        console.log('   • Check firewall: sudo ufw status');
-        console.log('   • For scheduling: Use kiosk-schedules.json');
+        console.debug('\n💡 Linux Tips:');
+        console.debug('   • Use systemctl for service management');
+        console.debug('   • Check firewall: sudo ufw status');
+        console.debug('   • For scheduling: Use kiosk-schedules.json');
     }
     
     console.log('============================================\n');

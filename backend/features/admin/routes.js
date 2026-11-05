@@ -724,12 +724,12 @@ const storage = multer.diskStorage({
             return cb(new Error('Invalid file type'));
         }
         
-        console.log('Saving file to:', destFolder); // Debug log
+        console.debug('Saving file to:', destFolder); // Debug log
         
         // Ensure directory exists
         if (!fs.existsSync(destFolder)) {
             fs.mkdirSync(destFolder, { recursive: true });
-            console.log('Created directory:', destFolder);
+            console.debug('Created directory:', destFolder);
         }
         cb(null, destFolder);
     },
@@ -747,7 +747,7 @@ const storage = multer.diskStorage({
             return cb(new Error('Invalid file type'));
         }
         
-        console.log('Saving file as:', filename); // Debug log
+        console.debug('Saving file as:', filename); // Debug log
         cb(null, filename);
     }
 });
@@ -816,14 +816,14 @@ const uploadParameterBackground = multer({
 const leafStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const destFolder = path.join(paths.ASSETS, 'Tree', 'leaf');
-        console.log('📂 Destination folder:', destFolder);
+        console.debug('📂 Destination folder:', destFolder);
         try {
             if (!fs.existsSync(destFolder)) {
-                console.log('📁 Creating directory:', destFolder);
+                console.debug('📁 Creating directory:', destFolder);
                 fs.mkdirSync(destFolder, { recursive: true });
-                console.log('✅ Directory created successfully');
+                console.debug('✅ Directory created successfully');
             } else {
-                console.log('✅ Directory already exists');
+                console.debug('✅ Directory already exists');
             }
         } catch (err) {
             console.error('❌ Failed to create directory:', err.message);
@@ -834,7 +834,7 @@ const leafStorage = multer.diskStorage({
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase() || '.png';
         const filename = `CustomLeaf-${Date.now()}${ext}`;
-        console.log(`📁 Leaf filename: ${filename}`);
+        console.debug(`📁 Leaf filename: ${filename}`);
         cb(null, filename);
     }
 });
@@ -842,9 +842,9 @@ const leafStorage = multer.diskStorage({
 const uploadParameterLeaf = multer({
     storage: leafStorage,
     fileFilter: (req, file, cb) => {
-        console.log('🔍 Checking file type:', file.mimetype, 'name:', file.originalname);
+        console.debug('🔍 Checking file type:', file.mimetype, 'name:', file.originalname);
         if (['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype)) {
-            console.log('✅ File type accepted');
+            console.debug('✅ File type accepted');
             cb(null, true);
         } else {
             console.error('❌ File type rejected:', file.mimetype);
@@ -944,7 +944,7 @@ router.post('/keep-alive', auth.requireAuth, (req, res) => {
     // The auth middleware and session middleware handle the session refresh automatically
     
     const username = req.session?.user?.username || 'unknown';
-    console.log(`🔄 Session keep-alive for user: ${username}`);
+    console.debug(`🔄 Session keep-alive for user: ${username}`);
     
     // Optional: Touch the session to ensure it's refreshed
     req.session.touch();
@@ -960,7 +960,7 @@ router.post('/keep-alive', auth.requireAuth, (req, res) => {
 
 // Dashboard data endpoint - FEEDBACK ONLY (matches Feedback Data page filters)
 router.get('/dashboard', (req, res) => {
-    console.log('📊 Fetching dashboard data (feedback only, SGT timezone)...');
+    console.debug('📊 Fetching dashboard data (feedback only, SGT timezone)...');
     
     // ── All queries now use DATE(CONVERT_TZ(created_at, '+00:00', '+08:00')) for consistency ──
     // This ensures all date comparisons happen in Singapore timezone
@@ -1028,7 +1028,7 @@ router.get('/dashboard', (req, res) => {
                     timezone: 'Asia/Singapore (UTC+8) - using DATE(CONVERT_TZ) for all queries'
                 };
                 
-                console.log('📊 Dashboard stats (feedback only, SGT DATE filtering):', {
+                console.debug('📊 Dashboard stats (feedback only, SGT DATE filtering):', {
                     feedbackToday: stats.feedbackToday,
                     feedbackThisWeek: stats.feedbackThisWeek,
                     feedbackThisMonth: stats.feedbackThisMonth
@@ -1112,7 +1112,7 @@ router.get('/school-summary', (req, res) => {
 
 // Get real feedback statistics for distribution chart
 router.get('/feedback-stats', (req, res) => {
-    console.log('📊 Fetching REAL feedback statistics for charts...');
+    console.debug('📊 Fetching REAL feedback statistics for charts...');
     
     const queries = {
         withEmail: `
@@ -1179,7 +1179,7 @@ router.get('/feedback-stats', (req, res) => {
             completed++;
             
             if (completed === queryKeys.length) {
-                console.log('✅ Feedback statistics (REAL DATA):', results);
+                console.debug('✅ Feedback statistics (REAL DATA):', results);
                 res.json({
                     success: true,
                     stats: results
@@ -1197,7 +1197,7 @@ router.get('/visitor-trends', (req, res) => {
     if (range === 'month') days = 30;
     if (range === 'year') days = 365;
     
-    console.log(`📈 Fetching REAL feedback trends for last ${days} days (SGT)...`);
+    console.debug(`📈 Fetching REAL feedback trends for last ${days} days (SGT)...`);
     
     // SGT offset
     const SGT_OFFSET_MS = 8 * 60 * 60 * 1000;
@@ -1226,9 +1226,9 @@ router.get('/visitor-trends', (req, res) => {
             });
         }
         
-        console.log(`📊 Raw feedback results: ${feedbackResults ? feedbackResults.length : 0} rows`);
+        console.debug(`📊 Raw feedback results: ${feedbackResults ? feedbackResults.length : 0} rows`);
         if (feedbackResults && feedbackResults.length > 0) {
-            console.log('   Sample:', feedbackResults[0]);
+            console.debug('   Sample:', feedbackResults[0]);
         }
         
         // Build feedback map
@@ -1251,8 +1251,8 @@ router.get('/visitor-trends', (req, res) => {
             });
         }
         
-        console.log('📊 Feedback map keys:', Object.keys(feedbackMap));
-        console.log('📊 Feedback map FULL:', feedbackMap);
+        console.debug('📊 Feedback map keys:', Object.keys(feedbackMap));
+        console.debug('📊 Feedback map FULL:', feedbackMap);
 
         // Build labels and data arrays using SGT dates
         const labels = [];
@@ -1282,9 +1282,9 @@ router.get('/visitor-trends', (req, res) => {
         // Calculate total for debugging
         const totalFeedback = feedbackData.reduce((a, b) => a + b, 0);
         
-        console.log(`✅ Found REAL feedback trends: ${feedbackResults.length} days with data`);
-        console.log(`📈 Total feedback in range: ${totalFeedback}`);
-        console.log('📊 Final feedback data:', feedbackData);
+        console.debug(`✅ Found REAL feedback trends: ${feedbackResults.length} days with data`);
+        console.debug(`📈 Total feedback in range: ${totalFeedback}`);
+        console.debug('📊 Final feedback data:', feedbackData);
         
         res.json({
             success: true,
@@ -1300,7 +1300,7 @@ router.get('/visitor-trends', (req, res) => {
 // Get daily digital tree leaf and pledge counts for admin handover/reporting.
 router.get('/leaf-pledge-trends', (req, res) => {
     const days = Math.min(30, Math.max(1, Number(req.query.days) || 6));
-    console.log(`🌿 Fetching leaf and pledge trends for last ${days} days (SGT)...`);
+    console.debug(`🌿 Fetching leaf and pledge trends for last ${days} days (SGT)...`);
 
     const trendQuery = `
         SELECT
@@ -1373,7 +1373,7 @@ router.get('/leaf-pledge-trends', (req, res) => {
 
 // Database test endpoint
 router.get('/test-db', (req, res) => {
-    console.log('🧪 Testing database connection...');
+    console.debug('🧪 Testing database connection...');
     
     // Test individual table counts
     const queries = {
@@ -1400,7 +1400,7 @@ router.get('/test-db', (req, res) => {
             
             // When all queries are done
             if (completed === queryKeys.length) {
-                console.log('📋 Database test results:', results);
+                console.debug('📋 Database test results:', results);
                 res.json({
                     success: true,
                     message: 'Database test completed',
@@ -1415,7 +1415,7 @@ router.get('/test-db', (req, res) => {
 // ==================== 6. FEEDBACK MANAGEMENT ROUTES ====================
 
 router.get('/feedback', (req, res) => {
-    console.log('🔍 Fetching ALL feedback data (pagination handled by frontend)...');
+    console.debug('🔍 Fetching ALL feedback data (pagination handled by frontend)...');
     
     // Get ALL feedback data (no LIMIT/OFFSET - frontend handles pagination like archive page)
     // DATE_FORMAT returns SGT datetime as string for consistent display
@@ -1451,7 +1451,7 @@ router.get('/feedback', (req, res) => {
         let processed = 0;
         
         if (feedbackRows.length === 0) {
-            console.log('✅ No feedback data found');
+            console.debug('✅ No feedback data found');
             return res.json({
                 success: true,
                 feedback: []
@@ -1494,7 +1494,7 @@ router.get('/feedback', (req, res) => {
                 processed++;
                 
                 if (processed === feedbackRows.length) {
-                    console.log(`✅ Found ${feedbackWithAnswers.length} feedback entries with answers`);
+                    console.debug(`✅ Found ${feedbackWithAnswers.length} feedback entries with answers`);
                     
                     res.json({
                         success: true,
@@ -1507,7 +1507,7 @@ router.get('/feedback', (req, res) => {
 });
 
 router.get('/flagged-feedback', auth.requireAuth, (req, res) => {
-    console.log('Fetching flagged feedback using keyword analysis...');
+    console.debug('Fetching flagged feedback using keyword analysis...');
 
     const query = `
         SELECT
@@ -1602,7 +1602,7 @@ router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
     const { id } = req.params;
     const username = req.session.user.username;
     
-    console.log('🗑️ Delete feedback request from:', username);
+    console.debug('🗑️ Delete feedback request from:', username);
     
     // Get user role from database
     const getUserRoleQuery = 'SELECT role FROM admin_users WHERE username = ? AND is_active = 1';
@@ -1618,7 +1618,7 @@ router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
             return res.status(401).json({ error: 'User not authorized' });
         }
         
-        console.log('👤 User role:', user.role);
+        console.debug('👤 User role:', user.role);
         
         // IT_staff CANNOT delete feedback
         if (user.role === 'IT_staff') {
@@ -1643,7 +1643,7 @@ router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
             });
         }
         
-        console.log('✅ Authorized deletion by:', username, '(', user.role, ')');
+        console.debug('✅ Authorized deletion by:', username, '(', user.role, ')');
     
     try {
         // Step 1: Get feedback and user data BEFORE deletion (to get photo paths and user_id)
@@ -1666,11 +1666,11 @@ router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
             }
             
             if (!feedback) {
-                console.log('❌ Feedback not found');
+                console.debug('❌ Feedback not found');
                 return res.status(404).json({ error: 'Feedback not found' });
             }
             
-            console.log('📋 Feedback data retrieved:', {
+            console.debug('📋 Feedback data retrieved:', {
                 id: feedback.id,
                 user_id: feedback.user_id,
                 has_photo: !!feedback.photo_path,
@@ -1706,7 +1706,7 @@ router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
                         });
                     }
                     
-                    console.log('✅ All photos deleted successfully');
+                    console.debug('✅ All photos deleted successfully');
                     res.json({
                         success: true,
                         message: 'Feedback and all associated data deleted successfully',
@@ -2301,7 +2301,7 @@ async function getInterventionAlertsFromRows(feedbackRows, answerRows, health, c
 // AI Insight Summary for admin feedback analysis (Done by Yu Kang)
 router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
     const mode = req.query.mode || analysis_modes.RULE_BASED;
-    console.log(`🧠 Generating feedback insights using mode: ${mode}`);
+    console.debug(`🧠 Generating feedback insights using mode: ${mode}`);
 
     if (activeFeedbackAnalysisController) {
         activeFeedbackAnalysisController.abort();
@@ -2502,7 +2502,7 @@ router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
 
 // Sentiment AI analysis of feedback answers (added by Yu Kang)
 router.get('/feedback-sentiment-analysis', async (req, res) => {
-    console.log('🧠 Running LOCAL AI sentiment analysis...');
+    console.debug('🧠 Running LOCAL AI sentiment analysis...');
 
     const query = `
         SELECT answer_value
@@ -2552,7 +2552,7 @@ router.get('/feedback-sentiment-analysis', async (req, res) => {
 
 // Get archived feedback (older than 3 months)
 router.get('/archive', (req, res) => {
-    console.log('📂 Fetching archived feedback data...');
+    console.debug('📂 Fetching archived feedback data...');
     
     // DATE_FORMAT returns SGT datetime as string for consistent display
     const query = `
@@ -2582,7 +2582,7 @@ router.get('/archive', (req, res) => {
         }
         
         if (rows.length === 0) {
-            console.log('📂 No archived feedback found');
+            console.debug('📂 No archived feedback found');
             return res.json({
                 success: true,
                 feedback: []
@@ -2619,7 +2619,7 @@ router.get('/archive', (req, res) => {
                 processed++;
                 
                 if (processed === rows.length) {
-                    console.log(`📂 Found ${archiveWithAnswers.length} archived feedback entries with answers`);
+                    console.debug(`📂 Found ${archiveWithAnswers.length} archived feedback entries with answers`);
                     res.json({
                         success: true,
                         feedback: archiveWithAnswers
@@ -2632,7 +2632,7 @@ router.get('/archive', (req, res) => {
 
 // Manually trigger archive status update using configurable archive timing (Done by Caeden)
 router.post('/archive/update-status', (req, res) => {
-    console.log('Manually updating archive status with configured archive timing...');
+    console.debug('Manually updating archive status with configured archive timing...');
 
     runConfiguredArchive((err, result) => {
         if (err) {
@@ -3033,7 +3033,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                     if (fs.existsSync(photoPath)) {
                         try {
                             fs.unlinkSync(photoPath);
-                            console.log(`🗑️ Deleted photo: ${feedback.photo_path}`);
+                            console.debug(`🗑️ Deleted photo: ${feedback.photo_path}`);
                         } catch (err) {
                             console.error(`❌ Error deleting photo ${feedback.photo_path}:`, err);
                         }
@@ -3045,7 +3045,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                     if (fs.existsSync(processedPath)) {
                         try {
                             fs.unlinkSync(processedPath);
-                            console.log(`🗑️ Deleted processed photo: ${feedback.processed_photo_path}`);
+                            console.debug(`🗑️ Deleted processed photo: ${feedback.processed_photo_path}`);
                         } catch (err) {
                             console.error(`❌ Error deleting processed photo ${feedback.processed_photo_path}:`, err);
                         }
@@ -3088,7 +3088,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                         
                         db.run(deleteUsersQuery, orphanIds, (userDeleteErr) => {
                             if (!userDeleteErr) {
-                                console.log(`🗑️ Deleted ${orphanIds.length} orphaned user(s)`);
+                                console.debug(`🗑️ Deleted ${orphanIds.length} orphaned user(s)`);
                             }
                         });
                     }
@@ -3184,7 +3184,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                         try {
                             fs.unlinkSync(photoPath);
                             photosDeleted++;
-                            console.log(`🗑️ Deleted photo: ${feedback.photo_path}`);
+                            console.debug(`🗑️ Deleted photo: ${feedback.photo_path}`);
                         } catch (err) {
                             console.error(`❌ Error deleting photo ${feedback.photo_path}:`, err);
                         }
@@ -3197,7 +3197,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                         try {
                             fs.unlinkSync(processedPath);
                             photosDeleted++;
-                            console.log(`🗑️ Deleted processed photo: ${feedback.processed_photo_path}`);
+                            console.debug(`🗑️ Deleted processed photo: ${feedback.processed_photo_path}`);
                         } catch (err) {
                             console.error(`❌ Error deleting processed photo ${feedback.processed_photo_path}:`, err);
                         }
@@ -3240,7 +3240,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                         
                         db.run(deleteUsersQuery, orphanIds, (userDeleteErr) => {
                             if (!userDeleteErr) {
-                                console.log(`🗑️ Deleted ${orphanIds.length} orphaned user(s)`);
+                                console.debug(`🗑️ Deleted ${orphanIds.length} orphaned user(s)`);
                             }
                         });
                     }
@@ -3305,7 +3305,7 @@ router.post('/decrypt-email', (req, res) => {
         return res.status(400).json({ error: 'Password required' });
     }
     
-    console.log('🔍 Debug - Decrypt email request:', { feedbackId, username });
+    console.debug('🔍 Debug - Decrypt email request:', { feedbackId, username });
     
     // Verify the user's password first
     auth.loginUser(username, password, (err, user) => {
@@ -3314,7 +3314,7 @@ router.post('/decrypt-email', (req, res) => {
             return res.status(401).json({ error: 'Invalid password' });
         }
         
-        console.log('👤 User authenticated, role:', user.role);
+        console.debug('👤 User authenticated, role:', user.role);
         
         // ONLY system_admin can decrypt emails
         if (user.role !== 'system_admin') {
@@ -3328,7 +3328,7 @@ router.post('/decrypt-email', (req, res) => {
             });
         }
         
-        console.log('✅ User authorized as system admin');
+        console.debug('✅ User authorized as system admin');
         
         // Get the encrypted email from database
         const query = `
@@ -3344,7 +3344,7 @@ router.post('/decrypt-email', (req, res) => {
                 return res.status(500).json({ error: 'Database error' });
             }
             
-            console.log('🔍 Database query result:', row ? 'Found' : 'Not found');
+            console.debug('🔍 Database query result:', row ? 'Found' : 'Not found');
             
             if (!row) {
                 return res.status(404).json({ error: 'Feedback entry not found' });
@@ -3373,7 +3373,7 @@ router.post('/decrypt-email', (req, res) => {
                 // Log the decryption action for audit
                 logAudit('VIEW_ENCRYPTED_EMAIL', username, 'feedback', feedbackId, req);
                 
-                console.log('✅ Email decrypted successfully');
+                console.debug('✅ Email decrypted successfully');
                 
                 res.json({
                     success: true,
@@ -3395,7 +3395,7 @@ router.post('/decrypt-email', (req, res) => {
 
 // Get all ACTIVE admin users (excludes soft-deleted users)
 router.get('/users', (req, res) => {
-    console.log('👥 Fetching active admin users...');
+    console.debug('👥 Fetching active admin users...');
     
     // First check if admin_users table exists
     const tableCheckQuery = `SELECT TABLE_NAME AS name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'admin_users'`;
@@ -3441,7 +3441,7 @@ router.get('/users', (req, res) => {
                 });
             }
             
-            console.log(`✅ Found ${rows.length} active admin users`);
+            console.debug(`✅ Found ${rows.length} active admin users`);
             
             // Ensure each user has required fields
             const users = rows.map(user => ({
@@ -3466,7 +3466,7 @@ router.get('/users', (req, res) => {
 
 // Get all DELETED admin users (soft-deleted only)
 router.get('/users/deleted', (req, res) => {
-    console.log('🗑️ Fetching deleted admin users...');
+    console.debug('🗑️ Fetching deleted admin users...');
     
     // SOFT DELETE: Only get users where is_deleted = 1 (deleted users)
     const query = `
@@ -3495,7 +3495,7 @@ router.get('/users/deleted', (req, res) => {
             });
         }
         
-        console.log(`✅ Found ${rows.length} deleted users`);
+        console.debug(`✅ Found ${rows.length} deleted users`);
         
         const users = rows.map(user => ({
             id: user.id,
@@ -3526,7 +3526,7 @@ router.post('/users', async (req, res) => {
     
     logAudit('ADD_USER', currentUsername, 'user', null, req);
 
-    console.log('➕ Adding new user:', { username, full_name, role, currentUsername });
+    console.debug('➕ Adding new user:', { username, full_name, role, currentUsername });
     
     // First, check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -3584,7 +3584,7 @@ router.post('/users', async (req, res) => {
                         return res.status(500).json({ error: 'Database error: ' + err.message });
                     }
                     
-                    console.log(`✅ New user added with ID: ${this.lastID}`);
+                    console.debug(`✅ New user added with ID: ${this.lastID}`);
                     
                     // Get the newly created user
                     const getUserQuery = 'SELECT id, username, full_name, role, created_at, is_active FROM admin_users WHERE id = ?';
@@ -3628,7 +3628,7 @@ router.delete('/users/:id', (req, res) => {
     
     logAudit('DELETE_USER', username, 'user', id, req);
     
-    console.log('🗑️ Attempting to SOFT DELETE user ID:', id, 'by:', username);
+    console.debug('🗑️ Attempting to SOFT DELETE user ID:', id, 'by:', username);
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -3675,7 +3675,7 @@ router.delete('/users/:id', (req, res) => {
                     return res.status(500).json({ error: 'Database error: ' + err.message });
                 }
                 
-                console.log('✅ User SOFT DELETED (marked as deleted):', { 
+                console.debug('✅ User SOFT DELETED (marked as deleted):', { 
                     changes: this.changes,
                     id,
                     username: targetUser.username 
@@ -3707,7 +3707,7 @@ router.post('/users/:id/restore', (req, res) => {
     
     logAudit('RESTORE_USER', username, 'user', id, req);
     
-    console.log('🔄 Attempting to RESTORE user ID:', id, 'by:', username);
+    console.debug('🔄 Attempting to RESTORE user ID:', id, 'by:', username);
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -3735,7 +3735,7 @@ router.post('/users/:id/restore', (req, res) => {
                 return res.status(404).json({ error: 'User not found or already restored' });
             }
             
-            console.log('✅ User RESTORED successfully:', { 
+            console.debug('✅ User RESTORED successfully:', { 
                 userId: id,
                 restoredBy: username,
                 changes: this.changes 
@@ -3757,7 +3757,7 @@ router.delete('/users/:id/permanent', (req, res) => {
     
     logAudit('PERMANENT_DELETE_USER', username, 'user', id, req);
     
-    console.log('🗑️ Attempting to PERMANENTLY DELETE user ID:', id, 'by:', username);
+    console.debug('🗑️ Attempting to PERMANENTLY DELETE user ID:', id, 'by:', username);
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -3803,7 +3803,7 @@ router.delete('/users/:id/permanent', (req, res) => {
                     return res.status(404).json({ error: 'User not found or not deleted' });
                 }
                 
-                console.log('✅ User PERMANENTLY DELETED:', { 
+                console.debug('✅ User PERMANENTLY DELETED:', { 
                     userId: id,
                     username: deletedUser.username,
                     deletedBy: username,
@@ -3831,7 +3831,7 @@ router.put('/users/:id', async (req, res) => {
     const currentUsername = req.headers['x-username'] || 'systemadmin';
     logAudit('EDIT_USER', username, 'user', id, req);
     
-    console.log('✏️ Updating admin user:', { id, username, full_name, role, currentUsername });
+    console.debug('✏️ Updating admin user:', { id, username, full_name, role, currentUsername });
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -3863,7 +3863,7 @@ router.put('/users/:id', async (req, res) => {
             if (targetUser.username === 'systemadmin') {
                 // Check if the current user IS the systemadmin
                 if (currentUsername === 'systemadmin') {
-                    console.log('🔐 systemadmin is updating their own account');
+                    console.debug('🔐 systemadmin is updating their own account');
                     
                     // systemadmin can ONLY update their own password and full_name
                     // They CANNOT change username or role
@@ -3929,7 +3929,7 @@ router.put('/users/:id', async (req, res) => {
                         const hashedPassword = await auth.hashPassword(password);
                         updateFields.push('password_hash = ?');
                         updateParams.push(hashedPassword);
-                        console.log('🔐 systemadmin password will be updated');
+                        console.debug('🔐 systemadmin password will be updated');
                     } catch (hashErr) {
                         console.error('❌ Error hashing password:', hashErr);
                         return res.status(500).json({ error: 'Failed to hash password' });
@@ -3943,7 +3943,7 @@ router.put('/users/:id', async (req, res) => {
                 updateQuery += updateFields.join(', ') + ' WHERE id = ?';
                 updateParams.push(id);
                 
-                console.log('📝 Executing systemadmin self-update query');
+                console.debug('📝 Executing systemadmin self-update query');
                 
                 db.run(updateQuery, updateParams, function(err) {
                     if (err) {
@@ -3951,7 +3951,7 @@ router.put('/users/:id', async (req, res) => {
                         return res.status(500).json({ error: 'Failed to update account: ' + err.message });
                     }
                     
-                    console.log('✅ systemadmin account updated successfully:', { changes: this.changes, id });
+                    console.debug('✅ systemadmin account updated successfully:', { changes: this.changes, id });
                     
                     // Get the updated user data
                     const getUpdatedUserQuery = 'SELECT * FROM admin_users WHERE id = ?';
@@ -4026,7 +4026,7 @@ router.put('/users/:id', async (req, res) => {
                         return res.status(500).json({ error: 'Failed to update user: ' + err.message });
                     }
                     
-                    console.log('✅ User updated successfully:', { changes: this.changes, id });
+                    console.debug('✅ User updated successfully:', { changes: this.changes, id });
                     
                     // Get the updated user data
                     const getUpdatedUserQuery = 'SELECT * FROM admin_users WHERE id = ?';
@@ -4124,7 +4124,7 @@ router.get('/download-excel', (req, res) => {
                 return res.status(500).json({ error: 'Database error' });
             }
             
-            console.log(`📊 Processing ${rows.length} feedback records for Excel download...`);
+            console.debug(`📊 Processing ${rows.length} feedback records for Excel download...`);
             
             // Decrypt emails before converting to CSV
             const decryptedRows = rows.map(row => {
@@ -4134,7 +4134,7 @@ router.get('/download-excel', (req, res) => {
                 if (row.email_encrypted) {
                     try {
                         decryptedEmail = auth.decryptEmail(row.email_encrypted);
-                        console.log(`✅ Decrypted email for user: ${row.name}`);
+                        console.debug(`✅ Decrypted email for user: ${row.name}`);
                     } catch (error) {
                         console.error(`❌ Failed to decrypt email for user ${row.name}:`, error.message);
                         decryptedEmail = '[Decryption Failed]';
@@ -4149,7 +4149,7 @@ router.get('/download-excel', (req, res) => {
                 };
             });
             
-            console.log(`✅ Decrypted ${decryptedRows.filter(r => r.email).length} emails`);
+            console.debug(`✅ Decrypted ${decryptedRows.filter(r => r.email).length} emails`);
             
             // Convert to CSV with decrypted emails
             const csvData = convertToCSV(decryptedRows.map(row => ({
@@ -4217,7 +4217,7 @@ router.get('/download-archive-excel', (req, res) => {
                 return res.status(500).json({ error: 'Database error' });
             }
             
-            console.log(`📊 Processing ${rows.length} archived feedback records for Excel download...`);
+            console.debug(`📊 Processing ${rows.length} archived feedback records for Excel download...`);
             
             // Decrypt emails before converting to CSV
             const decryptedRows = rows.map(row => {
@@ -4227,7 +4227,7 @@ router.get('/download-archive-excel', (req, res) => {
                 if (row.email_encrypted) {
                     try {
                         decryptedEmail = auth.decryptEmail(row.email_encrypted);
-                        console.log(`✅ Decrypted email for archived user: ${row.name}`);
+                        console.debug(`✅ Decrypted email for archived user: ${row.name}`);
                     } catch (error) {
                         console.error(`❌ Failed to decrypt email for user ${row.name}:`, error.message);
                         decryptedEmail = '[Decryption Failed]';
@@ -4242,7 +4242,7 @@ router.get('/download-archive-excel', (req, res) => {
                 };
             });
             
-            console.log(`✅ Decrypted ${decryptedRows.filter(r => r.email).length} emails from archive`);
+            console.debug(`✅ Decrypted ${decryptedRows.filter(r => r.email).length} emails from archive`);
             
             // Convert to CSV with decrypted emails
             const csvData = convertToCSV(decryptedRows.map(row => ({
@@ -4294,9 +4294,9 @@ router.get('/download-photos', async (req, res) => {
         
         const uploadsPath = paths.UPLOADS;
         
-        console.log(`🔍 Looking for uploads at: ${uploadsPath}`);
-        console.log(`🔍 Backend directory: ${paths.BACKEND}`);
-        console.log(`🔍 Resolved absolute path: ${path.resolve(uploadsPath)}`);
+        console.debug(`🔍 Looking for uploads at: ${uploadsPath}`);
+        console.debug(`🔍 Backend directory: ${paths.BACKEND}`);
+        console.debug(`🔍 Resolved absolute path: ${path.resolve(uploadsPath)}`);
         
         // Check if uploads directory exists
         if (!fs.existsSync(uploadsPath)) {
@@ -4306,7 +4306,7 @@ router.get('/download-photos', async (req, res) => {
             const parentDir = paths.ROOT;
             try {
                 const files = fs.readdirSync(parentDir);
-                console.log(`📂 Files in parent directory (${parentDir}):`, files);
+                console.debug(`📂 Files in parent directory (${parentDir}):`, files);
             } catch (e) {
                 console.error('Error reading parent directory:', e);
             }
@@ -4318,21 +4318,21 @@ router.get('/download-photos', async (req, res) => {
         
         // Check if uploads directory is empty
         const uploadsContent = fs.readdirSync(uploadsPath);
-        console.log(`📂 Content of uploads directory:`, uploadsContent);
+        console.debug(`📂 Content of uploads directory:`, uploadsContent);
         
         if (uploadsContent.length === 0) {
-            console.log('📂 uploads directory is empty');
+            console.debug('📂 uploads directory is empty');
             return res.status(404).json({ error: 'Uploads directory is empty' });
         }
         
         // Check each subdirectory for photos
         const hasPhotos = checkDirectoryForPhotos(uploadsPath);
         if (!hasPhotos) {
-            console.log('📂 No image files found in uploads directory');
+            console.debug('📂 No image files found in uploads directory');
             return res.status(404).json({ error: 'No photos found in uploads directory' });
         }
         
-        console.log(`📸 Creating ZIP of uploads directory: ${uploadsPath}`);
+        console.debug(`📸 Creating ZIP of uploads directory: ${uploadsPath}`);
         
         // Create zip file of uploads directory
         const zipBuffer = await createUploadsZip(uploadsPath);
@@ -4352,7 +4352,7 @@ router.get('/download-photos', async (req, res) => {
 
 // Overlay list route
 router.get('/overlays', (req, res) => {
-    console.log('🎨 Fetching overlay data...');
+    console.debug('🎨 Fetching overlay data...');
     
     // First, check if the overlays table exists
     const tableCheckQuery = `
@@ -4403,7 +4403,7 @@ router.get('/overlays', (req, res) => {
                 });
             }
             
-            console.log(`✅ Found ${rows.length} overlays`);
+            console.debug(`✅ Found ${rows.length} overlays`);
             
             res.json({
                 success: true,
@@ -4423,7 +4423,7 @@ router.post('/overlays', upload.fields([
 
     logAudit('ADD_OVERLAY', username, 'overlay', null, req);
     
-    console.log('🎨 Adding new overlay:', { display_name, theme_id, username });
+    console.debug('🎨 Adding new overlay:', { display_name, theme_id, username });
     
     // First, check if user exists and has system_admin role
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
@@ -4617,7 +4617,7 @@ router.post('/overlays', upload.fields([
                                 return res.status(500).json({ error: 'Database error: ' + err.message });
                             }
                             
-                            console.log(`✅ New overlay added with ID: ${this.lastID}`);
+                            console.debug(`✅ New overlay added with ID: ${this.lastID}`);
                             
                             res.json({
                                 success: true,
@@ -4645,7 +4645,7 @@ router.delete('/overlays/:id', (req, res) => {
     const username = req.headers['x-username'] || 'systemadmin';
     logAudit('DELETE_OVERLAY', username, 'overlay', id, req);
     
-    console.log('🗑️ Attempting to delete overlay ID:', id);
+    console.debug('🗑️ Attempting to delete overlay ID:', id);
     
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
     
@@ -4671,7 +4671,7 @@ router.delete('/overlays/:id', (req, res) => {
                 return res.status(404).json({ error: 'Overlay not found' });
             }
             
-            console.log('🔍 Overlay to delete:', overlay);
+            console.debug('🔍 Overlay to delete:', overlay);
             
             const deleteQuery = 'DELETE FROM overlays WHERE id = ?';
             
@@ -4681,7 +4681,7 @@ router.delete('/overlays/:id', (req, res) => {
                     return res.status(500).json({ error: 'Failed to delete overlay: ' + err.message });
                 }
                 
-                console.log('✅ Overlay deleted from database:', {
+                console.debug('✅ Overlay deleted from database:', {
                     changes: this.changes,
                     id: id
                 });
@@ -4697,7 +4697,7 @@ router.delete('/overlays/:id', (req, res) => {
                         });
                     }
                     
-                    console.log('✅ Overlay files deleted successfully');
+                    console.debug('✅ Overlay files deleted successfully');
                     res.json({
                         success: true,
                         message: 'Overlay and associated files deleted successfully',
@@ -4713,7 +4713,7 @@ router.delete('/overlays/:id', (req, res) => {
 
 // Get all active questions with their options
 router.get('/questions', (req, res) => {
-    console.log('❓ Fetching questions data...');
+    console.debug('❓ Fetching questions data...');
     
     // First check if questions table exists
     const tableCheckQuery = `SELECT TABLE_NAME AS name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'questions'`;
@@ -4759,7 +4759,7 @@ router.get('/questions', (req, res) => {
                 });
             }
             
-            console.log(`✅ Found ${questions.length} questions`);
+            console.debug(`✅ Found ${questions.length} questions`);
             
             if (questions.length === 0) {
                 return res.json({
@@ -4838,7 +4838,7 @@ router.post('/questions', (req, res) => {
     const { question_text, question_type, display_order, is_required, is_active, options } = req.body;
     const username = req.headers['x-username'] || 'systemadmin';
     
-    console.log('➕ Adding new question:', { 
+    console.debug('➕ Adding new question:', { 
         question_text, 
         question_type, 
         display_order, 
@@ -4888,7 +4888,7 @@ router.post('/questions', (req, res) => {
         
         // For non-choice questions, options should be empty or undefined
         if (question_type !== 'choice' && options && options.length > 0) {
-            console.log('⚠️ Warning: Options provided for non-choice question type, ignoring options');
+            console.debug('⚠️ Warning: Options provided for non-choice question type, ignoring options');
         }
         
         // One connection, one real transaction: the question and its options land together or not at all
@@ -4924,7 +4924,7 @@ router.post('/questions', (req, res) => {
                 console.error('❌ Error adding question:', err);
                 return res.status(500).json({ error: 'Database error: ' + err.message });
             }
-            console.log(`✅ Question added with ID: ${questionId}`);
+            console.debug(`✅ Question added with ID: ${questionId}`);
             res.json({
                 success: true,
                 message: 'Question added successfully',
@@ -4941,7 +4941,7 @@ router.delete('/questions/:id', (req, res) => {
 
     logAudit('DELETE_QUESTION', username, 'question', id, req);
     
-    console.log('🗑️ Attempting to delete question ID:', id);
+    console.debug('🗑️ Attempting to delete question ID:', id);
     
     // First, check if user exists and has system_admin role
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
@@ -4977,7 +4977,7 @@ router.delete('/questions/:id', (req, res) => {
                         return res.status(500).json({ error: 'Database error: ' + err.message });
                     }
                     
-                    console.log(`✅ Question ID ${id} soft-deleted, historical answers preserved`);
+                    console.debug(`✅ Question ID ${id} soft-deleted, historical answers preserved`);
                     
                     res.json({
                         success: true,
@@ -5000,7 +5000,7 @@ router.delete('/questions/:id', (req, res) => {
                         console.error('❌ Error deleting question:', err);
                         return res.status(500).json({ error: 'Database error: ' + err.message });
                     }
-                    console.log(`✅ Question completely deleted (no historical answers): ${id}`);
+                    console.debug(`✅ Question completely deleted (no historical answers): ${id}`);
                     res.json({
                         success: true,
                         message: 'Question and associated options deleted successfully (no historical answers)',
@@ -5017,7 +5017,7 @@ router.put('/questions/:id', (req, res) => {
     const { question_text, display_order, is_required, is_active } = req.body;
     const username = req.headers['x-username'] || 'systemadmin';
     
-    console.log('✏️ Safe editing question ID:', id);
+    console.debug('✏️ Safe editing question ID:', id);
     
     // First, check if user exists and has system_admin role
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
@@ -5051,7 +5051,7 @@ router.put('/questions/:id', (req, res) => {
                 return res.status(500).json({ error: 'Database error: ' + err.message });
             }
             
-            console.log('✅ Question updated safely:', { changes: this.changes, id });
+            console.debug('✅ Question updated safely:', { changes: this.changes, id });
             
             res.json({
                 success: true,
@@ -5132,10 +5132,10 @@ function deleteUserPhotos(feedback, callback) {
         });
     }
     
-    console.log('🗑️ Files to delete:', filesToDelete.map(f => f.path));
+    console.debug('🗑️ Files to delete:', filesToDelete.map(f => f.path));
     
     if (filesToDelete.length === 0) {
-        console.log('ℹ️ No photos to delete');
+        console.debug('ℹ️ No photos to delete');
         return callback(null);
     }
     
@@ -5147,21 +5147,21 @@ function deleteUserPhotos(feedback, callback) {
         if (fs.existsSync(fileInfo.path)) {
             try {
                 fs.unlinkSync(fileInfo.path);
-                console.log(`✅ Deleted ${fileInfo.type}:`, fileInfo.path);
+                console.debug(`✅ Deleted ${fileInfo.type}:`, fileInfo.path);
                 deletedCount++;
             } catch (error) {
                 console.error(`❌ Error deleting ${fileInfo.type}:`, fileInfo.path, error);
                 errorOccurred = error;
             }
         } else {
-            console.log(`⚠️ ${fileInfo.type} not found, skipping:`, fileInfo.path);
+            console.debug(`⚠️ ${fileInfo.type} not found, skipping:`, fileInfo.path);
         }
         
         processedCount++;
         
         // Call callback when all files are processed
         if (processedCount === filesToDelete.length) {
-            console.log(`🗑️ Photo deletion complete: ${deletedCount}/${filesToDelete.length} files deleted`);
+            console.debug(`🗑️ Photo deletion complete: ${deletedCount}/${filesToDelete.length} files deleted`);
             callback(errorOccurred);
         }
     });
@@ -5183,7 +5183,7 @@ function deleteOverlayFiles(overlay, callback) {
         filesToDelete.push(mobileFullPath);
     }
     
-    console.log('🗑️ Files to delete:', filesToDelete);
+    console.debug('🗑️ Files to delete:', filesToDelete);
     
     let deletedCount = 0;
     let errorOccurred = null;
@@ -5196,18 +5196,18 @@ function deleteOverlayFiles(overlay, callback) {
         if (fs.existsSync(filePath)) {
             try {
                 fs.unlinkSync(filePath);
-                console.log('✅ Deleted file:', filePath);
+                console.debug('✅ Deleted file:', filePath);
                 deletedCount++;
             } catch (error) {
                 console.error('❌ Error deleting file:', filePath, error);
                 errorOccurred = error;
             }
         } else {
-            console.log('⚠️ File not found, skipping:', filePath);
+            console.debug('⚠️ File not found, skipping:', filePath);
         }
     });
     
-    console.log(`🗑️ Deleted ${deletedCount}/${filesToDelete.length} files`);
+    console.debug(`🗑️ Deleted ${deletedCount}/${filesToDelete.length} files`);
     callback(errorOccurred);
 }
 
@@ -5216,11 +5216,11 @@ function checkDirectoryForPhotos(dirPath) {
     try {
         const items = fs.readdirSync(dirPath, { withFileTypes: true });
         
-        console.log(`🔍 Checking directory: ${dirPath}`);
+        console.debug(`🔍 Checking directory: ${dirPath}`);
         
         for (const item of items) {
             if (item.isDirectory()) {
-                console.log(`📂 Subdirectory found: ${item.name}`);
+                console.debug(`📂 Subdirectory found: ${item.name}`);
                 // Recursively check subdirectories
                 const subDirPath = path.join(dirPath, item.name);
                 if (checkDirectoryForPhotos(subDirPath)) {
@@ -5230,15 +5230,15 @@ function checkDirectoryForPhotos(dirPath) {
                 // Check if it's an image file
                 const ext = path.extname(item.name).toLowerCase();
                 if (['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].includes(ext)) {
-                    console.log(`📸 Image file found: ${item.name} (${ext})`);
+                    console.debug(`📸 Image file found: ${item.name} (${ext})`);
                     return true;
                 } else {
-                    console.log(`📄 Other file found: ${item.name} (${ext})`);
+                    console.debug(`📄 Other file found: ${item.name} (${ext})`);
                 }
             }
         }
         
-        console.log(`📊 No image files found in ${dirPath}`);
+        console.debug(`📊 No image files found in ${dirPath}`);
         return false;
         
     } catch (error) {
@@ -5252,7 +5252,7 @@ async function createUploadsZip(uploadsPath) {
     const { PassThrough } = require('stream');
     
     return new Promise((resolve, reject) => {
-        console.log(`🗜️ Starting ZIP creation for: ${uploadsPath}`);
+        console.debug(`🗜️ Starting ZIP creation for: ${uploadsPath}`);
         
         // Create a buffer stream to collect the zip data
         const chunks = [];
@@ -5284,7 +5284,7 @@ async function createUploadsZip(uploadsPath) {
         // Handle archive events
         archive.on('entry', (entry) => {
             filesAdded++;
-            console.log(`📄 Adding to ZIP: ${entry.name} (${entry.stats ? (entry.stats.size / 1024).toFixed(2) + ' KB' : 'size unknown'})`);
+            console.debug(`📄 Adding to ZIP: ${entry.name} (${entry.stats ? (entry.stats.size / 1024).toFixed(2) + ' KB' : 'size unknown'})`);
         });
         
         archive.on('warning', (err) => {
@@ -5301,11 +5301,11 @@ async function createUploadsZip(uploadsPath) {
         });
         
         archive.on('progress', (progress) => {
-            console.log(`📦 ZIP progress: ${progress.entries.processed} entries processed`);
+            console.debug(`📦 ZIP progress: ${progress.entries.processed} entries processed`);
         });
         
         try {
-            console.log(`🗜️ Adding directory to archive: ${uploadsPath}`);
+            console.debug(`🗜️ Adding directory to archive: ${uploadsPath}`);
             archive.directory(uploadsPath, false); // false = preserve relative paths
             
             // Add a readme file with information
@@ -5320,11 +5320,11 @@ Directory Structure:
 Backup includes all files in the uploads directory.`;
             
             archive.append(readmeContent, { name: 'README.txt' });
-            console.log('📄 Added README.txt to archive');
+            console.debug('📄 Added README.txt to archive');
             
             // Finalize the archive
             archive.finalize();
-            console.log('✅ Archive finalized');
+            console.debug('✅ Archive finalized');
             
         } catch (error) {
             console.error('❌ Error adding directory to archive:', error);
@@ -5385,7 +5385,7 @@ router.get('/saved-themes', auth.requireAuth, (req, res) => {
                 : row.theme_data
         }));
         
-        console.log(`✅ Loaded ${themes.length} saved themes for user ${adminUserId}`);
+        console.debug(`✅ Loaded ${themes.length} saved themes for user ${adminUserId}`);
         res.json({ success: true, themes });
     });
 });
@@ -5453,7 +5453,7 @@ router.post('/saved-themes', auth.requireAuth, (req, res) => {
                 });
             }
             
-            console.log(`✅ Theme "${theme_name}" saved successfully for user ${adminUserId}`);
+            console.debug(`✅ Theme "${theme_name}" saved successfully for user ${adminUserId}`);
             
             // Log audit trail
             logAudit('SAVE_THEME', req.session.user.username, 'saved_themes', this.lastID, req);
@@ -5517,7 +5517,7 @@ router.put('/saved-themes/:id/activate', auth.requireAuth, (req, res) => {
                     });
                 }
                 
-                console.log(`✅ Theme ${themeId} activated for user ${adminUserId}`);
+                console.debug(`✅ Theme ${themeId} activated for user ${adminUserId}`);
                 
                 // Log audit trail
                 logAudit('ACTIVATE_THEME', req.session.user.username, 'saved_themes', themeId, req);
@@ -5548,7 +5548,7 @@ router.post('/saved-themes/deactivate-all', auth.requireAuth, (req, res) => {
             });
         }
         
-        console.log(`✅ Deactivated all themes for user ${adminUserId}`);
+        console.debug(`✅ Deactivated all themes for user ${adminUserId}`);
         
         // Log audit trail
         logAudit('DEACTIVATE_ALL_THEMES', req.session.user.username, 'saved_themes', null, req);
@@ -5607,7 +5607,7 @@ router.put('/saved-themes/:id', auth.requireAuth, (req, res) => {
                 });
             }
             
-            console.log(`✅ Theme ${themeId} renamed to "${theme_name}"`);
+            console.debug(`✅ Theme ${themeId} renamed to "${theme_name}"`);
             
             // Log audit trail
             logAudit('UPDATE_THEME', req.session.user.username, 'saved_themes', themeId, req);
@@ -5657,7 +5657,7 @@ router.delete('/saved-themes/:id', auth.requireAuth, (req, res) => {
                 });
             }
             
-            console.log(`✅ Theme "${row.theme_name}" deleted successfully`);
+            console.debug(`✅ Theme "${row.theme_name}" deleted successfully`);
             
             // Log audit trail
             logAudit('DELETE_THEME', req.session.user.username, 'saved_themes', themeId, req);
@@ -5713,7 +5713,7 @@ router.get('/saved-themes/active', auth.requireAuth, (req, res) => {
                 : row.theme_data
         };
         
-        console.log(`✅ Active theme loaded for user ${adminUserId}`);
+        console.debug(`✅ Active theme loaded for user ${adminUserId}`);
         res.json({ success: true, theme });
     });
 });
@@ -5723,7 +5723,7 @@ router.get('/saved-themes/active', auth.requireAuth, (req, res) => {
 // Get VIP list (Active only)
 // GET /vips
 router.get('/vips', (req, res) => {
-    console.log('👑 Fetching VIP list...');
+    console.debug('👑 Fetching VIP list...');
 
     // Check if vip_management table exists
     const tableCheckQuery = `
@@ -5755,7 +5755,7 @@ router.get('/vips', (req, res) => {
                 return res.status(500).json({ success: false, error: 'Database error: ' + err.message });
             }
 
-            console.log(`✅ Found ${rows.length} VIP records`);
+            console.debug(`✅ Found ${rows.length} VIP records`);
 
             const vips = rows.map(vip => ({
                 id: vip.id,
@@ -5771,7 +5771,7 @@ router.get('/vips', (req, res) => {
 // Add VIP
 // POST /vips { name: "Zaheera" }
 router.post('/vips', (req, res) => {
-    console.log('➕ Adding VIP...');
+    console.debug('➕ Adding VIP...');
 
     const name = (req.body.name || '').trim();
     if (!name || name.length < 2) {
@@ -5795,7 +5795,7 @@ router.post('/vips', (req, res) => {
             return res.status(500).json({ success: false, error: 'Database error: ' + err.message });
         }
 
-        console.log(`✅ VIP added with ID: ${this.lastID}`);
+        console.debug(`✅ VIP added with ID: ${this.lastID}`);
 
         return res.json({
             success: true,
@@ -5811,7 +5811,7 @@ router.post('/vips', (req, res) => {
 
 // Delete VIP (Done by Yu Kang)
 router.delete('/vips/:name', (req, res) => {
-    console.log('🗑️ Deleting VIP...');
+    console.debug('🗑️ Deleting VIP...');
 
     const name = (req.params.name || '').trim();
 
@@ -5832,7 +5832,7 @@ router.delete('/vips/:name', (req, res) => {
             return res.status(404).json({ success: false, error: 'VIP not found' });
         }
 
-        console.log(`✅ VIP deleted: ${name}`);
+        console.debug(`✅ VIP deleted: ${name}`);
         return res.json({
             success: true,
             message: 'VIP deleted successfully',
@@ -6391,8 +6391,8 @@ router.post('/parameters/background', auth.requireAdmin, uploadParameterBackgrou
 // POST /api/admin/parameters/leaf - Upload a custom leaf image and activate it (Done by Yu Kang)
 router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('leaf'), handleTreeBackgroundUploadErrors, (req, res) => {
     try {
-        console.log('🍃 Leaf upload endpoint hit');
-        console.log('📦 Received file:', req.file);
+        console.debug('🍃 Leaf upload endpoint hit');
+        console.debug('📦 Received file:', req.file);
         
         if (!req.file) {
             console.error('❌ No file received in request');
@@ -6400,14 +6400,14 @@ router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('l
         }
 
         const assetPath = `/assets/Tree/leaf/${req.file.filename}`;
-        console.log('✅ File saved to:', req.file.path);
-        console.log('🔗 Asset path:', assetPath);
+        console.debug('✅ File saved to:', req.file.path);
+        console.debug('🔗 Asset path:', assetPath);
 
         const config = parametersConfigStore.readParametersConfig();
         // Save current leaf image as previous before uploading new one
         if (config.visualAssets?.leafImage) {
             config.visualAssets.previousLeafImage = config.visualAssets.leafImage;
-            console.log('💾 Previous leaf image saved:', config.visualAssets.previousLeafImage);
+            console.debug('💾 Previous leaf image saved:', config.visualAssets.previousLeafImage);
         }
         config.visualAssets = { ...config.visualAssets, leafImage: assetPath };
 
@@ -6417,14 +6417,14 @@ router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('l
             return res.status(500).json({ success: false, error: 'Failed to save leaf image setting' });
         }
         
-        console.log('💾 Parameters config saved successfully');
+        console.debug('💾 Parameters config saved successfully');
 
         if (req.session?.user?.username) {
             logAudit('PARAMETER_LEAF_UPLOADED', req.session.user.username, 'config', 'visualAssets.leafImage', req);
         }
 
         const finalConfig = parametersConfigStore.readParametersConfig();
-        console.log('✅ Leaf upload completed successfully');
+        console.debug('✅ Leaf upload completed successfully');
         res.json({ success: true, message: 'Leaf image uploaded successfully', assetPath, parameters: finalConfig });
     } catch (error) {
         console.error('❌ Error uploading parameter leaf image:', error.message, error.stack);
@@ -6435,13 +6435,13 @@ router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('l
 // POST /api/admin/parameters/leaf/revert - Revert to previous leaf image
 router.post('/parameters/leaf/revert', auth.requireAdmin, (req, res) => {
     try {
-        console.log('🔄 Leaf revert endpoint hit');
+        console.debug('🔄 Leaf revert endpoint hit');
         
         const config = parametersConfigStore.readParametersConfig();
         const assets = config.visualAssets || {};
         
         if (!assets.previousLeafImage) {
-            console.log('❌ No previous leaf image to revert to');
+            console.debug('❌ No previous leaf image to revert to');
             return res.status(400).json({ success: false, error: 'No previous leaf image to revert to' });
         }
         
@@ -6450,7 +6450,7 @@ router.post('/parameters/leaf/revert', auth.requireAdmin, (req, res) => {
         config.visualAssets.leafImage = assets.previousLeafImage;
         config.visualAssets.previousLeafImage = currentLeafImage;
         
-        console.log('🔄 Reverting leaf - current:', currentLeafImage, 'previous:', config.visualAssets.leafImage);
+        console.debug('🔄 Reverting leaf - current:', currentLeafImage, 'previous:', config.visualAssets.leafImage);
         
         const success = parametersConfigStore.writeParametersConfig(config);
         if (!success) {
@@ -6458,7 +6458,7 @@ router.post('/parameters/leaf/revert', auth.requireAdmin, (req, res) => {
             return res.status(500).json({ success: false, error: 'Failed to revert leaf image' });
         }
         
-        console.log('✅ Leaf reverted successfully');
+        console.debug('✅ Leaf reverted successfully');
         
         if (req.session?.user?.username) {
             logAudit('PARAMETER_LEAF_REVERTED', req.session.user.username, 'config', 'visualAssets.leafImage', req);
@@ -6475,7 +6475,7 @@ router.post('/parameters/leaf/revert', auth.requireAdmin, (req, res) => {
 // GET /api/admin/parameters/leaf/list - List available leaf images (Done by Yu Kang)
 router.get('/parameters/leaf/list', auth.requireAdmin, (req, res) => {
     try {
-        console.log('📂 Listing available leaf images');
+        console.debug('📂 Listing available leaf images');
         
         const leafDir = path.join(paths.ASSETS, 'Tree', 'leaf');
         const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
@@ -6483,7 +6483,7 @@ router.get('/parameters/leaf/list', auth.requireAdmin, (req, res) => {
         
         // Check if directory exists
         if (!fs.existsSync(leafDir)) {
-            console.log('📁 Leaf directory does not exist');
+            console.debug('📁 Leaf directory does not exist');
             return res.json({ success: true, leafImages: [] });
         }
         
@@ -6501,7 +6501,7 @@ router.get('/parameters/leaf/list', auth.requireAdmin, (req, res) => {
             }
         });
         
-        console.log(`✅ Found ${leafImages.length} leaf images`);
+        console.debug(`✅ Found ${leafImages.length} leaf images`);
         res.json({ success: true, leafImages });
     } catch (error) {
         console.error('❌ Error listing leaf images:', error.message);
@@ -6512,7 +6512,7 @@ router.get('/parameters/leaf/list', auth.requireAdmin, (req, res) => {
 // POST /api/admin/parameters/leaf/select - Select an existing leaf image
 router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
     try {
-        console.log('🍃 Leaf select endpoint hit');
+        console.debug('🍃 Leaf select endpoint hit');
         const { leafImage } = req.body;
         
         if (!leafImage) {
@@ -6535,14 +6535,14 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
             return res.status(400).json({ success: false, error: 'Leaf image file does not exist' });
         }
         
-        console.log('✅ Leaf image verified:', leafImage);
+        console.debug('✅ Leaf image verified:', leafImage);
         const assetPath = `/assets/Tree/leaf/${path.basename(leafImage)}`;
         
         const config = parametersConfigStore.readParametersConfig();
         // Save current as previous before switching
         if (config.visualAssets?.leafImage) {
             config.visualAssets.previousLeafImage = config.visualAssets.leafImage;
-            console.log('💾 Previous leaf image saved:', config.visualAssets.previousLeafImage);
+            console.debug('💾 Previous leaf image saved:', config.visualAssets.previousLeafImage);
         }
 
         config.visualAssets = { ...config.visualAssets, leafImage: assetPath };
@@ -6553,7 +6553,7 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
             return res.status(500).json({ success: false, error: 'Failed to select leaf image' });
         }
         
-        console.log('✅ Leaf image selected successfully:', assetPath);
+        console.debug('✅ Leaf image selected successfully:', assetPath);
         
         if (req.session?.user?.username) {
             logAudit('PARAMETER_LEAF_SELECTED', req.session.user.username, 'config', 'visualAssets.leafImage', req);
@@ -6574,7 +6574,7 @@ router.get('/parameters/tree-background/list', auth.requireAdmin, (req, res) => 
         const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
         const backgroundImages = [];
 
-        console.log('📂 Looking for tree backgrounds in:', backgroundDir);
+        console.debug('📂 Looking for tree backgrounds in:', backgroundDir);
 
         if (!fs.existsSync(backgroundDir)) {
             console.warn('⚠️  Tree background directory does not exist:', backgroundDir);
@@ -6582,7 +6582,7 @@ router.get('/parameters/tree-background/list', auth.requireAdmin, (req, res) => 
         }
 
         const files = fs.readdirSync(backgroundDir);
-        console.log('📄 Files found in background directory:', files);
+        console.debug('📄 Files found in background directory:', files);
 
         files.forEach((file) => {
             const ext = path.extname(file).toLowerCase();
@@ -6592,17 +6592,17 @@ router.get('/parameters/tree-background/list', auth.requireAdmin, (req, res) => 
                     path: `/assets/Tree/background/${file}`,
                     name: path.parse(file).name
                 });
-                console.log(`✅ Added background: ${file}`);
+                console.debug(`✅ Added background: ${file}`);
             } else {
-                console.log(`⏭️  Skipped non-image file: ${file} (ext: ${ext})`);
+                console.debug(`⏭️  Skipped non-image file: ${file} (ext: ${ext})`);
             }
         });
 
         const config = parametersConfigStore.readParametersConfig();
         const currentTreeBackground = config?.visualAssets?.treeBackground || '';
 
-        console.log(`🖼️  Current tree background: ${currentTreeBackground}`);
-        console.log(`✨ Found ${backgroundImages.length} background images`);
+        console.debug(`🖼️  Current tree background: ${currentTreeBackground}`);
+        console.debug(`✨ Found ${backgroundImages.length} background images`);
 
         return res.json({ success: true, backgroundImages, currentTreeBackground });
     } catch (error) {
@@ -6670,15 +6670,15 @@ function handleTreeBackgroundUploadErrors(err, req, res, next) {
 
 router.post('/parameters/tree-background/upload', auth.requireAdmin, uploadTreeBackground.single('background'), handleTreeBackgroundUploadErrors, (req, res) => {
     try {
-        console.log('🎨 Tree background upload endpoint hit');
+        console.debug('🎨 Tree background upload endpoint hit');
         if (!req.file) {
             console.error('❌ No file received in request');
             return res.status(400).json({ success: false, error: 'No background file uploaded' });
         }
 
         const assetPath = `/assets/Tree/background/${req.file.filename}`;
-        console.log('✅ File saved to:', req.file.path);
-        console.log('🔗 Asset path:', assetPath);
+        console.debug('✅ File saved to:', req.file.path);
+        console.debug('🔗 Asset path:', assetPath);
 
         const config = parametersConfigStore.readParametersConfig();
         config.visualAssets = { ...config.visualAssets, treeBackground: assetPath };
@@ -6689,7 +6689,7 @@ router.post('/parameters/tree-background/upload', auth.requireAdmin, uploadTreeB
             return res.status(500).json({ success: false, error: 'Failed to save tree background setting' });
         }
 
-        console.log('💾 Parameters config saved successfully');
+        console.debug('💾 Parameters config saved successfully');
 
         if (req.session?.user?.username) {
             logAudit('PARAMETER_TREE_BACKGROUND_UPLOADED', req.session.user.username, 'config', 'visualAssets.treeBackground', req);
@@ -6711,7 +6711,7 @@ router.post('/parameters/tree-background/upload', auth.requireAdmin, uploadTreeB
 // PUT /api/admin/parameters/treeParameters - Save tree parameters (including title box) - Done by Yu Kang
 router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
     try {
-        console.log('🌳 Saving tree parameters');
+        console.debug('🌳 Saving tree parameters');
         const { treeStage, showTitleBox, leafDisplayScale, vipLeafDisplayScale, leafThresholds, treeTitleBox, treeDisplayMode } = req.body;
         const normalizedDisplayMode = treeDisplayMode === undefined
             ? undefined
@@ -6752,7 +6752,7 @@ router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
             return res.status(500).json({ success: false, error: 'Failed to save tree parameters' });
         }
 
-        console.log('✅ Tree parameters saved successfully');
+        console.debug('✅ Tree parameters saved successfully');
 
         // Audit log
         if (req.session?.user?.username) {
@@ -7181,13 +7181,13 @@ router.get('/countdown-management', auth.requireAuth, (req, res) => {
 // PUT /api/admin/countdown-management
 
 router.put('/countdown-management', auth.requireAuth, (req, res) => {
-    console.log('🔄 PUT /countdown-management - Updating countdown');
+    console.debug('🔄 PUT /countdown-management - Updating countdown');
     
     // Get username from session
     const username = req.session?.user?.username;
     const seconds = Number(req.body?.countdown_seconds);
 
-    console.log('📝 Request details:', {
+    console.debug('📝 Request details:', {
         username: username,
         countdown_seconds: seconds,
         body: req.body
@@ -7195,14 +7195,14 @@ router.put('/countdown-management', auth.requireAuth, (req, res) => {
 
     // Validate input
     if (!Number.isInteger(seconds) || seconds < 0) {
-        console.log('❌ Invalid input received:', seconds);
+        console.debug('❌ Invalid input received:', seconds);
         return res.status(400).json({
             success: false,
             error: 'countdown_seconds must be a whole number (>= 0)'
         });
     }
 
-    console.log('✅ Valid input received:', seconds, 'seconds by user:', username);
+    console.debug('✅ Valid input received:', seconds, 'seconds by user:', username);
 
     const sql = `
         UPDATE countdown_management
@@ -7219,7 +7219,7 @@ router.put('/countdown-management', auth.requireAuth, (req, res) => {
             });
         }
 
-        console.log('✅ Countdown updated successfully:', {
+        console.debug('✅ Countdown updated successfully:', {
             seconds: seconds,
             username: username,
             affectedRows: result.affectedRows
@@ -7295,7 +7295,7 @@ router.post('/server-schedules', auth.requireAuth, (req, res) => {
     };
     config.schedules.splice(schedulePolicies.insertIndex(config.schedules, policy), 0, policy);
     if (!writeSchedulesConfig(config)) throw new Error('Failed to write config file');
-    console.log(`✅ Policy "${policy.schedule_name}" added (${policy.action}, ${policy.schedule_type})`);
+    console.debug(`✅ Policy "${policy.schedule_name}" added (${policy.action}, ${policy.schedule_type})`);
     res.json({ success: true, message: 'Policy created', schedule: policy, ...placement(config.schedules, policy) });
   } catch (err) {
     console.error('❌ Error adding policy:', err);
@@ -7388,7 +7388,7 @@ router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
 router.delete('/server-schedules/:id', auth.requireAuth, (req, res) => {
   const scheduleId = parseInt(req.params.id);
   
-  console.log(`🗑️  Deleting schedule ID ${scheduleId}`);
+  console.debug(`🗑️  Deleting schedule ID ${scheduleId}`);
   
   try {
     const config = readSchedulesConfig();
@@ -7407,7 +7407,7 @@ router.delete('/server-schedules/:id', auth.requireAuth, (req, res) => {
       throw new Error('Failed to write config file');
     }
     
-    console.log(`✅ Schedule deleted successfully`);
+    console.debug(`✅ Schedule deleted successfully`);
     
     res.json({
       success: true,
@@ -7429,7 +7429,7 @@ router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
   const scheduleId = parseInt(req.params.id);
   const { is_active } = req.body;
   
-  console.log(`🔄 Toggling schedule ID ${scheduleId} to ${is_active}`);
+  console.debug(`🔄 Toggling schedule ID ${scheduleId} to ${is_active}`);
   
   try {
     const config = readSchedulesConfig();
@@ -7451,7 +7451,7 @@ router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
     }
     
     const status = is_active ? 'enabled' : 'disabled';
-    console.log(`✅ Schedule ${status} successfully`);
+    console.debug(`✅ Schedule ${status} successfully`);
     
     res.json({
       success: true,
@@ -7470,7 +7470,7 @@ router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
 // POST /api/admin/server-schedules/enable-all
 // Enable all schedules
 router.post('/server-schedules/enable-all', auth.requireAuth, (req, res) => {
-  console.log('✅ Enabling all schedules');
+  console.debug('✅ Enabling all schedules');
   
   try {
     const config = readSchedulesConfig();
@@ -7501,7 +7501,7 @@ router.post('/server-schedules/enable-all', auth.requireAuth, (req, res) => {
 // POST /api/admin/server-schedules/disable-all
 // Disable all schedules
 router.post('/server-schedules/disable-all', auth.requireAuth, (req, res) => {
-  console.log('⏸️  Disabling all schedules');
+  console.debug('⏸️  Disabling all schedules');
   
   try {
     const config = readSchedulesConfig();
@@ -7666,12 +7666,12 @@ router.get('/assets', auth.requireAdmin, (req, res) => {
 const vipLeafStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const destFolder = path.join(paths.ASSETS, 'Tree', 'vip-leaf');
-        console.log('📂 VIP leaf destination folder:', destFolder);
+        console.debug('📂 VIP leaf destination folder:', destFolder);
         try {
             if (!fs.existsSync(destFolder)) {
-                console.log('📁 Creating VIP leaf directory:', destFolder);
+                console.debug('📁 Creating VIP leaf directory:', destFolder);
                 fs.mkdirSync(destFolder, { recursive: true });
-                console.log('✅ VIP leaf directory created successfully');
+                console.debug('✅ VIP leaf directory created successfully');
             }
         } catch (err) {
             console.error('❌ Failed to create VIP leaf directory:', err.message);
@@ -7682,7 +7682,7 @@ const vipLeafStorage = multer.diskStorage({
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase() || '.png';
         const filename = `CustomVipLeaf-${Date.now()}${ext}`;
-        console.log(`📁 VIP leaf filename: ${filename}`);
+        console.debug(`📁 VIP leaf filename: ${filename}`);
         cb(null, filename);
     }
 });
@@ -7690,9 +7690,9 @@ const vipLeafStorage = multer.diskStorage({
 const uploadParameterVipLeaf = multer({
     storage: vipLeafStorage,
     fileFilter: (req, file, cb) => {
-        console.log('🔍 Checking VIP leaf file type:', file.mimetype, 'name:', file.originalname);
+        console.debug('🔍 Checking VIP leaf file type:', file.mimetype, 'name:', file.originalname);
         if (['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype)) {
-            console.log('✅ VIP leaf file type accepted');
+            console.debug('✅ VIP leaf file type accepted');
             cb(null, true);
         } else {
             console.error('❌ VIP leaf file type rejected:', file.mimetype);
@@ -7706,8 +7706,8 @@ const uploadParameterVipLeaf = multer({
 
 router.post('/parameters/vip-leaf', auth.requireAdmin, uploadParameterVipLeaf.single('vipLeaf'), handleTreeBackgroundUploadErrors, (req, res) => {
     try {
-        console.log('🍃 VIP leaf upload endpoint hit');
-        console.log('📦 Received file:', req.file);
+        console.debug('🍃 VIP leaf upload endpoint hit');
+        console.debug('📦 Received file:', req.file);
 
         if (!req.file) {
             console.error('❌ No file received in VIP leaf upload request');
@@ -7718,7 +7718,7 @@ router.post('/parameters/vip-leaf', auth.requireAdmin, uploadParameterVipLeaf.si
         const config = parametersConfigStore.readParametersConfig();
         if (config.visualAssets?.vipLeafImage) {
             config.visualAssets.previousVipLeafImage = config.visualAssets.vipLeafImage;
-            console.log('💾 Previous VIP leaf image saved:', config.visualAssets.previousVipLeafImage);
+            console.debug('💾 Previous VIP leaf image saved:', config.visualAssets.previousVipLeafImage);
         }
 
         config.visualAssets = { ...config.visualAssets, vipLeafImage: assetPath };
@@ -7954,7 +7954,7 @@ router.post('/server/stop', auth.requireAuth, (req, res) => {
 // GET /api/admin/server/mode
 // Get current server control mode (auto or manual)
 router.get('/server/mode', auth.requireAuth, (req, res) => {
-  console.log('📡 Getting server control mode');
+  console.debug('📡 Getting server control mode');
   
   const config = readModeConfig();
   
@@ -7971,7 +7971,7 @@ router.get('/server/mode', auth.requireAuth, (req, res) => {
 router.post('/server/mode', auth.requireAuth, (req, res) => {
   const { mode } = req.body;
   
-  console.log(`🔄 Changing server control mode to: ${mode}`);
+  console.debug(`🔄 Changing server control mode to: ${mode}`);
   
   // Validate mode
   if (!mode || !['auto', 'manual'].includes(mode)) {
@@ -7991,7 +7991,10 @@ router.post('/server/mode', auth.requireAuth, (req, res) => {
       throw new Error('Failed to write mode configuration');
     }
     
-    console.log(`✅ Server mode changed to: ${mode.toUpperCase()}`);
+    // <Jun Kai start>
+    console.log(`✅ Server mode changed to ${mode.toUpperCase()} by ${config.updated_by}`);
+    scheduler.modeChanged();
+    // <Jun Kai end>
     
     res.json({
       success: true,

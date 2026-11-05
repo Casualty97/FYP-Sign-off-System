@@ -83,12 +83,10 @@ function sync(schedules, callback = () => {}) {
         console.log(`⏰ [dry run] wake timer task would have ${triggers.length} trigger(s)`);
         return callback(null);
     }
-    if (!triggers.length) {
-        return schtasks(['/Delete', '/TN', TASK_NAME, '/F'], () => {
-            lastResult = { supported: true, synced: new Date().toISOString(), triggers: 0, error: null };
-            callback(null);
-        });
-    }
+    // <Jun Kai start>
+    if (!triggers.length) return remove('no policy switches the kiosk on', callback);
+    const key = triggers.join('');
+    // <Jun Kai end>
     try {
         fs.writeFileSync(XML_FILE, '﻿' + buildTaskXml(triggers), { encoding: 'utf16le' });
     } catch (error) {
@@ -100,10 +98,39 @@ function sync(schedules, callback = () => {}) {
         lastResult = { supported: true, synced: new Date().toISOString(), triggers: triggers.length, dropped: lastDropped, error: err ? (stderr.trim() || err.message) : null };
         // <Jun Kai end>
         if (err) console.error('⚠️ Could not update the wake timer task:', lastResult.error);
-        else console.log(`⏰ Wake timer task updated: ${triggers.length} trigger${triggers.length === 1 ? '' : 's'}`);
+        // <Jun Kai start>
+        else if (key !== lastTriggerKey) console.log(`⏰ Wake timer task updated: ${triggers.length} trigger${triggers.length === 1 ? '' : 's'}`);
+        else console.debug(`⏰ Wake timer task refreshed, no change (${triggers.length} trigger${triggers.length === 1 ? '' : 's'})`);
+        if (!err) lastTriggerKey = key;
+        // <Jun Kai end>
         callback(err);
     });
 }
+
+// <Jun Kai start>
+let lastTriggerKey = null; // the wake-ups last written, so a refresh that changes nothing stays quiet
+
+// Removes the task when there is one (an error from schtasks only means there was none)
+function remove(reason, callback = () => {}) {
+    if (process.platform !== 'win32') return callback(null);
+    if (dryRun) {
+        lastResult = { supported: true, synced: new Date().toISOString(), triggers: 0, error: null, dryRun: true };
+        console.log(`⏰ [dry run] wake timer task would be removed: ${reason}`);
+        return callback(null);
+    }
+    schtasks(['/Delete', '/TN', TASK_NAME, '/F'], (err) => {
+        lastResult = { supported: true, synced: new Date().toISOString(), triggers: 0, error: null };
+        if (!err) console.log(`⏰ Wake timer task removed: ${reason}`);
+        lastTriggerKey = '';
+        callback(null);
+    });
+}
+
+// Manual mode pauses the policies, so nothing may wake the PC; switching back to AUTO rebuilds the task
+function clear(callback) {
+    remove('manual mode pauses the policies', callback);
+}
+// <Jun Kai end>
 
 // Task present? next run? are wake timers allowed in the active power plan?
 function status(callback) {
@@ -124,4 +151,4 @@ function status(callback) {
     });
 }
 
-module.exports = { TASK_NAME, LEAD_MINUTES, setDryRun, buildTriggers, buildTaskXml, sync, status };
+module.exports = { TASK_NAME, LEAD_MINUTES, setDryRun, buildTriggers, buildTaskXml, sync, clear, status };
