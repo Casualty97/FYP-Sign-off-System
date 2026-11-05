@@ -171,24 +171,23 @@ async function checkServer() {
     };
 }
 
+// <Jun Kai start>
 let heartbeatTableWarned = false;
 async function checkTablets() {
     const base = { key: 'tablets', label: 'Tablets' };
     try {
         const rows = await query('all', `
-            SELECT device_id, label, page, battery_level, charging, user_agent, ip, first_seen, last_seen,
+            SELECT device_id, label, page, user_agent, ip, first_seen, last_seen,
                    TIMESTAMPDIFF(SECOND, last_seen, NOW()) AS seconds_ago
             FROM device_heartbeats
             ORDER BY last_seen DESC
             LIMIT 50`, []);
         const devices = rows.map((r) => ({ ...r, online: r.seconds_ago <= TABLET_ONLINE_SECONDS }));
         const online = devices.filter((d) => d.online);
-        const lowBattery = online.filter((d) => d.battery_level !== null && d.battery_level <= 20 && !d.charging);
         let status = 'ok';
         let summary = `${online.length} online of ${devices.length} known`;
         if (!devices.length) { status = 'unknown'; summary = 'No tablet has reported yet'; }
         else if (!online.length) { status = 'warn'; summary = `None of the ${devices.length} known tablets reported in the last 3 minutes`; }
-        else if (lowBattery.length) { status = 'warn'; summary += `, ${lowBattery.length} low on battery`; }
         return { ...base, status, summary, detail: { devices, onlineWindowSeconds: TABLET_ONLINE_SECONDS }, latencyMs: null };
     } catch (error) {
         if (error.code === 'ER_NO_SUCH_TABLE') {
@@ -198,6 +197,7 @@ async function checkTablets() {
         return { ...base, status: 'unknown', summary: 'Could not read the heartbeats', detail: { devices: [], error: error.message }, latencyMs: null };
     }
 }
+// <Jun Kai end>
 
 function checkAutomation() {
     const base = { key: 'automation', label: 'Schedules & hibernation' };

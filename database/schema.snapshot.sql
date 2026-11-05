@@ -47,8 +47,6 @@ CREATE TABLE `device_heartbeats` (
   `device_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
   `label` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `page` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `battery_level` tinyint unsigned DEFAULT NULL,
-  `charging` tinyint(1) DEFAULT NULL,
   `user_agent` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `ip` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `first_seen` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

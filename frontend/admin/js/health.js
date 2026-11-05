@@ -47,31 +47,27 @@ function renderHealthCard(check) {
         </div>`;
 }
 
+// <Jun Kai start>
 function renderHealthTablets(check) {
     const body = document.getElementById('health-tablets');
     if (!body) return;
     const devices = (check && check.detail && check.detail.devices) || [];
     if (!devices.length) {
-        body.innerHTML = `<tr><td colspan="5" class="ui-empty">${escapeHtmlSafe(check && check.summary ? check.summary : 'No tablet has reported yet')}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="4" class="ui-empty">${escapeHtmlSafe(check && check.summary ? check.summary : 'No tablet has reported yet')}</td></tr>`;
         return;
     }
     body.innerHTML = devices.map((d) => {
-        const battery = d.battery_level === null || d.battery_level === undefined ? null : Number(d.battery_level);
-        const batteryTone = battery === null ? 'muted' : battery <= 20 ? 'low' : battery <= 50 ? 'mid' : 'good';
-        const batteryCell = battery === null
-            ? '<span class="ui-muted">not reported</span>'
-            : `<span class="health-battery"><span class="health-battery-bar health-battery-${batteryTone}" style="display:block;width:${battery}%"></span></span>${battery}%${d.charging ? ', charging' : ''}`;
         const agent = String(d.user_agent || '');
         const kind = /android/i.test(agent) ? 'Android tablet' : /iphone|ipad/i.test(agent) ? 'iOS device' : /windows/i.test(agent) ? 'Windows PC' : 'Browser';
         return `<tr class="${d.online ? '' : 'health-row-offline'}">
                     <td><div class="health-device">${escapeHtmlSafe(d.label || d.device_id)}</div><div class="ui-muted">${kind}</div></td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
-                    <td>${batteryCell}</td>
                     <td>${d.online ? uiPill('ok', 'Online') : uiPill('muted', healthRelativeTime(d.seconds_ago))}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
                 </tr>`;
     }).join('');
 }
+// <Jun Kai end>
 
 function renderHealthServer(check) {
     const list = document.getElementById('health-server-details');
