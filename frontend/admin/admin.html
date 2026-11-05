@@ -3298,7 +3298,10 @@
                                 <h3>Monitoring options</h3>
                                 <p>Choose what this page checks and shows. Your choice is saved for your account.</p>
                             </div>
-                            <button class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button>
+                            <div class="ui-row">
+                                <button class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button>
+                                <button type="button" class="ui-btn ui-btn-icon health-customise-close" onclick="toggleHealthCustomise(false)" aria-label="Close monitoring options" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
                         </div>
                         <div class="ui-card-body">
                             <div class="health-options" id="health-options"></div>
@@ -3320,7 +3323,7 @@
                             <div class="ui-card-header">
                                 <div>
                                     <h3>Tablets</h3>
-                                    <p>Each kiosk screen reports once a minute from the feedback page.</p>
+                                    <p>Each kiosk screen reports once a minute from the feedback page. Use the edit button next to a tablet to give it a name or a number.</p>
                                 </div>
                             </div>
                             <div class="ui-table-wrap">
@@ -3350,7 +3353,7 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Hardware</h2>
-                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 min</span> and kept for <span id="hardware-retention-text">30 days</span>. The graphs and the forecast refresh every minute while this page is open.</p>
+                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 minute</span> and kept for <span id="hardware-retention-text">30 days</span>. The graphs and the forecast refresh every minute while this page is open.</p>
                         </div>
                         <div class="ui-row">
                             <span id="hardware-sampler-pill" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Loading</span>
@@ -3384,12 +3387,33 @@
                         </div>
                     </div>
                     <div class="hw-toolbar">
-                        <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
-                            <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
-                            <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
-                            <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
-                            <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
-                            <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
+                        <div class="hw-range" id="hardware-range-wrap">
+                            <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
+                                <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
+                                <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
+                                <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
+                                <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
+                                <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
+                                <button type="button" class="hw-seg-btn" data-range="custom" id="hardware-range-custom-btn" onclick="toggleHardwareRangeForm()" aria-expanded="false" aria-controls="hardware-range-form">Custom</button>
+                            </div>
+                            <form class="hw-range-form" id="hardware-range-form" hidden novalidate onsubmit="applyHardwareCustomRange(event)">
+                                <label class="ui-label" for="hardware-range-amount">Show the last</label>
+                                <div class="hw-range-inputs">
+                                    <input class="ui-input" type="number" id="hardware-range-amount" min="1" step="1" inputmode="numeric" aria-describedby="hardware-range-hint">
+                                    <select class="ui-select" id="hardware-range-unit" aria-label="Unit of the time range">
+                                        <option value="h">hours</option>
+                                        <option value="d">days</option>
+                                        <option value="w">weeks</option>
+                                        <option value="mo">months</option>
+                                        <option value="y">years</option>
+                                    </select>
+                                </div>
+                                <p class="ui-help" id="hardware-range-hint">From 1 hour to 5 years.</p>
+                                <div class="hw-range-actions">
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHardwareRangeForm(true)">Cancel</button>
+                                    <button type="submit" class="ui-btn ui-btn-primary">Show</button>
+                                </div>
+                            </form>
                         </div>
                         <div class="ui-row">
                             <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
@@ -3489,18 +3513,27 @@
                                 <div class="ui-form-grid">
                                     <div class="ui-field">
                                         <label class="ui-label" for="hardware-interval">Sample every</label>
-                                        <select class="ui-select" id="hardware-interval">
+                                        <select class="ui-select" id="hardware-interval" onchange="hardwareSettingChanged('interval')">
                                             <option value="15">15 seconds</option>
                                             <option value="30">30 seconds</option>
                                             <option value="60">1 minute</option>
                                             <option value="120">2 minutes</option>
                                             <option value="300">5 minutes</option>
                                             <option value="600">10 minutes</option>
+                                            <option value="custom">Custom</option>
                                         </select>
+                                        <div class="hw-custom" id="hardware-interval-custom" hidden>
+                                            <input class="ui-input" type="number" id="hardware-interval-amount" min="1" step="1" inputmode="numeric" aria-label="Custom sampling interval" aria-describedby="hardware-interval-hint">
+                                            <select class="ui-select" id="hardware-interval-unit" aria-label="Unit of the sampling interval">
+                                                <option value="1">seconds</option>
+                                                <option value="60">minutes</option>
+                                            </select>
+                                        </div>
+                                        <p class="ui-help hw-custom-hint" id="hardware-interval-hint" hidden></p>
                                     </div>
                                     <div class="ui-field">
                                         <label class="ui-label" for="hardware-retention">Keep samples for</label>
-                                        <select class="ui-select" id="hardware-retention">
+                                        <select class="ui-select" id="hardware-retention" onchange="hardwareSettingChanged('retention')">
                                             <option value="7">7 days</option>
                                             <option value="14">14 days</option>
                                             <option value="30">30 days</option>
@@ -3508,18 +3541,33 @@
                                             <option value="90">90 days</option>
                                             <option value="180">180 days</option>
                                             <option value="365">1 year</option>
+                                            <option value="custom">Custom</option>
                                         </select>
+                                        <div class="hw-custom" id="hardware-retention-custom" hidden>
+                                            <input class="ui-input" type="number" id="hardware-retention-amount" min="1" step="1" inputmode="numeric" aria-label="Custom number of days to keep samples" aria-describedby="hardware-retention-hint">
+                                            <span class="hw-custom-unit" aria-hidden="true">days</span>
+                                        </div>
+                                        <p class="ui-help hw-custom-hint" id="hardware-retention-hint" hidden></p>
                                     </div>
                                     <div class="ui-field">
                                         <label class="ui-label" for="hardware-horizon">Forecast ahead</label>
-                                        <select class="ui-select" id="hardware-horizon">
+                                        <select class="ui-select" id="hardware-horizon" onchange="hardwareSettingChanged('horizon')">
                                             <option value="6">6 hours</option>
                                             <option value="12">12 hours</option>
                                             <option value="24">1 day</option>
                                             <option value="48">2 days</option>
                                             <option value="72">3 days</option>
                                             <option value="168">7 days</option>
+                                            <option value="custom">Custom</option>
                                         </select>
+                                        <div class="hw-custom" id="hardware-horizon-custom" hidden>
+                                            <input class="ui-input" type="number" id="hardware-horizon-amount" min="1" step="1" inputmode="numeric" aria-label="Custom forecast length" aria-describedby="hardware-horizon-hint">
+                                            <select class="ui-select" id="hardware-horizon-unit" aria-label="Unit of the forecast length">
+                                                <option value="1">hours</option>
+                                                <option value="24">days</option>
+                                            </select>
+                                        </div>
+                                        <p class="ui-help hw-custom-hint" id="hardware-horizon-hint" hidden></p>
                                     </div>
                                 </div>
                             </div>
@@ -3606,17 +3654,23 @@
                     <div class="ui-card" id="policy-preview-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Next 7 days</h3>
-                                <p>What the policies add up to. Point at a bar to see which policy decides it.</p>
+                                <h3 id="policy-preview-title">Next 7 days</h3>
+                                <p>What the policies add up to. Pick a date to see another week, and point at a bar to see which policy decides it.</p>
                             </div>
-                            <div class="policy-legend" aria-hidden="true">
-                                <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
-                                <span><i class="policy-swatch policy-swatch-stop"></i>Stopped by a policy</span>
+                            <div class="policy-preview-nav" role="group" aria-label="Days shown">
+                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(-7)" aria-label="Previous 7 days" title="Previous 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                                <input type="date" class="ui-input policy-preview-date" id="policy-preview-date" aria-label="First day shown" onchange="setPolicyPreviewStart(this.value)">
+                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(7)" aria-label="Next 7 days" title="Next 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                                <button type="button" class="ui-btn ui-btn-secondary" id="policy-preview-today" onclick="setPolicyPreviewStart('')" disabled>Today</button>
                             </div>
                         </div>
                         <div class="ui-card-body">
                             <div class="policy-preview" id="policy-preview"></div>
                             <div class="policy-tip" id="policy-tip" role="tooltip" hidden></div>
+                            <div class="policy-legend" aria-hidden="true">
+                                <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
+                                <span><i class="policy-swatch policy-swatch-stop"></i>Stopped by a policy</span>
+                            </div>
                         </div>
                     </div>
                     <!-- <Jun Kai end> -->
@@ -3652,15 +3706,6 @@
                                 </div>
                             </div>
                             <p class="ui-note" id="mode-hint">Switch to manual mode to use the start and stop controls.</p>
-                        </div>
-                        <div class="ui-card-body">
-                            <div class="ui-row ui-row-between">
-                                <div>
-                                    <div class="ui-mode-label">Daily operation</div>
-                                    <div class="ui-mode-desc" id="daily-operation-hint">Use this at the end of the day to stop the kiosk, then again next morning to start it.</div>
-                                </div>
-                                <button class="ui-btn ui-btn-primary" onclick="toggleDailyOperation()" id="daily-operation-toggle-btn">Checking</button>
-                            </div>
                         </div>
                     </div>
                 </div>

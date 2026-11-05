@@ -224,6 +224,16 @@ test('normalize checks and tidies what the admin page sends', () => {
     assert.equal(edited.is_active, false);
 });
 
+test('preview can start on a picked date, and today stays today', () => {
+    const p = policies.preview([weekdays({ schedule_name: 'hours' })], at(9, 10), 7, new Date(2026, 11, 25));
+    assert.equal(p.start, '2026-12-25');
+    assert.equal(p.today, '2026-11-09');
+    assert.deepEqual(p.days.map((d) => d.date), ['2026-12-25', '2026-12-26', '2026-12-27', '2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31']);
+    assert.equal(p.days[0].segments.length, 1, 'Fri 25 Dec has the weekday hours');
+    assert.equal(p.days[1].segments.length, 0, 'Sat 26 Dec has none');
+    assert.equal(policies.preview([], at(9, 10), 1).start, '2026-11-09', 'without a date it starts today');
+});
+
 test('preview cuts each day at midnight and names the deciding policy', () => {
     const list = [
         make({ schedule_name: 'lunch', schedule_type: 'weekly', days_of_week: '2', start_time: '12:00', end_time: '13:00', action: 'stop' }),
