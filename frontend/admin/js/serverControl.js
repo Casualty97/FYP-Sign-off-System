@@ -14,6 +14,8 @@ let policyFormTried = false;
 let policyFormTimes = { start: '08:00', end: '18:00' };
 let policyPendingList = null;
 let policyPreviewKey = null;
+let policyPreviewStart = null; // the first day of the preview when it is not today
+let policyPreviewShown = null;
 
 const POLICY_DAYS = [[2, 'Mon'], [3, 'Tue'], [4, 'Wed'], [5, 'Thu'], [6, 'Fri'], [7, 'Sat'], [1, 'Sun']];
 const POLICY_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -424,10 +426,17 @@ function policyPointerDown(event) {
         handle,
         pointerId: event.pointerId,
         grabOffset: event.clientY - row.getBoundingClientRect().top,
-        before: policyRows(ol).map((r) => r.dataset.id)
+        before: policyRows(ol).map((r) => r.dataset.id),
+        drop: document.createElement('li')
     };
     row.classList.add('is-dragging');
     ol.classList.add('is-sorting');
+    // a grey slot shows where the row lands when it is let go
+    policyDrag.drop.className = 'policy-drop';
+    policyDrag.drop.setAttribute('aria-hidden', 'true');
+    ol.insertBefore(policyDrag.drop, ol.firstChild);
+    policyPlaceDrop(policyDrag);
+    requestAnimationFrame(() => { if (policyDrag) policyDrag.drop.classList.add('is-live'); });
     // window listeners: moving the dragged row in the page would drop pointer capture on the handle
     window.addEventListener('pointermove', policyPointerMove);
     window.addEventListener('pointerup', policyPointerUp);
@@ -443,7 +452,14 @@ function policyPointerMove(event) {
     let next = drag.row.nextElementSibling;
     while (next && !next.classList.contains('policy-row')) next = next.nextElementSibling;
     if (target !== next) policyFlip(drag.ol, drag.row, () => drag.ol.insertBefore(drag.row, target));
+    policyPlaceDrop(drag);
     drag.row.style.transform = `translateY(${y - drag.grabOffset - drag.row.offsetTop}px)`;
+}
+
+// the slot is where the row sits in the list; the row itself follows the pointer
+function policyPlaceDrop(drag) {
+    drag.drop.style.top = `${drag.row.offsetTop + 4}px`;
+    drag.drop.style.height = `${Math.max(0, drag.row.offsetHeight - 8)}px`;
 }
 
 function policyPointerUp(event) {
@@ -456,6 +472,7 @@ function policyPointerUp(event) {
     drag.row.style.transition = 'transform 160ms ease';
     drag.row.style.transform = '';
     setTimeout(() => {
+        drag.drop.remove();
         drag.row.style.transition = '';
         drag.row.classList.remove('is-dragging');
         drag.ol.classList.remove('is-sorting');
@@ -530,19 +547,64 @@ function savePolicyOrder(ids, previous, movedRow) {
 function loadPolicyPreview() {
     const box = document.getElementById('policy-preview');
     if (!box) return Promise.resolve();
-    return policyRequest('/api/admin/server-schedules/preview?days=7', { method: 'GET', cache: 'no-store' }, 'The preview is not available')
+    const from = policyPreviewStart ? `&from=${policyPreviewStart}` : '';
+    return policyRequest(`/api/admin/server-schedules/preview?days=7${from}`, { method: 'GET', cache: 'no-store' }, 'The preview is not available')
         .then((data) => renderPolicyPreview(data.preview))
         .catch((error) => {
             console.error('❌ Error loading the policy preview:', error);
+            if (policyPreviewStart) showNotification(error.message, 'error');
             if (!box.children.length) box.innerHTML = `<p class="policy-empty">${escapeHtmlSafe(error.message)}</p>`;
         });
+}
+
+const policyYmd = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+// the calendar goes from 2 years back to 5 years ahead
+function policyPreviewLimits() {
+    const now = new Date();
+    return [policyYmd(new Date(now.getFullYear() - 2, now.getMonth(), now.getDate())), policyYmd(new Date(now.getFullYear() + 5, now.getMonth(), now.getDate()))];
+}
+
+// '' or today goes back to "Next 7 days"
+function setPolicyPreviewStart(value) {
+    const today = policyYmd(new Date());
+    const [min, max] = policyPreviewLimits();
+    if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value < min || value > max)) {
+        showNotification(`Pick a date from ${policyDateText(min)} to ${policyDateText(max)}.`, 'error');
+        const input = document.getElementById('policy-preview-date');
+        if (input) input.value = policyPreviewShown || today;
+        return;
+    }
+    policyPreviewStart = value && value !== today ? value : null;
+    loadPolicyPreview();
+}
+
+function shiftPolicyPreview(days) {
+    const [y, m, d] = (policyPreviewShown || policyYmd(new Date())).split('-').map(Number);
+    setPolicyPreviewStart(policyYmd(new Date(y, m - 1, d + days)));
+}
+
+// the title, the date box and the Today button follow the days shown
+function renderPolicyPreviewNav(preview) {
+    policyPreviewShown = preview.start;
+    const isToday = preview.start === preview.today;
+    const title = document.getElementById('policy-preview-title');
+    if (title) title.textContent = isToday ? 'Next 7 days' : `7 days from ${policyDateText(preview.start)}`;
+    const input = document.getElementById('policy-preview-date');
+    if (input) {
+        [input.min, input.max] = policyPreviewLimits();
+        if (document.activeElement !== input) input.value = preview.start;
+    }
+    const today = document.getElementById('policy-preview-today');
+    if (today) today.disabled = isToday;
 }
 
 function renderPolicyPreview(preview) {
     const box = document.getElementById('policy-preview');
     if (!box || !preview) return;
+    renderPolicyPreviewNav(preview);
     // the 60 s refresh only moves the "now" line when the bars did not change, so keyboard focus stays put
-    const key = JSON.stringify(preview.days);
+    const key = JSON.stringify([preview.start, preview.manual, preview.days]);
     const nowLine = box.querySelector('.policy-now');
     if (key === policyPreviewKey && nowLine) {
         nowLine.style.left = `${(preview.nowMin / 14.4).toFixed(3)}%`;
@@ -555,7 +617,8 @@ function renderPolicyPreview(preview) {
         const [y, m, d] = day.date.split('-').map(Number);
         const isToday = day.date === preview.today;
         const label = isToday ? 'Today' : new Date(y, m - 1, d).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' });
-        const segments = day.segments.map((s) => {
+        // manual mode pauses the policies, so nothing is drawn
+        const segments = preview.manual ? '' : day.segments.map((s) => {
             const what = s.on ? 'Active: the kiosk runs' : 'Stop: the kiosk is off';
             const when = `${s.from} to ${s.to}, priority ${s.position}`;
             const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'kiosk off'}, priority ${s.position}`;
@@ -564,7 +627,8 @@ function renderPolicyPreview(preview) {
         const now = isToday ? `<span class="policy-now" style="left:${(preview.nowMin / 14.4).toFixed(3)}%"></span>` : '';
         return `<div class="policy-day"><span class="policy-day-label${isToday ? ' is-today' : ''}">${escapeHtmlSafe(label)}</span><div class="policy-track">${segments}${now}</div></div>`;
     }).join('');
-    box.innerHTML = `<div class="policy-axis"><span></span><div class="policy-axis-track">${axis}</div></div>${rows}`;
+    const note = preview.manual ? '<p class="policy-preview-note">Manual mode is on, so the policies are paused and nothing runs on its own. Switch back to automatic mode under Controls to see their plan.</p>' : '';
+    box.innerHTML = `${note}<div class="policy-axis"><span></span><div class="policy-axis-track">${axis}</div></div>${rows}`;
     bindPolicyTips(box);
     if (focused) {
         const again = box.querySelector(`[data-slot="${focused}"]`);
@@ -653,6 +717,9 @@ async function toggleServerMode() {
             // Refresh server status
             checkServerStatus();
             loadAutomationStatus();
+            // <Jun Kai start>
+            loadPolicyPreview();
+            // <Jun Kai end>
             
         } else {
             showNotification(data.error || 'Failed to change mode', 'error');
@@ -703,7 +770,6 @@ async function checkServerStatus() {
         const statusIndicator = document.getElementById('server-status-indicator');
         
         if (!statusIndicator) return;
-        if (data.success) updateDailyOperationButton(data.kiosk_running === true);
         
         if (data.success) {
             if (data.kiosk_running) {
@@ -721,78 +787,6 @@ async function checkServerStatus() {
         if (statusIndicator) {
             statusIndicator.innerHTML = uiPill('warn', 'Cannot check status');
         }
-    }
-}
-
-// One-button End Day / Start Day kiosk control for admins (Done by Caeden)
-function updateDailyOperationButton(isRunning) {
-    const button = document.getElementById('daily-operation-toggle-btn');
-    const hint = document.getElementById('daily-operation-hint');
-
-    if (!button) return;
-
-    button.disabled = false;
-    button.dataset.running = isRunning ? 'true' : 'false';
-    button.textContent = isRunning ? 'End the day' : 'Start the day';
-    button.className = isRunning ? 'ui-btn ui-btn-danger' : 'ui-btn ui-btn-primary';
-
-    if (hint) {
-        hint.textContent = isRunning
-            ? 'The kiosk is running. End the day switches to manual mode and hibernates this PC.'
-            : 'The kiosk is stopped. Start the day switches to manual mode and starts the kiosk server.';
-    }
-}
-
-async function setServerModeForDailyOperation() {
-    const response = await fetch('/api/admin/server/mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'manual' })
-    });
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to switch to manual mode');
-    }
-
-    const toggle = document.getElementById('auto-mode-toggle');
-    if (toggle) toggle.checked = false;
-    updateModeUI(false);
-}
-
-async function toggleDailyOperation() {
-    const button = document.getElementById('daily-operation-toggle-btn');
-    const statusResponse = await fetch('/api/admin/server/status');
-    const statusData = await statusResponse.json();
-    const isRunning = statusData.success ? statusData.kiosk_running === true : button?.dataset?.running === 'true';
-    const action = isRunning ? 'end the day and hibernate this PC (the wall and tablets go dark until it is woken)' : 'start the day and turn the kiosk on';
-
-    if (!confirm(`Are you sure you want to ${action}?`)) return;
-
-    if (button) {
-        button.disabled = true;
-        button.textContent = isRunning ? 'Hibernating' : 'Starting';
-    }
-
-    try {
-        await setServerModeForDailyOperation();
-
-        const response = await fetch(isRunning ? '/api/admin/server/stop' : '/api/admin/server/start', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || 'Daily operation failed');
-        }
-
-        showNotification(data.message || (isRunning ? 'End Day complete. Kiosk is off.' : 'Start Day complete. Kiosk is on.'), 'success');
-        setTimeout(() => checkServerStatus(), 2000);
-    } catch (error) {
-        console.error('Daily operation error:', error);
-        showNotification(error.message || 'Daily operation failed', 'error');
-        checkServerStatus();
     }
 }
 
@@ -975,7 +969,6 @@ window.serverScheduleManager = {
     loadPolicyPreview,
     startServer,
     stopServer,
-    toggleDailyOperation,
     restartServer,
     loadServerMode,
     toggleServerMode,
@@ -1092,8 +1085,9 @@ function renderAutomationStatus(a) {
             : (wake.task.nextRun ? `Next wake ${wake.task.nextRun}` : 'Scheduled task present'));
     } else {
         // <Jun Kai start>
-        setAutomationText('automation-wake-status', a.wakeNeeded ? 'Missing' : 'Not needed');
-        setAutomationText('automation-wake-detail', a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
+        const paused = a.mode && a.mode !== 'auto';
+        setAutomationText('automation-wake-status', paused ? 'Paused' : a.wakeNeeded ? 'Missing' : 'Not needed');
+        setAutomationText('automation-wake-detail', paused ? 'Manual mode: the policies do not wake the PC' : a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
         // <Jun Kai end>
     }
 

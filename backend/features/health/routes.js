@@ -5,6 +5,8 @@ const auth = require('../../core/auth');
 const checks = require('./checks');
 // <Jun Kai start>
 const layout = require('./layout');
+const tabletNames = require('./tabletNames');
+const db = require('../../core/db');
 // <Jun Kai end>
 
 const router = express.Router();
@@ -40,6 +42,27 @@ router.put('/layout', auth.requireAuth, (req, res) => {
         console.error('❌ Could not save the health layout:', error);
         res.status(500).json({ success: false, error: 'Could not save your choice' });
     }
+});
+
+// PUT /api/admin/health/tablets/:deviceId/name  { name }  an empty name shows the device name again
+router.put('/tablets/:deviceId/name', auth.requireAuth, (req, res) => {
+    const deviceId = String(req.params.deviceId || '');
+    if (!tabletNames.isDeviceId(deviceId)) return res.status(400).json({ success: false, error: 'Not a device id' });
+    db.get('SELECT device_id FROM device_heartbeats WHERE device_id = ?', [deviceId], (err, row) => {
+        if (err) {
+            console.error('❌ Could not look up the tablet:', err.message);
+            return res.status(500).json({ success: false, error: 'Could not look up the tablet' });
+        }
+        if (!row) return res.status(404).json({ success: false, error: 'No tablet with that id has reported yet' });
+        try {
+            const result = tabletNames.setName(deviceId, (req.body || {}).name);
+            if (result.error) return res.status(result.status || 400).json({ success: false, error: result.error });
+            res.json({ success: true, deviceId, name: result.name });
+        } catch (error) {
+            console.error('❌ Could not save the tablet name:', error);
+            res.status(500).json({ success: false, error: 'Could not save the name' });
+        }
+    });
 });
 // <Jun Kai end>
 

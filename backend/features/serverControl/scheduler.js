@@ -17,12 +17,23 @@ function automationSetting() {
     return ['off', 'dry-run'].includes(value) ? value : 'on';
 }
 
+// The wake timer only holds wake-ups in AUTO mode: manual mode pauses the policies, so nothing may wake the PC
+function syncWake(list) {
+    if (control.readModeConfig().mode === 'auto') wakeTask.sync(list);
+    else wakeTask.clear();
+}
+
 // The wake task covers 14 days, so rebuild it on the first tick of each day (also right after the PC resumes)
 function syncWakeDaily(list, now) {
     const today = policies.localYmd(now);
     if (state.wakeSyncDay === today) return;
     state.wakeSyncDay = today;
-    wakeTask.sync(list);
+    syncWake(list);
+}
+
+// POST /api/admin/server/mode calls this: AUTO rebuilds the wake-ups at once, manual removes them
+function modeChanged() {
+    if (state.started && state.enabled) syncWake(control.readSchedulesConfig().schedules);
 }
 
 function tick(now = new Date()) {
@@ -64,7 +75,7 @@ function start() {
         return;
     }
     wakeTask.setDryRun(state.dryRun);
-    control.onSchedulesChanged((list) => wakeTask.sync(list));
+    control.onSchedulesChanged((list) => syncWake(list));
     syncWakeDaily(control.readSchedulesConfig().schedules, new Date());
     console.log(`⏰ Kiosk automation ${state.dryRun ? 'in DRY RUN (actions are only logged)' : 'on'}: policies apply in AUTO mode`);
     setTimeout(() => {
@@ -89,7 +100,7 @@ function getStatus(callback) {
             activeSchedules: enabledList.length,
             stopPolicies: enabledList.filter((p) => policies.actionOf(p) === 'stop').length,
             activePolicies: enabledList.filter((p) => policies.actionOf(p) === 'active').length,
-            wakeNeeded: policies.wakeTimes(list, now).times.length > 0,
+            wakeNeeded: control.readModeConfig().mode === 'auto' && policies.wakeTimes(list, now).times.length > 0,
             currentWindow: current.on && current.policy ? { schedule: current.policy.schedule_name, until } : null,
             stoppedBy: !current.on && current.policy ? { schedule: current.policy.schedule_name, until } : null,
             nextStart: current.nextStart ? current.nextStart.toISOString() : null,
@@ -100,5 +111,5 @@ function getStatus(callback) {
     });
 }
 
-module.exports = { start, tick, getStatus };
+module.exports = { start, tick, getStatus, modeChanged };
 // <Jun Kai end>

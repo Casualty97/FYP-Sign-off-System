@@ -1134,7 +1134,7 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
                     <td style="padding:10px 12px; font-size:14px; color:#0f172a; font-weight:600; border-bottom:1px solid #e5e7eb;">${escapeHtml(value)}</td>
                 </tr>
             `).join('');
-        console.log(`📧 Preparing to send email to ${email}...`);
+        console.debug(`📧 Preparing to send email to ${email}...`);
         
         if (!emailTransporter) {
             try {
@@ -1158,7 +1158,7 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         }
         
         if (!photoFilename) {
-            console.log('📧 No photo filename supplied; sending badge and visit email without photo attachment.');
+            console.debug('📧 No photo filename supplied; sending badge and visit email without photo attachment.');
         }
         
         let fullPhotoPath = null;
@@ -1173,19 +1173,19 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
                 path.join(paths.ROOT, '..', 'uploads', photoFilename)
             ];
 
-            console.log('🔍 Searching for photo:', photoFilename);
+            console.debug('🔍 Searching for photo:', photoFilename);
 
             for (const photoPath of searchPaths) {
                 if (fs.existsSync(photoPath)) {
                     fullPhotoPath = photoPath;
-                    console.log(`✅ Found photo at: ${fullPhotoPath}`);
+                    console.debug(`✅ Found photo at: ${fullPhotoPath}`);
                     break;
                 }
             }
 
             if (!fullPhotoPath) {
                 console.warn('⚠️ Photo file not found; sending email without photo attachment. Searched in:');
-                searchPaths.forEach(p => console.log('   -', p));
+                searchPaths.forEach(p => console.debug('   -', p));
             }
 
             // Check file size
@@ -1193,7 +1193,7 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
                 try {
                     const stats = fs.statSync(fullPhotoPath);
                     const fileSizeInMB = stats.size / (1024 * 1024);
-                    console.log(`📏 Photo size: ${fileSizeInMB.toFixed(2)}MB`);
+                    console.debug(`📏 Photo size: ${fileSizeInMB.toFixed(2)}MB`);
 
                     if (fileSizeInMB > 25) {
                         console.warn(`⚠️ Photo file too large (${fileSizeInMB.toFixed(2)}MB); sending email without photo attachment.`);
@@ -1337,12 +1337,12 @@ ${footerNote}
             ] : []
         };
 
-        console.log(`📤 Sending email to: ${email}`);
+        console.debug(`📤 Sending email to: ${email}`);
         const info = await emailTransporter.sendMail(mailOptions);
         
-        console.log('✅ Email sent successfully!');
-        console.log('📨 Message ID:', info.messageId);
-        console.log('👤 Recipient:', email);
+        console.debug('✅ Email sent successfully!');
+        console.debug('📨 Message ID:', info.messageId);
+        console.debug('👤 Recipient:', email);
         
         return {
             success: true,
@@ -1367,7 +1367,7 @@ ${footerNote}
 // Send email and update database flag
 async function sendEmailAndUpdateFlag(db, name, email, photoFilename, pledgeText) {
     try {
-        console.log(`📧 Starting email process for ${email} with photo ${photoFilename}`);
+        console.debug(`📧 Starting email process for ${email} with photo ${photoFilename}`);
         
         if (!db) {
             console.error('❌ Database connection not provided');
@@ -1405,8 +1405,8 @@ async function sendEmailAndUpdateFlag(db, name, email, photoFilename, pledgeText
                             });
                         } else {
                             const changes = this.changes || 0;
-                            console.log(`✅ Email sent flag updated in database`);
-                            console.log(`📊 Rows affected: ${changes}`);
+                            console.debug(`✅ Email sent flag updated in database`);
+                            console.debug(`📊 Rows affected: ${changes}`);
                             
                             resolve({
                                 ...result,
@@ -1433,16 +1433,16 @@ async function sendEmailAndUpdateFlag(db, name, email, photoFilename, pledgeText
 // Test email function
 async function testEmailService(testEmail = 'test@example.com') {
     try {
-        console.log('🧪 Testing email service...');
+        console.debug('🧪 Testing email service...');
         
         if (!emailTransporter) {
-            console.log('🔄 Initializing email service...');
+            console.debug('🔄 Initializing email service...');
             await reloadEmailService();
         }
         
         // Verify connection
         const verifyResult = await emailTransporter.verify();
-        console.log('✅ Email service verification passed');
+        console.debug('✅ Email service verification passed');
         
         // Try to send a test email without attachment
         const testMailOptions = {
@@ -1462,11 +1462,11 @@ async function testEmailService(testEmail = 'test@example.com') {
             `
         };
         
-        console.log(`📤 Sending test email to: ${testEmail}`);
+        console.debug(`📤 Sending test email to: ${testEmail}`);
         const info = await emailTransporter.sendMail(testMailOptions);
         
-        console.log('✅ Test email sent successfully!');
-        console.log('📨 Message ID:', info.messageId);
+        console.debug('✅ Test email sent successfully!');
+        console.debug('📨 Message ID:', info.messageId);
         
         return {
             success: true,
@@ -1623,7 +1623,7 @@ const sendBadgeEmail = async (recipientEmail, userData) => {
         };
 
         const info = await emailTransporter.sendMail(mailOptions);
-        console.log(`🏆 Badge email sent to ${recipientEmail}: ${info.messageId}`);
+        console.debug(`🏆 Badge email sent to ${recipientEmail}: ${info.messageId}`);
         return {
             success: true,
             messageId: info.messageId,

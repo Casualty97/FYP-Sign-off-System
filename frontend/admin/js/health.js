@@ -177,24 +177,138 @@ function renderHealthSummary() {
 // <Jun Kai end>
 
 // <Jun Kai start>
-function renderHealthTablets(check) {
+let healthRenaming = null; // the tablet whose name is being typed
+let healthRenameError = '';
+const HEALTH_NAME_ORDER = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+
+function healthTabletCheck() {
+    return ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets') || null;
+}
+
+// same order as the server: named tablets first in number order, the rest as they came
+function healthSortDevices(devices) {
+    return devices.slice().sort((a, b) => {
+        if (!a.name || !b.name) return (a.name ? 0 : 1) - (b.name ? 0 : 1);
+        return HEALTH_NAME_ORDER.compare(a.name, b.name);
+    });
+}
+
+function healthDeviceCell(d) {
+    const agent = String(d.user_agent || '');
+    const kind = /android/i.test(agent) ? 'Android tablet' : /iphone|ipad/i.test(agent) ? 'iOS device' : /windows/i.test(agent) ? 'Windows PC' : 'Browser';
+    const deviceName = d.label || d.device_id;
+    const id = escapeHtmlSafe(d.device_id);
+    if (healthRenaming === d.device_id) {
+        return `<form class="health-rename" data-device="${id}" novalidate>
+                    <input class="ui-input" type="text" maxlength="40" autocomplete="off" value="${escapeHtmlSafe(d.name || '')}" placeholder="${escapeHtmlSafe(deviceName)}" aria-label="Name for ${escapeHtmlSafe(deviceName)}" aria-describedby="health-rename-help"${healthRenameError ? ' aria-invalid="true"' : ''}>
+                    <div class="ui-help${healthRenameError ? ' is-error' : ''}" id="health-rename-help"${healthRenameError ? ' role="alert"' : ''}>${escapeHtmlSafe(healthRenameError || 'A name or a number. Leave it empty to use the device name.')}</div>
+                    <button type="submit" class="ui-btn ui-btn-primary">Save</button>
+                    <button type="button" class="ui-btn ui-btn-secondary" data-rename-cancel>Cancel</button>
+                </form>`;
+    }
+    const shown = d.name || deviceName;
+    return `<div class="health-device-cell">
+                <div class="health-device-text">
+                    <div class="health-device">${escapeHtmlSafe(shown)}</div>
+                    <div class="ui-muted">${d.name ? `<span class="health-nowrap">${escapeHtmlSafe(deviceName)}</span> · ` : ''}<span class="health-nowrap">${escapeHtmlSafe(kind)}</span></div>
+                </div>
+                <button type="button" class="ui-btn ui-btn-icon health-rename-btn" data-rename="${id}" aria-label="Rename ${escapeHtmlSafe(shown)}" title="Rename">${uiIcon('edit', 15)}</button>
+            </div>`;
+}
+
+function renderHealthTablets(check, force) {
     const body = document.getElementById('health-tablets');
     if (!body) return;
+    bindHealthTablets();
+    // the 30-second refresh must not wipe a name that is being typed; the table catches up when it closes
+    if (!force && healthRenaming && body.querySelector('.health-rename')) return;
     const devices = (check && check.detail && check.detail.devices) || [];
     if (!devices.length) {
         body.innerHTML = `<tr><td colspan="4" class="ui-empty">${escapeHtmlSafe(check && check.summary ? check.summary : 'No tablet has reported yet')}</td></tr>`;
         return;
     }
-    body.innerHTML = devices.map((d) => {
-        const agent = String(d.user_agent || '');
-        const kind = /android/i.test(agent) ? 'Android tablet' : /iphone|ipad/i.test(agent) ? 'iOS device' : /windows/i.test(agent) ? 'Windows PC' : 'Browser';
-        return `<tr class="${d.online ? '' : 'health-row-offline'}">
-                    <td><div class="health-device">${escapeHtmlSafe(d.label || d.device_id)}</div><div class="ui-muted">${kind}</div></td>
+    body.innerHTML = devices.map((d) => `<tr class="${d.online ? '' : 'health-row-offline'}">
+                    <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
                     <td>${d.online ? uiPill('ok', 'Online') : uiPill('muted', healthRelativeTime(d.seconds_ago))}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
-                </tr>`;
-    }).join('');
+                </tr>`).join('');
+}
+
+function bindHealthTablets() {
+    const body = document.getElementById('health-tablets');
+    if (!body || body.dataset.bound) return;
+    body.dataset.bound = '1';
+    body.addEventListener('click', (event) => {
+        const open = event.target.closest('[data-rename]');
+        if (open) startHealthRename(open.dataset.rename);
+        else if (event.target.closest('[data-rename-cancel]')) stopHealthRename();
+    });
+    body.addEventListener('submit', (event) => {
+        const form = event.target.closest('.health-rename');
+        if (!form) return;
+        event.preventDefault();
+        saveHealthRename(form);
+    });
+    body.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && event.target.closest('.health-rename')) {
+            event.preventDefault();
+            stopHealthRename();
+        }
+    });
+}
+
+function startHealthRename(deviceId) {
+    healthRenaming = deviceId;
+    healthRenameError = '';
+    renderHealthTablets(healthTabletCheck(), true);
+    const input = document.querySelector('#health-tablets .health-rename input');
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
+function stopHealthRename() {
+    const deviceId = healthRenaming;
+    healthRenaming = null;
+    healthRenameError = '';
+    renderHealthTablets(healthTabletCheck(), true);
+    const button = deviceId && document.querySelector(`#health-tablets [data-rename="${deviceId}"]`);
+    if (button) button.focus();
+}
+
+async function saveHealthRename(form) {
+    const deviceId = form.dataset.device;
+    const typed = form.querySelector('input').value;
+    form.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    try {
+        const response = await fetch(`/api/admin/health/tablets/${encodeURIComponent(deviceId)}/name`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: typed })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Could not save the name');
+        const check = healthTabletCheck();
+        const devices = (check && check.detail && check.detail.devices) || [];
+        const device = devices.find((d) => d.device_id === deviceId);
+        if (device) {
+            device.name = data.name;
+            check.detail.devices = healthSortDevices(devices);
+        }
+        showNotification(data.name ? `Tablet renamed to "${data.name}"` : 'The tablet shows its device name again', 'success');
+        stopHealthRename();
+    } catch (error) {
+        healthRenameError = error.message;
+        renderHealthTablets(healthTabletCheck(), true);
+        const input = document.querySelector('#health-tablets .health-rename input');
+        if (input) {
+            input.value = typed;
+            input.focus();
+            input.select();
+        }
+    }
 }
 // <Jun Kai end>
 
@@ -294,15 +408,17 @@ async function loadHealth(refresh) {
     }
 }
 
-// ---------------------------------------------------------------- Customise
+// Customise: which checks this admin keeps on the page
 function toggleHealthCustomise(force) {
     const panel = document.getElementById('health-customise');
     const button = document.getElementById('health-customise-btn');
     if (!panel) return;
     const open = typeof force === 'boolean' ? force : panel.hidden;
+    const hadFocus = panel.contains(document.activeElement);
     panel.hidden = !open;
     if (button) button.setAttribute('aria-expanded', String(open));
     if (open) renderHealthOptions();
+    else if (hadFocus && button) button.focus();
 }
 
 function renderHealthOptions() {
@@ -343,6 +459,13 @@ function bindHealthControls() {
         cards.addEventListener('click', (event) => {
             const button = event.target.closest('[data-remove]');
             if (button) setHealthOption(button.dataset.remove, false);
+        });
+    }
+    const panel = document.getElementById('health-customise');
+    if (panel && !panel.dataset.bound) {
+        panel.dataset.bound = '1';
+        panel.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') toggleHealthCustomise(false);
         });
     }
     const options = document.getElementById('health-options');

@@ -1,7 +1,7 @@
 // Owner: Role 3, Jun Kai.
 // Admin hardware API, mounted at /api/admin/hardware (session required):
 //   GET  /overview            latest sample, sampler status and settings (the stat tiles)
-//   GET  /series?range=24h    averaged samples for the graphs plus the forecast
+//   GET  /series?range=24h    averaged samples for the graphs plus the forecast (1h up to 5y, see ranges.js)
 //   GET  /settings  PUT /settings   interval, retention, forecast horizon
 // <Jun Kai start>
 const express = require('express');
@@ -10,12 +10,11 @@ const db = require('../../core/db');
 const sampler = require('./sampler');
 const settings = require('./settings');
 const forecast = require('./forecast');
+const ranges = require('./ranges');
 
 const router = express.Router();
 const all = (sql, params) => new Promise((resolve, reject) => db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows))));
 
-// range -> [seconds back, bucket seconds]; the bucket keeps every answer under ~200 points
-const RANGES = { '1h': [3600, 60], '6h': [6 * 3600, 300], '24h': [24 * 3600, 600], '7d': [7 * 86400, 3600], '30d': [30 * 86400, 4 * 3600] };
 const FORECAST_BUCKET_SECONDS = 600;
 const NUMBER_KEYS = ['cpu', 'memory', 'disk', 'gpu', 'diskUsedGb', 'diskTotalGb', 'memoryUsedMb', 'gpuMemoryUsedMb'];
 
@@ -85,17 +84,17 @@ router.get('/overview', auth.requireAuth, async (req, res) => {
             }
         }
         const counts = await all('SELECT COUNT(*) AS total, SUM(sampled_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS day FROM hardware_samples', []);
-        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0) }, serverTime: new Date().toISOString() } });
+        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), limits: settings.LIMITS, stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0) }, serverTime: new Date().toISOString() } });
     } catch (error) { fail(res, error, 'overview'); }
 });
 
 router.get('/series', auth.requireAuth, async (req, res) => {
     try {
-        const range = typeof req.query.range === 'string' && Object.prototype.hasOwnProperty.call(RANGES, req.query.range) ? req.query.range : '24h';
-        const [secondsBack, bucketSeconds] = RANGES[range];
-        const points = await bucketedRows(secondsBack, bucketSeconds);
+        const range = ranges.parse(req.query.range === undefined ? '24h' : req.query.range);
+        if (!range) return res.status(400).json({ success: false, error: 'range must be 1 hour to 5 years, written like 12h, 10d, 3w, 6mo or 2y' });
+        const points = await bucketedRows(range.seconds, range.bucketSeconds);
         const current = settings.read();
-        res.json({ success: true, range, bucketSeconds, points, forecast: await buildForecast(current.forecastHours), serverTime: new Date().toISOString() });
+        res.json({ success: true, range: range.key, seconds: range.seconds, bucketSeconds: range.bucketSeconds, points, forecast: await buildForecast(current.forecastHours), serverTime: new Date().toISOString() });
     } catch (error) { fail(res, error, 'series'); }
 });
 

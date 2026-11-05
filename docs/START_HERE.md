@@ -115,6 +115,8 @@ additively and you tell Jun Kai. Your own folders are yours.
    ```
    Open `backend\.env` in VS Code and fill in: `ENCRYPTION_KEY=` the 64-character value the command printed,
    `SESSION_SECRET=` any random text, and `KIOSK_AUTOMATION=off` (important on a laptop). Leave the rest.
+   The terminal only shows startup lines, real actions, warnings and errors; add `LOG_LEVEL=debug` to see every
+   request while you debug.
 5. Apply the migrations and start:
    ```powershell
    npm run db:migrate

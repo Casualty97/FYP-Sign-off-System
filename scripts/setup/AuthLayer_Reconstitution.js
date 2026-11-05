@@ -38,7 +38,7 @@
 // ==================== 1. IMPORTS & CONFIGURATION ====================
 
 // MySQL2 promise library for async database operations
-require('dotenv').config({ path: require('path').join(__dirname, '..', '..', 'backend', '.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', 'backend', '.env'), quiet: true });
 const mysql = require('mysql2/promise');
 
 // Password hashing library using bcrypt algorithm
