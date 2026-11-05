@@ -3598,7 +3598,7 @@
                             <li class="policy-empty">Loading policies</li>
                         </ol>
                         <div class="ui-card-body policy-rules">
-                            <p class="ui-help">New policies are placed for you: a single date goes above weekdays, weekdays above months, months above every day, and at the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
+                            <p class="ui-help">New policies are placed for you: a single date goes above days of the week, days of the week above months, months above every day, and at the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
                         </div>
                         <div class="ui-sr-only" id="policy-live" aria-live="polite"></div>
                     </div>
@@ -3672,7 +3672,7 @@
                         <div class="policy-modal-header">
                             <div>
                                 <h3 class="modal-title" id="policy-modal-title">New policy</h3>
-                                <p class="ui-help">Active keeps the kiosk running for these hours. Stop keeps it off, even when an Active policy says otherwise.</p>
+                                <p class="ui-help">Active keeps the kiosk running for these hours. Stop keeps it off. Where policies overlap, the one higher in the list wins.</p>
                             </div>
                             <button type="button" class="ui-btn ui-btn-icon" onclick="closeModal('schedule-modal')" aria-label="Close">&times;</button>
                         </div>
@@ -3693,7 +3693,7 @@
                                     <label class="ui-label" for="schedule-type">Repeats</label>
                                     <select class="ui-select" id="schedule-type" onchange="updateFormFields()">
                                         <option value="daily">Every day</option>
-                                        <option value="weekly">Selected weekdays</option>
+                                        <option value="weekly">Days of the week</option>
                                         <option value="monthly">Selected months</option>
                                         <option value="specific_date">One date</option>
                                     </select>
@@ -3703,7 +3703,7 @@
                                     <input class="ui-input" type="date" id="specific-date" onchange="updateFormFields()">
                                 </div>
                                 <div class="ui-field ui-field-wide" id="weekly-days-section" hidden>
-                                    <span class="ui-label" id="policy-days-label">Weekdays</span>
+                                    <span class="ui-label" id="policy-days-label">Days</span>
                                     <div class="ui-chips" role="group" aria-labelledby="policy-days-label">
                                         <label class="ui-chip"><input type="checkbox" name="day" value="2" onchange="updateFormFields()"><span>Mon</span></label>
                                         <label class="ui-chip"><input type="checkbox" name="day" value="3" onchange="updateFormFields()"><span>Tue</span></label>

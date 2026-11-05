@@ -12,11 +12,12 @@ const router = express.Router();
 // <Jun Kai start>
 const userKey = (req) => (req.session && req.session.user && req.session.user.id) || 'anonymous';
 
-// GET /api/admin/health[?refresh=email]  the checks this admin shows; refresh=email re-runs the (cached) SMTP login test
+// GET /api/admin/health[?refresh=email][&all=1]  the checks this admin shows (all=1: every check, for scripts);
+// refresh=email re-runs the (cached) SMTP login test
 router.get('/', auth.requireAuth, async (req, res) => {
     try {
         const hidden = layout.hiddenFor(userKey(req));
-        const health = await checks.runAll({ refreshEmail: req.query.refresh === 'email', skip: hidden });
+        const health = await checks.runAll({ refreshEmail: req.query.refresh === 'email', skip: req.query.all === '1' ? [] : hidden });
         res.json({ success: true, health: { ...health, hidden } });
     } catch (error) {
         console.error('❌ Health checks failed:', error);

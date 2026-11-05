@@ -123,7 +123,7 @@ function tinyPng() {
     if (cookie) {
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
-      await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai start>
       await expect('GET /api/admin/hardware/overview with the session', `${BASE}/api/admin/hardware/overview`, (r) => r.body && r.body.success === true && !!r.body.overview && typeof r.body.overview.settings === 'object' || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/hardware/series?range=1h with the session', `${BASE}/api/admin/hardware/series?range=1h`, (r) => r.body && r.body.success === true && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
@@ -139,7 +139,7 @@ function tinyPng() {
       await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', page: 'feedback' }));
       // a failing tablets query only turns the card to unknown, so check the row really comes back
       if (cookie) {
-        await expect('GET /api/admin/health lists the smoke tablet', `${BASE}/api/admin/health`, (r) => {
+        await expect('GET /api/admin/health lists the smoke tablet', `${BASE}/api/admin/health?all=1`, (r) => {
           const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
           const devices = (tablets && tablets.detail && tablets.detail.devices) || [];
           return devices.some((d) => d.device_id === 'smoke-tablet-01') || `tablets: ${JSON.stringify(tablets && { status: tablets.status, summary: tablets.summary }).slice(0, 160)}`;

@@ -10,7 +10,7 @@ const wakeTask = require('./wakeTask');
 // <Jun Kai start>
 const policies = require('./policies');
 
-const state = { started: false, enabled: true, dryRun: false, lastTick: null, lastStartAttempt: 0, timer: null, wakeSyncDay: null };
+const state = { started: false, enabled: true, dryRun: false, lastTick: null, lastStartAttempt: 0, timer: null, wakeSyncDay: null, lastOn: null };
 
 function automationSetting() {
     const value = String(process.env.KIOSK_AUTOMATION || 'on').toLowerCase();
@@ -29,9 +29,11 @@ function tick(now = new Date()) {
     state.lastTick = now.toISOString();
     const list = control.readSchedulesConfig().schedules;
     syncWakeDaily(list, now);
+    // worked out in manual mode too, so switching back to automatic at night is not mistaken for a switch-off
+    const decision = policies.decide(list, now, control.readAutomation().lastHibernateKey, { lastOn: state.lastOn });
+    state.lastOn = decision.on;
     if (control.readModeConfig().mode !== 'auto') return;
 
-    const decision = policies.decide(list, now, control.readAutomation().lastHibernateKey);
     if (decision.hibernate) {
         control.setLastHibernateKey(decision.key);
         control.hibernateNow(`the kiosk switched off: ${policies.offReason(decision.due)}`, { dryRun: state.dryRun });
@@ -86,6 +88,8 @@ function getStatus(callback) {
             lastTick: state.lastTick,
             activeSchedules: enabledList.length,
             stopPolicies: enabledList.filter((p) => policies.actionOf(p) === 'stop').length,
+            activePolicies: enabledList.filter((p) => policies.actionOf(p) === 'active').length,
+            wakeNeeded: policies.wakeTimes(list, now).times.length > 0,
             currentWindow: current.on && current.policy ? { schedule: current.policy.schedule_name, until } : null,
             stoppedBy: !current.on && current.policy ? { schedule: current.policy.schedule_name, until } : null,
             nextStart: current.nextStart ? current.nextStart.toISOString() : null,

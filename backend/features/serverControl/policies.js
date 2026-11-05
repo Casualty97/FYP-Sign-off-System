@@ -5,7 +5,8 @@
 // <Jun Kai start>
 const TYPES = ['daily', 'monthly', 'weekly', 'specific_date'];
 const SPECIFICITY = { daily: 0, monthly: 1, weekly: 2, specific_date: 3 };
-const TYPE_LABEL = { daily: 'Every day', monthly: 'Selected months', weekly: 'Selected weekdays', specific_date: 'One date' };
+const TYPE_LABEL = { daily: 'Every day', monthly: 'Selected months', weekly: 'Days of the week', specific_date: 'One date' };
+const FAR_DAYS = 400; // how far to look for the next switch when the near window has none
 
 const actionOf = (policy) => (policy && policy.action === 'stop' ? 'stop' : 'active');
 const isEnabled = (policy) => !!policy && policy.is_active !== false && policy.is_active !== 'false';
@@ -106,19 +107,29 @@ function transitions(policies, from, to) {
     return changes;
 }
 
-// What the scheduler should do now. It hibernates only right after an on -> off change (within graceMs), never
-// just because the state is off, so a PC switched on by hand at night is left alone.
-function decide(policies, now, lastKey, graceMs = 90 * 1000) {
+// What the scheduler should do now. It hibernates only right after the kiosk switched off: at an on -> off change
+// in the timeline (within graceMs), or because a policy change turned it off since the last tick (lastOn = what the
+// last tick saw). Never just because the state is off, so a PC switched on by hand at night is left alone. A gap
+// that ends within minGapMs is not worth sleeping through: the wake timer would already be in the past.
+function decide(policies, now, lastKey, { graceMs = 90 * 1000, lastOn = null, minGapMs = 5 * 60 * 1000 } = {}) {
     const winner = winnerAt(policies, now);
     const on = !!winner && actionOf(winner.policy) === 'active';
     const offs = transitions(policies, new Date(now.getTime() - graceMs), new Date(now.getTime() + 1)).filter((c) => !c.on);
-    const due = offs.length ? offs[offs.length - 1] : null;
-    const key = due ? `off|${due.at.toISOString()}` : null;
-    return { on, winner, due, key, hibernate: !!due && !on && key !== lastKey };
+    let due = offs.length ? offs[offs.length - 1] : null;
+    let key = due ? `off|${due.at.toISOString()}` : null;
+    if (!on && !due && lastOn === true) {
+        due = { at: now, on: false, policy: winner ? winner.policy : null, previous: null, edited: true };
+        key = `off|edit|${now.toISOString().slice(0, 16)}`;
+    }
+    const backSoon = !on && !!due && transitions(policies, now, new Date(now.getTime() + minGapMs)).some((c) => c.on);
+    return { on, winner, due, key, backSoon, hibernate: !!due && !on && key !== lastKey && !backSoon };
 }
 
 function offReason(change) {
     if (!change) return 'policies';
+    if (change.edited) {
+        return change.policy ? `a policy change, stop policy "${change.policy.schedule_name}" is in force` : 'a policy change, no policy keeps it on';
+    }
     if (change.policy && actionOf(change.policy) === 'stop') return `stop policy "${change.policy.schedule_name}" starts`;
     return change.previous ? `"${change.previous.schedule_name}" ends` : 'no policy is in force';
 }
@@ -127,7 +138,8 @@ function offReason(change) {
 function status(policies, now, horizonDays = 14) {
     const end = dayStart(now, horizonDays + 1);
     const segments = timeline(policies, now, end);
-    const changes = transitions(policies, now, end);
+    let changes = transitions(policies, now, end);
+    if (!changes.some((c) => c.on) || !changes.some((c) => !c.on)) changes = transitions(policies, now, dayStart(now, FAR_DAYS));
     const current = segments[0] || null;
     const nextStart = changes.find((c) => c.on);
     const nextStop = changes.find((c) => !c.on);
@@ -140,12 +152,15 @@ function status(policies, now, horizonDays = 14) {
     };
 }
 
-// When Windows should wake the PC: a few minutes before every off -> on switch in the next `days` days
+// When Windows should wake the PC: a few minutes before every off -> on switch in the next `days` days. When a
+// long Stop period leaves none in that window, the first switch-on after it is kept, or the PC would never wake.
 function wakeTimes(policies, now, { days = 14, leadMinutes = 3, max = 40 } = {}) {
-    const all = transitions(policies, now, dayStart(now, days + 1))
+    const switchOns = (to) => transitions(policies, now, to)
         .filter((c) => c.on)
         .map((c) => new Date(c.at.getTime() - leadMinutes * 60 * 1000))
         .filter((t) => t > now);
+    let all = switchOns(dayStart(now, days + 1));
+    if (!all.length) all = switchOns(dayStart(now, FAR_DAYS)).slice(0, 1);
     return { times: all.slice(0, max), dropped: Math.max(0, all.length - max) };
 }
 
@@ -176,10 +191,28 @@ function preview(policies, now, days = 7) {
 // Default priority: more specific first (one date > weekdays > months > every day), then Stop before Active
 const rank = (policy) => (SPECIFICITY[policy.schedule_type] || 0) * 2 + (actionOf(policy) === 'stop' ? 1 : 0);
 
-// Where a new (or re-ranked) policy goes: just above the first policy it outranks, so manual order elsewhere stays
+// Where a new (or re-ranked) policy goes. Only Active-against-Stop pairs matter (two Active or two Stop policies never
+// disagree), so pick the place that breaks the fewest default rules among those pairs, as close as possible to "just
+// above the first policy it outranks". In a list in default order that is exactly that place; after manual drags it
+// keeps a new policy from jumping above, say, a one-date Stop that should still beat it.
 function insertIndex(list, policy) {
-    const i = list.findIndex((other) => other !== policy && other.id !== policy.id && rank(policy) > rank(other));
-    return i === -1 ? list.length : i;
+    const others = list.filter((other) => other !== policy && other.id !== policy.id);
+    const first = others.findIndex((other) => rank(policy) > rank(other));
+    const preferred = first === -1 ? others.length : first;
+    const cost = (p) => others.reduce((sum, other, i) => {
+        if (actionOf(other) === actionOf(policy)) return sum;
+        return sum + ((rank(policy) > rank(other)) === (p <= i) ? 0 : 1);
+    }, 0);
+    let best = preferred;
+    let bestCost = cost(preferred);
+    for (let p = 0; p <= others.length; p++) {
+        const c = cost(p);
+        if (c < bestCost || (c === bestCost && Math.abs(p - preferred) < Math.abs(best - preferred))) {
+            best = p;
+            bestCost = c;
+        }
+    }
+    return best;
 }
 
 function defaultOrder(list) {
@@ -203,15 +236,22 @@ function validDate(text) {
 
 // Checks a policy from the admin page (merged over `previous` when editing). Returns { policy } or { error }.
 function normalize(input, previous = {}) {
-    const merged = { ...previous, ...input };
-    const name = String(merged.schedule_name || '').trim().replace(/\s+/g, ' ');
+    const merged = { ...previous };
+    for (const [key, value] of Object.entries(input || {})) {
+        if (value !== undefined && value !== null) merged[key] = value; // a missing or null field keeps its saved value
+    }
+    if (typeof merged.schedule_name !== 'string') return { error: 'Give the policy a name' };
+    for (const flag of ['is_active', 'all_day']) {
+        if (merged[flag] !== undefined && typeof merged[flag] !== 'boolean') return { error: `${flag} must be true or false` };
+    }
+    const name = merged.schedule_name.trim().replace(/\s+/g, ' ');
     if (!name) return { error: 'Give the policy a name' };
     if (name.length > 80) return { error: 'The name can be 80 characters at most' };
     if (merged.action !== undefined && merged.action !== null && !['active', 'stop'].includes(merged.action)) {
         return { error: 'A policy is either Active or Stop' };
     }
     if (!TYPES.includes(merged.schedule_type)) return { error: 'Choose how often the policy repeats' };
-    const allDay = merged.all_day === true || merged.all_day === 'true';
+    const allDay = merged.all_day === true;
     const start = allDay ? { h: 0, min: 0 } : parseTime(merged.start_time);
     const end = allDay ? { h: 0, min: 0 } : parseTime(merged.end_time);
     if (!start || !end) return { error: 'Start and stop times must look like 08:00' };
@@ -233,7 +273,7 @@ function normalize(input, previous = {}) {
     };
     if (policy.schedule_type === 'weekly') {
         const days = numberList(merged.days_of_week, 1, 7);
-        if (!days.length) return { error: 'Pick at least one weekday' };
+        if (!days.length) return { error: 'Pick at least one day' };
         policy.days_of_week = days.join(',');
     } else if (policy.schedule_type === 'monthly') {
         const months = numberList(merged.months, 1, 12);

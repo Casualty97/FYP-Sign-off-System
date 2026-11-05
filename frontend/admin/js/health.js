@@ -8,6 +8,7 @@ let healthLoading = false;
 let healthReloadQueued = false;
 let healthLayout = null;   // { options: [{ key, label, description }], hidden: [keys] }
 let healthLast = null;     // the last answer from GET /api/admin/health
+let healthError = null;    // the message of the last failed check run, cleared by the next good one
 
 const HEALTH_STATUS_LABEL = { ok: 'Healthy', warn: 'Attention', down: 'Down', unknown: 'Unknown' };
 const HEALTH_STATUS_TONE = { ok: 'ok', warn: 'warn', down: 'down', unknown: 'muted' };
@@ -100,18 +101,26 @@ function renderHealthPlaceholder(key) {
         </div>`;
 }
 
-// Cards for the checks this admin shows: the last result when there is one, a placeholder otherwise
+// Cards for the checks this admin shows: the last result when there is one, a placeholder otherwise.
+// Keyboard focus on a card's remove button survives the redraw (or moves to Customise when that card went away).
 function renderHealthCards() {
     const cards = document.getElementById('health-cards');
     if (!cards) return;
     bindHealthControls();
+    const focused = document.activeElement && cards.contains(document.activeElement) ? document.activeElement.getAttribute('data-remove') : null;
     const visible = healthVisibleKeys();
     if (!visible.length) {
         cards.innerHTML = '<div class="health-empty">Nothing is monitored on this page.<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>';
-        return;
+    } else {
+        const byKey = new Map(((healthLast && healthLast.checks) || []).map((check) => [check.key, check]));
+        cards.innerHTML = visible.map((key) => (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key))).join('');
     }
-    const byKey = new Map(((healthLast && healthLast.checks) || []).map((check) => [check.key, check]));
-    cards.innerHTML = visible.map((key) => (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key))).join('');
+    if (focused) {
+        const again = cards.querySelector(`[data-remove="${focused}"]`);
+        const fallback = document.getElementById('health-customise-btn');
+        if (again) again.focus();
+        else if (fallback) fallback.focus();
+    }
 }
 
 function renderHealthPanels() {
@@ -143,6 +152,12 @@ function renderHealthSummary() {
         overall.innerHTML = '<span class="ui-dot"></span>Nothing selected';
         if (text) text.textContent = 'Open Customise to choose what this page monitors.';
         if (at) at.textContent = '';
+        return;
+    }
+    if (healthError) {
+        overall.className = 'ui-pill ui-pill-down';
+        overall.innerHTML = '<span class="ui-dot"></span>Checks unavailable';
+        if (text) text.textContent = `Could not run the checks: ${healthError}`;
         return;
     }
     if (!healthLast) return;
@@ -204,6 +219,13 @@ function renderHealthServer(check) {
 // <Jun Kai start>
 function renderHealth(health) {
     healthLast = health;
+    healthError = null;
+    // another tab or admin session may have changed the saved choice: the server's list wins
+    if (Array.isArray(health.hidden) && healthLayout && health.hidden.join(',') !== healthLayout.hidden.join(',')) {
+        healthLayout.hidden = HEALTH_ORDER.filter((key) => health.hidden.includes(key));
+        healthRememberHidden(healthLayout.hidden);
+        renderHealthOptions();
+    }
     renderHealthCards();
     renderHealthPanels();
     renderHealthSummary();
@@ -255,6 +277,7 @@ async function loadHealth(refresh) {
         renderHealth(data.health);
     } catch (error) {
         console.error('❌ Error loading health:', error);
+        healthError = error.message;
         const text = document.getElementById('health-summary-text');
         if (text) text.textContent = `Could not run the checks: ${error.message}`;
         const overall = document.getElementById('health-overall');
@@ -292,6 +315,16 @@ function renderHealthOptions() {
     const box = document.getElementById('health-options');
     if (!box || !healthLayout) return;
     bindHealthControls();
+    // already drawn: update the switches in place, so a keyboard user keeps focus on the one they changed
+    const drawn = [...box.querySelectorAll('input[data-key]')];
+    if (drawn.length === healthLayout.options.length && drawn.every((input, i) => input.dataset.key === healthLayout.options[i].key)) {
+        drawn.forEach((input) => {
+            const on = !hidden.includes(input.dataset.key);
+            input.checked = on;
+            input.closest('.health-option').classList.toggle('is-off', !on);
+        });
+        return;
+    }
     box.innerHTML = healthLayout.options.map((option) => {
         const on = !hidden.includes(option.key);
         const label = escapeHtmlSafe(option.label);
@@ -354,12 +387,12 @@ async function saveHealthHidden(hidden) {
     } catch (error) {
         console.error('❌ Could not save the health layout:', error);
         showNotification(error.message, 'error');
-        healthLayout.hidden = previous;
-        healthRememberHidden(previous);
+        // show what the server really kept (another save may have gone through in between)
+        healthLayout = null;
+        await loadHealthLayout();
         renderHealthCards();
         renderHealthPanels();
         renderHealthSummary();
-        renderHealthOptions();
     }
 }
 // <Jun Kai end>

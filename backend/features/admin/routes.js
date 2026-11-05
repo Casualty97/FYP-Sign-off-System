@@ -7321,7 +7321,9 @@ router.put('/server-schedules/:id', auth.requireAuth, (req, res) => {
       config.schedules[index] = updated;
     }
     if (!writeSchedulesConfig(config)) throw new Error('Failed to write config file');
-    res.json({ success: true, message: 'Policy updated', schedule: updated, moved, ...placement(config.schedules, updated) });
+    const where = placement(config.schedules, updated);
+    if (!moved) { where.placedAbove = null; where.reason = null; }
+    res.json({ success: true, message: 'Policy updated', schedule: updated, moved, ...where });
   } catch (err) {
     console.error('❌ Error updating policy:', err);
     res.status(500).json({ success: false, error: 'Failed to update the policy' });

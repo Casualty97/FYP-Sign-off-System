@@ -45,6 +45,18 @@ test('a new policy goes just above the first one it beats and keeps the manual o
     assert.match(policies.placementReason(weekdays({ action: 'stop' }), hours), /Stop policy goes above/);
 });
 
+test('after manual drags a new policy still lands where its Active/Stop rivals expect it', () => {
+    const base = make({ schedule_name: 'base', start_time: '09:00', end_time: '17:00' });
+    const holiday = make({ schedule_name: 'holiday', schedule_type: 'specific_date', specific_date: '2026-11-11', start_time: '00:00', end_time: '00:00', all_day: true, action: 'stop' });
+    const weekday = weekdays({ schedule_name: 'weekday hours' });
+    assert.equal(policies.insertIndex([base, holiday], weekday), 2, 'below the holiday that should beat it, not above');
+    const lunch = weekdays({ schedule_name: 'lunch', start_time: '12:00', end_time: '13:00', action: 'stop' });
+    assert.equal(policies.insertIndex([weekday, holiday], lunch), 0, 'above the Active hours it should beat');
+    const ordered = policies.defaultOrder([base, holiday, weekday, lunch]);
+    const extra = make({ schedule_name: 'extra date', schedule_type: 'specific_date', specific_date: '2026-11-12' });
+    assert.equal(policies.insertIndex(ordered, extra), ordered.findIndex((p) => policies.rank(extra) > policies.rank(p)), 'default order: the plain rule');
+});
+
 test('the first matching policy decides: Stop above Active stops, Active dragged above Stop runs', () => {
     const hours = weekdays({ schedule_name: 'hours' });
     const lunch = make({ schedule_name: 'lunch', schedule_type: 'weekly', days_of_week: '2', start_time: '12:00', end_time: '13:00', action: 'stop' });
@@ -133,6 +145,30 @@ test('your example: Mon 08:00-18:00 and Mon 07:00-17:00 start at 7, ignore the 1
     assert.equal(state.nextStart.getDate(), 16);
 });
 
+test('a policy change that turns the kiosk off now is a switch-off; a very short gap is not', () => {
+    const hours = weekdays({ schedule_name: 'hours' });
+    const stopToday = make({ schedule_name: 'stop today', schedule_type: 'specific_date', specific_date: '2026-11-09', start_time: '09:00', end_time: '17:00', action: 'stop' });
+    const tenOhOne = at(9, 10, 1);
+    const edited = policies.decide([stopToday, hours], tenOhOne, null, { lastOn: true });
+    assert.equal(edited.hibernate, true);
+    assert.match(edited.key, /^off\|edit\|/);
+    assert.match(policies.offReason(edited.due), /policy change.*stop today/);
+    assert.equal(policies.decide([stopToday, hours], tenOhOne, null, { lastOn: false }).hibernate, false, 'already off at the last tick: leave it');
+    assert.equal(policies.decide([stopToday, hours], tenOhOne, edited.key, { lastOn: true }).hibernate, false, 'once only');
+    const morning = make({ schedule_name: 'morning', start_time: '08:00', end_time: '12:00' });
+    const afternoon = make({ schedule_name: 'afternoon', start_time: '12:02', end_time: '18:00' });
+    const gap = policies.decide([morning, afternoon], new Date(2026, 10, 9, 12, 0, 30));
+    assert.equal(gap.backSoon, true);
+    assert.equal(gap.hibernate, false, 'back on in 2 minutes: the wake timer would already be gone');
+});
+
+test('normalize keeps saved values for null fields and checks the types', () => {
+    const saved = { schedule_name: 'lunch', action: 'stop', schedule_type: 'daily', start_time: '12:00', end_time: '13:00', is_active: true };
+    assert.equal(policies.normalize({ action: null }, saved).policy.action, 'stop');
+    assert.match(policies.normalize({ schedule_name: 42 }, saved).error, /name/);
+    assert.match(policies.normalize({ is_active: 'yes' }, saved).error, /is_active/);
+});
+
 test('wake times: three minutes before each switch-on, none for a stop day, capped', () => {
     const hours = weekdays({ schedule_name: 'hours' });
     const holiday = make({ schedule_name: 'holiday', schedule_type: 'specific_date', specific_date: '2026-11-11', start_time: '00:00', end_time: '00:00', all_day: true, action: 'stop' });
@@ -146,9 +182,21 @@ test('wake times: three minutes before each switch-on, none for a stop day, capp
     assert.match(xml[0], /<TimeTrigger><StartBoundary>2026-11-10T07:57:00<\/StartBoundary>/);
 });
 
+test('a long Stop period still leaves one wake-up: the first switch-on after it', () => {
+    const hours = make({ schedule_name: 'hours' });
+    const december = make({ schedule_name: 'closed in December', schedule_type: 'monthly', months: '12', start_time: '00:00', end_time: '00:00', all_day: true, action: 'stop' });
+    const now = new Date(2026, 11, 1, 20, 0);
+    const { times } = policies.wakeTimes([december, hours], now, { days: 14 });
+    assert.deepEqual(times.map((t) => `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()} ${t.getHours()}:${t.getMinutes()}`), ['2027-1-1 7:57']);
+    const state = policies.status([december, hours], now);
+    assert.equal(state.on, false);
+    assert.equal(state.nextStart.getFullYear(), 2027, 'the card shows the far start instead of nothing');
+    assert.equal(policies.wakeTimes([], now).times.length, 0, 'no policies: no wake-up');
+});
+
 test('normalize checks and tidies what the admin page sends', () => {
     assert.match(policies.normalize({ schedule_type: 'daily', start_time: '08:00', end_time: '18:00' }).error, /name/);
-    assert.match(policies.normalize({ schedule_name: 'x', schedule_type: 'weekly', start_time: '08:00', end_time: '18:00', days_of_week: '' }).error, /weekday/);
+    assert.match(policies.normalize({ schedule_name: 'x', schedule_type: 'weekly', start_time: '08:00', end_time: '18:00', days_of_week: '' }).error, /day/);
     assert.match(policies.normalize({ schedule_name: 'x', schedule_type: 'monthly', start_time: '08:00', end_time: '18:00' }).error, /month/);
     assert.match(policies.normalize({ schedule_name: 'x', schedule_type: 'specific_date', specific_date: '2026-02-30', start_time: '08:00', end_time: '18:00' }).error, /date/);
     assert.match(policies.normalize({ schedule_name: 'x', schedule_type: 'daily', start_time: '09:00', end_time: '09:00' }).error, /All day/);

@@ -61,7 +61,7 @@ function policyDateText(ymd) {
 }
 
 function policyRepeatText(p) {
-    if (p.schedule_type === 'weekly') return policyDaysText(p.days_of_week) || 'No weekday picked';
+    if (p.schedule_type === 'weekly') return policyDaysText(p.days_of_week) || 'No day picked';
     if (p.schedule_type === 'monthly') return `Every day in ${policyMonthsText(p.months) || 'no month'}`;
     if (p.schedule_type === 'specific_date') return policyDateText(p.specific_date) || 'No date picked';
     return 'Every day';
@@ -216,7 +216,7 @@ function readPolicyForm() {
 
 function policyFormProblem(p) {
     if (!p.schedule_name) return 'Give the policy a name.';
-    if (p.schedule_type === 'weekly' && !p.days_of_week) return 'Pick at least one weekday.';
+    if (p.schedule_type === 'weekly' && !p.days_of_week) return 'Pick at least one day.';
     if (p.schedule_type === 'monthly' && !p.months) return 'Pick at least one month.';
     if (p.schedule_type === 'specific_date' && !p.specific_date) return 'Pick the date.';
     if (!p.all_day && (!p.start_time || !p.end_time)) return 'Set both times, or tick All day.';
@@ -245,6 +245,8 @@ function updateFormFields() {
     }
     start.disabled = allDay;
     end.disabled = allDay;
+    start.closest('.ui-field').hidden = allDay;
+    end.closest('.ui-field').hidden = allDay;
 
     const box = document.getElementById('policy-summary');
     if (!box) return;
@@ -258,13 +260,13 @@ function updateFormFields() {
     box.classList.remove('is-error');
     const when = {
         daily: 'every day',
-        weekly: `on ${policyDaysText(p.days_of_week) || 'the weekdays you pick'}`,
+        weekly: `on ${policyDaysText(p.days_of_week) || 'the days you pick'}`,
         monthly: `every day in ${policyMonthsText(p.months) || 'the months you pick'}`,
         specific_date: `on ${policyDateText(p.specific_date) || 'the date you pick'}`
     }[p.schedule_type];
     const hours = p.all_day ? 'all day' : `from ${p.start_time || '--:--'} to ${p.end_time || '--:--'}${p.end_time && p.start_time && p.end_time <= p.start_time ? ' the next day' : ''}`;
     let text = p.action === 'stop'
-        ? `The kiosk stays off ${when}, ${hours}, even when an Active policy covers that time.`
+        ? `The kiosk stays off ${when}, ${hours}, unless an Active policy higher in the list covers that time.`
         : `The kiosk runs ${when}, ${hours}.`;
     if (!p.is_active) text += ' It is saved as disabled, so it does nothing until you enable it.';
     box.textContent = text;
@@ -272,9 +274,9 @@ function updateFormFields() {
 
 function policyPlacementMessage(data, created) {
     const name = data.schedule ? `"${data.schedule.schedule_name}"` : 'The policy';
+    if (!created && !data.moved) return `${name} saved.`;
     if (data.placedAbove) return `${name} is priority ${data.position} of ${data.total}, above "${data.placedAbove}": ${data.reason}.`;
-    if (created || data.moved) return `${name} is priority ${data.position} of ${data.total}.`;
-    return `${name} saved.`;
+    return `${name} is priority ${data.position} of ${data.total}.`;
 }
 
 function saveSchedule() {
@@ -364,7 +366,7 @@ function disableAllSchedules() {
 }
 
 function resetPolicyOrder() {
-    if (!confirm('Put every policy back in the default order? Single dates go first, then weekdays, months and every day, with Stop above Active. Orders you dragged by hand are lost.')) return;
+    if (!confirm('Put every policy back in the default order? Single dates go first, then days of the week, months and every day, with Stop above Active. Orders you dragged by hand are lost.')) return;
     policyRequest('/api/admin/server-schedules/reorder', { method: 'POST', body: JSON.stringify({ order: 'default' }) }, 'Could not reset the order')
         .then((data) => {
             schedulesData = data.schedules;
@@ -967,12 +969,23 @@ function setAutomationState(label, tone) {
     pill.innerHTML = `<span class="ui-dot"></span>${escapeHtmlSafe(label)}`;
 }
 
+// <Jun Kai start>
+let lastAutomationStatus = null;
+// <Jun Kai end>
 async function loadAutomationStatus() {
     if (!document.getElementById('automation-card')) return;
     try {
         const response = await fetch('/api/admin/server/automation');
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load automation status');
+        // <Jun Kai start>
+        const a = data.automation;
+        const acting = a.enabled && !a.dryRun && a.mode === 'auto';
+        if (acting && lastAutomationStatus && lastAutomationStatus.currentWindow && !a.currentWindow) {
+            showNotification('The policies now keep the kiosk off, so the PC hibernates within a minute.', 'warning');
+        }
+        lastAutomationStatus = a;
+        // <Jun Kai end>
         renderAutomationStatus(data.automation);
     } catch (error) {
         console.error('❌ Error loading automation status:', error);
@@ -1002,11 +1015,17 @@ function renderAutomationStatus(a) {
         setAutomationText('automation-summary', 'Dry run: actions are only logged (KIOSK_AUTOMATION=dry-run).');
     } else {
         setAutomationState('On', 'ok');
-        setAutomationText('automation-summary', a.currentWindow
-            ? `The kiosk runs until ${formatPlannedTime(a.currentWindow.until)}. "${a.currentWindow.schedule}" is in force now.`
-            : a.stoppedBy
+        let summary = `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'}. The PC hibernates when the kiosk switches off and wakes before it switches on.`;
+        if (a.currentWindow) {
+            summary = a.currentWindow.until
+                ? `The kiosk runs until ${formatPlannedTime(a.currentWindow.until)}. "${a.currentWindow.schedule}" is in force now.`
+                : `The kiosk runs and no policy stops it within a year. "${a.currentWindow.schedule}" is in force now.`;
+        } else if (a.stoppedBy) {
+            summary = a.stoppedBy.until
                 ? `The kiosk is off until ${formatPlannedTime(a.stoppedBy.until)} because of the Stop policy "${a.stoppedBy.schedule}".`
-                : `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'}. The PC hibernates when the kiosk switches off and wakes before it switches on.`);
+                : `The kiosk is off because of the Stop policy "${a.stoppedBy.schedule}", and no policy starts it within a year.`;
+        }
+        setAutomationText('automation-summary', summary);
     }
     // <Jun Kai end>
 
@@ -1030,8 +1049,8 @@ function renderAutomationStatus(a) {
             : (wake.task.nextRun ? `Next wake ${wake.task.nextRun}` : 'Scheduled task present'));
     } else {
         // <Jun Kai start>
-        setAutomationText('automation-wake-status', a.activeSchedules ? 'Missing' : 'Not needed');
-        setAutomationText('automation-wake-detail', a.activeSchedules ? 'Created when a policy is saved while automation is on' : 'No enabled policy');
+        setAutomationText('automation-wake-status', a.wakeNeeded ? 'Missing' : 'Not needed');
+        setAutomationText('automation-wake-detail', a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
         // <Jun Kai end>
     }
 

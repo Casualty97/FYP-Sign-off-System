@@ -209,8 +209,9 @@ function checkAutomation() {
             if (!a.enabled) { status = 'unknown'; summary = 'Automation is off on this machine'; }
             else if (a.mode !== 'auto') { status = 'warn'; summary = 'Manual mode: policies are paused'; }
             else if (!a.activeSchedules) { status = 'warn'; summary = 'AUTO mode but no enabled policy'; }
+            else if (!a.activePolicies) { status = 'warn'; summary = 'AUTO mode but no Active policy, so the kiosk never runs'; }
+            else if (a.wakeNeeded && a.wake && a.wake.supported && a.wake.task && !a.wake.task.exists) { status = 'warn'; summary += ', wake timer missing'; }
             // <Jun Kai end>
-            else if (a.wake && a.wake.supported && a.wake.task && !a.wake.task.exists) { status = 'warn'; summary += ', wake timer missing'; }
             else if (a.wake && a.wake.wakeTimersAllowed === false) { status = 'warn'; summary += ', wake timers blocked by Windows'; }
             resolve({
                 ...base,
