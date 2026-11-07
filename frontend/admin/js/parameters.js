@@ -382,7 +382,6 @@ function populateParameterForm(config) {
     setInputValue('rule-nameMinLength', rules.nameMinLength);
     setInputValue('rule-nameMaxLength', rules.nameMaxLength);
     setCheckedValue('rule-emailRequired', rules.emailRequired);
-    setInputValue('rule-emailPattern', rules.emailPattern);
     setInputValue('rule-dailySubmissionLimitPerEmail', typeof rules.dailySubmissionLimitPerEmail === 'undefined' ? 1 : rules.dailySubmissionLimitPerEmail);
     setCheckedValue('rule-requiredQuestionsEnabled', rules.requiredQuestionsEnabled);
     //pledge required set checked value removed (zihan)
@@ -580,7 +579,6 @@ function collectParameterForm() {
             nameMinLength: Number(getInputValue('rule-nameMinLength')) || 0,
             nameMaxLength: Number(getInputValue('rule-nameMaxLength')) || 80,
             emailRequired: getCheckedValue('rule-emailRequired'),
-            emailPattern: getInputValue('rule-emailPattern') || '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$',
             dailySubmissionLimitPerEmail: Math.max(0, Number(getInputValue('rule-dailySubmissionLimitPerEmail')) || 0),
             requiredQuestionsEnabled: getCheckedValue('rule-requiredQuestionsEnabled'),
             // pledge required  get checked removed (zihan)

@@ -123,11 +123,42 @@ function tinyPng() {
     if (cookie) {
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
+      await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
+      // <Jun Kai start>
+      await expect('GET /api/admin/hardware/overview with the session', `${BASE}/api/admin/hardware/overview`, (r) => r.body && r.body.success === true && !!r.body.overview && typeof r.body.overview.settings === 'object' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series?range=1h with the session', `${BASE}/api/admin/hardware/series?range=1h`, (r) => r.body && r.body.success === true && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series?range=3mo (a custom range)', `${BASE}/api/admin/hardware/series?range=3mo`, (r) => r.body && r.body.success === true && r.body.range === '3mo' && r.body.bucketSeconds === 43200 && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series?range=6y is refused', `${BASE}/api/admin/hardware/series?range=6y`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
+      await expect('GET /api/admin/server-schedules/preview with the session', `${BASE}/api/admin/server-schedules/preview?days=7`, (r) => r.body && r.body.success === true && !!r.body.preview && Array.isArray(r.body.preview.days) && r.body.preview.days.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/server-schedules/preview from a picked date', `${BASE}/api/admin/server-schedules/preview?days=7&from=2027-01-04`, (r) => r.body && r.body.success === true && r.body.preview.start === '2027-01-04' && r.body.preview.days.length === 7 && typeof r.body.preview.manual === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/server-schedules/preview refuses a date that does not exist', `${BASE}/api/admin/server-schedules/preview?from=2026-02-30`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
+      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 8 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('PUT /api/admin/health/tablets/x/name refuses a bad device id', `${BASE}/api/admin/health/tablets/x/name`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ name: 'Tablet 1' }) });
+      // <Jun Kai end>
       await expect('GET /api/admin/server/automation with the session', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.success === true && r.body.automation && r.body.automation.enabled === false || `automation=${JSON.stringify(r.body && r.body.automation).slice(0, 120)}`, { headers: { cookie } });
     }
 
-    // One visitor submission end to end
+    // These write rows, so not in --no-submit mode: one tablet heartbeat, then one visitor submission end to end
     if (!ARGS.has('--no-submit')) {
+      // <Jun Kai start>
+      await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', page: 'feedback' }));
+      // a failing tablets query only turns the card to unknown, so check the row really comes back
+      if (cookie) {
+        await expect('GET /api/admin/health lists the smoke tablet', `${BASE}/api/admin/health?all=1`, (r) => {
+          const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
+          const devices = (tablets && tablets.detail && tablets.detail.devices) || [];
+          return devices.some((d) => d.device_id === 'smoke-tablet-01') || `tablets: ${JSON.stringify(tablets && { status: tablets.status, summary: tablets.summary }).slice(0, 160)}`;
+        }, { headers: { cookie } });
+        const put = (b) => ({ method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(b) });
+        await expect('PUT /api/admin/health/tablets/smoke-tablet-01/name names the smoke tablet', `${BASE}/api/admin/health/tablets/smoke-tablet-01/name`, (r) => r.body && r.body.success === true && r.body.name === 'Smoke tablet 1' || r.text.slice(0, 160), put({ name: '  Smoke   tablet 1 ' }));
+        await expect('GET /api/admin/health shows the tablet name', `${BASE}/api/admin/health?all=1`, (r) => {
+          const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
+          const device = ((tablets && tablets.detail && tablets.detail.devices) || []).find((d) => d.device_id === 'smoke-tablet-01');
+          return device && device.name === 'Smoke tablet 1' || `device: ${JSON.stringify(device || null).slice(0, 160)}`;
+        }, { headers: { cookie } });
+        await expect('PUT an empty name gives the smoke tablet its device name back', `${BASE}/api/admin/health/tablets/smoke-tablet-01/name`, (r) => r.body && r.body.success === true && r.body.name === null || r.text.slice(0, 160), put({ name: '' }));
+      }
+      // <Jun Kai end>
       const stamp = Date.now();
       let photoId = null;
       try {

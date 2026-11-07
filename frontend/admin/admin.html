@@ -113,7 +113,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    $1
+    <title>ESG Centre Sign-Off · Administration</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Cpath d='M22.5 9.5c-6.5 0-11 3.6-11 9.2 0 .8.1 1.5.3 2.2 1.6-3.1 4.4-5.4 8.2-6.6-3.3 2-5.6 4.8-6.9 8.4 1.1.5 2.4.8 3.7.8 5.6 0 8.2-5.2 8.2-11.6 0-.8-.1-1.6-.2-2.4h-2.3z' fill='%23fff'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/admin/admin.css">
 
@@ -150,8 +150,8 @@
         <!-- Header -->
         <header class="admin-header">
             <div class="header-left">
-                <h1>Feedback Kiosk Admin</h1>
-                <p>Manage visitor feedback and system settings</p>
+                <h1>ESG Centre Sign-Off</h1>
+                <p>Administration · Republic Polytechnic</p>
             </div>
             <div class="header-right">
                 <div class="user-info">
@@ -173,23 +173,23 @@
                     <h3>MAIN</h3>
                     <nav>
                         <a href="#" class="nav-item active" onclick="showPage('dashboard')">
-                            <span class="nav-icon">📊</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span>
                             Dashboard
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('feedback-data')">
-                            <span class="nav-icon">💬</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
                             Feedback Data
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('digital-tree')">
-                            <span class="nav-icon">🌳</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 5 11h3.5L5 17h5v5h4v-5h5l-3.5-6H19z"></path></svg></span>
                             Digital Tree
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('pledgeboard')">
-                            <span class="nav-icon">📜</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
                             Pledgeboard
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('theme-settings')">
-                            <span class="nav-icon">🎨</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
                             Style & Theme Settings
                         </a>
                     </nav>
@@ -199,14 +199,30 @@
                     <h3>REPORTS</h3>
                     <nav>
                         <a href="#" class="nav-item" onclick="showPage('feedback-report')">
-                            <span class="nav-icon">📈</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
                             Feedback Reports
                         </a>
                         <!-- Lost and found admin report page - changes made by nick -->
                         <a href="#" class="nav-item" onclick="showPage('lost-found')">
-                            <span class="nav-icon">LF</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
                             Lost &amp; Found Reports
                         </a>
+                    </nav>
+                </div>
+
+                <div class="sidebar-section" id="monitor-section">
+                    <h3>SYSTEM</h3>
+                    <nav>
+                        <a href="#" class="nav-item" onclick="showPage('health')">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+                            System Health
+                        </a>
+                        <!-- <Jun Kai start> -->
+                        <a href="#" class="nav-item" onclick="showPage('hardware')">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span>
+                            Hardware
+                        </a>
+                        <!-- <Jun Kai end> -->
                     </nav>
                 </div>
 
@@ -214,15 +230,15 @@
                     <h3>ADJUSTMENTS</h3>
                     <nav>
                         <a href="#" class="nav-item" onclick="showPage('tree-adjustment')">
-                            <span class="nav-icon">🌴</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
                             Digital Tree Adjustment
                         </a>
                         <a href="/tree-demo" class="nav-item" target="_blank" rel="noopener">
-                            <span class="nav-icon">🎬</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg></span>
                             Tree Animation Demo
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('parameter-adjustment')">
-                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
                             Parameter Adjustment
                         </a>
                     </nav>
@@ -232,59 +248,59 @@
                     <h3>ADMINISTRATION</h3>
                     <nav>
                         <a href="#" class="nav-item" onclick="showPage('asset')">
-                            <span class="nav-icon">🛡️</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg></span>
                             Assets Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('overlay')">
-                            <span class="nav-icon">🎨</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
                             Overlay Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('questions')">
-                            <span class="nav-icon">❓</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                             Question Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('users')">
-                            <span class="nav-icon">👥</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
                             User Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('vip')">
-                            <span class="nav-icon">👑</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
                             VIP Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('email-management')">
-                            <span class="nav-icon">📧</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
                             Email Management
                         </a>
                     <a href="#" class="nav-item" onclick="showPage('badge-email-templates')">
-                        <span class="nav-icon">✉️</span>
+                        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
                         Badge Email Templates
                     </a>
                         <a href="#" class="nav-item" onclick="showPage('form-management')">
-                            <span class="nav-icon">📝</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span>
                             Form Management
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('archive')">
-                            <span class="nav-icon">📚</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
                             Archive
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('audit')">
-                            <span class="nav-icon">📋</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
                             Audit Logs
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('data-export')">
-                            <span class="nav-icon">📦</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
                             Data Export
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('timer-countdown')">
-                            <span class="nav-icon">🕔</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
                             Timer Countdown
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('server-schedule')">
-                            <span class="nav-icon">❗</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span>
                             Server Schedule
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('Feedback-page-QR')">
-                            <span class="nav-icon">📱</span>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14h1v1M14 20h1v1M20 20h1v1M17 20h1v1M20 17h1v1"></path></svg></span>
                             Feedback Page QR Code
                         </a>
                     </nav>
@@ -2380,71 +2396,66 @@
                 
 
                 <!-- Email Management Page (DONE BY NADHIRAH)-->
+                <!-- <Jun Kai start> -->
                 <div id="email-management-page" class="page">
-
-                    <div class="page-header">
-                        <h2>Email Management</h2>
-                        <p>Manage SMTP settings and email configurations</p>
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Email</h2>
+                            <p>The mail account the kiosk sends from: the thank-you email with the visitor photo, badge emails and test messages. Pick a provider, save, then send yourself a test.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button class="ui-btn ui-btn-secondary" type="button" onclick="loadEmailConfig()">Reset</button>
+                            <button class="ui-btn ui-btn-primary" type="button" onclick="saveEmailConfig()">Save</button>
+                        </div>
                     </div>
-
-                    <div class="overlay-section user-section">
-
-                        <div class="section-header">
-                            <h3>SMTP Configuration</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" type="button" onclick="loadEmailConfig()">Reset</button>
-                                <button class="btn-primary" type="button" onclick="saveEmailConfig()">Save</button>
+                    <div class="ui-grid-2">
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Mail account</h3>
+                                    <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-form-grid">
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="email-provider">Provider</label>
+                                        <select class="ui-select" id="email-provider" onchange="renderEmailFields()">
+                                            <option value="gmail">Gmail</option>
+                                            <option value="outlook">Outlook (Office 365)</option>
+                                            <option value="custom">Custom SMTP</option>
+                                        </select>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="sender-email">Sender address (From)</label>
+                                        <input class="ui-input" id="sender-email" type="email" placeholder="noreply@yourdomain.com" autocomplete="off">
+                                        <span class="ui-help">Gmail shows its own address as the sender unless this one is a verified alias.</span>
+                                    </div>
+                                    <div class="ui-field-wide" id="email-fields"></div>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Provider -->
-                        <div class="form-group">
-                            <label for="email-provider">Provider</label>
-                            <select id="email-provider" onchange="renderEmailFields()">
-                                <option value="gmail">Gmail</option>
-                                <option value="outlook">Outlook (Office365)</option>
-                                <option value="custom">Custom SMTP</option>
-                            </select>
-                        </div>
-
-                        <!-- Sender Email -->
-                        <div class="form-group">
-                            <label for="sender-email">Sender Email (From)</label>
-                            <input
-                                id="sender-email"
-                                type="email"
-                                placeholder="e.g. noreply@yourdomain.com"
-                            />
-                        </div>
-
-                        <!-- Dynamic Provider Fields -->
-                        <div id="email-fields"></div>
-
-                        <div class="email-divider"></div>
-
-                        <!-- Test Email -->
-                        <div class="form-group">
-                            <label for="email-test-to">Test Email (optional)</label>
-                            <div class="email-test-row">
-                                <input
-                                    id="email-test-to"
-                                    type="email"
-                                    placeholder="Send a test email to..."
-                                />
-                                <button
-                                    class="btn-secondary"
-                                    type="button"
-                                    onclick="sendTestEmail()"
-                                >
-                                    Send Test Email
-                                </button>
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Test message</h3>
+                                    <p>Sends a short email with the saved settings. Save first, then test.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-field">
+                                    <label class="ui-label" for="email-test-to">Send a test to</label>
+                                    <div class="ui-input-row">
+                                        <input class="ui-input" id="email-test-to" type="email" placeholder="you@example.com" autocomplete="off">
+                                        <button class="ui-btn ui-btn-secondary" type="button" onclick="sendTestEmail()">Send test</button>
+                                    </div>
+                                </div>
+                                <div id="email-status" class="ui-status-slot"></div>
                             </div>
                         </div>
-
-                        <!-- Status -->
-                        <div id="email-status" style="margin-top: 12px;"></div>
                     </div>
                 </div>
+                <!-- <Jun Kai end> -->
 
                 <div id="badge-email-templates-page" class="page">
                     <div class="page-header">
@@ -3268,256 +3279,525 @@
                 </div>
                 
                 <!-- Server Schedule Page (DONE BY BERNISSA) -->
+                <!-- System health (Role 3) -->
+                <div id="health-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>System health</h2>
+                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation. Refreshes every 30 seconds while this page is open.</p>
+                        </div>
+                        <!-- <Jun Kai start> -->
+                        <div class="ui-row">
+                            <button class="ui-btn ui-btn-secondary" id="health-customise-btn" onclick="toggleHealthCustomise()" aria-expanded="false" aria-controls="health-customise">Customise<span class="health-hidden-count" id="health-hidden-count" hidden></span></button>
+                            <button class="ui-btn ui-btn-secondary" id="health-refresh-btn" onclick="loadHealth('email')">Check now</button>
+                        </div>
+                    </div>
+                    <div class="ui-card health-customise" id="health-customise" hidden>
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Monitoring options</h3>
+                                <p>Choose what this page checks and shows. Your choice is saved for your account.</p>
+                            </div>
+                            <div class="ui-row">
+                                <button class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button>
+                                <button type="button" class="ui-btn ui-btn-icon health-customise-close" onclick="toggleHealthCustomise(false)" aria-label="Close monitoring options" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                        </div>
+                        <div class="ui-card-body">
+                            <div class="health-options" id="health-options"></div>
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
+                    <div class="ui-card">
+                        <div class="ui-card-body ui-row ui-row-between">
+                            <div class="ui-row">
+                                <span id="health-overall" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
+                                <span id="health-summary-text" class="ui-mode-desc">Running the checks</span>
+                            </div>
+                            <span id="health-checked-at" class="ui-fact-hint"></span>
+                        </div>
+                    </div>
+                    <div class="health-grid" id="health-cards"></div>
+                    <div class="ui-grid-2" id="health-panels">
+                        <div class="ui-card" id="health-tablets-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Tablets</h3>
+                                    <p>Each kiosk screen reports once a minute from the feedback page. Use the edit button next to a tablet to give it a name or a number.</p>
+                                </div>
+                            </div>
+                            <div class="ui-table-wrap">
+                                <!-- <Jun Kai start> -->
+                                <table class="ui-table">
+                                    <thead><tr><th>Device</th><th>Page</th><th>Status</th><th>Address</th></tr></thead>
+                                    <tbody id="health-tablets"><tr><td colspan="4" class="ui-empty">No tablet has reported yet</td></tr></tbody>
+                                </table>
+                                <!-- <Jun Kai end> -->
+                            </div>
+                        </div>
+                        <div class="ui-card" id="health-server-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Server PC</h3>
+                                    <p id="health-server-time"></p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body"><dl class="ui-kv" id="health-server-details"></dl></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- <Jun Kai start> -->
+                <!-- Hardware monitor (Role 3) -->
+                <div id="hardware-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Hardware</h2>
+                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 minute</span> and kept for <span id="hardware-retention-text">30 days</span>. The graphs and the forecast refresh every minute while this page is open.</p>
+                        </div>
+                        <div class="ui-row">
+                            <span id="hardware-sampler-pill" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Loading</span>
+                            <button class="ui-btn ui-btn-secondary" id="hardware-refresh-btn" onclick="loadHardware()">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="hw-tiles">
+                        <div class="hw-tile" id="hardware-tile-cpu">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span><span>CPU</span></div>
+                            <div class="hw-tile-value"><span id="hardware-cpu-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-cpu-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-cpu-hint"></div>
+                        </div>
+                        <div class="hw-tile" id="hardware-tile-memory">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg></span><span>Memory</span></div>
+                            <div class="hw-tile-value"><span id="hardware-memory-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-memory-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-memory-hint"></div>
+                        </div>
+                        <div class="hw-tile" id="hardware-tile-gpu">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span><span>GPU</span></div>
+                            <div class="hw-tile-value"><span id="hardware-gpu-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-gpu-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-gpu-hint"></div>
+                        </div>
+                        <div class="hw-tile" id="hardware-tile-disk">
+                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg></span><span>Disk</span></div>
+                            <div class="hw-tile-value"><span id="hardware-disk-value">–</span><span class="hw-tile-unit">%</span></div>
+                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-disk-meter"></div></div>
+                            <div class="hw-tile-hint" id="hardware-disk-hint"></div>
+                        </div>
+                    </div>
+                    <div class="hw-toolbar">
+                        <div class="hw-range" id="hardware-range-wrap">
+                            <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
+                                <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
+                                <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
+                                <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
+                                <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
+                                <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
+                                <button type="button" class="hw-seg-btn" data-range="custom" id="hardware-range-custom-btn" onclick="toggleHardwareRangeForm()" aria-expanded="false" aria-controls="hardware-range-form">Custom</button>
+                            </div>
+                            <form class="hw-range-form" id="hardware-range-form" hidden novalidate onsubmit="applyHardwareCustomRange(event)">
+                                <label class="ui-label" for="hardware-range-amount">Show the last</label>
+                                <div class="hw-range-inputs">
+                                    <input class="ui-input" type="number" id="hardware-range-amount" min="1" step="1" inputmode="numeric" aria-describedby="hardware-range-hint">
+                                    <select class="ui-select" id="hardware-range-unit" aria-label="Unit of the time range">
+                                        <option value="h">hours</option>
+                                        <option value="d">days</option>
+                                        <option value="w">weeks</option>
+                                        <option value="mo">months</option>
+                                        <option value="y">years</option>
+                                    </select>
+                                </div>
+                                <p class="ui-help" id="hardware-range-hint">From 1 hour to 5 years.</p>
+                                <div class="hw-range-actions">
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHardwareRangeForm(true)">Cancel</button>
+                                    <button type="submit" class="ui-btn ui-btn-primary">Show</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="ui-row">
+                            <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="hardware-table-btn" onclick="toggleHardwareTable()">Table view</button>
+                        </div>
+                    </div>
+                    <div class="hw-charts" id="hardware-charts">
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>CPU</h3>
+                                    <p>Average use. The dashed line is the forecast, the shaded band its typical error.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-cpu-chart" aria-label="CPU usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-cpu-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Memory</h3>
+                                    <p>Share of the installed memory in use.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-memory-chart" aria-label="Memory usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-memory-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>GPU</h3>
+                                    <p>Busiest GPU engine, as Task Manager reports it.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-gpu-chart" aria-label="GPU usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-gpu-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                        <div class="ui-card hw-chart-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Disk</h3>
+                                    <p>Used space on the project drive. The dashed line continues the growth of the last 30 days.</p>
+                                </div>
+                            </div>
+                            <div class="hw-chart">
+                                <canvas id="hardware-disk-chart" aria-label="Disk usage graph" role="img"></canvas>
+                                <div class="hw-chart-empty" id="hardware-disk-empty">Waiting for samples</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui-card" id="hardware-table-card" hidden>
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Values</h3>
+                                <p>The same averages as the graphs, newest first.</p>
+                            </div>
+                        </div>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table">
+                                <thead><tr><th>Time</th><th>CPU %</th><th>Memory %</th><th>GPU %</th><th>Disk %</th><th>Samples</th></tr></thead>
+                                <tbody id="hardware-table-body"><tr><td colspan="6" class="ui-empty">No samples in this range yet</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="ui-grid-2">
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Forecast</h3>
+                                    <p id="hardware-forecast-method">Statistics only, no AI.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-facts">
+                                    <div><span class="ui-fact-label" id="hardware-fc-cpu-label">CPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-cpu">–</span><span class="ui-fact-hint" id="hardware-fc-cpu-hint"></span></div>
+                                    <div><span class="ui-fact-label" id="hardware-fc-memory-label">Memory in 1 day</span><span class="ui-fact-value" id="hardware-fc-memory">–</span><span class="ui-fact-hint" id="hardware-fc-memory-hint"></span></div>
+                                    <div><span class="ui-fact-label" id="hardware-fc-gpu-label">GPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-gpu">–</span><span class="ui-fact-hint" id="hardware-fc-gpu-hint"></span></div>
+                                    <div><span class="ui-fact-label">Disk full in</span><span class="ui-fact-value" id="hardware-fc-disk">–</span><span class="ui-fact-hint" id="hardware-fc-disk-hint"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Sampling</h3>
+                                    <p>How often to measure, how long to keep the samples and how far ahead to forecast.</p>
+                                </div>
+                                <button class="ui-btn ui-btn-primary" id="hardware-settings-save" onclick="saveHardwareSettings()">Save</button>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ui-form-grid">
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="hardware-interval">Sample every</label>
+                                        <select class="ui-select" id="hardware-interval" onchange="hardwareSettingChanged('interval')">
+                                            <option value="15">15 seconds</option>
+                                            <option value="30">30 seconds</option>
+                                            <option value="60">1 minute</option>
+                                            <option value="120">2 minutes</option>
+                                            <option value="300">5 minutes</option>
+                                            <option value="600">10 minutes</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                        <div class="hw-custom" id="hardware-interval-custom" hidden>
+                                            <input class="ui-input" type="number" id="hardware-interval-amount" min="1" step="1" inputmode="numeric" aria-label="Custom sampling interval" aria-describedby="hardware-interval-hint">
+                                            <select class="ui-select" id="hardware-interval-unit" aria-label="Unit of the sampling interval">
+                                                <option value="1">seconds</option>
+                                                <option value="60">minutes</option>
+                                            </select>
+                                        </div>
+                                        <p class="ui-help hw-custom-hint" id="hardware-interval-hint" hidden></p>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="hardware-retention">Keep samples for</label>
+                                        <select class="ui-select" id="hardware-retention" onchange="hardwareSettingChanged('retention')">
+                                            <option value="7">7 days</option>
+                                            <option value="14">14 days</option>
+                                            <option value="30">30 days</option>
+                                            <option value="60">60 days</option>
+                                            <option value="90">90 days</option>
+                                            <option value="180">180 days</option>
+                                            <option value="365">1 year</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                        <div class="hw-custom" id="hardware-retention-custom" hidden>
+                                            <input class="ui-input" type="number" id="hardware-retention-amount" min="1" step="1" inputmode="numeric" aria-label="Custom number of days to keep samples" aria-describedby="hardware-retention-hint">
+                                            <span class="hw-custom-unit" aria-hidden="true">days</span>
+                                        </div>
+                                        <p class="ui-help hw-custom-hint" id="hardware-retention-hint" hidden></p>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="hardware-horizon">Forecast ahead</label>
+                                        <select class="ui-select" id="hardware-horizon" onchange="hardwareSettingChanged('horizon')">
+                                            <option value="6">6 hours</option>
+                                            <option value="12">12 hours</option>
+                                            <option value="24">1 day</option>
+                                            <option value="48">2 days</option>
+                                            <option value="72">3 days</option>
+                                            <option value="168">7 days</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                        <div class="hw-custom" id="hardware-horizon-custom" hidden>
+                                            <input class="ui-input" type="number" id="hardware-horizon-amount" min="1" step="1" inputmode="numeric" aria-label="Custom forecast length" aria-describedby="hardware-horizon-hint">
+                                            <select class="ui-select" id="hardware-horizon-unit" aria-label="Unit of the forecast length">
+                                                <option value="1">hours</option>
+                                                <option value="24">days</option>
+                                            </select>
+                                        </div>
+                                        <p class="ui-help hw-custom-hint" id="hardware-horizon-hint" hidden></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ui-card-body"><dl class="ui-kv" id="hardware-sampler-details"></dl></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- <Jun Kai end> -->
+
                 <div id="server-schedule-page" class="page">
-                    <div class="page-header">
-                        <h2>Server Schedule &amp; Hibernation</h2>
-                        <p>Set when the kiosk runs. In AUTO mode the PC hibernates at the stop time and wakes itself before the start time.</p>
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Operating hours</h2>
+                            <p>Policies decide when the kiosk runs. In automatic mode the PC hibernates when the kiosk switches off and wakes itself a few minutes before it switches on.</p>
+                        </div>
+                        <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New policy</button>
                     </div>
 
-                    <!-- Automation overview: what the scheduler will do next (Role 3) -->
-                    <div class="automation-card" id="automation-card">
-                        <div class="automation-header">
+                    <div class="ui-card" id="automation-card">
+                        <div class="ui-card-header">
                             <div>
                                 <h3>Automation</h3>
-                                <p class="automation-summary" id="automation-summary">Checking the scheduler…</p>
+                                <p id="automation-summary">Checking</p>
                             </div>
-                            <span id="automation-state" class="status-indicator status-checking"><span class="status-dot"></span>Checking</span>
+                            <span id="automation-state" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
                         </div>
-                        <div class="automation-grid">
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Next stop</span>
-                                <span class="automation-tile-value" id="automation-next-stop">–</span>
-                                <span class="automation-tile-hint">Kiosk off, PC hibernates</span>
-                            </div>
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Next start</span>
-                                <span class="automation-tile-value" id="automation-next-start">–</span>
-                                <span class="automation-tile-hint" id="automation-next-start-hint">PC wakes 3 minutes before</span>
-                            </div>
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Wake timer</span>
-                                <span class="automation-tile-value" id="automation-wake-status">–</span>
-                                <span class="automation-tile-hint" id="automation-wake-detail">Windows scheduled task</span>
-                            </div>
-                            <div class="automation-tile">
-                                <span class="automation-tile-label">Scheduler</span>
-                                <span class="automation-tile-value" id="automation-last-tick">–</span>
-                                <span class="automation-tile-hint" id="automation-mode-hint">Checks once a minute</span>
+                        <div class="ui-card-body">
+                            <div class="ui-facts">
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Next stop</span>
+                                    <span class="ui-fact-value" id="automation-next-stop">–</span>
+                                    <span class="ui-fact-hint">Kiosk off, PC hibernates</span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Next start</span>
+                                    <span class="ui-fact-value" id="automation-next-start">–</span>
+                                    <span class="ui-fact-hint" id="automation-next-start-hint">PC wakes 3 minutes before</span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Wake timer</span>
+                                    <span class="ui-fact-value" id="automation-wake-status">–</span>
+                                    <span class="ui-fact-hint" id="automation-wake-detail">Windows scheduled task</span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Scheduler</span>
+                                    <span class="ui-fact-value" id="automation-last-tick">–</span>
+                                    <span class="ui-fact-hint" id="automation-mode-hint">Checks once a minute</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="automation-events">
-                            <h4>Recent automatic actions</h4>
-                            <ul class="automation-event-list" id="automation-events">
-                                <li class="automation-empty">No automatic actions recorded yet</li>
+                        <div class="ui-card-body">
+                            <p class="ui-section-title">Recent automatic actions</p>
+                            <ul class="ui-events" id="automation-events">
+                                <li class="ui-empty">No automatic actions recorded yet</li>
                             </ul>
                         </div>
                     </div>
 
-                    <div class="schedule-section">
-                        <div class="section-header">
-                            <h3>Schedules</h3>
-                            <button class="btn-primary" onclick="showAddScheduleModal()">
-                                + Add Schedule
-                            </button>
-                        </div>
-
-                        <!-- Schedules table (DONE BY BERNISSA) -->
-                        <div class="data-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Schedule Name</th>
-                                        <th>Type</th>
-                                        <th>Days/Date</th>
-                                        <th>Start Time</th>
-                                        <th>Stop Time</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="schedules-table-body">
-                                    <tr>
-                                        <td colspan="7" class="schedule-loading">
-                                            Loading schedules...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Server control mode (DONE BY BERNISSA) -->
-                        <div class="server-mode-control">
-                            <h4>Server Control Mode</h4>
-                            <div class="mode-toggle-container">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="auto-mode-toggle" onchange="toggleServerMode()" checked>
-                                    <span class="slider"></span>
-                                </label>
-                                <div class="mode-info">
-                                    <span id="mode-status" class="mode-auto">🤖 AUTO MODE</span>
-                                    <p id="mode-description">Schedules control the server automatically</p>
-                                </div>
+                    <!-- <Jun Kai start> -->
+                    <div class="ui-card" id="policies-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Policies</h3>
+                                <p>The first policy in the list that covers a moment decides it. Drag the handle to change the order.</p>
                             </div>
-                            <div class="status-indicator" id="server-status-indicator">
-                                <span class="status-loading">⏳ Checking status...</span>
+                            <div class="ui-row">
+                                <button class="ui-btn ui-btn-secondary" onclick="resetPolicyOrder()">Default order</button>
+                                <button class="ui-btn ui-btn-secondary" onclick="enableAllSchedules()">Enable all</button>
+                                <button class="ui-btn ui-btn-secondary" onclick="disableAllSchedules()">Disable all</button>
                             </div>
                         </div>
+                        <div class="policy-head" aria-hidden="true">
+                            <span></span><span>#</span><span>Policy</span><span>Does</span><span>Hours</span><span>Enabled</span><span></span>
+                        </div>
+                        <ol class="policy-list" id="policy-list" aria-label="Policies, highest priority first">
+                            <li class="policy-empty">Loading policies</li>
+                        </ol>
+                        <div class="ui-card-body policy-rules">
+                            <p class="ui-help">New policies are placed for you: a single date goes above days of the week, days of the week above months, months above every day, and at the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
+                        </div>
+                        <div class="ui-sr-only" id="policy-live" aria-live="polite"></div>
+                    </div>
 
-                        <!-- Quick actions -->
-                        <div class="quick-actions">
-                            <h4>Quick Actions</h4>
-                            
-                            <!-- Schedule control buttons -->
-                            <div class="action-section">
-                                <p class="section-label">Schedule Control:</p>
-                                <div class="action-buttons">
-                                    <button class="btn-secondary" onclick="enableAllSchedules()">
-                                        ✅ Enable All Schedules
-                                    </button>
-                                    <button class="btn-secondary" onclick="disableAllSchedules()">
-                                        ⏸️ Disable All Schedules
-                                    </button>
-                                </div>
+                    <div class="ui-card" id="policy-preview-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3 id="policy-preview-title">Next 7 days</h3>
+                                <p>What the policies add up to. Pick a date to see another week, and point at a bar to see which policy decides it.</p>
                             </div>
-                            
-                            <!-- Server control buttons -->
-                            <div class="action-section">
-                                <p class="section-label">Manual Server Control:</p>
-                                <div class="action-buttons">
-                                    <button class="btn-secondary" onclick="startServer()" id="start-btn" disabled>
-                                        ▶️ Start Server
-                                    </button>
-                                    <button class="btn-secondary" onclick="restartServer()" id="restart-btn" disabled>
-                                        🔄 Restart Server
-                                    </button>
-                                    <button class="btn-danger" onclick="stopServer()" id="stop-btn" disabled>
-                                        ⏹️ Stop Server
-                                    </button>
-                                </div>
-                                <p class="mode-hint" id="mode-hint">
-                                    ⚠️ Switch to MANUAL MODE to use Start/Stop buttons
-                                </p>
+                            <div class="policy-preview-nav" role="group" aria-label="Days shown">
+                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(-7)" aria-label="Previous 7 days" title="Previous 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                                <input type="date" class="ui-input policy-preview-date" id="policy-preview-date" aria-label="First day shown" onchange="setPolicyPreviewStart(this.value)">
+                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(7)" aria-label="Next 7 days" title="Next 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                                <button type="button" class="ui-btn ui-btn-secondary" id="policy-preview-today" onclick="setPolicyPreviewStart('')" disabled>Today</button>
                             </div>
-                            <!-- Daily operation button (Done by Caeden) -->
-                            <div class="action-section">
-                                <p class="section-label">Daily Operation:</p>
-                                <div class="action-buttons">
-                                    <button class="btn-primary" onclick="toggleDailyOperation()" id="daily-operation-toggle-btn">
-                                        Checking...
-                                    </button>
-                                </div>
-                                <p class="mode-hint" id="daily-operation-hint">
-                                    Use this at the end of the day to stop the kiosk, then again next day to start it.
-                                </p>
+                        </div>
+                        <div class="ui-card-body">
+                            <div class="policy-preview" id="policy-preview"></div>
+                            <div class="policy-tip" id="policy-tip" role="tooltip" hidden></div>
+                            <div class="policy-legend" aria-hidden="true">
+                                <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
+                                <span><i class="policy-swatch policy-swatch-stop"></i>Stopped by a policy</span>
                             </div>
                         </div>
                     </div>
-                </div>
+                    <!-- <Jun Kai end> -->
 
-                <!-- Schedule modal (DONE BY BERNISSA) -->
-                <div id="schedule-modal" class="modal schedule-modal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3 class="modal-title">Add New Schedule</h3>
+                    <div class="ui-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Controls</h3>
+                                <!-- <Jun Kai start> -->
+                                <p>Automatic mode follows the policies. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
+                                <!-- <Jun Kai end> -->
+                            </div>
+                            <div id="server-status-indicator"><span class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking status</span></div>
                         </div>
-                        <div class="modal-body">
-                            <form id="schedule-form" onsubmit="event.preventDefault(); saveSchedule();">
-                                <div class="form-group">
-                                    <label for="schedule-name">Schedule Name *</label>
-                                    <input type="text" id="schedule-name" name="schedule-name" 
-                                        placeholder="e.g., Morning Start Schedule" required>
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="schedule-type">Schedule Type *</label>
-                                        <select id="schedule-type" name="schedule-type" required onchange="updateFormFields()">
-                                            <option value="daily">Daily</option>
-                                            <option value="weekly">Weekly</option>
-                                            <option value="specific_date">Specific Date</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="start-time">Start Time *</label>
-                                        <input type="time" id="start-time" name="start-time" required 
-                                            oninput="validateTimes()">
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label for="end-time">Stop Time *</label>
-                                        <input type="time" id="end-time" name="end-time" required 
-                                            oninput="validateTimes()">
-                                    </div>
-                                </div>
-                                
-                                <!-- Weekly schedule options (DONE BY BERNISSA) -->
-                                <div id="weekly-days-section" style="display: none;">
-                                    <div class="form-group">
-                                        <label>Days of Week *</label>
-                                        <div class="days-selection">
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-1" name="day" value="1">
-                                                <label for="day-1">S</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-2" name="day" value="2">
-                                                <label for="day-2">M</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-3" name="day" value="3">
-                                                <label for="day-3">T</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-4" name="day" value="4">
-                                                <label for="day-4">W</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-5" name="day" value="5">
-                                                <label for="day-5">T</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-6" name="day" value="6">
-                                                <label for="day-6">F</label>
-                                            </div>
-                                            <div class="day-checkbox">
-                                                <input type="checkbox" id="day-7" name="day" value="7">
-                                                <label for="day-7">S</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Specific date option (DONE BY BERNISSA) -->
-                                <div id="specific-date-section" style="display: none;">
-                                    <div class="form-group">
-                                        <label for="specific-date">Specific Date *</label>
-                                        <input type="date" id="specific-date" name="specific-date">
-                                    </div>
-                                </div>
-                                
-                                <!-- Status toggle (DONE BY BERNISSA) -->
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="is-active" name="is-active" checked>
-                                        <span>Activate this schedule immediately</span>
+                        <div class="ui-card-body">
+                            <div class="ui-row ui-row-between">
+                                <div class="ui-row">
+                                    <label class="ui-switch">
+                                        <input type="checkbox" id="auto-mode-toggle" onchange="toggleServerMode()" checked>
+                                        <span class="ui-switch-track"></span>
                                     </label>
+                                    <div>
+                                        <div id="mode-status" class="ui-mode-label">Automatic mode</div>
+                                        <!-- <Jun Kai start> -->
+                                        <div id="mode-description" class="ui-mode-desc">Policies run the kiosk and hibernate the PC</div>
+                                        <!-- <Jun Kai end> -->
+                                    </div>
                                 </div>
-                                
-                                <div class="modal-footer">
-                                    <button type="button" class="btn-secondary" onclick="closeModal('schedule-modal')">
-                                        Cancel
-                                    </button>
-                                    <button type="submit" class="btn-primary modal-submit-btn">
-                                        Create Schedule
-                                    </button>
+                                <div class="ui-row">
+                                    <button class="ui-btn ui-btn-secondary" onclick="startServer()" id="start-btn" disabled>Start kiosk</button>
+                                    <button class="ui-btn ui-btn-secondary" onclick="restartServer()" id="restart-btn" disabled>Restart application</button>
+                                    <button class="ui-btn ui-btn-danger" onclick="stopServer()" id="stop-btn" disabled>Stop and hibernate</button>
                                 </div>
-                            </form>
+                            </div>
+                            <p class="ui-note" id="mode-hint">Switch to manual mode to use the start and stop controls.</p>
                         </div>
                     </div>
                 </div>
+
+                <!-- <Jun Kai start> -->
+                <!-- Policy form (replaces the previous team's schedule modal) -->
+                <div id="schedule-modal" class="modal schedule-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="policy-modal-title">
+                    <div class="modal-content policy-modal">
+                        <div class="policy-modal-header">
+                            <div>
+                                <h3 class="modal-title" id="policy-modal-title">New policy</h3>
+                                <p class="ui-help">Active keeps the kiosk running for these hours. Stop keeps it off. Where policies overlap, the one higher in the list wins.</p>
+                            </div>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="closeModal('schedule-modal')" aria-label="Close">&times;</button>
+                        </div>
+                        <form id="schedule-form" class="policy-form" onsubmit="event.preventDefault(); saveSchedule();" novalidate>
+                            <div class="ui-form-grid">
+                                <div class="ui-field ui-field-wide">
+                                    <label class="ui-label" for="schedule-name">Name</label>
+                                    <input class="ui-input" type="text" id="schedule-name" maxlength="80" placeholder="For example: Weekday hours" autocomplete="off" oninput="updateFormFields()">
+                                </div>
+                                <div class="ui-field ui-field-wide">
+                                    <span class="ui-label" id="policy-action-label">The kiosk</span>
+                                    <div class="ui-segmented" role="radiogroup" aria-labelledby="policy-action-label">
+                                        <label><input type="radio" name="policy-action" value="active" checked onchange="updateFormFields()"><span><strong>Active</strong><small>runs</small></span></label>
+                                        <label><input type="radio" name="policy-action" value="stop" onchange="updateFormFields()"><span><strong>Stop</strong><small>is off</small></span></label>
+                                    </div>
+                                </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="schedule-type">Repeats</label>
+                                    <select class="ui-select" id="schedule-type" onchange="updateFormFields()">
+                                        <option value="daily">Every day</option>
+                                        <option value="weekly">Days of the week</option>
+                                        <option value="monthly">Selected months</option>
+                                        <option value="specific_date">One date</option>
+                                    </select>
+                                </div>
+                                <div class="ui-field" id="specific-date-section" hidden>
+                                    <label class="ui-label" for="specific-date">Date</label>
+                                    <input class="ui-input" type="date" id="specific-date" onchange="updateFormFields()">
+                                </div>
+                                <div class="ui-field ui-field-wide" id="weekly-days-section" hidden>
+                                    <span class="ui-label" id="policy-days-label">Days</span>
+                                    <div class="ui-chips" role="group" aria-labelledby="policy-days-label">
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="2" onchange="updateFormFields()"><span>Mon</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="3" onchange="updateFormFields()"><span>Tue</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="4" onchange="updateFormFields()"><span>Wed</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="5" onchange="updateFormFields()"><span>Thu</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="6" onchange="updateFormFields()"><span>Fri</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="7" onchange="updateFormFields()"><span>Sat</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="day" value="1" onchange="updateFormFields()"><span>Sun</span></label>
+                                    </div>
+                                </div>
+                                <div class="ui-field ui-field-wide" id="monthly-section" hidden>
+                                    <span class="ui-label" id="policy-months-label">Months</span>
+                                    <div class="ui-chips" role="group" aria-labelledby="policy-months-label">
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="1" onchange="updateFormFields()"><span>Jan</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="2" onchange="updateFormFields()"><span>Feb</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="3" onchange="updateFormFields()"><span>Mar</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="4" onchange="updateFormFields()"><span>Apr</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="5" onchange="updateFormFields()"><span>May</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="6" onchange="updateFormFields()"><span>Jun</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="7" onchange="updateFormFields()"><span>Jul</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="8" onchange="updateFormFields()"><span>Aug</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="9" onchange="updateFormFields()"><span>Sep</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="10" onchange="updateFormFields()"><span>Oct</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="11" onchange="updateFormFields()"><span>Nov</span></label>
+                                        <label class="ui-chip"><input type="checkbox" name="month" value="12" onchange="updateFormFields()"><span>Dec</span></label>
+                                    </div>
+                                </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="start-time">Starts</label>
+                                    <input class="ui-input" type="time" id="start-time" value="08:00" oninput="updateFormFields()">
+                                </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="end-time">Stops</label>
+                                    <input class="ui-input" type="time" id="end-time" value="18:00" oninput="updateFormFields()">
+                                </div>
+                                <div class="ui-field ui-field-wide policy-checks">
+                                    <label class="ui-check"><input type="checkbox" id="policy-all-day" onchange="updateFormFields()"><span>All day</span></label>
+                                    <label class="ui-check"><input type="checkbox" id="is-active" checked onchange="updateFormFields()"><span>Enabled</span></label>
+                                </div>
+                                <p class="policy-summary ui-field-wide" id="policy-summary" aria-live="polite"></p>
+                            </div>
+                            <div class="policy-modal-footer">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="closeModal('schedule-modal')">Cancel</button>
+                                <button type="submit" class="ui-btn ui-btn-primary modal-submit-btn">Create policy</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <!-- <Jun Kai end> -->
 
                 <div id="server-status-modal" class="modal" style="display: none;">
                     <div class="modal-content" style="max-width: 500px;">
@@ -3589,6 +3869,7 @@
 
             </main>
     <script src="/admin/js/core.js"></script>
+    <script src="/admin/js/uiKit.js"></script>
     <script src="/admin/js/audit.js"></script>
     <script src="/admin/js/lostFound.js"></script>
     <script src="/admin/js/dashboard.js"></script>
@@ -3616,6 +3897,10 @@
     <script src="/admin/js/parameters.js"></script>
     <script src="/admin/js/countdown.js"></script>
     <script src="/admin/js/serverControl.js"></script>
+    <script src="/admin/js/health.js"></script>
+    <!-- <Jun Kai start> -->
+    <script src="/admin/js/hardware.js"></script>
+    <!-- <Jun Kai end> -->
     <script src="/admin/js/vips.js"></script>
     <script src="/admin/js/kioskReload.js"></script>
 </body>

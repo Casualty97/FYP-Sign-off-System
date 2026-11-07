@@ -2,16 +2,32 @@
 // Part 28/30 of the admin page: server schedules and server control (load order in admin.html).
 // ==================== 30. SERVER SCHEDULE MANAGEMENT (DONE BY BERNISSA) ====================
 
-// Global variables for schedule management
+// <Jun Kai start>
+// Policies since supervisor meeting 03 (4 Nov 2026): each one is Active (the kiosk runs) or Stop (the kiosk is off).
+// The list order is the priority. The server places new policies and checks every save
+// (backend/features/serverControl/policies.js); this page shows them, lets you drag them and previews the week.
 let schedulesData = [];
 let currentScheduleId = null;
+let policyDrag = null;
+let policyOrderSaving = false;
+let policyFormTried = false;
+let policyFormTimes = { start: '08:00', end: '18:00' };
+let policyPendingList = null;
+let policyPreviewKey = null;
+let policyPreviewStart = null; // the first day of the preview when it is not today
+let policyPreviewShown = null;
 
-// Initialize schedule management when page loads
+const POLICY_DAYS = [[2, 'Mon'], [3, 'Tue'], [4, 'Wed'], [5, 'Thu'], [6, 'Fri'], [7, 'Sat'], [1, 'Sun']];
+const POLICY_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 function startServerStatusPolling() {
     if (window.statusCheckInterval) clearInterval(window.statusCheckInterval);
     window.statusCheckInterval = setInterval(checkServerStatus, 10000);
     if (window.automationStatusInterval) clearInterval(window.automationStatusInterval);
-    window.automationStatusInterval = setInterval(loadAutomationStatus, 60000);
+    window.automationStatusInterval = setInterval(() => {
+        loadAutomationStatus();
+        loadPolicyPreview();
+    }, 60000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -24,385 +40,631 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Schedule loading function
-
-function loadSchedules() {
-    console.log('📊 Loading server schedules...');
-    
-    showLoading('#schedules-table-body', 'Loading schedules...');
-    
-    fetch('/api/admin/server-schedules', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            schedulesData = data.schedules;
-            renderSchedulesTable(data.schedules);
-            loadAutomationStatus();
-        } else {
-            showError('#schedules-table-body', 'Failed to load schedules');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error loading schedules:', error);
-        showError('#schedules-table-body', 'Error loading schedules');
-    });
+// ---------------------------------------------------------------- wording
+function policyNumbers(value) {
+    return String(value === null || value === undefined ? '' : value).split(',').map((v) => Number(v.trim())).filter((n) => Number.isInteger(n) && n > 0);
 }
 
-function renderSchedulesTable(schedules) {
-    const tbody = document.getElementById('schedules-table-body');
-    
-    if (!schedules || schedules.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">
-                    No schedules found. Click "Add Schedule" to create one.
-                </td>
-            </tr>
-        `;
+const policyIsStop = (p) => p.action === 'stop';
+const policyIsAllDay = (p) => p.all_day === true || (p.start_time === '00:00' && p.end_time === '00:00');
+
+// Every weekday on its own, Monday first (meeting 03: no "Weekdays" group)
+function policyDaysText(value) {
+    const picked = policyNumbers(value);
+    return POLICY_DAYS.filter(([n]) => picked.includes(n)).map(([, name]) => name).join(', ');
+}
+
+function policyMonthsText(value) {
+    return policyNumbers(value).filter((n) => n <= 12).map((n) => POLICY_MONTHS[n - 1]).join(', ');
+}
+
+function policyDateText(ymd) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd || ''));
+    if (!m) return '';
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function policyRepeatText(p) {
+    if (p.schedule_type === 'weekly') return policyDaysText(p.days_of_week) || 'No day picked';
+    if (p.schedule_type === 'monthly') return `Every day in ${policyMonthsText(p.months) || 'no month'}`;
+    if (p.schedule_type === 'specific_date') return policyDateText(p.specific_date) || 'No date picked';
+    return 'Every day';
+}
+
+function policyHoursText(p) {
+    if (policyIsAllDay(p)) return 'All day';
+    return `${p.start_time}–${p.end_time}${String(p.end_time) <= String(p.start_time) ? ' next day' : ''}`;
+}
+
+// ---------------------------------------------------------------- list
+function loadSchedules(highlightId) {
+    return fetch('/api/admin/server-schedules', { cache: 'no-store' })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+            if (!response.ok || !data.success) throw new Error(data.error || 'Could not load the policies');
+            schedulesData = data.schedules;
+            renderPolicies(schedulesData);
+            if (highlightId) flashPolicy(highlightId);
+        })
+        .catch((error) => {
+            console.error('❌ Error loading policies:', error);
+            const list = document.getElementById('policy-list');
+            if (list) list.innerHTML = `<li class="policy-empty">${escapeHtmlSafe(error.message)}</li>`;
+        })
+        .finally(() => {
+            loadAutomationStatus();
+            loadPolicyPreview();
+        });
+}
+
+function renderPolicies(list) {
+    const ol = document.getElementById('policy-list');
+    if (!ol) return;
+    if (policyDrag) {
+        policyPendingList = list;
         return;
     }
-    
-    let html = '';
-    
-    schedules.forEach(schedule => {
-        const typeBadge = getScheduleTypeBadge(schedule.schedule_type);
-        const statusBadge = schedule.is_active ? 
-            '<span class="status-badge active">Active</span>' : 
-            '<span class="status-badge inactive">Inactive</span>';
-        
-        // Pass specific_date to formatDaysDisplay
-        const daysDisplay = formatDaysDisplay(schedule.days_of_week, schedule.schedule_type, schedule.specific_date);
-        const startTime = schedule.start_time || '-';
-        const endTime = schedule.end_time || '-';
-        
-        html += `
-            <tr data-schedule-id="${schedule.id}">
-                <td><strong>${schedule.schedule_name}</strong></td>
-                <td>${typeBadge}</td>
-                <td>${daysDisplay}</td>
-                <td><span class="time-badge">${startTime}</span></td>
-                <td><span class="time-badge">${endTime}</span></td>
-                <td>${statusBadge}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-edit" onclick="toggleScheduleStatus(${schedule.id}, ${!schedule.is_active})" 
-                                title="${schedule.is_active ? 'Disable' : 'Enable'}">
-                            ${schedule.is_active ? '⏸️' : '▶️'}
-                        </button>
-                        <button class="btn-edit" onclick="editSchedule(${schedule.id})" title="Edit">
-                            ✏️
-                        </button>
-                        <button class="btn-delete" onclick="deleteSchedule(${schedule.id})" title="Delete">
-                            🗑️
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
+    initPolicyDrag(ol);
+    if (!list || !list.length) {
+        ol.innerHTML = '<li class="policy-empty">No policies yet. Use New policy to set when the kiosk runs.</li>';
+        return;
+    }
+    ol.innerHTML = list.map((p, i) => policyRowHtml(p, i, list.length)).join('');
 }
 
-// Schedule CRUD operations
+function policyRowHtml(p, index, total) {
+    const id = Number(p.id);
+    const name = escapeHtmlSafe(p.schedule_name);
+    const enabled = p.is_active !== false;
+    return `<li class="policy-row${enabled ? '' : ' is-disabled'}" data-id="${id}">
+            <button type="button" class="policy-handle" aria-label="Move ${name}, priority ${index + 1} of ${total}. Use the up and down arrow keys." title="Drag to change the priority">${uiIcon('grip', 16)}</button>
+            <span class="policy-rank">${index + 1}</span>
+            <div><div class="policy-name">${name}</div><div class="policy-meta">${escapeHtmlSafe(policyRepeatText(p))}</div></div>
+            <div>${policyIsStop(p) ? uiPill('down', 'Stop') : uiPill('ok', 'Active')}</div>
+            <div class="policy-hours">${escapeHtmlSafe(policyHoursText(p))}</div>
+            <label class="ui-switch" title="${enabled ? 'Enabled' : 'Disabled'}"><input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleScheduleStatus(${id}, this.checked)" aria-label="${name} enabled"><span class="ui-switch-track"></span></label>
+            <div class="policy-actions">
+                <button type="button" class="ui-btn ui-btn-icon" onclick="editSchedule(${id})" title="Edit" aria-label="Edit ${name}">${uiIcon('edit')}</button>
+                <button type="button" class="ui-btn ui-btn-icon ui-danger" onclick="deleteSchedule(${id})" title="Delete" aria-label="Delete ${name}">${uiIcon('trash')}</button>
+            </div>
+        </li>`;
+}
 
+function flashPolicy(id) {
+    const row = document.querySelector(`#policy-list .policy-row[data-id="${Number(id)}"]`);
+    if (!row) return;
+    row.classList.remove('is-new');
+    row.getBoundingClientRect();
+    row.classList.add('is-new');
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function policyRows(ol) {
+    return [...ol.querySelectorAll('.policy-row')];
+}
+
+function renumberPolicies(ol) {
+    const rows = policyRows(ol);
+    rows.forEach((row, i) => {
+        const rank = row.querySelector('.policy-rank');
+        if (rank) rank.textContent = String(i + 1);
+        const handle = row.querySelector('.policy-handle');
+        const name = row.querySelector('.policy-name');
+        if (handle && name) handle.setAttribute('aria-label', `Move ${name.textContent}, priority ${i + 1} of ${rows.length}. Use the up and down arrow keys.`);
+    });
+}
+
+// ---------------------------------------------------------------- form
 function showAddScheduleModal() {
     currentScheduleId = null;
-    
-    // Reset form
-    const form = document.getElementById('schedule-form');
-    if (form) {
-        form.reset();
-        // Clear specific date
-        document.getElementById('specific-date').value = '';
-        // Clear all day checkboxes
-        for (let i = 1; i <= 7; i++) {
-            const checkbox = document.getElementById(`day-${i}`);
-            if (checkbox) checkbox.checked = false;
-        }
-        // Set default values
-        document.getElementById('schedule-type').value = 'daily';
-        document.getElementById('is-active').checked = true;
-        updateFormFields(); // Update based on schedule type
-    }
-    
-    // Show modal
-    const modal = document.getElementById('schedule-modal');
-    if (modal) {
-        modal.style.display = 'block';
-        modal.querySelector('.modal-title').textContent = 'Add New Schedule';
-        modal.querySelector('.modal-submit-btn').textContent = 'Create Schedule';
-    }
+    fillPolicyForm({ schedule_name: '', action: 'active', schedule_type: 'daily', start_time: '08:00', end_time: '18:00', is_active: true });
+    openPolicyModal('New policy', 'Create policy');
 }
 
 function editSchedule(scheduleId) {
-    const schedule = schedulesData.find(s => s.id == scheduleId);
-    if (!schedule) return;
-    
-    currentScheduleId = scheduleId;
-    
-    // Fill form with schedule data
-    document.getElementById('schedule-name').value = schedule.schedule_name;
-    document.getElementById('schedule-type').value = schedule.schedule_type;
-    document.getElementById('start-time').value = schedule.start_time;
-    document.getElementById('end-time').value = schedule.end_time || '';
-    document.getElementById('is-active').checked = schedule.is_active == 1;
-    
-    // Clear specific date first
-    document.getElementById('specific-date').value = '';
-    
-    // Set specific date if available
-    if (schedule.specific_date) {
-        // Format date to YYYY-MM-DD
-        const date = new Date(schedule.specific_date);
-        if (!isNaN(date.getTime())) {
-            document.getElementById('specific-date').value = date.toISOString().split('T')[0];
-        }
-    }
-    
-    // Clear all day checkboxes first
-    for (let i = 1; i <= 7; i++) {
-        const checkbox = document.getElementById(`day-${i}`);
-        if (checkbox) checkbox.checked = false;
-    }
-    
-    // Set days checkboxes for weekly schedule
-    if (schedule.schedule_type === 'weekly' && schedule.days_of_week) {
-        const days = schedule.days_of_week.split(',').map(d => d.trim());
-        days.forEach(day => {
-            const checkbox = document.getElementById(`day-${day}`);
-            if (checkbox) checkbox.checked = true;
-        });
-    }
-    
-    // Update form fields based on type
-    updateFormFields();
-    
-    // Show modal
+    const policy = schedulesData.find((s) => Number(s.id) === Number(scheduleId));
+    if (!policy) return;
+    currentScheduleId = policy.id;
+    fillPolicyForm(policy);
+    openPolicyModal('Edit policy', 'Save changes');
+}
+
+function openPolicyModal(title, submitText) {
     const modal = document.getElementById('schedule-modal');
-    if (modal) {
-        modal.style.display = 'block';
-        modal.querySelector('.modal-title').textContent = 'Edit Schedule';
-        modal.querySelector('.modal-submit-btn').textContent = 'Update Schedule';
-    }
+    if (!modal) return;
+    modal.querySelector('.modal-title').textContent = title;
+    modal.querySelector('.modal-submit-btn').textContent = submitText;
+    policyFormTried = false;
+    updateFormFields();
+    modal.style.display = 'block';
+    setTimeout(() => {
+        const name = document.getElementById('schedule-name');
+        if (name) name.focus();
+    }, 30);
 }
 
-// function to validate times
-function validateTimes() {
-    const startTime = document.getElementById('start-time').value;
-    const endTime = document.getElementById('end-time').value;
-    
-    if (startTime && endTime) {
-        if (startTime === endTime) {
-            showNotification('Start and stop time cannot be the same. A stop time earlier than the start means the next day.', 'error');
-            return false;
-        }
-    }
-    return true;
+function fillPolicyForm(p) {
+    const allDay = policyIsAllDay(p);
+    document.getElementById('schedule-name').value = p.schedule_name || '';
+    document.querySelectorAll('#schedule-form input[name="policy-action"]').forEach((radio) => { radio.checked = radio.value === (policyIsStop(p) ? 'stop' : 'active'); });
+    document.getElementById('schedule-type').value = p.schedule_type || 'daily';
+    const days = policyNumbers(p.days_of_week);
+    document.querySelectorAll('#schedule-form input[name="day"]').forEach((box) => { box.checked = days.includes(Number(box.value)); });
+    const months = policyNumbers(p.months);
+    document.querySelectorAll('#schedule-form input[name="month"]').forEach((box) => { box.checked = months.includes(Number(box.value)); });
+    document.getElementById('specific-date').value = /^\d{4}-\d{2}-\d{2}/.test(String(p.specific_date || '')) ? String(p.specific_date).slice(0, 10) : '';
+    const start = document.getElementById('start-time');
+    const end = document.getElementById('end-time');
+    start.disabled = false;
+    end.disabled = false;
+    start.value = allDay ? '08:00' : (p.start_time || '08:00');
+    end.value = allDay ? '18:00' : (p.end_time || '18:00');
+    policyFormTimes = { start: start.value, end: end.value };
+    document.getElementById('policy-all-day').checked = allDay;
+    document.getElementById('is-active').checked = p.is_active !== false;
 }
 
-function saveSchedule() {
-    const form = document.getElementById('schedule-form');
-    if (!form) return;
-    
-    // Validate times first
-    if (!validateTimes()) {
-        return;
-    }
-    
-    // Validate form
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    // Collect form data
-    const formData = {
-        schedule_name: document.getElementById('schedule-name').value,
-        schedule_type: document.getElementById('schedule-type').value,
+function readPolicyForm() {
+    const type = document.getElementById('schedule-type').value;
+    const ticked = (name) => [...document.querySelectorAll(`#schedule-form input[name="${name}"]:checked`)].map((box) => Number(box.value)).sort((a, b) => a - b);
+    const action = document.querySelector('#schedule-form input[name="policy-action"]:checked');
+    return {
+        schedule_name: document.getElementById('schedule-name').value.trim(),
+        action: action && action.value === 'stop' ? 'stop' : 'active',
+        schedule_type: type,
+        days_of_week: type === 'weekly' ? ticked('day').join(',') : '',
+        months: type === 'monthly' ? ticked('month').join(',') : '',
+        specific_date: type === 'specific_date' ? document.getElementById('specific-date').value : null,
+        all_day: document.getElementById('policy-all-day').checked,
         start_time: document.getElementById('start-time').value,
         end_time: document.getElementById('end-time').value,
         is_active: document.getElementById('is-active').checked
     };
-    
-    // Collect days of week for weekly schedule
-    if (formData.schedule_type === 'weekly') {
-        const selectedDays = [];
-        for (let i = 1; i <= 7; i++) {
-            const checkbox = document.getElementById(`day-${i}`);
-            if (checkbox && checkbox.checked) {
-                selectedDays.push(i);
-            }
-        }
-        formData.days_of_week = selectedDays.join(',');
-        
-        // Validate that at least one day is selected
-        if (selectedDays.length === 0) {
-            showNotification('Please select at least one day for weekly schedule', 'error');
-            return;
-        }
-    } else {
-        formData.days_of_week = '';
+}
+
+function policyFormProblem(p) {
+    if (!p.schedule_name) return 'Give the policy a name.';
+    if (p.schedule_type === 'weekly' && !p.days_of_week) return 'Pick at least one day.';
+    if (p.schedule_type === 'monthly' && !p.months) return 'Pick at least one month.';
+    if (p.schedule_type === 'specific_date' && !p.specific_date) return 'Pick the date.';
+    if (!p.all_day && (!p.start_time || !p.end_time)) return 'Set both times, or tick All day.';
+    if (!p.all_day && p.start_time === p.end_time) return 'Start and stop cannot be the same time. Tick All day for a whole day.';
+    return null;
+}
+
+// Keeps the form in step with the choices and says in words what the policy will do
+function updateFormFields() {
+    const type = document.getElementById('schedule-type');
+    if (!type) return;
+    document.getElementById('weekly-days-section').hidden = type.value !== 'weekly';
+    document.getElementById('monthly-section').hidden = type.value !== 'monthly';
+    document.getElementById('specific-date-section').hidden = type.value !== 'specific_date';
+    const allDay = document.getElementById('policy-all-day').checked;
+    const start = document.getElementById('start-time');
+    const end = document.getElementById('end-time');
+    if (allDay && !start.disabled) {
+        policyFormTimes = { start: start.value, end: end.value };
+        start.value = '00:00';
+        end.value = '00:00';
+    } else if (!allDay && start.disabled) {
+        const keep = policyFormTimes.start && policyFormTimes.start !== policyFormTimes.end;
+        start.value = keep ? policyFormTimes.start : '08:00';
+        end.value = keep ? policyFormTimes.end : '18:00';
     }
-    
-    // Handle specific date
-    if (formData.schedule_type === 'specific_date') {
-        const specificDate = document.getElementById('specific-date').value;
-        if (!specificDate) {
-            showNotification('Please select a specific date', 'error');
-            return;
-        }
-        formData.specific_date = specificDate;
-    } else {
-        formData.specific_date = null;
-    }
-    
-    // Validate that all required fields are present
-    if (!formData.schedule_name || !formData.schedule_type || !formData.start_time || !formData.end_time) {
-        showNotification('Schedule name, type, and times are required', 'error');
+    start.disabled = allDay;
+    end.disabled = allDay;
+    start.closest('.ui-field').hidden = allDay;
+    end.closest('.ui-field').hidden = allDay;
+
+    const box = document.getElementById('policy-summary');
+    if (!box) return;
+    const p = readPolicyForm();
+    const problem = policyFormProblem(p);
+    if (policyFormTried && problem) {
+        box.textContent = problem;
+        box.classList.add('is-error');
         return;
     }
-    
-    // Determine URL and method
-    const url = currentScheduleId ? 
-        `/api/admin/server-schedules/${currentScheduleId}` : 
-        '/api/admin/server-schedules';
-    
-    const method = currentScheduleId ? 'PUT' : 'POST';
-    
-    // Show loading
-    showLoading('body', 'Saving schedule...');
-    
-    // Send request
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+    box.classList.remove('is-error');
+    const when = {
+        daily: 'every day',
+        weekly: `on ${policyDaysText(p.days_of_week) || 'the days you pick'}`,
+        monthly: `every day in ${policyMonthsText(p.months) || 'the months you pick'}`,
+        specific_date: `on ${policyDateText(p.specific_date) || 'the date you pick'}`
+    }[p.schedule_type];
+    const hours = p.all_day ? 'all day' : `from ${p.start_time || '--:--'} to ${p.end_time || '--:--'}${p.end_time && p.start_time && p.end_time <= p.start_time ? ' the next day' : ''}`;
+    let text = p.action === 'stop'
+        ? `The kiosk stays off ${when}, ${hours}, unless an Active policy higher in the list covers that time.`
+        : `The kiosk runs ${when}, ${hours}.`;
+    if (!p.is_active) text += ' It is saved as disabled, so it does nothing until you enable it.';
+    box.textContent = text;
+}
+
+function policyPlacementMessage(data, created) {
+    const name = data.schedule ? `"${data.schedule.schedule_name}"` : 'The policy';
+    const above = (data.beatenBy || []).map((n) => `"${n}"`);
+    const one = above.length === 1;
+    const listed = above.length > 3 ? `${above.slice(0, 3).join(', ')} and others` : above.length > 1 ? `${above.slice(0, -1).join(', ')} and ${above[above.length - 1]}` : above[0];
+    const beaten = above.length ? ` ${listed} ${one ? 'is' : 'are'} higher and still win${one ? 's' : ''} where ${one ? 'both apply' : 'they overlap'}: drag ${name} above ${one ? 'it' : 'them'} if it should win.` : '';
+    if (!created && !data.moved) return `${name} saved.${beaten}`;
+    if (data.placedAbove) return `${name} is priority ${data.position} of ${data.total}, above "${data.placedAbove}": ${data.reason}.${beaten}`;
+    return `${name} is priority ${data.position} of ${data.total}.${beaten}`;
+}
+
+function saveSchedule() {
+    const policy = readPolicyForm();
+    const problem = policyFormProblem(policy);
+    if (problem) {
+        policyFormTried = true;
+        updateFormFields();
+        showNotification(problem, 'error');
+        return;
+    }
+    const created = !currentScheduleId;
+    const button = document.querySelector('#schedule-modal .modal-submit-btn');
+    if (button) button.disabled = true;
+    fetch(created ? '/api/admin/server-schedules' : `/api/admin/server-schedules/${currentScheduleId}`, {
+        method: created ? 'POST' : 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(policy)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message || 'Schedule saved successfully', 'success');
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+            if (!response.ok || !data.success) throw new Error(data.error || 'Could not save the policy');
             closeModal('schedule-modal');
-            loadSchedules(); // Reload schedules
-        } else {
-            showNotification(data.error || 'Failed to save schedule', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error saving schedule:', error);
-        showNotification('Error saving schedule', 'error');
-    })
-    .finally(() => {
-        hideLoading();
-    });
+            showNotification(policyPlacementMessage(data, created), data.beatenBy && data.beatenBy.length ? 'warning' : 'success');
+            return loadSchedules(data.schedule && data.schedule.id);
+        })
+        .catch((error) => {
+            console.error('❌ Error saving policy:', error);
+            showNotification(error.message, 'error');
+        })
+        .finally(() => {
+            if (button) button.disabled = false;
+        });
+}
+
+function policyRequest(url, options, failure) {
+    return fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+            if (!response.ok || !data.success) throw new Error(data.error || failure);
+            return data;
+        });
 }
 
 function deleteSchedule(scheduleId) {
-    if (!confirm('Are you sure you want to delete this schedule? This action cannot be undone.')) {
-        return;
-    }
-    
-    fetch(`/api/admin/server-schedules/${scheduleId}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message || 'Schedule deleted successfully', 'success');
-            loadSchedules(); // Reload schedules
-        } else {
-            showNotification(data.error || 'Failed to delete schedule', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error deleting schedule:', error);
-        showNotification('Error deleting schedule', 'error');
-    });
+    const policy = schedulesData.find((s) => Number(s.id) === Number(scheduleId));
+    if (!confirm(`Delete "${policy ? policy.schedule_name : 'this policy'}"? This cannot be undone.`)) return;
+    policyRequest(`/api/admin/server-schedules/${scheduleId}`, { method: 'DELETE' }, 'Could not delete the policy')
+        .then(() => {
+            showNotification('Policy deleted', 'success');
+            loadSchedules();
+        })
+        .catch((error) => showNotification(error.message, 'error'));
 }
 
 function toggleScheduleStatus(scheduleId, newStatus) {
-    fetch(`/api/admin/server-schedules/${scheduleId}/toggle`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ is_active: newStatus })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message || 'Schedule status updated', 'success');
-            loadSchedules(); // Reload schedules
-        } else {
-            showNotification(data.error || 'Failed to update schedule status', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error toggling schedule status:', error);
-        showNotification('Error updating schedule status', 'error');
-    });
+    const policy = schedulesData.find((s) => Number(s.id) === Number(scheduleId));
+    policyRequest(`/api/admin/server-schedules/${scheduleId}/toggle`, { method: 'PUT', body: JSON.stringify({ is_active: !!newStatus }) }, 'Could not change the policy')
+        .then(() => {
+            showNotification(`"${policy ? policy.schedule_name : 'Policy'}" ${newStatus ? 'enabled' : 'disabled'}`, 'success');
+            loadSchedules();
+        })
+        .catch((error) => {
+            showNotification(error.message, 'error');
+            loadSchedules();
+        });
 }
 
-// Quick actions
-
 function enableAllSchedules() {
-    if (!confirm('Enable all schedules?')) return;
-    
-    fetch('/api/admin/server-schedules/enable-all', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(`All ${data.enabled_count} schedules enabled`, 'success');
-            loadSchedules(); // Reload schedules
-        } else {
-            showNotification(data.error || 'Failed to enable schedules', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error enabling schedules:', error);
-        showNotification('Error enabling schedules', 'error');
-    });
+    if (!confirm('Enable every policy?')) return;
+    policyRequest('/api/admin/server-schedules/enable-all', { method: 'POST' }, 'Could not enable the policies')
+        .then((data) => {
+            showNotification(`${data.enabled_count} polic${data.enabled_count === 1 ? 'y' : 'ies'} enabled`, 'success');
+            loadSchedules();
+        })
+        .catch((error) => showNotification(error.message, 'error'));
 }
 
 function disableAllSchedules() {
-    if (!confirm('Disable all schedules?')) return;
-    
-    fetch('/api/admin/server-schedules/disable-all', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(`All ${data.disabled_count} schedules disabled`, 'success');
-            loadSchedules(); // Reload schedules
-        } else {
-            showNotification(data.error || 'Failed to disable schedules', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error disabling schedules:', error);
-        showNotification('Error disabling schedules', 'error');
-    });
+    if (!confirm('Disable every policy? The kiosk then has no hours in automatic mode.')) return;
+    policyRequest('/api/admin/server-schedules/disable-all', { method: 'POST' }, 'Could not disable the policies')
+        .then((data) => {
+            showNotification(`${data.disabled_count} polic${data.disabled_count === 1 ? 'y' : 'ies'} disabled`, 'success');
+            loadSchedules();
+        })
+        .catch((error) => showNotification(error.message, 'error'));
 }
+
+function resetPolicyOrder() {
+    if (!confirm('Put every policy back in the default order? Single dates go first, then days of the week, months and every day, with Stop above Active. Orders you dragged by hand are lost.')) return;
+    policyRequest('/api/admin/server-schedules/reorder', { method: 'POST', body: JSON.stringify({ order: 'default' }) }, 'Could not reset the order')
+        .then((data) => {
+            schedulesData = data.schedules;
+            renderPolicies(schedulesData);
+            showNotification('Policies are back in the default order', 'success');
+            loadAutomationStatus();
+            loadPolicyPreview();
+        })
+        .catch((error) => showNotification(error.message, 'error'));
+}
+
+// ---------------------------------------------------------------- drag and keyboard reordering
+function initPolicyDrag(ol) {
+    if (ol.dataset.dragReady) return;
+    ol.dataset.dragReady = '1';
+    ol.addEventListener('pointerdown', policyPointerDown);
+    ol.addEventListener('keydown', policyKeyDown);
+}
+
+// Moves rows with a short slide: measure, change the DOM, then animate each row from its old place
+function policyFlip(ol, still, change) {
+    const rows = policyRows(ol).filter((row) => row !== still);
+    const before = new Map(rows.map((row) => [row, row.offsetTop]));
+    change();
+    for (const row of rows) {
+        const delta = before.get(row) - row.offsetTop;
+        if (!delta) continue;
+        row.style.transition = 'none';
+        row.style.transform = `translateY(${delta}px)`;
+        row.getBoundingClientRect();
+        row.style.transition = 'transform 160ms ease';
+        row.style.transform = '';
+    }
+}
+
+function policyPointerDown(event) {
+    const handle = event.target.closest('.policy-handle');
+    if (!handle || event.button !== 0 || policyOrderSaving || policyDrag) return;
+    const row = handle.closest('.policy-row');
+    const ol = row.parentElement;
+    event.preventDefault();
+    policyDrag = {
+        row,
+        ol,
+        handle,
+        pointerId: event.pointerId,
+        grabOffset: event.clientY - row.getBoundingClientRect().top,
+        before: policyRows(ol).map((r) => r.dataset.id),
+        drop: document.createElement('li')
+    };
+    row.classList.add('is-dragging');
+    ol.classList.add('is-sorting');
+    // a grey slot shows where the row lands when it is let go
+    policyDrag.drop.className = 'policy-drop';
+    policyDrag.drop.setAttribute('aria-hidden', 'true');
+    ol.insertBefore(policyDrag.drop, ol.firstChild);
+    policyPlaceDrop(policyDrag);
+    requestAnimationFrame(() => { if (policyDrag) policyDrag.drop.classList.add('is-live'); });
+    // window listeners: moving the dragged row in the page would drop pointer capture on the handle
+    window.addEventListener('pointermove', policyPointerMove);
+    window.addEventListener('pointerup', policyPointerUp);
+    window.addEventListener('pointercancel', policyPointerUp);
+}
+
+function policyPointerMove(event) {
+    const drag = policyDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const y = event.clientY - drag.ol.getBoundingClientRect().top;
+    const middle = y - drag.grabOffset + drag.row.offsetHeight / 2;
+    const target = policyRows(drag.ol).find((r) => r !== drag.row && r.offsetTop + r.offsetHeight / 2 > middle) || null;
+    let next = drag.row.nextElementSibling;
+    while (next && !next.classList.contains('policy-row')) next = next.nextElementSibling;
+    if (target !== next) policyFlip(drag.ol, drag.row, () => drag.ol.insertBefore(drag.row, target));
+    policyPlaceDrop(drag);
+    drag.row.style.transform = `translateY(${y - drag.grabOffset - drag.row.offsetTop}px)`;
+}
+
+// the slot is where the row sits in the list; the row itself follows the pointer
+function policyPlaceDrop(drag) {
+    drag.drop.style.top = `${drag.row.offsetTop + 4}px`;
+    drag.drop.style.height = `${Math.max(0, drag.row.offsetHeight - 8)}px`;
+}
+
+function policyPointerUp(event) {
+    const drag = policyDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    policyDrag = null;
+    window.removeEventListener('pointermove', policyPointerMove);
+    window.removeEventListener('pointerup', policyPointerUp);
+    window.removeEventListener('pointercancel', policyPointerUp);
+    drag.row.style.transition = 'transform 160ms ease';
+    drag.row.style.transform = '';
+    setTimeout(() => {
+        drag.drop.remove();
+        drag.row.style.transition = '';
+        drag.row.classList.remove('is-dragging');
+        drag.ol.classList.remove('is-sorting');
+        policyRows(drag.ol).forEach((row) => { row.style.transition = ''; });
+    }, 170);
+    const after = policyRows(drag.ol).map((r) => r.dataset.id);
+    const pending = policyPendingList;
+    policyPendingList = null;
+    if (event.type === 'pointercancel') {
+        if (after.join(',') !== drag.before.join(',')) restorePolicyOrder(drag.ol, drag.before);
+        if (pending) loadSchedules();
+        return;
+    }
+    if (after.join(',') !== drag.before.join(',')) {
+        savePolicyOrder(after, drag.before, drag.row).then(() => { if (pending) loadSchedules(); });
+    } else if (pending) {
+        renderPolicies(pending);
+    }
+}
+
+function restorePolicyOrder(ol, ids) {
+    const byId = new Map(policyRows(ol).map((row) => [row.dataset.id, row]));
+    ids.forEach((id) => { if (byId.has(id)) ol.appendChild(byId.get(id)); });
+    renumberPolicies(ol);
+}
+
+function policyKeyDown(event) {
+    const handle = event.target.closest('.policy-handle');
+    if (!handle || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+    event.preventDefault();
+    if (policyOrderSaving) return;
+    const row = handle.closest('.policy-row');
+    const ol = row.parentElement;
+    const rows = policyRows(ol);
+    const index = rows.indexOf(row);
+    const swapWith = rows[event.key === 'ArrowUp' ? index - 1 : index + 1];
+    if (!swapWith) return;
+    const before = rows.map((r) => r.dataset.id);
+    policyFlip(ol, null, () => ol.insertBefore(row, event.key === 'ArrowUp' ? swapWith : swapWith.nextElementSibling));
+    handle.focus();
+    savePolicyOrder(policyRows(ol).map((r) => r.dataset.id), before, row);
+}
+
+function savePolicyOrder(ids, previous, movedRow) {
+    const ol = document.getElementById('policy-list');
+    policyOrderSaving = true;
+    renumberPolicies(ol);
+    return policyRequest('/api/admin/server-schedules/reorder', { method: 'POST', body: JSON.stringify({ ids: ids.map(Number) }) }, 'Could not save the order')
+        .then((data) => {
+            schedulesData = data.schedules;
+            const live = document.getElementById('policy-live');
+            const name = movedRow && movedRow.querySelector('.policy-name');
+            if (live && name) live.textContent = `${name.textContent} is now priority ${ids.indexOf(movedRow.dataset.id) + 1} of ${ids.length}.`;
+            loadAutomationStatus();
+            loadPolicyPreview();
+        })
+        .catch((error) => {
+            showNotification(error.message, 'error');
+            const handle = movedRow && movedRow.querySelector('.policy-handle');
+            const hadFocus = handle && document.activeElement === handle;
+            restorePolicyOrder(ol, previous);
+            if (hadFocus) handle.focus();
+            const live = document.getElementById('policy-live');
+            if (live) live.textContent = `The order was not saved: ${error.message}`;
+        })
+        .finally(() => {
+            policyOrderSaving = false;
+        });
+}
+
+// ---------------------------------------------------------------- next 7 days
+function loadPolicyPreview() {
+    const box = document.getElementById('policy-preview');
+    if (!box) return Promise.resolve();
+    const from = policyPreviewStart ? `&from=${policyPreviewStart}` : '';
+    return policyRequest(`/api/admin/server-schedules/preview?days=7${from}`, { method: 'GET', cache: 'no-store' }, 'The preview is not available')
+        .then((data) => renderPolicyPreview(data.preview))
+        .catch((error) => {
+            console.error('❌ Error loading the policy preview:', error);
+            if (policyPreviewStart) showNotification(error.message, 'error');
+            if (!box.children.length) box.innerHTML = `<p class="policy-empty">${escapeHtmlSafe(error.message)}</p>`;
+        });
+}
+
+const policyYmd = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+// the calendar goes from 2 years back to 5 years ahead
+function policyPreviewLimits() {
+    const now = new Date();
+    return [policyYmd(new Date(now.getFullYear() - 2, now.getMonth(), now.getDate())), policyYmd(new Date(now.getFullYear() + 5, now.getMonth(), now.getDate()))];
+}
+
+// '' or today goes back to "Next 7 days"
+function setPolicyPreviewStart(value) {
+    const today = policyYmd(new Date());
+    const [min, max] = policyPreviewLimits();
+    if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value < min || value > max)) {
+        showNotification(`Pick a date from ${policyDateText(min)} to ${policyDateText(max)}.`, 'error');
+        const input = document.getElementById('policy-preview-date');
+        if (input) input.value = policyPreviewShown || today;
+        return;
+    }
+    policyPreviewStart = value && value !== today ? value : null;
+    loadPolicyPreview();
+}
+
+function shiftPolicyPreview(days) {
+    const [y, m, d] = (policyPreviewShown || policyYmd(new Date())).split('-').map(Number);
+    setPolicyPreviewStart(policyYmd(new Date(y, m - 1, d + days)));
+}
+
+// the title, the date box and the Today button follow the days shown
+function renderPolicyPreviewNav(preview) {
+    policyPreviewShown = preview.start;
+    const isToday = preview.start === preview.today;
+    const title = document.getElementById('policy-preview-title');
+    if (title) title.textContent = isToday ? 'Next 7 days' : `7 days from ${policyDateText(preview.start)}`;
+    const input = document.getElementById('policy-preview-date');
+    if (input) {
+        [input.min, input.max] = policyPreviewLimits();
+        if (document.activeElement !== input) input.value = preview.start;
+    }
+    const today = document.getElementById('policy-preview-today');
+    if (today) today.disabled = isToday;
+}
+
+function renderPolicyPreview(preview) {
+    const box = document.getElementById('policy-preview');
+    if (!box || !preview) return;
+    renderPolicyPreviewNav(preview);
+    // the 60 s refresh only moves the "now" line when the bars did not change, so keyboard focus stays put
+    const key = JSON.stringify([preview.start, preview.manual, preview.days]);
+    const nowLine = box.querySelector('.policy-now');
+    if (key === policyPreviewKey && nowLine) {
+        nowLine.style.left = `${(preview.nowMin / 14.4).toFixed(3)}%`;
+        return;
+    }
+    policyPreviewKey = key;
+    const focused = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.slot : null;
+    const axis = ['00:00', '06:00', '12:00', '18:00', '24:00'].map((t, i) => `<span style="left:${i * 25}%">${t}</span>`).join('');
+    const rows = preview.days.map((day) => {
+        const [y, m, d] = day.date.split('-').map(Number);
+        const isToday = day.date === preview.today;
+        const label = isToday ? 'Today' : new Date(y, m - 1, d).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' });
+        // manual mode pauses the policies, so nothing is drawn
+        const segments = preview.manual ? '' : day.segments.map((s) => {
+            const what = s.on ? 'Active: the kiosk runs' : 'Stop: the kiosk is off';
+            const when = `${s.from} to ${s.to}, priority ${s.position}`;
+            const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'kiosk off'}, priority ${s.position}`;
+            return `<span class="policy-seg policy-seg-${s.on ? 'on' : 'stop'}" role="img" style="left:${(s.startMin / 14.4).toFixed(3)}%;width:${((s.endMin - s.startMin) / 14.4).toFixed(3)}%" tabindex="0" data-slot="${day.date}-${s.startMin}" data-name="${escapeHtmlSafe(s.name)}" data-what="${escapeHtmlSafe(what)}" data-when="${escapeHtmlSafe(when)}" aria-label="${escapeHtmlSafe(words)}"><span class="policy-seg-label">${escapeHtmlSafe(s.name)}</span></span>`;
+        }).join('');
+        const now = isToday ? `<span class="policy-now" style="left:${(preview.nowMin / 14.4).toFixed(3)}%"></span>` : '';
+        return `<div class="policy-day"><span class="policy-day-label${isToday ? ' is-today' : ''}">${escapeHtmlSafe(label)}</span><div class="policy-track">${segments}${now}</div></div>`;
+    }).join('');
+    const note = preview.manual ? '<p class="policy-preview-note">Manual mode is on, so the policies are paused and nothing runs on its own. Switch back to automatic mode under Controls to see their plan.</p>' : '';
+    box.innerHTML = `${note}<div class="policy-axis"><span></span><div class="policy-axis-track">${axis}</div></div>${rows}`;
+    bindPolicyTips(box);
+    if (focused) {
+        const again = box.querySelector(`[data-slot="${focused}"]`);
+        if (again) again.focus();
+    }
+}
+
+function bindPolicyTips(box) {
+    if (box.dataset.tipsReady) return;
+    box.dataset.tipsReady = '1';
+    const tip = document.getElementById('policy-tip');
+    if (!tip) return;
+    const show = (event) => {
+        const seg = event.target.closest('.policy-seg');
+        if (!seg) return;
+        tip.innerHTML = `<strong>${escapeHtmlSafe(seg.dataset.name)}</strong>${escapeHtmlSafe(seg.dataset.what)}<br>${escapeHtmlSafe(seg.dataset.when)}`;
+        tip.hidden = false;
+        const r = seg.getBoundingClientRect();
+        const w = tip.offsetWidth;
+        const h = tip.offsetHeight;
+        const left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+        const top = r.top - h - 8 < 8 ? r.bottom + 8 : r.top - h - 8;
+        tip.style.left = `${left}px`;
+        tip.style.top = `${top}px`;
+    };
+    const hide = (event) => {
+        const seg = event.target.closest('.policy-seg');
+        if (seg && event.relatedTarget && seg.contains(event.relatedTarget)) return;
+        tip.hidden = true;
+    };
+    box.addEventListener('pointerover', show);
+    box.addEventListener('focusin', show);
+    box.addEventListener('pointerout', hide);
+    box.addEventListener('focusout', hide);
+}
+// <Jun Kai end>
 
 // ==================== SERVER CONTROL MODE FUNCTIONS (BERNISSA) ====================
 
@@ -449,18 +711,16 @@ async function toggleServerMode() {
         const data = await response.json();
         
         if (data.success) {
-            showNotification(`Switched to ${newMode.toUpperCase()} mode`, 'success');
+            showNotification(`Switched to ${newMode} mode`, 'success');
             updateModeUI(isAuto);
             
             // Refresh server status
             checkServerStatus();
             loadAutomationStatus();
+            // <Jun Kai start>
+            loadPolicyPreview();
+            // <Jun Kai end>
             
-            if (!isAuto) {
-                showNotification('Manual mode: Start/Stop buttons now available', 'info');
-            } else {
-                showNotification('Auto mode: Schedules will control the server', 'info');
-            }
         } else {
             showNotification(data.error || 'Failed to change mode', 'error');
             // Revert toggle
@@ -483,34 +743,21 @@ function updateModeUI(isAuto) {
     const startBtn = document.getElementById('start-btn');
     const restartBtn = document.getElementById('restart-btn');
     const stopBtn = document.getElementById('stop-btn');
-    
     if (!modeStatus || !modeDesc) return;
-    
-    if (isAuto) {
-        // AUTO MODE
-        modeStatus.textContent = '🤖 AUTO MODE';
-        modeStatus.className = 'mode-auto';
-        modeDesc.textContent = 'Schedules control the server automatically';
-        if (modeHint) {
-            modeHint.textContent = '⚠️ Switch to MANUAL MODE to use Start/Stop buttons';
-            modeHint.style.color = '#856404';
-        }
-        if (startBtn) startBtn.disabled = true;
-        if (restartBtn) restartBtn.disabled = true;
-        if (stopBtn) stopBtn.disabled = true;
-    } else {
-        // MANUAL MODE
-        modeStatus.textContent = '✋ MANUAL MODE';
-        modeStatus.className = 'mode-manual';
-        modeDesc.textContent = 'You control the server with Start/Stop buttons';
-        if (modeHint) {
-            modeHint.textContent = '💡 Manual mode active - schedules are temporarily disabled';
-            modeHint.style.color = '#004085';
-        }
-        if (startBtn) startBtn.disabled = false;
-        if (restartBtn) restartBtn.disabled = false;
-        if (stopBtn) stopBtn.disabled = false;
+
+    modeStatus.textContent = isAuto ? 'Automatic mode' : 'Manual mode';
+    // <Jun Kai start>
+    modeDesc.textContent = isAuto
+        ? 'Policies run the kiosk and hibernate the PC'
+        : 'Policies are paused; use the controls to start or stop the kiosk';
+    if (modeHint) {
+        modeHint.textContent = isAuto
+            ? 'Switch to manual mode to use the start and stop controls.'
+            : 'Manual mode: the policies stay paused until automatic mode is switched back on.';
+        // <Jun Kai end>
+        modeHint.classList.toggle('ui-note-warn', !isAuto);
     }
+    [startBtn, restartBtn, stopBtn].forEach((btn) => { if (btn) btn.disabled = isAuto; });
 }
 
 // Check current kiosk service status
@@ -523,96 +770,23 @@ async function checkServerStatus() {
         const statusIndicator = document.getElementById('server-status-indicator');
         
         if (!statusIndicator) return;
-        if (data.success) updateDailyOperationButton(data.kiosk_running === true);
         
         if (data.success) {
             if (data.kiosk_running) {
-                statusIndicator.innerHTML = '<span class="status-running">🟢 Kiosk Running</span>';
+                statusIndicator.innerHTML = uiPill('ok', 'Kiosk running');
             } else {
-                statusIndicator.innerHTML = '<span class="status-stopped">🔴 Kiosk Stopped</span>';
+                statusIndicator.innerHTML = uiPill('down', 'Kiosk stopped');
             }
         } else {
-            statusIndicator.innerHTML = '<span class="status-error">⚠️ Status Unknown</span>';
+            statusIndicator.innerHTML = uiPill('warn', 'Status unknown');
         }
         
     } catch (error) {
         console.error('❌ Error checking status:', error);
         const statusIndicator = document.getElementById('server-status-indicator');
         if (statusIndicator) {
-            statusIndicator.innerHTML = '<span class="status-error">⚠️ Cannot check status</span>';
+            statusIndicator.innerHTML = uiPill('warn', 'Cannot check status');
         }
-    }
-}
-
-// One-button End Day / Start Day kiosk control for admins (Done by Caeden)
-function updateDailyOperationButton(isRunning) {
-    const button = document.getElementById('daily-operation-toggle-btn');
-    const hint = document.getElementById('daily-operation-hint');
-
-    if (!button) return;
-
-    button.disabled = false;
-    button.dataset.running = isRunning ? 'true' : 'false';
-    button.textContent = isRunning ? 'End Day: Turn Kiosk Off' : 'Start Day: Turn Kiosk On';
-    button.className = isRunning ? 'btn-danger' : 'btn-primary';
-
-    if (hint) {
-        hint.textContent = isRunning
-            ? 'Kiosk is running. End Day switches to manual mode, stops the kiosk server and hibernates this PC.'
-            : 'Kiosk is stopped. Start Day switches to manual mode and starts the kiosk server.';
-    }
-}
-
-async function setServerModeForDailyOperation() {
-    const response = await fetch('/api/admin/server/mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'manual' })
-    });
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to switch to manual mode');
-    }
-
-    const toggle = document.getElementById('auto-mode-toggle');
-    if (toggle) toggle.checked = false;
-    updateModeUI(false);
-}
-
-async function toggleDailyOperation() {
-    const button = document.getElementById('daily-operation-toggle-btn');
-    const statusResponse = await fetch('/api/admin/server/status');
-    const statusData = await statusResponse.json();
-    const isRunning = statusData.success ? statusData.kiosk_running === true : button?.dataset?.running === 'true';
-    const action = isRunning ? 'end the day, stop the kiosk and hibernate this PC (the wall and tablets go dark until it is woken)' : 'start the day and turn the kiosk on';
-
-    if (!confirm(`Are you sure you want to ${action}?`)) return;
-
-    if (button) {
-        button.disabled = true;
-        button.textContent = isRunning ? 'Turning Off...' : 'Turning On...';
-    }
-
-    try {
-        await setServerModeForDailyOperation();
-
-        const response = await fetch(isRunning ? '/api/admin/server/stop' : '/api/admin/server/start', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || 'Daily operation failed');
-        }
-
-        showNotification(data.message || (isRunning ? 'End Day complete. Kiosk is off.' : 'Start Day complete. Kiosk is on.'), 'success');
-        setTimeout(() => checkServerStatus(), 2000);
-    } catch (error) {
-        console.error('Daily operation error:', error);
-        showNotification(error.message || 'Daily operation failed', 'error');
-        checkServerStatus();
     }
 }
 
@@ -623,7 +797,7 @@ function startServer() {
     const isAuto = toggle ? toggle.checked : true;
     
     if (isAuto) {
-        showNotification('Switch to MANUAL MODE first to manually control the server', 'warning');
+        showNotification('Switch to manual mode first to control the kiosk by hand', 'warning');
         return;
     }
     
@@ -654,7 +828,7 @@ function restartServer() {
     const isAuto = toggle ? toggle.checked : true;
 
     if (isAuto) {
-        showNotification('Switch to MANUAL MODE first to restart the server', 'warning');
+        showNotification('Switch to manual mode first to restart the application', 'warning');
         return;
     }
 
@@ -686,7 +860,7 @@ function stopServer() {
     const isAuto = toggle ? toggle.checked : true;
     
     if (isAuto) {
-        showNotification('Switch to MANUAL MODE first to manually control the server', 'warning');
+        showNotification('Switch to manual mode first to control the kiosk by hand', 'warning');
         return;
     }
     
@@ -714,61 +888,6 @@ function stopServer() {
     });
 }
 
-// Utility functions
-
-function getScheduleTypeBadge(type) {
-    const badges = {
-        'daily': '<span class="badge badge-info">Daily</span>',
-        'weekly': '<span class="badge badge-info">Weekly</span>',
-        'specific_date': '<span class="badge badge-info">Specific</span>'
-    };
-    return badges[type] || '<span class="badge">Unknown</span>';
-}
-
-function formatDaysDisplay(daysString, scheduleType, specificDate) {
-    if (scheduleType === 'specific_date' && specificDate) {
-        // Format the date nicely
-        const date = new Date(specificDate);
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
-        });
-    }
-    
-    if (scheduleType !== 'weekly' || !daysString) {
-        return scheduleType === 'daily' ? 'Everyday' : '-';
-    }
-    
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const days = daysString.split(',').map(d => parseInt(d.trim()));
-    
-    if (days.length === 7) return 'Everyday';
-    if (days.length === 5 && days.includes(2) && days.includes(3) && 
-        days.includes(4) && days.includes(5) && days.includes(6)) {
-        return 'Weekdays';
-    }
-    
-    return days.map(day => dayNames[day - 1] || day).join(', ');
-}
-
-function updateFormFields() {
-    const scheduleType = document.getElementById('schedule-type').value;
-    
-    // Show/hide days selection for weekly
-    const daysSection = document.getElementById('weekly-days-section');
-    if (daysSection) {
-        daysSection.style.display = scheduleType === 'weekly' ? 'block' : 'none';
-    }
-    
-    // Show/hide specific date for specific_date
-    const specificDateSection = document.getElementById('specific-date-section');
-    if (specificDateSection) {
-        specificDateSection.style.display = scheduleType === 'specific_date' ? 'block' : 'none';
-    }
-}
-
 // Helper functions
 
 function showNotification(message, type = 'info') {
@@ -783,8 +902,8 @@ function showNotification(message, type = 'info') {
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
         <div class="notification-content">
-            <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
-            <span>${message}</span>
+            <span class="notification-icon">${uiIcon(type === 'success' ? 'check' : type === 'error' ? 'cross' : type === 'warning' ? 'alert' : 'info', 18)}</span>
+            <span>${escapeHtmlSafe(message)}</span>
         </div>
         <button class="notification-close" onclick="this.parentElement.remove()">×</button>
     `;
@@ -846,9 +965,10 @@ window.serverScheduleManager = {
     toggleScheduleStatus,
     enableAllSchedules,
     disableAllSchedules,
+    resetPolicyOrder,
+    loadPolicyPreview,
     startServer,
     stopServer,
-    toggleDailyOperation,
     restartServer,
     loadServerMode,
     toggleServerMode,
@@ -881,44 +1001,69 @@ function setAutomationText(id, text) {
 function setAutomationState(label, tone) {
     const pill = document.getElementById('automation-state');
     if (!pill) return;
-    pill.className = `status-indicator status-${tone}`;
-    pill.innerHTML = `<span class="status-dot"></span>${label}`;
+    pill.className = `ui-pill ui-pill-${tone}`;
+    pill.innerHTML = `<span class="ui-dot"></span>${escapeHtmlSafe(label)}`;
 }
 
+// <Jun Kai start>
+let lastAutomationStatus = null;
+// <Jun Kai end>
 async function loadAutomationStatus() {
     if (!document.getElementById('automation-card')) return;
     try {
         const response = await fetch('/api/admin/server/automation');
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load automation status');
+        // <Jun Kai start>
+        const a = data.automation;
+        const acting = a.enabled && !a.dryRun && a.mode === 'auto';
+        if (acting && lastAutomationStatus && lastAutomationStatus.currentWindow && !a.currentWindow) {
+            showNotification('The policies now keep the kiosk off, so the PC hibernates within a minute.', 'warning');
+        }
+        lastAutomationStatus = a;
+        // <Jun Kai end>
         renderAutomationStatus(data.automation);
     } catch (error) {
         console.error('❌ Error loading automation status:', error);
         setAutomationText('automation-summary', 'Automation status is not available right now.');
-        setAutomationState('Unavailable', 'offline');
+        setAutomationState('Unavailable', 'down');
     }
 }
 
 function renderAutomationStatus(a) {
     const isAuto = a.mode === 'auto';
     if (!a.enabled) {
-        setAutomationState('Off on this machine', 'offline');
-        setAutomationText('automation-summary', 'Automation is switched off here (KIOSK_AUTOMATION=off). Schedules are saved but nothing runs them.');
+        setAutomationState('Off on this machine', 'muted');
+        // <Jun Kai start>
+        setAutomationText('automation-summary', 'Automation is switched off here (KIOSK_AUTOMATION=off). Policies are saved but nothing runs them.');
+        // <Jun Kai end>
     } else if (!isAuto) {
-        setAutomationState('Paused', 'warning');
-        setAutomationText('automation-summary', 'Manual mode: switch to AUTO MODE below and the schedules will hibernate and wake the PC.');
+        setAutomationState('Paused', 'warn');
+        // <Jun Kai start>
+        setAutomationText('automation-summary', 'Manual mode. Switch to automatic mode below and the policies will hibernate and wake the PC.');
+        // <Jun Kai end>
+    // <Jun Kai start>
     } else if (!a.activeSchedules) {
-        setAutomationState('No schedules', 'warning');
-        setAutomationText('automation-summary', 'AUTO MODE is on but no schedule is active. Add or enable one to automate the day.');
+        setAutomationState('No policies', 'warn');
+        setAutomationText('automation-summary', 'Automatic mode is on but no policy is enabled. Add or enable one to automate the day.');
     } else if (a.dryRun) {
-        setAutomationState('Dry run', 'warning');
+        setAutomationState('Dry run', 'warn');
         setAutomationText('automation-summary', 'Dry run: actions are only logged (KIOSK_AUTOMATION=dry-run).');
     } else {
-        setAutomationState('Running', 'online');
-        setAutomationText('automation-summary', a.currentWindow
-            ? `Kiosk hours are open (${a.currentWindow.schedule}) until ${formatPlannedTime(a.currentWindow.until)}.`
-            : `${a.activeSchedules} active schedule${a.activeSchedules === 1 ? '' : 's'}. The PC hibernates at the stop time and wakes before the start time.`);
+        setAutomationState('On', 'ok');
+        let summary = `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'}. The PC hibernates when the kiosk switches off and wakes before it switches on.`;
+        if (a.currentWindow) {
+            summary = a.currentWindow.until
+                ? `The kiosk runs until ${formatPlannedTime(a.currentWindow.until)}. "${a.currentWindow.schedule}" is in force now.`
+                : `The kiosk runs and no policy stops it within a year. "${a.currentWindow.schedule}" is in force now.`;
+        } else if (a.stoppedBy) {
+            summary = a.stoppedBy.until
+                ? `The kiosk is off until ${formatPlannedTime(a.stoppedBy.until)} because of the Stop policy "${a.stoppedBy.schedule}".`
+                : `The kiosk is off because of the Stop policy "${a.stoppedBy.schedule}", and no policy starts it within a year.`;
+        }
+        setAutomationText('automation-summary', summary);
     }
+    // <Jun Kai end>
 
     setAutomationText('automation-next-stop', isAuto && a.enabled ? formatPlannedTime(a.nextStop) : '–');
     setAutomationText('automation-next-start', isAuto && a.enabled ? formatPlannedTime(a.nextStart) : '–');
@@ -939,27 +1084,31 @@ function renderAutomationStatus(a) {
             ? 'Windows power settings block wake timers: run the install script as administrator'
             : (wake.task.nextRun ? `Next wake ${wake.task.nextRun}` : 'Scheduled task present'));
     } else {
-        setAutomationText('automation-wake-status', a.activeSchedules ? 'Missing' : 'Not needed');
-        setAutomationText('automation-wake-detail', a.activeSchedules ? 'Created when a schedule is saved while automation is on' : 'No active schedule');
+        // <Jun Kai start>
+        const paused = a.mode && a.mode !== 'auto';
+        setAutomationText('automation-wake-status', paused ? 'Paused' : a.wakeNeeded ? 'Missing' : 'Not needed');
+        setAutomationText('automation-wake-detail', paused ? 'Manual mode: the policies do not wake the PC' : a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
+        // <Jun Kai end>
     }
 
-    setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting…' : 'Off'));
-    setAutomationText('automation-mode-hint', isAuto ? 'AUTO MODE: schedules apply' : 'Manual mode: schedules paused');
+    setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting' : 'Off'));
+    // <Jun Kai start>
+    setAutomationText('automation-mode-hint', isAuto ? 'Automatic mode: policies apply' : 'Manual mode: policies paused');
+    // <Jun Kai end>
 
     const list = document.getElementById('automation-events');
     if (!list) return;
     const labels = { hibernate: 'Hibernated the PC', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' };
     if (!a.events || !a.events.length) {
-        list.innerHTML = '<li class="automation-empty">No automatic actions recorded yet</li>';
+        list.innerHTML = '<li class="ui-empty">No automatic actions recorded yet</li>';
         return;
     }
     list.innerHTML = a.events.map((event) => {
         const when = new Date(event.at).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
-        const tone = event.type === 'start-failed' ? 'danger' : (event.type === 'hibernate' ? 'info' : 'success');
-        return `<li class="automation-event automation-event-${tone}">
-                    <span class="automation-event-time">${escapeHtmlSafe(when)}</span>
-                    <span class="automation-event-type">${escapeHtmlSafe(labels[event.type] || event.type)}${event.dryRun ? ' (dry run)' : ''}</span>
-                    <span class="automation-event-detail">${escapeHtmlSafe(event.detail || '')}</span>
+        return `<li>
+                    <span class="ui-time">${escapeHtmlSafe(when)}</span>
+                    <span class="ui-type">${escapeHtmlSafe(labels[event.type] || event.type)}${event.dryRun ? ' (dry run)' : ''}</span>
+                    <span class="ui-detail">${escapeHtmlSafe(event.detail || '')}</span>
                 </li>`;
     }).join('');
 }

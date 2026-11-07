@@ -121,7 +121,7 @@ function writeCacheToFile() {
         'utf8'
     );
 
-    console.log(`✅ JSON cache synced (${cacheMap.size} entries)`);
+    console.debug(`✅ JSON cache synced (${cacheMap.size} entries)`);
 }
 
 async function writeCacheToDatabase() {
@@ -168,7 +168,7 @@ async function writeCacheToDatabase() {
 
     await db.pool.promise().query(sql, [values]);
 
-    console.log(`✅ Database cache synced (${cacheMap.size} entries)`);
+    console.debug(`✅ Database cache synced (${cacheMap.size} entries)`);
 }
 
 
@@ -424,7 +424,7 @@ async function getMany(mode, modelName, texts) {
 }
 
 async function saveMany(entries) {
-    console.log(`Saving ${entries.length} cache entries`);
+    console.debug(`Saving ${entries.length} cache entries`);
     await ensureReady();
 
     const preparedEntries = [];
@@ -468,7 +468,7 @@ async function saveMany(entries) {
             entries: Object.fromEntries(cacheMap.entries())
         };
 
-        console.log(`Writing ${cacheMap.size} entries to ${CACHE_FILE}`);
+        console.debug(`Writing ${cacheMap.size} entries to ${CACHE_FILE}`);
         fs.writeFileSync(CACHE_FILE, JSON.stringify(filePayload, null, 2), 'utf8');
     }
 

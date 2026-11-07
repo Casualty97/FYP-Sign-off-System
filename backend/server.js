@@ -109,7 +109,10 @@
 
 // ==================== 1. IMPORTS & INITIALIZATION ====================
 
-require('dotenv').config({ path: require('path').join(__dirname, '.env') }); // backend/.env regardless of the working directory
+require('dotenv').config({ path: require('path').join(__dirname, '.env'), quiet: true }); // backend/.env regardless of the working directory
+// <Jun Kai start>
+require('./core/log').setupLogging(); // request chatter only with LOG_LEVEL=debug
+// <Jun Kai end>
 const express = require('express');
 const https = require('https');
 const http = require('http');
@@ -150,12 +153,20 @@ const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features
 // Import cleanup module
 const dataRetentionCleanup = require('./features/archive/retention');
 const kioskScheduler = require('./features/serverControl/scheduler');
+const healthRoutes = require('./features/health/routes');
+const healthPublicRoutes = require('./features/health/publicRoutes');
+// <Jun Kai start>
+const hardwareRoutes = require('./features/hardware/routes');
+const hardwareSampler = require('./features/hardware/sampler');
+// <Jun Kai end>
 
 // Import QR code generation
 const QRCode = require('qrcode');
 
 const app = express();
-const PORT = 3000;
+// <Jun Kai start>
+const PORT = Number(process.env.PORT) || 3000;
+// <Jun Kai end>
 const JSON_BODY_LIMIT = '50mb';
 
 
@@ -417,6 +428,11 @@ setTreeDatabase(db);
 // ==================== 5. API ROUTES ====================
 
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin/health', healthRoutes);
+app.use('/api/health', healthPublicRoutes);
+// <Jun Kai start>
+app.use('/api/admin/hardware', hardwareRoutes);
+// <Jun Kai end>
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
@@ -672,22 +688,22 @@ function printServerInfo(isHttps) {
         console.log('   No network interfaces found');
     }
     
-    console.log('\n📱 Mobile Access (QR Code URLs):');
-    console.log(`   Feedback: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/feedback`);
-    console.log(`   Pledgeboard: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/pledgeboard`);
-    console.log(`   QR API: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/api/generate-qr`);
+    console.debug('\n📱 Mobile Access (QR Code URLs):');
+    console.debug(`   Feedback: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/feedback`);
+    console.debug(`   Pledgeboard: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/pledgeboard`);
+    console.debug(`   QR API: ${isHttps ? 'https' : 'http'}://${localIP}:${PORT}/api/generate-qr`);
     
     // Platform-specific tips
     if (platform === 'win32') {
-        console.log('\n💡 Windows Tips:');
-        console.log('   • Use start-simple.bat for easy testing');
-        console.log('   • Check firewall for ports 3000-3002');
-        console.log('   • For production, use Linux with systemd');
+        console.debug('\n💡 Windows Tips:');
+        console.debug('   • Use start-simple.bat for easy testing');
+        console.debug('   • Check firewall for ports 3000-3002');
+        console.debug('   • For production, use Linux with systemd');
     } else if (platform === 'linux') {
-        console.log('\n💡 Linux Tips:');
-        console.log('   • Use systemctl for service management');
-        console.log('   • Check firewall: sudo ufw status');
-        console.log('   • For scheduling: Use kiosk-schedules.json');
+        console.debug('\n💡 Linux Tips:');
+        console.debug('   • Use systemctl for service management');
+        console.debug('   • Check firewall: sudo ufw status');
+        console.debug('   • For scheduling: Use kiosk-schedules.json');
     }
     
     console.log('============================================\n');
@@ -696,6 +712,9 @@ function printServerInfo(isHttps) {
     dataRetentionCleanup.initializeCleanup();
     // Schedules (hibernate at stop time, start the kiosk in the morning); off with KIOSK_AUTOMATION=off
     kioskScheduler.start();
+    // <Jun Kai start>
+    hardwareSampler.start();
+    // <Jun Kai end>
 }
 
 // Try to enable HTTPS if selfsigned package is available

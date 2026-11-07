@@ -94,7 +94,10 @@
 // DONE BY PRETI
 // Modified: Now runs on port 3003 (behind gateway on 3001)
 
-require('dotenv').config({ path: require('path').join(__dirname, '.env') }); // backend/.env regardless of the working directory
+require('dotenv').config({ path: require('path').join(__dirname, '.env'), quiet: true }); // backend/.env regardless of the working directory
+// <Jun Kai start>
+require('./core/log').setupLogging(); // request chatter only with LOG_LEVEL=debug
+// <Jun Kai end>
 const express = require('express');
 const http = require('http');
 const fs = require('fs');
@@ -259,6 +262,7 @@ setTreeDatabase(db);
 
 // ==================== API ROUTES (KIOSK) ====================
 
+app.use('/api/health', require('./features/health/publicRoutes')); // tablet heartbeats
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
 app.use('/api/pulse', pulseRoutes);

@@ -35,7 +35,7 @@ The visitor flow on the tablets: landing page with the QR code and the RP bear, 
 - RP photo props and a more interactive RP bear.
 - Pledge required, feedback skippable; admin-editable titles and button names. (skip pledged removed, skip feedback added)
 - Display is 7 m by 2 m.
-- Tablet battery level reported to the server (needs HTTPS: navigator.getBattery on Android Chrome).
+- Application able to remotely monitor tablet battery status (not built yet; a web page can only read the battery through navigator.getBattery, which needs HTTPS and Android Chrome).
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 

@@ -67,7 +67,7 @@ function writeModeConfig(config) {
     try {
         config.last_updated = new Date().toISOString();
         writeJsonAtomic(MODE_FILE, config);
-        console.log(`✅ Mode file updated: ${config.mode}`);
+        console.debug(`✅ Mode file updated: ${config.mode}`);
         return true;
     } catch (error) {
         console.error('❌ Error writing mode file:', error);
@@ -143,18 +143,17 @@ function resolveKioskStatus(callback) {
     });
 }
 
+// <Jun Kai start>
 let lastKioskStatusLogKey = null;
-let lastKioskStatusLogAt = 0;
 
+// The admin page asks every few seconds, so only a change is worth a line
 function logKioskStatusIfNeeded(result) {
-    const now = Date.now();
     const logKey = `${result.status}|${result.source}`;
-    if (logKey !== lastKioskStatusLogKey || now - lastKioskStatusLogAt >= 60000) {
-        console.log(`📊 Kiosk service status: ${result.status} (${result.source})`);
-        lastKioskStatusLogKey = logKey;
-        lastKioskStatusLogAt = now;
-    }
+    if (logKey === lastKioskStatusLogKey) return;
+    lastKioskStatusLogKey = logKey;
+    console.log(`📊 Kiosk service status: ${result.status} (${result.source})`);
 }
+// <Jun Kai end>
 
 // ---------------------------------------------------------------- actions
 // Starts the kiosk server if it is not reachable. callback({ success, message | error, ... })
@@ -220,81 +219,12 @@ function hibernateNow(reason, { dryRun = false } = {}) {
     });
 }
 
-// ---------------------------------------------------------------- schedule maths (pure, local clock)
-// Times are what the admin typed, read on the wall PC's own clock. days_of_week uses 1 = Sunday ... 7 = Saturday.
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function parseTime(text) {
-    const m = /^(\d{1,2}):(\d{2})$/.exec(String(text || '').trim());
-    if (!m) return null;
-    const h = Number(m[1]);
-    const min = Number(m[2]);
-    return h > 23 || min > 59 ? null : { h, min };
-}
-
-function localYmd(date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function appliesOn(schedule, day) {
-    if (schedule.is_active === false) return false;
-    if (schedule.schedule_type === 'daily') return true;
-    if (schedule.schedule_type === 'weekly') {
-        const days = String(schedule.days_of_week || '').split(',').map((d) => Number(d.trim())).filter(Boolean);
-        return days.includes(day.getDay() + 1);
-    }
-    if (schedule.schedule_type === 'specific_date') return localYmd(day) === String(schedule.specific_date || '').slice(0, 10);
-    return false;
-}
-
-// The window a schedule opens on `day`: starts that day, ends the same day or (stop before start) the next day
-function windowOn(schedule, day) {
-    const start = parseTime(schedule.start_time);
-    const end = parseTime(schedule.end_time);
-    if (!start || !end || !appliesOn(schedule, day)) return null;
-    const startAt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), start.h, start.min, 0, 0);
-    let endAt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), end.h, end.min, 0, 0);
-    if (endAt <= startAt) endAt = new Date(endAt.getTime() + DAY_MS);
-    return { schedule, startAt, endAt };
-}
-
-function windowsAround(schedules, now, daysBack, daysAhead) {
-    const windows = [];
-    for (let offset = -daysBack; offset <= daysAhead; offset++) {
-        const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
-        for (const schedule of schedules) {
-            const window = windowOn(schedule, day);
-            if (window) windows.push(window);
-        }
-    }
-    return windows.sort((a, b) => a.startAt - b.startAt);
-}
-
-// The window the kiosk should be running in right now, or null
-function shouldBeRunning(schedules, now) {
-    return windowsAround(schedules, now, 1, 0).find((w) => w.startAt <= now && now < w.endAt) || null;
-}
-
-// Windows whose stop time passed within the last `graceMs` (the scheduler ticks once a minute)
-function stopsDue(schedules, now, graceMs = 90 * 1000) {
-    return windowsAround(schedules, now, 1, 0).filter((w) => w.endAt <= now && now - w.endAt < graceMs);
-}
-
-function stopKey(window) {
-    return `${window.schedule.id}|${window.endAt.toISOString()}`;
-}
-
-function nextTransitions(schedules, now) {
-    const windows = windowsAround(schedules, now, 1, 14);
-    const starts = windows.map((w) => w.startAt).filter((d) => d > now).sort((a, b) => a - b);
-    const stops = windows.map((w) => w.endAt).filter((d) => d > now).sort((a, b) => a - b);
-    return { current: shouldBeRunning(schedules, now), nextStart: starts[0] || null, nextStop: stops[0] || null };
-}
-
+// <Jun Kai start>
+// The schedule maths (which policy decides when) lives in policies.js.
 module.exports = {
     SCHEDULE_CONFIG_PATH, MODE_FILE, AUTOMATION_FILE, kioskControlConfig,
     readSchedulesConfig, writeSchedulesConfig, onSchedulesChanged, readModeConfig, writeModeConfig,
     readAutomation, recordEvent, setLastHibernateKey,
-    resolveKioskStatus, logKioskStatusIfNeeded, startKiosk, hibernateNow,
-    parseTime, appliesOn, windowOn, shouldBeRunning, stopsDue, stopKey, nextTransitions
+    resolveKioskStatus, logKioskStatusIfNeeded, startKiosk, hibernateNow
 };
+// <Jun Kai end>

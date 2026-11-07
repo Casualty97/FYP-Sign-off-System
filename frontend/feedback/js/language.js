@@ -396,6 +396,7 @@ const dynamicLanguageText = {
         noQuestionsButton: 'No Questions Available',
         requiredQuestion: 'Please answer the highlighted question before moving on.',
         questionsAnswered: count => `${count} questions answered`,
+        feedbackSkipped: 'Feedback skipped',
         selectFocusArea: 'Select a focus area',
         knownText: {
             'how would you rate your experience?': 'How would you rate your experience?',
@@ -420,6 +421,7 @@ const dynamicLanguageText = {
         noQuestionsButton: '暂无问题',
         requiredQuestion: '请回答高亮显示的问题后再继续。',
         questionsAnswered: count => `已回答 ${count} 个问题`,
+        feedbackSkipped: '已跳过反馈',
         selectFocusArea: '请选择关注领域',
         knownText: {
             'how would you rate your experience?': '您会如何评价您的体验？',
@@ -444,6 +446,7 @@ const dynamicLanguageText = {
         noQuestionsButton: 'Tiada Soalan',
         requiredQuestion: 'Sila jawab soalan yang ditandakan sebelum meneruskan.',
         questionsAnswered: count => `${count} soalan dijawab`,
+        feedbackSkipped: 'Maklum Balas Dilangkau',
         selectFocusArea: 'Pilih bidang fokus',
         knownText: {
             'how would you rate your experience?': 'Bagaimanakah anda menilai pengalaman anda?',
@@ -468,6 +471,7 @@ const dynamicLanguageText = {
         noQuestionsButton: 'கேள்விகள் இல்லை',
         requiredQuestion: 'தொடருவதற்கு முன் குறிக்கப்பட்ட கேள்விக்கு பதிலளிக்கவும்.',
         questionsAnswered: count => `${count} கேள்விகள் பதிலளிக்கப்பட்டன`,
+        feedbackSkipped: 'பின்னூட்டம் தவிர்க்கப்பட்டது',
         selectFocusArea: 'கவனப் பகுதியைத் தேர்ந்தெடுக்கவும்',
         knownText: {
             'how would you rate your experience?': 'உங்கள் அனுபவத்தை எவ்வாறு மதிப்பிடுவீர்கள்?',

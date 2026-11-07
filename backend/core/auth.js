@@ -287,9 +287,9 @@ function loginUser(username, password, callback) {
             }
             
             if (passwordMatch) {
-                console.log('✅ Login successful:', username);
+                console.debug('✅ Login successful:', username);
                 if (upgradedPlainTextPassword) {
-                    console.log('✅ Upgraded plain-text password hash for:', username);
+                    console.debug('✅ Upgraded plain-text password hash for:', username);
                 }
                 
                 // Update last login time
@@ -355,7 +355,7 @@ async function addAdminUser(username, password, role, callback) {
                 }
                 return callback(err, null);
             }
-            console.log('✅ Admin user added successfully:', username);
+            console.debug('✅ Admin user added successfully:', username);
             callback(null, { id: this.lastID, username, role });
         });
     } catch (error) {
@@ -394,11 +394,11 @@ async function updateAdminUser(id, username, password, role, callback) {
             }
             
             if (this.changes === 0) {
-                console.log('⚠️ No user found with ID:', id);
+                console.debug('⚠️ No user found with ID:', id);
                 return callback(new Error('User not found'), null);
             }
             
-            console.log('✅ Admin user updated successfully:', username);
+            console.debug('✅ Admin user updated successfully:', username);
             callback(null, { changes: this.changes });
         });
     } catch (error) {
@@ -422,11 +422,11 @@ function deleteAdminUser(id, callback) {
         }
         
         if (this.changes === 0) {
-            console.log('⚠️ No user found with ID:', id);
+            console.debug('⚠️ No user found with ID:', id);
             return callback(new Error('User not found'), null);
         }
         
-        console.log('✅ Admin user deleted successfully, ID:', id);
+        console.debug('✅ Admin user deleted successfully, ID:', id);
         callback(null, { changes: this.changes });
     });
 }
