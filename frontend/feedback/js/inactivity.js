@@ -2,7 +2,7 @@
 // Part 8/17 of the feedback page: inactivity timer and idle reset (load order in feedback.html).
 // ==================== 3. INACTIVITY TIMER FUNCTIONS ====================
 
-// Start 1-minute inactivity countdown
+// Start 10-minute inactivity countdown
 function startInactivityTimer() {
     if (inactivityTimer) {
         clearTimeout(inactivityTimer);
@@ -23,7 +23,7 @@ function startInactivityTimer() {
         returnToLandingPage();
     }, INACTIVITY_TIMEOUT);
     
-    console.log('Inactivity timer started: 1 minute');
+    console.log('Inactivity timer started: 10 minute');
 }
 
 // Reset timer on user interaction

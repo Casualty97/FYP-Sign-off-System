@@ -28,8 +28,8 @@
 //    Removed class/course handling    - Public form no longer asks for school-only details (DONE BY XY)
 //
 // 6. ONE-MINUTE KIOSK IDLE RESET
-//    const INACTIVITY_TIMEOUT         - Reset idle kiosk sessions after 1 minute (DONE BY XY)
-//    function showIdleWarning()       - Show 10-second reset warning before clearing the form (DONE BY XY)
+//    const INACTIVITY_TIMEOUT         - Reset idle kiosk sessions after 10 minute (DONE BY zihan)
+//    function showIdleWarning()       - Show 30-second reset warning before clearing the form (DONE BY XY)
 //    function stayOnForm()            - Let active users keep going from the idle warning (DONE BY XY)
 //
 // 7. ADMIN-CONTROLLED CONSENT AND PLEDGE TEXT
@@ -83,7 +83,7 @@
 //    let inactivityTimer              - Timer for inactivity timeout (DONE BY PRETI)
 //    let idleWarningTimer             - Timer for 10-second idle warning modal (DONE BY XY)
 //    let idleWarningInterval          - Countdown interval for idle warning modal (DONE BY XY)
-//    const INACTIVITY_TIMEOUT         - 1 minute timeout duration (DONE BY XY)
+//    const INACTIVITY_TIMEOUT         - 10 minute timeout duration (DONE BY zihan)
 //    const IDLE_WARNING_SECONDS       - Warning countdown before kiosk reset (DONE BY XY)
 //    let countdownSeconds             - Countdown seconds loaded from backend (DONE BY BERNISSA)
 //    let overlayData                  - Store full overlay data including file paths (DONE BY PRETI)
@@ -196,8 +196,8 @@ let currentDevice = 'desktop'; // 'desktop' or 'mobile'
 let inactivityTimer = null;
 let idleWarningTimer = null;
 let idleWarningInterval = null;
-const INACTIVITY_TIMEOUT = 60000; // 1 minute kiosk reset timeout
-const IDLE_WARNING_SECONDS = 10;
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes kiosk reset timeout (zihan)
+const IDLE_WARNING_SECONDS = 30; //change idle warning time to 30seconds instead of 10 seconds (zihan)
 let countdownSeconds = null; // Loaded from backend when needed (DONE BY BERNISSA)
 let overlayData = {}; // Store full overlay data including file paths from database 
 let kioskParameters = {};
