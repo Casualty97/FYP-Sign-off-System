@@ -121,7 +121,7 @@ function updateConfirmationDetails() {
 // Go back from confirmation to style page
 function goBackToStyle() {
     if (userData.photoSkipped || (!photoData && !userData.processedPhoto)) {
-        showFlowPage('photo-choice-page');
+        showFlowPage('pledge-page');
     } else {
         showFlowPage('style-page');
     }

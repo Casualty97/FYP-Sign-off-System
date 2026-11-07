@@ -628,6 +628,7 @@ function applyTranslations() {
     setText('photo-choice-description', t.photoChoiceDescription || 'You can take a keepsake photo, or skip it and submit your feedback now.');
     setText('take-photo-choice-text', t.takePhotoChoice || t.continueToPhoto || 'Take Photo');
     setText('skip-photo-choice-text', t.skipPhotoChoice || 'Skip Photo');
+    setText('skip-photo-from-pledge-text', t.skipPhotoChoice || 'Skip Photo');
     setText('back-from-photo-choice-text', t.back);
 
     setText('photo-title', t.photoTitle);

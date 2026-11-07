@@ -116,9 +116,8 @@ function submitDetails(event) {
 
 // Show the photo choice step after pledge instead of forcing photo capture - changes made by nick
 function continueAfterPledgeChoice() {
-    cheerRpBear(userData.pledgeSkipped ? 'No worries, pledge skipped. Your feedback still matters.' : 'Pledge saved. Now choose your keepsake moment.');
-    showFlowPage('photo-choice-page');
-    resetInactivityTimer();
+    cheerRpBear('Pledge saved. Now choose your keepsake moment.');
+    startPhotoFlow();
 }
 
 // Clear optional photo state when the visitor skips photo - changes made by nick
@@ -144,7 +143,7 @@ function startPhotoFlow() {
 
     if (flags.cameraCaptureEnabled === false && flags.photoUploadEnabled === false) {
         if (rules.photoRequired !== false) {
-            showVisitorNotice('photo-choice-form-alert', 'Photo capture is currently disabled. Please ask an administrator to disable the photo requirement or re-enable capture.', 'Photo is required, but capture is disabled. A staff member can help.');
+            showVisitorNotice('pledge-form-alert', 'Photo capture is currently disabled. Please ask an administrator to disable the photo requirement or re-enable capture.', 'Photo is required, but capture is disabled. A staff member can help.');
             return;
         }
         showFlowPage('confirmation-page');
@@ -157,7 +156,7 @@ function startPhotoFlow() {
     if (currentDevice === 'mobile') {
         if (flags.photoUploadEnabled === false) {
             if (rules.photoRequired !== false) {
-                showVisitorNotice('photo-choice-form-alert', 'Mobile photo upload is currently disabled. Please ask an administrator to disable the photo requirement or re-enable uploads.', 'Upload is disabled right now. Please ask a staff member for help.');
+                showVisitorNotice('pledge-form-alert', 'Mobile photo upload is currently disabled. Please ask an administrator to disable the photo requirement or re-enable uploads.', 'Upload is disabled right now. Please ask a staff member for help.');
                 return;
             }
             showFlowPage('confirmation-page');
@@ -169,7 +168,7 @@ function startPhotoFlow() {
         // DESKTOP: Use camera as before
         if (flags.cameraCaptureEnabled === false) {
             if (rules.photoRequired !== false) {
-                showVisitorNotice('photo-choice-form-alert', 'Desktop camera capture is currently disabled. Please ask an administrator to disable the photo requirement or re-enable camera capture.', 'Camera capture is disabled right now. Please ask a staff member for help.');
+                showVisitorNotice('pledge-form-alert', 'Desktop camera capture is currently disabled. Please ask an administrator to disable the photo requirement or re-enable camera capture.', 'Camera capture is disabled right now. Please ask a staff member for help.');
                 return;
             }
             showFlowPage('confirmation-page');
@@ -197,8 +196,8 @@ function skipPhoto() {
 
 // Submit pledge and redirect to appropriate photo method
 // Added explicit pledge topic selection support and validation - done by XY
-function submitPledge(event) {
-    event.preventDefault();
+function submitPledge(event, skipPhotoAfter = false) {
+    if (event) event.preventDefault();
     clearValidationMessages();
     const rules = getValidationRules();
     userData.pledge = document.getElementById('pledge-text').value.trim();
@@ -231,7 +230,18 @@ function submitPledge(event) {
         return;
     }
 
+    //go to photo page or skip to go confirmation page (zihan)
+    if (skipPhotoAfter) {
+        skipPhoto();
+        return;
+    }
+
     continueAfterPledgeChoice();
+}
+
+// "Skip Photo" button on the pledge page: run the same pledge checks, then skip the photo step. (zihan)
+function submitPledgeAndSkipPhoto() {
+    submitPledge(null, true);
 }
 
 //whole skip pledge function removed (zihan)
