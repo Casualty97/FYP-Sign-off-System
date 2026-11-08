@@ -3320,17 +3320,8 @@
                         </div>
                     </div>
                     <div class="health-grid" id="health-cards"></div>
-                    <!-- <Jun Kai start> Server PC facts first (a fixed set), then the Tablets list (it grows), each full width -->
+                    <!-- <Jun Kai start> the Tablets list full width, then a slim Server PC strip at the bottom -->
                     <div class="health-panels" id="health-panels">
-                        <div class="ui-card" id="health-server-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Server PC</h3>
-                                    <p>The PC that runs this admin page and the kiosk.</p>
-                                </div>
-                            </div>
-                            <div class="ui-card-body"><dl class="ui-facts health-server-facts" id="health-server-details"></dl></div>
-                        </div>
                     <!-- <Jun Kai end> -->
                         <div class="ui-card" id="health-tablets-card">
                             <div class="ui-card-header">
@@ -3348,6 +3339,14 @@
                                 <!-- <Jun Kai end> -->
                             </div>
                         </div>
+                        <!-- <Jun Kai start> CPU and memory are on the Hardware page, so this strip keeps only the rest -->
+                        <div class="ui-card health-server-strip" id="health-server-card">
+                            <div class="ui-card-body">
+                                <h3 class="health-server-title">Server PC</h3>
+                                <dl class="health-server-facts" id="health-server-details"></dl>
+                            </div>
+                        </div>
+                        <!-- <Jun Kai end> -->
                     </div>
                 </div>
 

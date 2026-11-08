@@ -325,7 +325,7 @@ async function saveHealthRename(form) {
 // <Jun Kai end>
 
 // <Jun Kai start>
-// Eight facts in two rows of four: the PC on the first row, the application and the clock on the second
+// A slim strip of what the Hardware page does not show (it has the CPU and memory); details sit in tooltips
 function renderHealthServer(check) {
     const list = document.getElementById('health-server-details');
     if (!list || !check) return;
@@ -333,15 +333,13 @@ function renderHealthServer(check) {
     const [date, clock] = String(d.localTime || '').split(', ');
     const rows = [
         ['Host', d.hostname || '–', d.platform],
-        ['CPU', `${d.cpuPercent}%`, `of ${d.cpuCount} CPUs`],
-        ['Memory', `${d.memoryPercent}%`, `of ${d.memoryTotalGb} GB`],
-        ['PC running for', (check.summary || '').replace(/.*up /, '') || '–', 'since its last restart'],
+        ['PC running for', (check.summary || '').replace(/.*up /, '') || '–', null],
         ['Node.js', d.node || '–', null],
-        ['Application memory', `${d.processMemoryMb} MB`, 'used by the server'],
-        ['Application running for', d.processUptime || '–', 'since the server started'],
-        ['Local time', clock || date || '–', clock ? `${date}, ${d.timeZone || ''}` : d.timeZone]
+        ['App memory', `${d.processMemoryMb} MB`, 'Memory used by the kiosk server'],
+        ['App running for', d.processUptime || '–', 'Since the kiosk server started'],
+        ['Local time', clock || date || '–', [date, d.timeZone].filter(Boolean).join(', ')]
     ];
-    list.innerHTML = rows.map(([k, v, hint]) => `<div><dt class="ui-fact-label">${escapeHtmlSafe(k)}</dt><dd class="ui-fact-value">${escapeHtmlSafe(String(v))}</dd>${hint ? `<dd class="ui-fact-hint">${escapeHtmlSafe(hint)}</dd>` : ''}</div>`).join('');
+    list.innerHTML = rows.map(([k, v, tip]) => `<div><dt>${escapeHtmlSafe(k)}</dt><dd${tip ? ` title="${escapeHtmlSafe(tip)}"` : ''}>${escapeHtmlSafe(String(v))}</dd></div>`).join('');
 }
 // <Jun Kai end>
 
