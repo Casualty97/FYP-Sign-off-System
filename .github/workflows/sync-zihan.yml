@@ -1,0 +1,69 @@
+# <Jun Kai start>
+# Keeps Zihan's branch up to date: after every push to main it merges main into "zihan", but only when git merges it
+# cleanly and her changes stay exactly as she wrote them (same patch-id before and after the merge). The push is a
+# plain fast-forward; then CI runs on the merged branch. Anything else stops the job and leaves her branch as it was.
+name: Sync zihan
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-zihan
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BRANCH: zihan
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Merge main into the branch
+        id: merge
+        run: |
+          if ! git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+            echo "There is no $BRANCH branch, nothing to do."; echo "pushed=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git fetch --no-tags origin main "$BRANCH"
+          git checkout -q -B "$BRANCH" "origin/$BRANCH"
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "$BRANCH already has the newest main."; echo "pushed=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git config user.name "Casualty97"
+          git config user.email "118825256+Casualty97@users.noreply.github.com"
+          base=$(git merge-base origin/main HEAD)
+          if ! git merge --no-ff --no-edit -m "Merge remote-tracking branch 'origin/main' into $BRANCH" origin/main; then
+            git merge --abort
+            echo "::error::main does not merge cleanly into $BRANCH (conflicts). Nothing was pushed; merge it by hand."
+            exit 1
+          fi
+          pid() { git diff "$1" "$2" | git patch-id --stable | cut -d' ' -f1; }
+          theirs_before=$(pid "$base" "origin/$BRANCH"); theirs_after=$(pid origin/main HEAD)
+          main_before=$(pid "$base" origin/main); main_after=$(pid "origin/$BRANCH" HEAD)
+          if [ "$theirs_before" != "$theirs_after" ] || [ "$main_before" != "$main_after" ]; then
+            echo "::error::The merge would change lines of $BRANCH or of main. Nothing was pushed; merge it by hand."
+            exit 1
+          fi
+          git push origin "HEAD:$BRANCH"
+          echo "pushed=yes" >> "$GITHUB_OUTPUT"
+          {
+            echo "### main merged into $BRANCH"
+            echo "- merge commit $(git rev-parse --short HEAD), a fast-forward of $BRANCH"
+            echo "- $BRANCH's own changes are byte-for-byte the same (patch-id ${theirs_after:-none})"
+            echo "- main's changes arrive unchanged (patch-id ${main_after:-none})"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Run CI on the merged branch
+        if: steps.merge.outputs.pushed == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref "$BRANCH"
+# <Jun Kai end>

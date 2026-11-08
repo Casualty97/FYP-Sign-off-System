@@ -198,6 +198,10 @@ route table matches `tests/contracts/routes.snapshot.txt`. After adding or renam
 
 Fix problems, never silence them (no `eslint-disable`, no skipping a check). If a check is wrong, say so in the PR.
 
+After every push to main, the "Sync zihan" workflow (`.github/workflows/sync-zihan.yml`) merges main into the `zihan`
+branch. It only pushes when git merges cleanly and Zihan's changes stay byte-for-byte the same, then runs CI on
+that branch. On a conflict it stops with an error in the Actions tab, and the merge is done by hand.
+
 ## 11. House rules for code
 
 - Keep the `Owner:` line at the top of each file. Few, short comments. No banners.
