@@ -7992,9 +7992,9 @@ input:checked + .slider:before {
 /* <Jun Kai end> */
 
 /* <Jun Kai start> */
-/* Health, Hardware and Server Schedule polish. A <strong> left open on the Audit Logs page wraps every later page,
-   and the theme paints every paragraph #959595 (2.9:1 on white): both are undone here for these pages only. */
-#health-page, #hardware-page, #server-schedule-page, #schedule-modal { font-weight: 400; --color-dark-gray: #475569; --color-muted: #64748b; }
+/* Health, Hardware and Server Schedule polish. The theme paints every paragraph #959595 (2.9:1 on white), so these
+   pages use darker greys and re-assert their paragraph colours. */
+#health-page, #hardware-page, #server-schedule-page, #schedule-modal { --color-dark-gray: #475569; --color-muted: #64748b; }
 #health-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p,
 #health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p,
 #server-schedule-page .ui-section-title, #server-schedule-page .policy-preview-note { color: var(--color-dark-gray) !important; }
