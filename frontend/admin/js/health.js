@@ -89,10 +89,7 @@ function renderHealthCard(check) {
                 <div class="health-card-icon">${uiIcon(HEALTH_ICON_NAME[check.key] || 'server', 18)}</div>
                 <div class="health-card-heading">
                     <div class="health-card-title">${label}</div>
-                    <div class="health-card-side">
-                        ${uiPill(tone, HEALTH_STATUS_LABEL[check.status] || check.status)}
-                        <button type="button" class="health-card-remove" data-remove="${escapeHtmlSafe(check.key)}" aria-label="Remove ${label} from this page" title="Remove from this page">&times;</button>
-                    </div>
+                    <div class="health-card-side">${uiPill(tone, HEALTH_STATUS_LABEL[check.status] || check.status)}</div>
                 </div>
             </div>
             <div class="health-card-summary">${escapeHtmlSafe(check.summary || '')}${check.cached ? '<span class="health-cached">cached</span>' : ''}</div>
@@ -116,12 +113,11 @@ function renderHealthPlaceholder(key) {
 }
 
 // Cards for the checks this admin shows: the last result when there is one, a placeholder otherwise.
-// Keyboard focus on a card's remove button survives the redraw (or moves to Customise when that card went away).
+// Checks are hidden and shown again under Customise only (the cards have no cross since 9 Nov 2026).
 function renderHealthCards() {
     const cards = document.getElementById('health-cards');
     if (!cards) return;
     bindHealthControls();
-    const focused = document.activeElement && cards.contains(document.activeElement) ? document.activeElement.getAttribute('data-remove') : null;
     const visible = healthVisibleKeys();
     if (!visible.length) {
         cards.innerHTML = '<div class="health-empty">Nothing is monitored on this page.<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>';
@@ -136,12 +132,6 @@ function renderHealthCards() {
             cards.innerHTML = markup.join('');
         }
         healthCardMarkup = markup;
-    }
-    if (focused) {
-        const again = cards.querySelector(`[data-remove="${focused}"]`);
-        const fallback = document.getElementById('health-customise-btn');
-        if (again) again.focus();
-        else if (fallback) fallback.focus();
     }
 }
 
@@ -252,7 +242,7 @@ function renderHealthTablets(check, force) {
     body.innerHTML = devices.map((d) => `<tr class="${d.online ? '' : 'health-row-offline'}">
                     <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
-                    <td>${d.online ? uiPill('ok', 'Online') : uiPill('muted', `Offline · ${healthRelativeTime(d.seconds_ago)}`)}</td>
+                    <td>${d.online ? uiPill('ok', 'Online') : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(d.seconds_ago))}</div>`}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
                 </tr>`).join('');
 }
@@ -475,14 +465,6 @@ function renderHealthOptions() {
 }
 
 function bindHealthControls() {
-    const cards = document.getElementById('health-cards');
-    if (cards && !cards.dataset.bound) {
-        cards.dataset.bound = '1';
-        cards.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-remove]');
-            if (button) setHealthOption(button.dataset.remove, false);
-        });
-    }
     const panel = document.getElementById('health-customise');
     if (panel && !panel.dataset.bound) {
         panel.dataset.bound = '1';
