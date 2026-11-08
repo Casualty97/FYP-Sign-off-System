@@ -155,9 +155,15 @@ async function checkServer() {
     return {
         key: 'server',
         label: 'Server PC',
-        status: cpuPercent >= 95 || memoryPercent >= 95 ? 'warn' : 'ok',
-        summary: `CPU ${cpuPercent}%, memory ${memoryPercent}%, up ${formatUptime(os.uptime())}`,
+        // <Jun Kai start>
+        // the same steps as the meters on the Hardware page: amber from 85 %, red from 95 %
+        status: cpuPercent >= 95 || memoryPercent >= 95 ? 'down' : cpuPercent >= 85 || memoryPercent >= 85 ? 'warn' : 'ok',
+        summary: `CPU ${cpuPercent}%, memory ${memoryPercent}%`,
+        // <Jun Kai end>
         detail: {
+            // <Jun Kai start>
+            uptime: formatUptime(os.uptime()),
+            // <Jun Kai end>
             hostname: os.hostname(),
             platform: `${os.type()} ${os.release()}`,
             node: process.version,

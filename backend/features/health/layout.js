@@ -14,7 +14,7 @@ const OPTIONS = [
     { key: 'ollama', label: 'Ollama (local LLM)', description: 'The local language model and its models' },
     { key: 'email', label: 'Email (SMTP)', description: 'The saved mail account can log in' },
     { key: 'disk', label: 'Disk space', description: 'Free space on the project drive' },
-    { key: 'server', label: 'Server PC', description: 'CPU, memory, uptime and the details panel' },
+    { key: 'server', label: 'Server PC', description: 'CPU and memory load, uptime, app memory' },
     { key: 'automation', label: 'Schedules & hibernation', description: 'Policies, next stop and start, wake timer' },
     { key: 'tablets', label: 'Tablets', description: 'Which kiosk screens report in, and the tablets panel' }
 ];
