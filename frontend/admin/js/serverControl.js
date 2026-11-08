@@ -105,8 +105,10 @@ function renderPolicies(list) {
         return;
     }
     initPolicyDrag(ol);
+    // Default order, Enable all and Disable all have nothing to act on in an empty list
+    document.querySelectorAll('#policies-card .ui-card-header .ui-btn').forEach((btn) => { btn.disabled = !list || !list.length; });
     if (!list || !list.length) {
-        ol.innerHTML = '<li class="policy-empty">No policies yet. Use New policy to set when the kiosk runs.</li>';
+        ol.innerHTML = '<li class="policy-empty"><p>No policies yet, so nothing switches the kiosk on or off by itself.</p><button type="button" class="ui-btn ui-btn-secondary" onclick="showAddScheduleModal()">New policy</button></li>';
         return;
     }
     ol.innerHTML = list.map((p, i) => policyRowHtml(p, i, list.length)).join('');
@@ -698,7 +700,14 @@ async function toggleServerMode() {
     
     const isAuto = toggle.checked;
     const newMode = isAuto ? 'auto' : 'manual';
-    
+    // <Jun Kai start>
+    // automatic mode can stop the kiosk and hibernate this PC within a minute, so it is confirmed first
+    if (isAuto && !confirm('Switch to automatic mode?\n\nThe policies take over within a minute. If none of them keeps the kiosk on right now, the kiosk stops and this PC hibernates.')) {
+        toggle.checked = false;
+        return;
+    }
+    // <Jun Kai end>
+
     console.log(`🔄 Switching to ${newMode.toUpperCase()} mode...`);
     
     try {
@@ -758,6 +767,13 @@ function updateModeUI(isAuto) {
         modeHint.classList.toggle('ui-note-warn', !isAuto);
     }
     [startBtn, restartBtn, stopBtn].forEach((btn) => { if (btn) btn.disabled = isAuto; });
+    // <Jun Kai start>
+    // the manual buttons only show in manual mode, where they work
+    const manualControls = document.getElementById('manual-controls');
+    if (manualControls) manualControls.hidden = isAuto;
+    // in manual mode the line under the switch already says the policies are paused
+    if (modeHint) modeHint.hidden = !isAuto;
+    // <Jun Kai end>
 }
 
 // Check current kiosk service status
@@ -777,6 +793,12 @@ async function checkServerStatus() {
             } else {
                 statusIndicator.innerHTML = uiPill('down', 'Kiosk stopped');
             }
+            // <Jun Kai start>
+            // in manual mode Start kiosk only works while the kiosk is stopped
+            const toggle = document.getElementById('auto-mode-toggle');
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn && toggle && !toggle.checked) startBtn.disabled = !!data.kiosk_running;
+            // <Jun Kai end>
         } else {
             statusIndicator.innerHTML = uiPill('warn', 'Status unknown');
         }
