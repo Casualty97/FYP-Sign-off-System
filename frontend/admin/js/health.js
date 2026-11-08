@@ -41,8 +41,11 @@ function healthDetailLines(check) {
         case 'kiosk': return [d.status ? `Probe: ${d.status}` : null, d.hint];
         case 'email': return [d.sender ? `Sender ${d.sender}` : null, d.error ? `Error: ${d.error}` : null, d.hint];
         // <Jun Kai start>
-        // the Server PC panel below the cards lists these details, so the card keeps only its summary
-        case 'server': return [];
+        // CPU and memory are the summary; the graphs and the forecast live on the Hardware page
+        case 'server': return [
+            d.uptime ? `PC up ${d.uptime}, app up ${d.processUptime} using ${d.processMemoryMb} MB` : null,
+            { link: 'Graphs and forecast on the Hardware page', page: 'hardware' }
+        ];
         // <Jun Kai end>
         case 'tablets': return [d.devices && d.devices.length ? `Online means a report in the last ${Math.round((d.onlineWindowSeconds || 180) / 60)} minutes` : 'Tablets report from the feedback page once a minute'];
         case 'automation': return [d.nextStop ? `Next stop ${formatPlannedTime(d.nextStop)}` : null, d.nextStart ? `Next start ${formatPlannedTime(d.nextStart)}` : null, d.wakeTask ? `Wake timer: ${d.wakeTask}` : null];
@@ -79,9 +82,11 @@ const healthVisibleKeys = () => HEALTH_ORDER.filter((key) => !healthHidden().inc
 
 function renderHealthCard(check) {
     const tone = HEALTH_STATUS_TONE[check.status] || 'muted';
-    const lines = healthDetailLines(check).filter(Boolean).map((line) => (typeof line === 'string'
-        ? `<div>${escapeHtmlSafe(line)}</div>`
-        : `<div title="${escapeHtmlSafe(line.title)}">${escapeHtmlSafe(line.text)}</div>`)).join('');
+    const lines = healthDetailLines(check).filter(Boolean).map((line) => {
+        if (typeof line === 'string') return `<div>${escapeHtmlSafe(line)}</div>`;
+        if (line.link) return `<div><button type="button" class="health-card-link" data-page="${escapeHtmlSafe(line.page)}">${escapeHtmlSafe(line.link)}</button></div>`;
+        return `<div title="${escapeHtmlSafe(line.title)}">${escapeHtmlSafe(line.text)}</div>`;
+    }).join('');
     const label = escapeHtmlSafe(check.label);
     return `
         <div class="health-card health-${check.status}" data-key="${escapeHtmlSafe(check.key)}">
@@ -89,10 +94,7 @@ function renderHealthCard(check) {
                 <div class="health-card-icon">${uiIcon(HEALTH_ICON_NAME[check.key] || 'server', 18)}</div>
                 <div class="health-card-heading">
                     <div class="health-card-title">${label}</div>
-                    <div class="health-card-side">
-                        ${uiPill(tone, HEALTH_STATUS_LABEL[check.status] || check.status)}
-                        <button type="button" class="health-card-remove" data-remove="${escapeHtmlSafe(check.key)}" aria-label="Remove ${label} from this page" title="Remove from this page">&times;</button>
-                    </div>
+                    <div class="health-card-side">${uiPill(tone, HEALTH_STATUS_LABEL[check.status] || check.status)}</div>
                 </div>
             </div>
             <div class="health-card-summary">${escapeHtmlSafe(check.summary || '')}${check.cached ? '<span class="health-cached">cached</span>' : ''}</div>
@@ -116,12 +118,11 @@ function renderHealthPlaceholder(key) {
 }
 
 // Cards for the checks this admin shows: the last result when there is one, a placeholder otherwise.
-// Keyboard focus on a card's remove button survives the redraw (or moves to Customise when that card went away).
+// Checks are hidden and shown again under Customise only (the cards have no cross since 9 Nov 2026).
 function renderHealthCards() {
     const cards = document.getElementById('health-cards');
     if (!cards) return;
     bindHealthControls();
-    const focused = document.activeElement && cards.contains(document.activeElement) ? document.activeElement.getAttribute('data-remove') : null;
     const visible = healthVisibleKeys();
     if (!visible.length) {
         cards.innerHTML = '<div class="health-empty">Nothing is monitored on this page.<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>';
@@ -137,29 +138,15 @@ function renderHealthCards() {
         }
         healthCardMarkup = markup;
     }
-    if (focused) {
-        const again = cards.querySelector(`[data-remove="${focused}"]`);
-        const fallback = document.getElementById('health-customise-btn');
-        if (again) again.focus();
-        else if (fallback) fallback.focus();
-    }
 }
 
+// The Tablets list is the one panel under the cards; it follows the Tablets check in Customise
 function renderHealthPanels() {
-    const visible = healthVisibleKeys();
-    const showTablets = visible.includes('tablets');
-    const showServer = visible.includes('server');
+    const showTablets = healthVisibleKeys().includes('tablets');
     const tablets = document.getElementById('health-tablets-card');
-    const server = document.getElementById('health-server-card');
-    const panels = document.getElementById('health-panels');
     if (tablets) tablets.hidden = !showTablets;
-    if (server) server.hidden = !showServer;
-    if (panels) panels.hidden = !showTablets && !showServer;
-    const checks = (healthLast && healthLast.checks) || [];
-    const tabletCheck = checks.find((c) => c.key === 'tablets');
-    const serverCheck = checks.find((c) => c.key === 'server');
+    const tabletCheck = ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets');
     if (showTablets && tabletCheck) renderHealthTablets(tabletCheck);
-    if (showServer && serverCheck) renderHealthServer(serverCheck);
 }
 
 // The top pill counts only the checks on the page
@@ -252,7 +239,7 @@ function renderHealthTablets(check, force) {
     body.innerHTML = devices.map((d) => `<tr class="${d.online ? '' : 'health-row-offline'}">
                     <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
-                    <td>${d.online ? uiPill('ok', 'Online') : uiPill('muted', `Offline · ${healthRelativeTime(d.seconds_ago)}`)}</td>
+                    <td>${d.online ? uiPill('ok', 'Online') : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(d.seconds_ago))}</div>`}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
                 </tr>`).join('');
 }
@@ -333,24 +320,6 @@ async function saveHealthRename(form) {
     }
 }
 // <Jun Kai end>
-
-function renderHealthServer(check) {
-    const list = document.getElementById('health-server-details');
-    const time = document.getElementById('health-server-time');
-    if (!list || !check) return;
-    const d = check.detail || {};
-    const rows = [
-        ['Host', `${d.hostname || '–'} (${d.platform || '–'})`],
-        ['Node.js', d.node || '–'],
-        ['CPU', `${d.cpuPercent}% of ${d.cpuCount} CPUs`],
-        ['Memory', `${d.memoryPercent}% of ${d.memoryTotalGb} GB`],
-        ['Application memory', `${d.processMemoryMb} MB`],
-        ['Application running for', d.processUptime || '–'],
-        ['PC running for', (check.summary || '').replace(/.*up /, '') || '–']
-    ];
-    list.innerHTML = rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(String(v))}</dd>`).join('');
-    if (time) time.textContent = d.localTime ? `Local time ${d.localTime} (${d.timeZone})` : '';
-}
 
 // <Jun Kai start>
 function renderHealth(health) {
@@ -479,8 +448,8 @@ function bindHealthControls() {
     if (cards && !cards.dataset.bound) {
         cards.dataset.bound = '1';
         cards.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-remove]');
-            if (button) setHealthOption(button.dataset.remove, false);
+            const link = event.target.closest('[data-page]');
+            if (link) showPage(link.dataset.page);
         });
     }
     const panel = document.getElementById('health-customise');
