@@ -7922,8 +7922,13 @@ input:checked + .slider:before {
 .health-hidden-count { margin-left: 2px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--theme-border-color); background: var(--theme-bg-color); font-size: 11px; font-weight: 600; color: var(--color-dark-gray); }
 .health-card { min-height: 150px; }
 .health-card-side { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-/* the Tablets and Server PC panels each keep their own height instead of stretching to the taller one */
-#health-panels { align-items: start; }
+/* Server PC facts and the Tablets list are different kinds of content, so they stack full width instead of
+   sharing a row: eight facts in a 4 x 2 grid, then the list, which can grow */
+#health-panels > [hidden] + .ui-card { margin-top: 0; }
+.health-server-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px 28px; margin: 0; }
+.health-server-facts dd { margin: 0; }
+.health-server-facts .ui-fact-value { font-size: 16px; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .health-server-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* "Offline" with the time under it keeps the Status column narrow, so tablet names stay on one line */
 .health-ago { margin-top: 4px; font-size: 12px; white-space: nowrap; }
 .health-skel { display: block; height: 10px; margin-top: 14px; border-radius: 5px; background: linear-gradient(90deg, #eef2f6 25%, #f7f9fb 37%, #eef2f6 63%); background-size: 400% 100%; animation: healthShimmer 1.4s ease infinite; }

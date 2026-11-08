@@ -3320,7 +3320,18 @@
                         </div>
                     </div>
                     <div class="health-grid" id="health-cards"></div>
-                    <div class="ui-grid-2" id="health-panels">
+                    <!-- <Jun Kai start> Server PC facts first (a fixed set), then the Tablets list (it grows), each full width -->
+                    <div class="health-panels" id="health-panels">
+                        <div class="ui-card" id="health-server-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Server PC</h3>
+                                    <p>The PC that runs this admin page and the kiosk.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body"><dl class="ui-facts health-server-facts" id="health-server-details"></dl></div>
+                        </div>
+                    <!-- <Jun Kai end> -->
                         <div class="ui-card" id="health-tablets-card">
                             <div class="ui-card-header">
                                 <div>
@@ -3336,15 +3347,6 @@
                                 </table>
                                 <!-- <Jun Kai end> -->
                             </div>
-                        </div>
-                        <div class="ui-card" id="health-server-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Server PC</h3>
-                                    <p id="health-server-time"></p>
-                                </div>
-                            </div>
-                            <div class="ui-card-body"><dl class="ui-kv" id="health-server-details"></dl></div>
                         </div>
                     </div>
                 </div>

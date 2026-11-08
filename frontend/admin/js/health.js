@@ -324,23 +324,26 @@ async function saveHealthRename(form) {
 }
 // <Jun Kai end>
 
+// <Jun Kai start>
+// Eight facts in two rows of four: the PC on the first row, the application and the clock on the second
 function renderHealthServer(check) {
     const list = document.getElementById('health-server-details');
-    const time = document.getElementById('health-server-time');
     if (!list || !check) return;
     const d = check.detail || {};
+    const [date, clock] = String(d.localTime || '').split(', ');
     const rows = [
-        ['Host', `${d.hostname || '–'} (${d.platform || '–'})`],
-        ['Node.js', d.node || '–'],
-        ['CPU', `${d.cpuPercent}% of ${d.cpuCount} CPUs`],
-        ['Memory', `${d.memoryPercent}% of ${d.memoryTotalGb} GB`],
-        ['Application memory', `${d.processMemoryMb} MB`],
-        ['Application running for', d.processUptime || '–'],
-        ['PC running for', (check.summary || '').replace(/.*up /, '') || '–']
+        ['Host', d.hostname || '–', d.platform],
+        ['CPU', `${d.cpuPercent}%`, `of ${d.cpuCount} CPUs`],
+        ['Memory', `${d.memoryPercent}%`, `of ${d.memoryTotalGb} GB`],
+        ['PC running for', (check.summary || '').replace(/.*up /, '') || '–', 'since its last restart'],
+        ['Node.js', d.node || '–', null],
+        ['Application memory', `${d.processMemoryMb} MB`, 'used by the server'],
+        ['Application running for', d.processUptime || '–', 'since the server started'],
+        ['Local time', clock || date || '–', clock ? `${date}, ${d.timeZone || ''}` : d.timeZone]
     ];
-    list.innerHTML = rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(String(v))}</dd>`).join('');
-    if (time) time.textContent = d.localTime ? `Local time ${d.localTime} (${d.timeZone})` : '';
+    list.innerHTML = rows.map(([k, v, hint]) => `<div><dt class="ui-fact-label">${escapeHtmlSafe(k)}</dt><dd class="ui-fact-value">${escapeHtmlSafe(String(v))}</dd>${hint ? `<dd class="ui-fact-hint">${escapeHtmlSafe(hint)}</dd>` : ''}</div>`).join('');
 }
+// <Jun Kai end>
 
 // <Jun Kai start>
 function renderHealth(health) {
