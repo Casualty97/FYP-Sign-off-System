@@ -41,8 +41,11 @@ function healthDetailLines(check) {
         case 'kiosk': return [d.status ? `Probe: ${d.status}` : null, d.hint];
         case 'email': return [d.sender ? `Sender ${d.sender}` : null, d.error ? `Error: ${d.error}` : null, d.hint];
         // <Jun Kai start>
-        // the Server PC panel below the cards lists these details, so the card keeps only its summary
-        case 'server': return [];
+        // CPU and memory are the summary; the graphs and the forecast live on the Hardware page
+        case 'server': return [
+            d.uptime ? `PC up ${d.uptime}, app up ${d.processUptime} using ${d.processMemoryMb} MB` : null,
+            { link: 'Graphs and forecast on the Hardware page', page: 'hardware' }
+        ];
         // <Jun Kai end>
         case 'tablets': return [d.devices && d.devices.length ? `Online means a report in the last ${Math.round((d.onlineWindowSeconds || 180) / 60)} minutes` : 'Tablets report from the feedback page once a minute'];
         case 'automation': return [d.nextStop ? `Next stop ${formatPlannedTime(d.nextStop)}` : null, d.nextStart ? `Next start ${formatPlannedTime(d.nextStart)}` : null, d.wakeTask ? `Wake timer: ${d.wakeTask}` : null];
@@ -79,9 +82,11 @@ const healthVisibleKeys = () => HEALTH_ORDER.filter((key) => !healthHidden().inc
 
 function renderHealthCard(check) {
     const tone = HEALTH_STATUS_TONE[check.status] || 'muted';
-    const lines = healthDetailLines(check).filter(Boolean).map((line) => (typeof line === 'string'
-        ? `<div>${escapeHtmlSafe(line)}</div>`
-        : `<div title="${escapeHtmlSafe(line.title)}">${escapeHtmlSafe(line.text)}</div>`)).join('');
+    const lines = healthDetailLines(check).filter(Boolean).map((line) => {
+        if (typeof line === 'string') return `<div>${escapeHtmlSafe(line)}</div>`;
+        if (line.link) return `<div><button type="button" class="health-card-link" data-page="${escapeHtmlSafe(line.page)}">${escapeHtmlSafe(line.link)}</button></div>`;
+        return `<div title="${escapeHtmlSafe(line.title)}">${escapeHtmlSafe(line.text)}</div>`;
+    }).join('');
     const label = escapeHtmlSafe(check.label);
     return `
         <div class="health-card health-${check.status}" data-key="${escapeHtmlSafe(check.key)}">
@@ -135,21 +140,13 @@ function renderHealthCards() {
     }
 }
 
+// The Tablets list is the one panel under the cards; it follows the Tablets check in Customise
 function renderHealthPanels() {
-    const visible = healthVisibleKeys();
-    const showTablets = visible.includes('tablets');
-    const showServer = visible.includes('server');
+    const showTablets = healthVisibleKeys().includes('tablets');
     const tablets = document.getElementById('health-tablets-card');
-    const server = document.getElementById('health-server-card');
-    const panels = document.getElementById('health-panels');
     if (tablets) tablets.hidden = !showTablets;
-    if (server) server.hidden = !showServer;
-    if (panels) panels.hidden = !showTablets && !showServer;
-    const checks = (healthLast && healthLast.checks) || [];
-    const tabletCheck = checks.find((c) => c.key === 'tablets');
-    const serverCheck = checks.find((c) => c.key === 'server');
+    const tabletCheck = ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets');
     if (showTablets && tabletCheck) renderHealthTablets(tabletCheck);
-    if (showServer && serverCheck) renderHealthServer(serverCheck);
 }
 
 // The top pill counts only the checks on the page
@@ -325,25 +322,6 @@ async function saveHealthRename(form) {
 // <Jun Kai end>
 
 // <Jun Kai start>
-// A slim strip of what the Hardware page does not show (it has the CPU and memory); details sit in tooltips
-function renderHealthServer(check) {
-    const list = document.getElementById('health-server-details');
-    if (!list || !check) return;
-    const d = check.detail || {};
-    const [date, clock] = String(d.localTime || '').split(', ');
-    const rows = [
-        ['Host', d.hostname || '–', d.platform],
-        ['PC running for', (check.summary || '').replace(/.*up /, '') || '–', null],
-        ['Node.js', d.node || '–', null],
-        ['App memory', `${d.processMemoryMb} MB`, 'Memory used by the kiosk server'],
-        ['App running for', d.processUptime || '–', 'Since the kiosk server started'],
-        ['Local time', clock || date || '–', [date, d.timeZone].filter(Boolean).join(', ')]
-    ];
-    list.innerHTML = rows.map(([k, v, tip]) => `<div><dt>${escapeHtmlSafe(k)}</dt><dd${tip ? ` title="${escapeHtmlSafe(tip)}"` : ''}>${escapeHtmlSafe(String(v))}</dd></div>`).join('');
-}
-// <Jun Kai end>
-
-// <Jun Kai start>
 function renderHealth(health) {
     healthLast = health;
     healthError = null;
@@ -466,6 +444,14 @@ function renderHealthOptions() {
 }
 
 function bindHealthControls() {
+    const cards = document.getElementById('health-cards');
+    if (cards && !cards.dataset.bound) {
+        cards.dataset.bound = '1';
+        cards.addEventListener('click', (event) => {
+            const link = event.target.closest('[data-page]');
+            if (link) showPage(link.dataset.page);
+        });
+    }
     const panel = document.getElementById('health-customise');
     if (panel && !panel.dataset.bound) {
         panel.dataset.bound = '1';
