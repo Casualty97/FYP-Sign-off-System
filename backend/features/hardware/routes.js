@@ -54,7 +54,7 @@ async function buildForecast(horizonHours) {
     const diskPoints = (await bucketedRows(30 * 86400, 3600)).filter((p) => p.diskUsedGb !== null).map((p) => ({ t: p.t, v: p.diskUsedGb }));
     const diskTotal = diskPoints.length ? history.concat().reverse().find((p) => p.diskTotalGb)?.diskTotalGb : null;
     return {
-        method: `Holt linear trend (double exponential smoothing) over the unbroken run of 10-minute averages in the last ${Math.round(windowSeconds / 3600)} hours; disk: straight-line fit over the last 30 days. Statistics only, no AI.`,
+        method: `Holt damped trend (double exponential smoothing) over the unbroken run of 10-minute averages in the last ${Math.round(windowSeconds / 3600)} hours: a trend is trusted for about as long as it has been seen and never carries the value further than the readings moved; disk: straight-line fit over the last 30 days. Statistics only, no AI.`,
         horizonHours,
         windowHours: Math.round(windowSeconds / 3600),
         stepSeconds: FORECAST_BUCKET_SECONDS,

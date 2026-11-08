@@ -1942,7 +1942,9 @@
                         <div class="results-info-bar" id="results-info-bar" style="display: none;">
                             <span class="info-text">
                                 <strong id="active-filters-count">0</strong> filter(s) active - 
-                                Showing <strong id="results-count">0</strong> of <strong id="total-logs">0</span> logs
+                                <!-- <Jun Kai start> the second strong was closed with a span tag, which left it open and made every later page bold -->
+                                Showing <strong id="results-count">0</strong> of <strong id="total-logs">0</strong> logs
+                                <!-- <Jun Kai end> -->
                             </span>
                         </div>
 
@@ -3489,7 +3491,7 @@
                             <div class="ui-card-header">
                                 <div>
                                     <h3>Forecast</h3>
-                                    <p id="hardware-forecast-method">Statistics only, no AI.</p>
+                                    <p>Where each value is heading if the recent trend carries on. Statistics only, no AI.</p>
                                 </div>
                             </div>
                             <div class="ui-card-body">
@@ -3499,6 +3501,7 @@
                                     <div><span class="ui-fact-label" id="hardware-fc-gpu-label">GPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-gpu">–</span><span class="ui-fact-hint" id="hardware-fc-gpu-hint"></span></div>
                                     <div><span class="ui-fact-label">Disk full in</span><span class="ui-fact-value" id="hardware-fc-disk">–</span><span class="ui-fact-hint" id="hardware-fc-disk-hint"></span></div>
                                 </div>
+                                <p class="ui-help hw-forecast-method" id="hardware-forecast-method"></p>
                             </div>
                         </div>
                         <div class="ui-card">
@@ -3626,6 +3629,42 @@
                         </div>
                     </div>
 
+                    <div class="ui-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Controls</h3>
+                                <!-- <Jun Kai start> -->
+                                <p>Automatic mode follows the policies. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
+                                <!-- <Jun Kai end> -->
+                            </div>
+                            <div id="server-status-indicator"><span class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking status</span></div>
+                        </div>
+                        <div class="ui-card-body">
+                            <div class="ui-row ui-row-between">
+                                <div class="ui-row">
+                                    <label class="ui-switch">
+                                        <input type="checkbox" id="auto-mode-toggle" onchange="toggleServerMode()" checked aria-label="Automatic mode">
+                                        <span class="ui-switch-track"></span>
+                                    </label>
+                                    <div>
+                                        <div id="mode-status" class="ui-mode-label">Automatic mode</div>
+                                        <!-- <Jun Kai start> -->
+                                        <div id="mode-description" class="ui-mode-desc">Policies run the kiosk and hibernate the PC</div>
+                                        <!-- <Jun Kai end> -->
+                                    </div>
+                                </div>
+                                <!-- <Jun Kai start> -->
+                                <div class="ui-row" id="manual-controls" hidden>
+                                <!-- <Jun Kai end> -->
+                                    <button class="ui-btn ui-btn-secondary" onclick="startServer()" id="start-btn" disabled>Start kiosk</button>
+                                    <button class="ui-btn ui-btn-secondary" onclick="restartServer()" id="restart-btn" disabled>Restart application</button>
+                                    <button class="ui-btn ui-btn-danger" onclick="stopServer()" id="stop-btn" disabled>Stop and hibernate</button>
+                                </div>
+                            </div>
+                            <p class="ui-note" id="mode-hint">Switch to manual mode to use the start and stop controls.</p>
+                        </div>
+                    </div>
+
                     <!-- <Jun Kai start> -->
                     <div class="ui-card" id="policies-card">
                         <div class="ui-card-header">
@@ -3646,7 +3685,10 @@
                             <li class="policy-empty">Loading policies</li>
                         </ol>
                         <div class="ui-card-body policy-rules">
-                            <p class="ui-help">New policies are placed for you: a single date goes above days of the week, days of the week above months, months above every day, and at the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
+                            <details class="policy-rules-more">
+                                <summary>How new policies are placed</summary>
+                                <p class="ui-help">A single date goes above days of the week, days of the week above months, and months above every day. At the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
+                            </details>
                         </div>
                         <div class="ui-sr-only" id="policy-live" aria-live="polite"></div>
                     </div>
@@ -3674,40 +3716,6 @@
                         </div>
                     </div>
                     <!-- <Jun Kai end> -->
-
-                    <div class="ui-card">
-                        <div class="ui-card-header">
-                            <div>
-                                <h3>Controls</h3>
-                                <!-- <Jun Kai start> -->
-                                <p>Automatic mode follows the policies. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
-                                <!-- <Jun Kai end> -->
-                            </div>
-                            <div id="server-status-indicator"><span class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking status</span></div>
-                        </div>
-                        <div class="ui-card-body">
-                            <div class="ui-row ui-row-between">
-                                <div class="ui-row">
-                                    <label class="ui-switch">
-                                        <input type="checkbox" id="auto-mode-toggle" onchange="toggleServerMode()" checked>
-                                        <span class="ui-switch-track"></span>
-                                    </label>
-                                    <div>
-                                        <div id="mode-status" class="ui-mode-label">Automatic mode</div>
-                                        <!-- <Jun Kai start> -->
-                                        <div id="mode-description" class="ui-mode-desc">Policies run the kiosk and hibernate the PC</div>
-                                        <!-- <Jun Kai end> -->
-                                    </div>
-                                </div>
-                                <div class="ui-row">
-                                    <button class="ui-btn ui-btn-secondary" onclick="startServer()" id="start-btn" disabled>Start kiosk</button>
-                                    <button class="ui-btn ui-btn-secondary" onclick="restartServer()" id="restart-btn" disabled>Restart application</button>
-                                    <button class="ui-btn ui-btn-danger" onclick="stopServer()" id="stop-btn" disabled>Stop and hibernate</button>
-                                </div>
-                            </div>
-                            <p class="ui-note" id="mode-hint">Switch to manual mode to use the start and stop controls.</p>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- <Jun Kai start> -->

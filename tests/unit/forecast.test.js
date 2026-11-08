@@ -5,14 +5,36 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const forecast = require('../../backend/features/hardware/forecast');
 
-test('holtForecast follows a straight upward line and clamps at 100', () => {
+test('holtForecast follows a straight upward line, then the damped trend flattens', () => {
     const values = Array.from({ length: 24 }, (_, i) => 10 + i * 2); // 10, 12, ... 56
     const result = forecast.holtForecast(values, 30);
     assert.equal(result.points.length, 30);
     assert.ok(Math.abs(result.points[0].value - 58) < 1.5, `first step ${result.points[0].value} should be close to 58`);
     assert.ok(result.points[9].value > result.points[0].value, 'keeps rising');
-    assert.equal(result.points[29].value, 100, 'never above 100');
+    const firstStep = result.points[1].value - result.points[0].value;
+    const lastStep = result.points[29].value - result.points[28].value;
+    assert.ok(lastStep < firstStep, `the rise slows down (${firstStep} then ${lastStep})`);
     assert.ok(result.points[0].low <= result.points[0].value && result.points[0].value <= result.points[0].high);
+});
+
+test('holtForecast never goes above 100', () => {
+    const values = Array.from({ length: 36 }, (_, i) => 30 + i * 2); // 30 ... 100
+    for (const p of forecast.holtForecast(values, 144).points) assert.ok(p.value <= 100 && p.high <= 100);
+});
+
+test('the PC settling after a wake-up does not run the forecast to zero', () => {
+    // real 10-minute averages from the first two hours after a wake-up (9 Nov 2026)
+    const cpu = [22.3, 19.0, 14.1, 9.4, 9.7, 11.0, 13.0, 6.7, 7.3, 9.3, 7.2, 7.7];
+    const memory = [84.1, 79.7, 77.5, 78.1, 79.3, 75.7, 75.8, 74.7, 75.2, 73.0, 75.9, 76.8];
+    const cpuDay = forecast.holtForecast(cpu, 144).points[143].value;
+    const memoryDay = forecast.holtForecast(memory, 144).points[143].value;
+    assert.ok(cpuDay >= 4 && cpuDay <= 10, `CPU in 24 h ${cpuDay} should stay near today's 7 %`);
+    assert.ok(memoryDay >= 72 && memoryDay <= 78, `memory in 24 h ${memoryDay} should stay near today's 76 %`);
+});
+
+test('a trend seen all day is trusted for longer than one seen for two hours', () => {
+    assert.ok(forecast.dampingFor(144) > forecast.dampingFor(12));
+    assert.ok(Math.abs(forecast.dampingFor(12) ** 6 - 0.5) < 1e-9, 'two hours of steps: the trend halves in an hour');
 });
 
 test('holtForecast of a flat series stays flat with a zero band', () => {

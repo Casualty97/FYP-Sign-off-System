@@ -9,6 +9,7 @@ let healthReloadQueued = false;
 let healthLayout = null;   // { options: [{ key, label, description }], hidden: [keys] }
 let healthLast = null;     // the last answer from GET /api/admin/health
 let healthError = null;    // the message of the last failed check run, cleared by the next good one
+let healthCardMarkup = []; // the HTML of each card as last drawn, in page order
 
 const HEALTH_STATUS_LABEL = { ok: 'Healthy', warn: 'Attention', down: 'Down', unknown: 'Unknown' };
 const HEALTH_STATUS_TONE = { ok: 'ok', warn: 'warn', down: 'down', unknown: 'muted' };
@@ -33,10 +34,16 @@ function healthDetailLines(check) {
     switch (check.key) {
         case 'database': return [d.database ? `Database ${d.database} on ${d.host}` : null, d.hint];
         case 'ollama': return [d.models && d.models.length ? `Models: ${d.models.join(', ')}` : null, d.url ? `Endpoint ${d.url}` : null, d.hint];
-        case 'disk': return [d.path ? `Drive of ${d.path}` : null];
+        // <Jun Kai start>
+        // the full folder path is long, so the card names the drive and the path sits in the tooltip
+        case 'disk': return [d.path ? { text: `Project drive ${healthDriveName(d.path)}`, title: d.path } : null];
+        // <Jun Kai end>
         case 'kiosk': return [d.status ? `Probe: ${d.status}` : null, d.hint];
         case 'email': return [d.sender ? `Sender ${d.sender}` : null, d.error ? `Error: ${d.error}` : null, d.hint];
-        case 'server': return [`${d.hostname}, ${d.platform}, Node ${d.node}`, `${d.cpuCount} CPUs, ${d.memoryTotalGb} GB memory, the app uses ${d.processMemoryMb} MB`];
+        // <Jun Kai start>
+        // the Server PC panel below the cards lists these details, so the card keeps only its summary
+        case 'server': return [];
+        // <Jun Kai end>
         case 'tablets': return [d.devices && d.devices.length ? `Online means a report in the last ${Math.round((d.onlineWindowSeconds || 180) / 60)} minutes` : 'Tablets report from the feedback page once a minute'];
         case 'automation': return [d.nextStop ? `Next stop ${formatPlannedTime(d.nextStop)}` : null, d.nextStart ? `Next start ${formatPlannedTime(d.nextStart)}` : null, d.wakeTask ? `Wake timer: ${d.wakeTask}` : null];
         default: return [];
@@ -44,6 +51,11 @@ function healthDetailLines(check) {
 }
 
 // <Jun Kai start>
+function healthDriveName(path) {
+    const drive = /^([A-Za-z]:)[\\/]/.exec(String(path));
+    return drive ? drive[1] : String(path);
+}
+
 function healthCacheKey() {
     try { return `healthHidden:${sessionStorage.getItem('loggedUser') || ''}`; } catch { return 'healthHidden:'; }
 }
@@ -67,7 +79,9 @@ const healthVisibleKeys = () => HEALTH_ORDER.filter((key) => !healthHidden().inc
 
 function renderHealthCard(check) {
     const tone = HEALTH_STATUS_TONE[check.status] || 'muted';
-    const lines = healthDetailLines(check).filter(Boolean).map((line) => `<div>${escapeHtmlSafe(line)}</div>`).join('');
+    const lines = healthDetailLines(check).filter(Boolean).map((line) => (typeof line === 'string'
+        ? `<div>${escapeHtmlSafe(line)}</div>`
+        : `<div title="${escapeHtmlSafe(line.title)}">${escapeHtmlSafe(line.text)}</div>`)).join('');
     const label = escapeHtmlSafe(check.label);
     return `
         <div class="health-card health-${check.status}" data-key="${escapeHtmlSafe(check.key)}">
@@ -113,7 +127,15 @@ function renderHealthCards() {
         cards.innerHTML = '<div class="health-empty">Nothing is monitored on this page.<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>';
     } else {
         const byKey = new Map(((healthLast && healthLast.checks) || []).map((check) => [check.key, check]));
-        cards.innerHTML = visible.map((key) => (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key))).join('');
+        const markup = visible.map((key) => (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key)).trim());
+        // the 30-second refresh swaps only the cards whose text changed, so hover and the rest of the grid stay still
+        const sameCards = [...cards.children].map((el) => el.dataset.key).join(',') === visible.join(',');
+        if (sameCards) {
+            markup.forEach((html, i) => { if (healthCardMarkup[i] !== html) cards.children[i].outerHTML = html; });
+        } else {
+            cards.innerHTML = markup.join('');
+        }
+        healthCardMarkup = markup;
     }
     if (focused) {
         const again = cards.querySelector(`[data-remove="${focused}"]`);
@@ -230,7 +252,7 @@ function renderHealthTablets(check, force) {
     body.innerHTML = devices.map((d) => `<tr class="${d.online ? '' : 'health-row-offline'}">
                     <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
-                    <td>${d.online ? uiPill('ok', 'Online') : uiPill('muted', healthRelativeTime(d.seconds_ago))}</td>
+                    <td>${d.online ? uiPill('ok', 'Online') : uiPill('muted', `Offline · ${healthRelativeTime(d.seconds_ago)}`)}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
                 </tr>`).join('');
 }

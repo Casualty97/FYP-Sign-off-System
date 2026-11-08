@@ -16,6 +16,8 @@ Customise (supervisor meeting 03): every check is shown by default; an admin rem
 
 Tablet names: the edit button next to a tablet in the Tablets panel gives it a name or a number (up to 40 characters, no two tablets with the same name); an empty name shows the device name again. Named tablets are listed first in number order ("Tablet 2" before "Tablet 10"), the others after them, most recent first. The names are kept in backend/data/tablet-names.json, apart from the heartbeat rows, so a kiosk never overwrites them.
 
+Look (9 Nov 2026): the status pill on each card carries the state; a card that needs attention or is down tints its whole border instead of a coloured side stripe. The disk card names the drive (the full folder path is in its tooltip), the Server PC card keeps only its summary because the Server PC panel lists the details, and an offline tablet reads "Offline · 3 d ago". The 30-second refresh redraws only the cards whose text changed.
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |

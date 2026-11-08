@@ -1,34 +1,42 @@
 // Owner: Role 3, Jun Kai.
 // Usage forecasting for the Hardware page, statistics only (no AI, as agreed with the supervisor):
-// Holt's linear trend (double exponential smoothing) for CPU, memory and GPU, a straight-line fit for
+// Holt's damped trend (double exponential smoothing) for CPU, memory and GPU, a straight-line fit for
 // the disk. Pure functions, unit-tested in tests/unit/forecast.test.js.
 // <Jun Kai start>
 const ALPHAS = [0.2, 0.35, 0.5, 0.65, 0.8];
 const BETAS = [0.02, 0.05, 0.1, 0.2, 0.3];
+// An undamped trend runs on for the whole horizon, so two hours of the PC settling after a wake-up became
+// "memory 0 % tomorrow". A trend is now trusted for about as long as it has been seen: it fades by half over
+// half the unbroken run (at least 6 steps), and a run shorter than TRUST_STEPS (6 hours of 10-minute steps)
+// counts for less.
+const MIN_HALF_LIFE_STEPS = 6;
+const TRUST_STEPS = 36;
+const dampingFor = (steps) => 0.5 ** (1 / Math.max(MIN_HALF_LIFE_STEPS, steps / 2));
+const DAMPING = dampingFor(24);
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-// One pass of Holt's method. Returns the final level and trend plus the one-step-ahead error.
-function holt(values, alpha, beta) {
+// One pass of Holt's damped method. Returns the final level and trend plus the one-step-ahead error.
+function holt(values, alpha, beta, phi = DAMPING) {
     let level = values[0];
     let trend = 0; // learned from the data: one noisy first difference must not steer the whole forecast
     let squaredError = 0;
     for (let t = 1; t < values.length; t++) {
-        const predicted = level + trend;
+        const predicted = level + phi * trend;
         squaredError += (values[t] - predicted) ** 2;
         const previousLevel = level;
         level = alpha * values[t] + (1 - alpha) * predicted;
-        trend = beta * (level - previousLevel) + (1 - beta) * trend;
+        trend = beta * (level - previousLevel) + (1 - beta) * phi * trend;
     }
     return { level, trend, rmse: values.length > 1 ? Math.sqrt(squaredError / (values.length - 1)) : 0 };
 }
 
 // Tries a small grid of smoothing factors and keeps the pair with the smallest one-step error
-function fitHolt(values) {
+function fitHolt(values, phi = DAMPING) {
     let best = null;
     for (const alpha of ALPHAS) {
         for (const beta of BETAS) {
-            const fit = holt(values, alpha, beta);
+            const fit = holt(values, alpha, beta, phi);
             if (!best || fit.rmse < best.rmse) best = { ...fit, alpha, beta };
         }
     }
@@ -37,20 +45,32 @@ function fitHolt(values) {
 
 // values: evenly spaced readings, oldest first; steps: how many future points to produce.
 // Only the unbroken run of readings up to the latest one is used (a gap such as a night in hibernation is
-// not a step). Returns null with fewer than 6 readings. The band grows with the horizon (typical error * sqrt(h)).
-function holtForecast(values, steps, { min = 0, max = 100 } = {}) {
+// not a step). Returns null with fewer than 6 readings.
+// - The trend is damped (see TRUST_STEPS above) and never carries the forecast further from the last level
+//   than the readings moved within the run: CPU, memory and GPU swing around a level, they do not drift forever.
+// - The band (about 80 %) starts at the typical one-step error and widens with sqrt(h), up to twice the usual
+//   spread of the readings.
+function holtForecast(values, steps, { min = 0, max = 100, phi } = {}) {
     let start = values.length;
     while (start > 0 && Number.isFinite(values[start - 1])) start--;
     const clean = values.slice(start);
     if (clean.length < 6 || steps < 1) return null;
-    const fit = fitHolt(clean);
+    const damping = phi === undefined ? dampingFor(clean.length) : phi;
+    const fit = fitHolt(clean, damping);
+    const trend = fit.trend * Math.min(1, clean.length / TRUST_STEPS);
+    const range = Math.max(...clean) - Math.min(...clean);
+    const mean = clean.reduce((sum, v) => sum + v, 0) / clean.length;
+    const spread = Math.sqrt(clean.reduce((sum, v) => sum + (v - mean) ** 2, 0) / clean.length);
+    const bandCap = 2 * Math.max(fit.rmse, spread);
     const points = [];
+    let carried = 0; // damping + damping^2 + ... + damping^h
     for (let h = 1; h <= steps; h++) {
-        const value = clamp(fit.level + h * fit.trend, min, max);
-        const halfBand = 1.28 * fit.rmse * Math.sqrt(h);
+        carried += damping ** h;
+        const value = clamp(fit.level + clamp(carried * trend, -range, range), min, max);
+        const halfBand = 1.28 * Math.min(fit.rmse * Math.sqrt(h), bandCap);
         points.push({ value: round1(value), low: round1(clamp(value - halfBand, min, max)), high: round1(clamp(value + halfBand, min, max)) });
     }
-    return { points, rmse: round1(fit.rmse), trendPerStep: round1(fit.trend), alpha: fit.alpha, beta: fit.beta };
+    return { points, rmse: round1(fit.rmse), trendPerStep: round1(trend), alpha: fit.alpha, beta: fit.beta, damping: Math.round(damping * 1000) / 1000 };
 }
 
 // Least-squares line through { t (ms), v } points: slope in value per ms
@@ -111,5 +131,5 @@ function bucketAverage(rows, bucketMs, keys) {
 
 function round1(n) { return Math.round(n * 10) / 10; }
 
-module.exports = { holt, fitHolt, holtForecast, linearTrend, diskForecast, bucketAverage, clamp };
+module.exports = { holt, fitHolt, holtForecast, linearTrend, diskForecast, bucketAverage, clamp, dampingFor };
 // <Jun Kai end>
