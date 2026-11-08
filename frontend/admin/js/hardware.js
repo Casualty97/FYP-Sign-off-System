@@ -36,6 +36,7 @@ const HARDWARE_RANGE_UNITS = { h: ['hour', 3600], d: ['day', 86400], w: ['week',
 const HARDWARE_RANGE_MAX = { h: 43824, d: 1826, w: 260, mo: 60, y: 5 }; // 5 years in each unit
 const HARDWARE_RANGE_SAME = { '1d': '24h', '1w': '7d' };
 let hardwareRetentionDays = 30;
+let hardwareIntervalSeconds = 60;
 
 function hardwareTheme() {
     const css = getComputedStyle(document.documentElement);
@@ -235,11 +236,17 @@ function renderHardwareSeries(data) {
     const showForecast = range.forecast && lastT !== null;
     const horizonLimit = lastT === null ? now : lastT + range.seconds * 1000; // the forecast never squeezes the history
     hardwareLastPoints = points;
+    // a range longer than the samples are kept can never fill, so the graphs start at the oldest sample instead
+    const rangeStart = now - range.seconds * 1000;
+    const firstT = points.length ? points[0].t : null;
+    const beyondKept = range.seconds > hardwareRetentionDays * 86400;
+    const clipped = beyondKept && firstT !== null && firstT > rangeStart;
+    const xMin = clipped ? firstT : rangeStart;
     const note = document.getElementById('hardware-series-note');
     if (note) {
         const text = points.length ? range.text : `${range.text} (no samples yet)`;
-        // a range longer than the samples are kept is partly empty: say why
-        note.textContent = range.seconds > hardwareRetentionDays * 86400 ? `${text}. Samples are kept for ${hardwareSpell('retention', hardwareRetentionDays)}.` : text;
+        const kept = `Samples are kept for ${hardwareSpell('retention', hardwareRetentionDays)}`;
+        note.textContent = !beyondKept ? text : clipped ? `${text}. ${kept}, so the graphs start on ${hardwareTickLabel(firstT, 'date')}.` : `${text}. ${kept}.`;
     }
     if (typeof Chart === 'undefined') {
         for (const key of HARDWARE_METRICS) {
@@ -248,10 +255,14 @@ function renderHardwareSeries(data) {
         }
         return;
     }
+    // the server sends only the periods that have samples: a hole longer than a few periods (the PC hibernating
+    // overnight) gets an empty point, so the line breaks there instead of drawing straight across the night
+    const gapMs = Math.max(data.bucketSeconds || 0, hardwareIntervalSeconds) * 3000;
+    const gapAfter = new Set(points.filter((p, i) => i + 1 < points.length && points[i + 1].t - p.t > gapMs).map((p) => p.t));
     for (const key of HARDWARE_METRICS) {
         const chart = hardwareCharts[key];
         if (!chart) continue;
-        const history = points.map((p) => ({ x: p.t, y: p[key] }));
+        const history = points.flatMap((p) => (gapAfter.has(p.t) ? [{ x: p.t, y: p[key] }, { x: p.t + 1, y: null }] : [{ x: p.t, y: p[key] }]));
         const [measured, projected, low, high] = chart.data.datasets;
         measured.data = history;
         let horizonEnd = now;
@@ -276,8 +287,10 @@ function renderHardwareSeries(data) {
         chart.$hardwareNow = showForecast && projected.data.length ? lastT : null;
         chart.$hardwareTheme = theme;
         chart.$hardwareRange = rangeKey;
-        chart.$hardwarePlan = range.plan;
-        chart.options.scales.x.min = now - range.seconds * 1000;
+        // ticks follow the span actually drawn: a forecast or a clipped start changes it
+        const span = (horizonEnd - xMin) / 1000;
+        chart.$hardwarePlan = clipped || span > range.seconds * 1.25 ? hardwareTickPlan(span) : range.plan;
+        chart.options.scales.x.min = xMin;
         chart.options.scales.x.max = horizonEnd;
         chart.options.scales.x.ticks.color = theme.muted;
         chart.options.scales.y.ticks.color = theme.muted;
@@ -343,13 +356,13 @@ function renderHardwareForecast(forecast, latest) {
     const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
     const hours = (forecast && forecast.horizonHours) || 24;
     const horizon = hours % 24 === 0 ? `${hours / 24} day${hours === 24 ? '' : 's'}` : `${hours} h`;
-    set('hardware-forecast-method', forecast && forecast.method ? forecast.method : 'Statistics only, no AI.');
+    set('hardware-forecast-method', forecast && forecast.method ? `Method: ${forecast.method}` : '');
     for (const key of ['cpu', 'memory', 'gpu']) {
         set(`hardware-fc-${key}-label`, `${key === 'cpu' ? 'CPU' : key === 'gpu' ? 'GPU' : 'Memory'} in ${horizon}`);
         const fc = forecast && forecast[key];
         if (!fc || !fc.points || !fc.points.length) {
             set(`hardware-fc-${key}`, '–');
-            set(`hardware-fc-${key}-hint`, key === 'gpu' && latest && !latest.gpu ? 'No GPU reading' : 'Needs about an hour of samples');
+            set(`hardware-fc-${key}-hint`, key === 'gpu' && latest && !latest.gpu ? 'No GPU reading' : 'Needs an hour of unbroken samples; the count restarts when the PC wakes');
             continue;
         }
         const end = fc.points[fc.points.length - 1];
@@ -377,6 +390,7 @@ function renderHardwareSettings(overview) {
     const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
     if (overview.limits) hardwareLimits = { ...hardwareLimits, ...overview.limits };
     hardwareRetentionDays = settings.retentionDays || 30;
+    hardwareIntervalSeconds = settings.intervalSeconds || 60;
     set('hardware-interval-text', hardwareSpell('interval', settings.intervalSeconds || 60));
     set('hardware-retention-text', hardwareSpell('retention', settings.retentionDays || 30));
     if (!hardwareSettingsFilled) {
