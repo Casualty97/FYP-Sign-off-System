@@ -14,6 +14,8 @@ const settingsStore = require('../../backend/features/archive/visitorSettings');
 const schedule = require('../../backend/features/archive/visitorSchedule');
 const files = require('../../backend/features/archive/visitorFiles');
 const writer = require('../../backend/features/archive/visitorWriter');
+const deletedCounts = require('../../backend/features/archive/deletedCounts');
+const saveGate = require('../../backend/features/archive/saveGate');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'va-unit-'));
 test.after(() => fs.rmSync(TMP, { recursive: true, force: true, maxRetries: 5 }));
@@ -668,5 +670,220 @@ test('a disk that fails while the zip is written stops the write at once and rem
         await assert.rejects(writer.writeArchive({ ...selection, photos }, META, partial), /ENOSPC/, `full after ${limit} bytes`);
         assert.equal(fs.existsSync(partial), false);
     }
+});
+
+test('deleted counts: one entry per Singapore day and kind; flagged rows count as feedback but not as leaves', () => {
+    const at = (iso) => new Date(iso);
+    const rows = [
+        { id: 1, created_at: at('2025-12-31T16:30:00Z'), is_active: 1, comment: 'I pledge to recycle', answer_values: 'Yes' }, // 1 Jan 2026, 00:30 in Singapore
+        { id: 2, created_at: at('2025-12-31T15:59:59Z'), is_active: 1, comment: 'Carry a bottle', answer_values: null },        // 31 Dec 2025, 23:59
+        { id: 3, created_at: at('2026-01-01T02:00:00Z'), is_active: 1, comment: 'This kiosk is bad', answer_values: null },
+        { id: 4, created_at: at('2026-01-01T03:00:00Z'), is_active: 1, comment: 'Fine', answer_values: 'The screen was broken' },
+        { id: 5, created_at: at('2026-01-01T04:00:00Z'), is_active: 0, comment: 'hidden by an admin', answer_values: null },
+        { id: 6, created_at: null, is_active: 1, comment: 'no date', answer_values: null }
+    ];
+    assert.deepEqual(deletedCounts.tally(rows, deletedCounts.SOURCES.feedback.kinds).sort(), [
+        ['2025-12-31', 'feedback', 1], ['2025-12-31', 'leaf', 1],
+        ['2026-01-01', 'feedback', 3], ['2026-01-01', 'leaf', 1]
+    ]);
+    const visitors = [{ id: 7, created_at: '2024-05-01T10:00:00.000Z' }, { id: 8, created_at: at('2024-05-01T17:00:00Z') }];
+    assert.deepEqual(deletedCounts.tally(visitors, deletedCounts.SOURCES.users.kinds).sort(), [['2024-05-01', 'visitor', 1], ['2024-05-02', 'visitor', 1]]);
+});
+
+test('deleteCounted counts exactly the rows it locked, then deletes those ids, 500 at a time', async () => {
+    const ids = Array.from({ length: 1200 }, (_, i) => i + 1);
+    const existing = ids.filter((id) => id % 3 !== 0); // a third are already gone
+    const calls = [];
+    const tx = {
+        all: async (sql, params) => {
+            calls.push({ type: 'select', sql, ids: params[0] });
+            return params[0].filter((id) => existing.includes(id)).map((id) => ({ id, created_at: new Date('2025-03-04T01:00:00Z') }));
+        },
+        run: async (sql, params) => {
+            calls.push({ type: /^INSERT/.test(sql) ? 'insert' : 'delete', sql, values: params[0] });
+            return /^DELETE/.test(sql) ? params[0].length : 1;
+        }
+    };
+    assert.equal(await deletedCounts.deleteCounted(tx, 'lost_found_reports', [...ids, 4, 4]), existing.length);
+    assert.deepEqual(calls.map((c) => c.type), ['select', 'insert', 'delete', 'select', 'insert', 'delete', 'select', 'insert', 'delete']);
+    assert.ok(calls.filter((c) => c.type === 'select').every((c) => /FOR UPDATE/.test(c.sql) && c.ids.length <= 500));
+    const counted = calls.filter((c) => c.type === 'insert').flatMap((c) => c.values);
+    assert.ok(counted.every(([day, kind]) => day === '2025-03-04' && kind === 'lost_found'));
+    assert.equal(counted.reduce((n, entry) => n + entry[2], 0), existing.length);
+    assert.deepEqual(calls.filter((c) => c.type === 'delete').flatMap((c) => c.values), existing);
+    assert.ok(calls.filter((c) => c.type === 'delete').every((c) => /^DELETE FROM lost_found_reports WHERE id IN \(\?\)$/.test(c.sql)));
+
+    calls.length = 0;
+    assert.equal(await deletedCounts.deleteCounted(tx, 'users', []), 0);
+    assert.equal(calls.length, 0);
+    await assert.rejects(deletedCounts.deleteCounted(tx, 'admin_users', [1]), /unknown table/);
+});
+
+test('deleted counts lock the feedback rows, then join their answers the way the tree does', async () => {
+    const calls = [];
+    const tx = {
+        all: async (sql, params) => {
+            calls.push({ sql, ids: params[0] });
+            if (/FROM feedback WHERE/.test(sql)) return params[0].filter((id) => id !== 3).map((id) => ({ id, created_at: new Date('2025-06-01T03:00:00Z'), is_active: 1, comment: `pledge ${id}` }));
+            return [{ feedback_id: 2, answer_values: 'The kiosk was broken' }];
+        }
+    };
+    const rows = await deletedCounts.SOURCES.feedback.load(tx, [1, 2, 3]);
+    assert.deepEqual(rows.map((row) => [row.id, row.answer_values]), [[1, null], [2, 'The kiosk was broken']]);
+    assert.match(calls[0].sql, /FOR UPDATE$/);
+    assert.deepEqual(calls[1].ids, [1, 2], 'answers are read only for the rows that were locked');
+    assert.doesNotMatch(calls[1].sql, /FOR UPDATE/);
+    assert.deepEqual(deletedCounts.tally(rows, deletedCounts.SOURCES.feedback.kinds).sort(), [['2025-06-01', 'feedback', 2], ['2025-06-01', 'leaf', 1]]);
+    const squash = (sql) => sql.replace(/\s+/g, ' ');
+    const tree = squash(fs.readFileSync(path.join(paths.ROOT, 'backend', 'features', 'tree', 'routes.js'), 'utf8'));
+    assert.ok(tree.includes("GROUP_CONCAT(answer_value SEPARATOR ' ') AS answer_values FROM feedback_answers WHERE answer_value IS NOT NULL AND TRIM(answer_value) != ''"), 'the tree still joins the answers this way');
+    assert.ok(squash(deletedCounts.ANSWERS_SQL).includes("GROUP_CONCAT(answer_value SEPARATOR ' ') AS answer_values FROM feedback_answers WHERE answer_value IS NOT NULL AND TRIM(answer_value) != ''"));
+});
+
+test('the year book adds deleted leaves to their year and lists a year whose leaves were all deleted', () => {
+    const live = new Map([[2025, { year: 2025, leafCount: 3, firstSubmission: new Date('2025-03-01T02:00:00Z'), lastSubmission: new Date('2025-11-20T02:00:00Z'), isCurrentYear: false }]]);
+    const archived = new Map([[2025, { count: 40, firstDay: '2025-01-05', lastDay: '2025-10-31' }], [2024, { count: 12, firstDay: '2024-02-01', lastDay: '2024-12-30' }]]);
+    deletedCounts.mergeYearBook(live, archived, 2026);
+    const y2025 = live.get(2025);
+    assert.equal(y2025.leafCount, 43);
+    assert.equal(y2025.archivedLeafCount, 40);
+    assert.equal(y2025.firstSubmission, '2025-01-04T16:00:00.000Z'); // 5 Jan, midnight in Singapore
+    assert.equal(new Date(y2025.lastSubmission).toISOString(), '2025-11-20T02:00:00.000Z'); // the live one is later
+    assert.deepEqual(live.get(2024), { year: 2024, leafCount: 12, archivedLeafCount: 12, firstSubmission: '2024-01-31T16:00:00.000Z', lastSubmission: '2024-12-30T15:59:59.000Z', isCurrentYear: false });
+});
+
+// the visitor_save_gate table, in memory, with a clock and a renewal timer the test moves by hand
+function gateWithClock() {
+    const clock = { now: 0, onSleep: async () => {} };
+    const rows = new Map();
+    const timers = [];
+    let next = 1;
+    const store = {
+        rows,
+        add: async (holder, ttlMs) => { const id = next++; rows.set(id, { holder, expiresAt: clock.now + ttlMs }); return id; },
+        renew: async (id, ttlMs) => { if (rows.has(id)) rows.get(id).expiresAt = clock.now + ttlMs; },
+        remove: async (id) => { rows.delete(id); },
+        active: async (holder) => [...rows.values()].some((row) => row.holder === holder && row.expiresAt > clock.now)
+    };
+    const every = (fn) => { const timer = { fn, stopped: false }; timers.push(timer); return () => { timer.stopped = true; }; };
+    const gate = saveGate.createGate(store, { now: () => clock.now, sleep: async (ms) => { clock.now += ms; await clock.onSleep(); }, every });
+    return { clock, store, gate, timers, held: (holder) => [...rows.values()].filter((row) => row.holder === holder).length };
+}
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+test('save gate: a save that starts during a delete step makes it roll back and run again once the save is done', async () => {
+    const { clock, store, gate, held } = gateWithClock();
+    let attempts = 0;
+    const result = await gate.deleteStep(async (checkpoint) => {
+        attempts++;
+        await checkpoint();
+        if (attempts === 1) {
+            const saveId = await store.add('save', saveGate.SAVE_TTL_MS); // a kiosk save in the other server process
+            let polls = 0;
+            clock.onSleep = async () => { if (++polls === 3) await store.remove(saveId); };
+        }
+        await checkpoint();
+        return 'deleted';
+    });
+    assert.equal(result, 'deleted');
+    assert.equal(attempts, 2);
+    assert.equal(held('delete'), 0);
+});
+
+test('save gate: a delete step does not start while a save is running, and a stale save row expires', async () => {
+    const { clock, store, gate, held } = gateWithClock();
+    const saveId = await store.add('save', saveGate.SAVE_TTL_MS);
+    let polls = 0;
+    clock.onSleep = async () => { if (++polls === 5) await store.remove(saveId); };
+    await gate.deleteStep(async () => { assert.equal(polls, 5, 'started only after the save ended'); });
+
+    await store.add('save', saveGate.SAVE_TTL_MS); // never removed: a server that stopped mid-save
+    clock.onSleep = async () => {};
+    const before = clock.now;
+    let ran = false;
+    await gate.deleteStep(async () => { ran = true; });
+    assert.ok(ran && clock.now - before >= saveGate.SAVE_TTL_MS && clock.now - before < saveGate.DELETE_WAIT_MS);
+    assert.equal(held('delete'), 0);
+});
+
+test('save gate: too many back-offs end with kioskBusy, and a real error is passed on', async () => {
+    const { clock, store, gate, held } = gateWithClock();
+    let attempts = 0;
+    await assert.rejects(gate.deleteStep(async (checkpoint) => {
+        attempts++;
+        const saveId = await store.add('save', saveGate.SAVE_TTL_MS);
+        clock.onSleep = async () => store.remove(saveId);
+        await checkpoint();
+    }), (error) => error.kioskBusy === true && error.message === saveGate.KIOSK_BUSY_MESSAGE);
+    assert.equal(attempts, saveGate.MAX_TRIES);
+    assert.equal(held('delete'), 0);
+
+    await assert.rejects(gate.deleteStep(async () => { throw new Error('lock wait timeout'); }), /lock wait timeout/);
+    assert.equal(held('delete'), 0);
+});
+
+test('save gate: a save waits while a delete step runs, at most 30 seconds, and never fails because of the gate', async (t) => {
+    const { clock, store, gate, held } = gateWithClock();
+    const deleteId = await store.add('delete', 10 * 60 * 1000);
+    let polls = 0;
+    clock.onSleep = async () => { if (++polls === 4) await store.remove(deleteId); };
+    const done = await gate.enterSave();
+    assert.equal(polls, 4);
+    assert.equal(held('save'), 1);
+    done();
+    done();
+    await settle();
+    assert.equal(held('save'), 0);
+
+    await store.add('delete', 10 * 60 * 1000); // left behind by a server that stopped
+    clock.onSleep = async () => {};
+    const before = clock.now;
+    (await gate.enterSave())();
+    assert.ok(clock.now - before >= saveGate.SAVE_WAIT_MS && clock.now - before < saveGate.SAVE_WAIT_MS + 1000);
+
+    t.mock.method(console, 'warn', () => {});
+    const broken = saveGate.createGate({ add: async () => { throw Object.assign(new Error('no table'), { code: 'ER_NO_SUCH_TABLE' }); }, renew: async () => {}, remove: async () => {}, active: async () => false });
+    const release = await broken.enterSave();
+    assert.doesNotThrow(release);
+});
+
+test('save gate: a long save (a first model download) keeps its row by renewing it, and stops renewing after 15 minutes', async () => {
+    const { clock, gate, timers, held } = gateWithClock();
+    const done = await gate.enterSave();
+    const renewal = timers[0];
+    for (let i = 0; i < 10; i++) { // 5 minutes, far past the 2-minute lease
+        clock.now += saveGate.SAVE_RENEW_MS;
+        renewal.fn();
+        await settle();
+    }
+    let polls = 0;
+    clock.onSleep = async () => { if (++polls === 3) { done(); await settle(); } };
+    let startedAfter = null;
+    await gate.deleteStep(async () => { startedAfter = polls; });
+    assert.equal(startedAfter, 3, 'the delete step waited for the 5-minute save to end');
+    assert.equal(renewal.stopped, true, 'releasing the save stops its renewal');
+    assert.equal(held('save'), 0);
+
+    const stuck = await gate.enterSave();
+    const stuckRenewal = timers[1];
+    clock.now += saveGate.SAVE_MAX_MS + 1;
+    stuckRenewal.fn();
+    assert.equal(stuckRenewal.stopped, true, 'a save stuck for 15 minutes stops holding deletes back');
+    stuck();
+});
+
+test('save gate: an admin delete with small limits answers kioskBusy instead of waiting long', async () => {
+    const { clock, store, gate } = gateWithClock();
+    await store.add('save', saveGate.SAVE_TTL_MS);
+    clock.onSleep = async () => {};
+    const before = clock.now;
+    await assert.rejects(gate.deleteStep(async () => { throw new Error('must not run'); }, { maxTries: 3, waitMs: 20 * 1000 }), (error) => error.kioskBusy === true);
+    assert.ok(clock.now - before >= 20 * 1000 && clock.now - before < 21 * 1000, 'gave up after the 20-second wait');
+
+    assert.deepEqual(deletedCounts.deleteFailure(Object.assign(new Error('busy'), { kioskBusy: true })).status, 409);
+    assert.deepEqual(deletedCounts.deleteFailure(Object.assign(new Error('no table'), { code: 'ER_NO_SUCH_TABLE' })).status, 503);
+    assert.equal(deletedCounts.deleteFailure(new Error('deadlock')), null);
+    assert.equal(deletedCounts.deleteFailure(null), null);
+    assert.match(deletedCounts.VISITOR_NUMBER_SQL, /COUNT\(\*\) FROM feedback WHERE is_active = 1\)\s*\+ \(SELECT COALESCE\(SUM\(record_count\), 0\) FROM deleted_record_counts WHERE kind = 'feedback'\)/);
 });
 // <Jun Kai end>

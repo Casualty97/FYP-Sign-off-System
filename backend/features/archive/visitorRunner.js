@@ -14,6 +14,8 @@ const settingsStore = require('./visitorSettings');
 const schedule = require('./visitorSchedule');
 const files = require('./visitorFiles');
 const writer = require('./visitorWriter');
+const deletedCounts = require('./deletedCounts');
+const saveGate = require('./saveGate');
 
 const STATE_FILE = 'visitor-archive-state.json';
 const ACTIVE_STATUSES = ['running', 'deleting', 'cleaning'];
@@ -248,6 +250,7 @@ async function runJob(job) {
     } catch (error) {
         // the transaction rolled back, so nothing was deleted
         if (error.recordsChanged) return finishRun(job, 'saved', CHANGED_MESSAGE);
+        if (error.kioskBusy) return finishRun(job, 'saved', error.message);
         return finishRun(job, 'saved', `The archive was saved and checked, but the records could not be deleted: ${error.message}`);
     }
     // the records are gone now, so the run ends as done whatever the clean-up finds
@@ -320,26 +323,37 @@ async function recordsChanged(all, job) {
 
 // One transaction: answers and likes go with their feedback (ON DELETE CASCADE); a visitor only goes when no feedback
 // is left and they were not seen since the guard. Rolls back, with error.recordsChanged, when a record changed.
+// Every deleted row is also added to deleted_record_counts in this transaction, so running totals keep counting it.
+// A kiosk save goes first: the transaction checks the save gate before every statement and is rolled back and run
+// again from the top when a save starts (error.kioskBusy after too many tries).
 function deleteRecords(job) {
     const { ids } = job.selection;
-    return new Promise((resolve, reject) => {
+    return saveGate.deleteStep((checkpoint) => new Promise((resolve, reject) => {
         db.withTransaction((tx, finish) => {
-            const run = (sql, params) => new Promise((ok, fail) => tx.run(sql, params, function (error) { if (error) fail(error); else ok(this.changes); }));
-            const all = (sql, params) => new Promise((ok, fail) => tx.all(sql, params, (error, rows) => (error ? fail(error) : ok(rows))));
+            const run = async (sql, params) => {
+                await checkpoint();
+                return new Promise((ok, fail) => tx.run(sql, params, function (error) { if (error) fail(error); else ok(this.changes); }));
+            };
+            const all = async (sql, params) => {
+                await checkpoint();
+                return new Promise((ok, fail) => tx.all(sql, params, (error, rows) => (error ? fail(error) : ok(rows))));
+            };
             (async () => {
                 if (await recordsChanged(all, job)) throw Object.assign(new Error(CHANGED_MESSAGE), { recordsChanged: true });
-                for (const part of chunks(ids.feedback)) await run('DELETE FROM feedback WHERE id IN (?)', [part]);
+                await deletedCounts.deleteCounted({ all, run }, 'feedback', ids.feedback);
                 let visitorsDeleted = 0;
                 for (const part of chunks(ids.visitorsDeleted)) {
-                    visitorsDeleted += await run(
-                        `DELETE FROM users WHERE id IN (?) AND COALESCE(last_visit, created_at) < ?
-                         AND NOT EXISTS (SELECT 1 FROM feedback f WHERE f.user_id = users.id)`, [part, job.guard]);
+                    const due = await all(
+                        `SELECT id FROM users WHERE id IN (?) AND COALESCE(last_visit, created_at) < ?
+                         AND NOT EXISTS (SELECT 1 FROM feedback f WHERE f.user_id = users.id) FOR UPDATE`, [part, job.guard]);
+                    visitorsDeleted += await deletedCounts.deleteCounted({ all, run }, 'users', due.map((user) => user.id));
                 }
-                for (const part of chunks(ids.lostFound)) await run('DELETE FROM lost_found_reports WHERE id IN (?)', [part]);
+                await deletedCounts.deleteCounted({ all, run }, 'lost_found_reports', ids.lostFound);
+                await checkpoint(); // last look just before the commit
                 return visitorsDeleted;
-            })().then((count) => finish(null, count), (error) => finish(error));
+            })().then((count) => { finish(null, count); }, (error) => { finish(error); });
         }, (error, count) => (error ? reject(error) : resolve(count)));
-    });
+    }));
 }
 
 // Pledge texts and answers of the deleted feedback that no remaining feedback uses -> removed from the analysis cache

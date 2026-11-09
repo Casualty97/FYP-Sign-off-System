@@ -143,7 +143,13 @@ function withTransaction(work, done) {
         const finish = (err, result) => {
             if (finished) return;
             finished = true;
-            if (err) return connection.rollback(() => { connection.release(); done(err); });
+            // <Jun Kai start>
+            // returns nothing: a mysql2 query object handed back into a promise chain throws and stops the server
+            if (err) {
+                connection.rollback(() => { connection.release(); done(err); });
+                return;
+            }
+            // <Jun Kai end>
             connection.commit((commitErr) => {
                 if (commitErr) return connection.rollback(() => { connection.release(); done(commitErr); });
                 connection.release();

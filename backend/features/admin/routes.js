@@ -271,6 +271,11 @@ const assetStore = require('../assets/store');
 const parametersConfigStore = require('../parameters/store');
 const dataRetentionCleanup = require('../archive/retention');
 const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
+// <Jun Kai start>
+const deletedCounts = require('../archive/deletedCounts');
+const { toSgtDay } = require('../archive/visitorSchedule');
+const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
+// <Jun Kai end>
 
 
 //AI for sentiment analysis testing (Done by Yu Kang)
@@ -1679,20 +1684,26 @@ router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
             
             // Step 2: delete this feedback row (answers and likes cascade). The visitor's users row is only
             // removed when no other feedback points at it, so a returning visitor keeps their other entries.
-            db.run('DELETE FROM feedback WHERE id = ?', [feedback.id], function(err) {
+            // <Jun Kai start>
+            // both deletes are counted (deleted_record_counts, so the visitor number never repeats) and take turns with
+            // kiosk saves, like the archive's
+            deletedCounts.deleteWhere('feedback', 'id = ?', [feedback.id], (err, deletedCount) => {
+                const refused = deletedCounts.deleteFailure(err);
+                if (refused) return res.status(refused.status).json({ success: false, error: refused.message });
                 if (err) {
                     console.error('❌ Error deleting feedback:', err);
                     return res.status(500).json({ error: 'Failed to delete feedback: ' + err.message });
                 }
-                if (this.changes === 0) {
+                if (deletedCount === 0) {
                     return res.status(404).json({ error: 'Feedback not found or already deleted' });
                 }
                 logAudit('DELETE_FEEDBACK', username, 'feedback', id, req);
-                db.run('DELETE FROM users WHERE id = ? AND NOT EXISTS (SELECT 1 FROM feedback WHERE user_id = ?)',
-                    [feedback.user_id, feedback.user_id], (userErr) => {
+                deletedCounts.deleteWhere('users', 'id = ? AND NOT EXISTS (SELECT 1 FROM feedback WHERE user_id = users.id)',
+                    [feedback.user_id], (userErr) => {
                         if (userErr) console.error('⚠️ Could not remove the empty visitor row:', userErr.message);
                     });
-                
+            // <Jun Kai end>
+
                 // Step 3: Delete associated photos from filesystem
                 deleteUserPhotos(feedback, (photoError) => {
                     if (photoError) {
@@ -1702,15 +1713,19 @@ router.delete('/feedback/:id', auth.requireAuth, async (req, res) => {
                             success: true,
                             message: 'Feedback deleted successfully, but some photos could not be removed',
                             warning: photoError.message,
-                            changes: this.changes
+                            // <Jun Kai start>
+                            changes: deletedCount
+                            // <Jun Kai end>
                         });
                     }
-                    
+
                     console.debug('✅ All photos deleted successfully');
                     res.json({
                         success: true,
                         message: 'Feedback and all associated data deleted successfully',
-                        changes: this.changes
+                        // <Jun Kai start>
+                        changes: deletedCount
+                        // <Jun Kai end>
                     });
                 });
             });
@@ -2631,7 +2646,10 @@ router.get('/archive', (req, res) => {
 });
 
 // Manually trigger archive status update using configurable archive timing (Done by Caeden)
-router.post('/archive/update-status', (req, res) => {
+// <Jun Kai start>
+// system admins only, like the Parameters page it sits on: it moves feedback off the public screens (it had no login check)
+router.post('/archive/update-status', auth.requireAuth, auth.requireAdmin, (req, res) => {
+// <Jun Kai end>
     console.debug('Manually updating archive status with configured archive timing...');
 
     runConfiguredArchive((err, result) => {
@@ -3027,7 +3045,10 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
             }
             
             // Delete photos from filesystem
-            feedbackData.forEach(feedback => {
+            // <Jun Kai start>
+            // only once the rows are deleted, and only for the rows that went (the delete can now be refused)
+            const deletePhotos = (deletedIds) => feedbackData.filter(feedback => deletedIds.has(feedback.id)).forEach(feedback => {
+            // <Jun Kai end>
                 if (feedback.photo_path) {
                     const photoPath = path.join(paths.UPLOADS, feedback.photo_path);
                     if (fs.existsSync(photoPath)) {
@@ -3039,7 +3060,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                         }
                     }
                 }
-                
+
                 if (feedback.processed_photo_path) {
                     const processedPath = path.join(paths.UPLOADS, feedback.processed_photo_path);
                     if (fs.existsSync(processedPath)) {
@@ -3052,15 +3073,14 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                     }
                 }
             });
-            
+
             // Hard delete feedback (CASCADE will delete feedback_answers)
-            const deleteQuery = `
-                DELETE FROM feedback
-                WHERE id IN (${placeholders})
-                AND archive_status = 'archived'
-            `;
-            
-            db.run(deleteQuery, feedbackIds, function(deleteErr) {
+            // <Jun Kai start>
+            // one transaction with the deleted record counts, so running totals (visitor number, tree year book) keep counting them
+            deletedCounts.deleteWhere('feedback', "id IN (?) AND archive_status = 'archived'", [feedbackIds], (deleteErr, deletedCount, deletedIds) => {
+                const refused = deletedCounts.deleteFailure(deleteErr);
+                if (refused) return res.status(refused.status).json({ success: false, error: refused.message });
+            // <Jun Kai end>
                 if (deleteErr) {
                     console.error('❌ Error deleting feedback:', deleteErr);
                     return res.status(500).json({
@@ -3068,32 +3088,20 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                         error: 'Database error: ' + deleteErr.message
                     });
                 }
-                
-                const deletedCount = this.changes;
-                
+                // <Jun Kai start>
+                deletePhotos(new Set(deletedIds));
+                // <Jun Kai end>
+
                 // Check for orphaned users and delete them
                 const userIds = [...new Set(feedbackData.map(f => f.user_id))];
-                const checkOrphanQuery = `
-                    SELECT id FROM users
-                    WHERE id IN (${userIds.map(() => '?').join(',')})
-                    AND NOT EXISTS (
-                        SELECT 1 FROM feedback WHERE user_id = users.id AND is_active = 1
-                    )
-                `;
-                
-                db.all(checkOrphanQuery, userIds, (orphanErr, orphanUsers) => {
-                    if (!orphanErr && orphanUsers && orphanUsers.length > 0) {
-                        const orphanIds = orphanUsers.map(u => u.id);
-                        const deleteUsersQuery = `DELETE FROM users WHERE id IN (${orphanIds.map(() => '?').join(',')})`;
-                        
-                        db.run(deleteUsersQuery, orphanIds, (userDeleteErr) => {
-                            if (!userDeleteErr) {
-                                console.debug(`🗑️ Deleted ${orphanIds.length} orphaned user(s)`);
-                            }
-                        });
-                    }
+                // <Jun Kai start>
+                // a visitor with no active feedback left goes too, counted the same way
+                deletedCounts.deleteWhere('users', 'id IN (?) AND NOT EXISTS (SELECT 1 FROM feedback WHERE user_id = users.id AND is_active = 1)', [userIds], (userDeleteErr, usersDeleted) => {
+                    if (userDeleteErr) console.error('⚠️ Could not remove the visitors left without feedback:', userDeleteErr.message);
+                    else if (usersDeleted) console.debug(`🗑️ Deleted ${usersDeleted} orphaned user(s)`);
                 });
-                
+                // <Jun Kai end>
+
                 // Log deletion
                 logAudit('DELETE_ARCHIVE_SELECTED', username, 'archived_feedback', deletedCount, req);
                 
@@ -3177,7 +3185,10 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             
             // Delete photos from filesystem
             let photosDeleted = 0;
-            feedbackData.forEach(feedback => {
+            // <Jun Kai start>
+            // only once the rows are deleted, and only for the rows that went (the delete can now be refused)
+            const deletePhotos = (deletedIds) => feedbackData.filter(feedback => deletedIds.has(feedback.id)).forEach(feedback => {
+            // <Jun Kai end>
                 if (feedback.photo_path) {
                     const photoPath = path.join(paths.UPLOADS, feedback.photo_path);
                     if (fs.existsSync(photoPath)) {
@@ -3206,13 +3217,12 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             });
             
             // Hard delete feedback
-            const deleteQuery = `
-                DELETE FROM feedback
-                WHERE archive_status = 'archived'
-                AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')
-            `;
-            
-            db.run(deleteQuery, [beforeDate], function(deleteErr) {
+            // <Jun Kai start>
+            // one transaction with the deleted record counts, so running totals (visitor number, tree year book) keep counting them
+            deletedCounts.deleteWhere('feedback', "archive_status = 'archived' AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')", [beforeDate], (deleteErr, deletedCount, deletedIds) => {
+                const refused = deletedCounts.deleteFailure(deleteErr);
+                if (refused) return res.status(refused.status).json({ success: false, error: refused.message });
+            // <Jun Kai end>
                 if (deleteErr) {
                     console.error('❌ Error deleting feedback:', deleteErr);
                     return res.status(500).json({
@@ -3220,32 +3230,20 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                         error: 'Database error: ' + deleteErr.message
                     });
                 }
-                
-                const deletedCount = this.changes;
-                
+                // <Jun Kai start>
+                deletePhotos(new Set(deletedIds));
+                // <Jun Kai end>
+
                 // Check for orphaned users and delete them
                 const userIds = [...new Set(feedbackData.map(f => f.user_id))];
-                const checkOrphanQuery = `
-                    SELECT id FROM users
-                    WHERE id IN (${userIds.map(() => '?').join(',')})
-                    AND NOT EXISTS (
-                        SELECT 1 FROM feedback WHERE user_id = users.id AND is_active = 1
-                    )
-                `;
-                
-                db.all(checkOrphanQuery, userIds, (orphanErr, orphanUsers) => {
-                    if (!orphanErr && orphanUsers && orphanUsers.length > 0) {
-                        const orphanIds = orphanUsers.map(u => u.id);
-                        const deleteUsersQuery = `DELETE FROM users WHERE id IN (${orphanIds.map(() => '?').join(',')})`;
-                        
-                        db.run(deleteUsersQuery, orphanIds, (userDeleteErr) => {
-                            if (!userDeleteErr) {
-                                console.debug(`🗑️ Deleted ${orphanIds.length} orphaned user(s)`);
-                            }
-                        });
-                    }
+                // <Jun Kai start>
+                // a visitor with no active feedback left goes too, counted the same way
+                deletedCounts.deleteWhere('users', 'id IN (?) AND NOT EXISTS (SELECT 1 FROM feedback WHERE user_id = users.id AND is_active = 1)', [userIds], (userDeleteErr, usersDeleted) => {
+                    if (userDeleteErr) console.error('⚠️ Could not remove the visitors left without feedback:', userDeleteErr.message);
+                    else if (usersDeleted) console.debug(`🗑️ Deleted ${usersDeleted} orphaned user(s)`);
                 });
-                
+                // <Jun Kai end>
+
                 // Log deletion
                 logAudit('DELETE_ARCHIVE_BY_DATE', username, 'archived_feedback', deletedCount, req);
                 
@@ -6284,28 +6282,70 @@ function finalizeArchiveStats(archivedNow, archiveAfterDays, callback) {
   });
 }
 
-function runAutoArchiveIfEnabled() {
-  const config = parametersConfigStore.readParametersConfig();
-  const archiveSettings = config.archiveSettings || {};
+// <Jun Kai start>
+// Auto archive: checked 2 minutes after the server starts and then every 15 minutes, and run once per Singapore day, so
+// a day missed while the PC was off or asleep is caught up at the next check (the old 24-hour interval only counted
+// uptime and never fired on a PC that sleeps every night). The day of the last run is kept in backend/data.
+const AUTO_ARCHIVE_STATE = 'auto-archive-state.json';
+const AUTO_ARCHIVE_STALE_MS = 10 * 60 * 1000;
+const autoArchiveCheck = { startedAt: 0 };
+const readAutoArchiveState = () => readJson(paths.dataFile(AUTO_ARCHIVE_STATE), {}) || {};
+const saveAutoArchiveState = (changes) => writeJsonAtomic(paths.dataFile(AUTO_ARCHIVE_STATE), { ...readAutoArchiveState(), ...changes });
 
-  if (archiveSettings.autoArchiveEnabled !== true) {
-    return;
+// The old timer never ran, so an "on" saved before this update was never seen working (the shipped default was on).
+// The first start after the update switches it off once; an admin turns it on again on purpose (Parameters > Auto Archive).
+function switchAutoArchiveOffOnce() {
+  try {
+    if (readAutoArchiveState().switchedOffAfterUpdate) return;
+    const wasOn = (parametersConfigStore.readParametersConfig().archiveSettings || {}).autoArchiveEnabled === true;
+    if (wasOn) parametersConfigStore.updateCategory('archiveSettings', { autoArchiveEnabled: false });
+    saveAutoArchiveState({ switchedOffAfterUpdate: new Date().toISOString(), wasOn });
+    if (wasOn) console.log('Auto archive was switched off once after the update; turn it on in Parameters > Auto Archive when the team agrees.');
+  } catch (error) {
+    console.error('Auto archive: the one-time switch-off failed:', error.message);
   }
+}
 
-  runConfiguredArchive((error, result) => {
-    if (error) {
-      console.error('Auto archive failed:', error.message);
+function runAutoArchiveIfEnabled(now = new Date()) {
+  try {
+    const config = parametersConfigStore.readParametersConfig();
+    const archiveSettings = config.archiveSettings || {};
+
+    if (archiveSettings.autoArchiveEnabled !== true || Date.now() - autoArchiveCheck.startedAt < AUTO_ARCHIVE_STALE_MS) {
       return;
     }
+    const today = toSgtDay(now);
+    if (readAutoArchiveState().lastRunDay === today) {
+      return;
+    }
+    autoArchiveCheck.startedAt = Date.now();
 
-    console.log(`Auto archive complete: ${result.archivedNow} moved after ${result.archiveAfterDays} days`);
-  });
+    runConfiguredArchive((error, result) => {
+      autoArchiveCheck.startedAt = 0;
+      if (error) {
+        console.error('Auto archive failed, tried again at the next check:', error.message);
+        return;
+      }
+      try {
+        saveAutoArchiveState({ lastRunDay: today, lastRunAt: now.toISOString(), archivedNow: result.archivedNow });
+      } catch (stateError) {
+        console.error('Auto archive ran, but its last run could not be saved:', stateError.message);
+      }
+      console.log(`Auto archive complete: ${result.archivedNow} moved after ${result.archiveAfterDays} days`);
+    });
+  } catch (error) {
+    // a hand-edited setting the page does not offer (for example 7 days) must not stop the server
+    autoArchiveCheck.startedAt = 0;
+    console.error('Auto archive skipped:', error.message);
+  }
 }
 
-const autoArchiveTimer = setInterval(runAutoArchiveIfEnabled, 24 * 60 * 60 * 1000);
-if (autoArchiveTimer.unref) {
-  autoArchiveTimer.unref();
-}
+switchAutoArchiveOffOnce();
+setTimeout(() => {
+  setInterval(() => runAutoArchiveIfEnabled(), 15 * 60 * 1000).unref();
+  runAutoArchiveIfEnabled();
+}, 2 * 60 * 1000).unref();
+// <Jun Kai end>
 
 // GET /api/admin/parameters
 // Load all system parameters

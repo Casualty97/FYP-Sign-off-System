@@ -12,6 +12,10 @@
 
 The wall display. /api/tree returns this year's visitors as leaves; tree.js places them around the trunk, animates falling leaves and VIP gold leaves, and polls for new feedback. The admin tab controls growth stage, backgrounds, leaf images and the title box. /3dtree is only served when the admin switches the display mode to 3D.
 
+<!-- <Jun Kai start> -->
+Role 3 hooks (Visitor Data Archive, marked in routes.js, tree.js and 3dTree.js): GET /api/tree/years adds each year's leaves that the archive deleted to leafCount and returns archivedLeafCount; the year book shows "N leaves · M archived". The tree drawn for a past year still shows only the leaves left in the database. See docs/features/archive.md.
+<!-- <Jun Kai end> -->
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |

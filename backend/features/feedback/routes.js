@@ -77,6 +77,10 @@ const parametersConfigStore = require('../parameters/store');
 const { validateFeedbackSubmission } = require('./validationRules');
 const { analyzePledgeSentiment } = require('./pledgeSentiment');
 const lostFoundStore = require('../lostFound/store'); // changes made by nick
+// <Jun Kai start>
+const saveGate = require('../archive/saveGate');
+const deletedCounts = require('../archive/deletedCounts');
+// <Jun Kai end>
 
 function normalizeRetentionSelection(retention) {
     const normalized = String(retention || '').toLowerCase();
@@ -725,9 +729,16 @@ router.post('/submit-feedback', async (req, res) => {
         setTimeout(async () => {
             console.log('🔄 Background processing started...');
             const bgStartTime = Date.now();
-            
+            // <Jun Kai start>
+            // an archive deleting old visitors backs off until this save is done, so a returning visitor is never lost mid-save
+            const saveDone = await saveGate.enterSave();
+            // <Jun Kai end>
+
             try {
                 saveFeedbackToDatabase(userData, device, theme, normalizedRetention, async (error, result) => {
+                    // <Jun Kai start>
+                    saveDone();
+                    // <Jun Kai end>
                     if (error) {
                         console.error('❌ Error saving to database:', error);
                         return;
@@ -791,6 +802,9 @@ router.post('/submit-feedback', async (req, res) => {
                     }
                 });
             } catch (err) {
+                // <Jun Kai start>
+                saveDone();
+                // <Jun Kai end>
                 console.error('❌ Background error:', err);
             }
         }, 0);
@@ -1097,6 +1111,14 @@ function isValidEmail(email) {
 // Count active feedback rows to estimate the current visitor number - changes made by nick
 function getActiveFeedbackCountForVisitorNumber() {
     return new Promise((resolve) => {
+        // <Jun Kai start>
+        // live feedback plus the feedback that archives and deletes removed, read in one statement (deletedCounts.js), so a
+        // visitor number is never handed out twice; without the deleted_record_counts table it falls back to the count below
+        db.get(deletedCounts.VISITOR_NUMBER_SQL, [], (totalErr, totalRow) => {
+            const total = Number(totalRow?.count);
+            if (!totalErr && Number.isFinite(total)) return resolve(total + 1);
+            if (totalErr && !['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(totalErr.code)) return resolve(null);
+        // <Jun Kai end>
         db.get('SELECT COUNT(*) AS count FROM feedback WHERE is_active = 1', [], (err, row) => {
             if (err) {
                 db.get('SELECT COUNT(*) AS count FROM feedback', [], (fallbackErr, fallbackRow) => {
@@ -1115,6 +1137,9 @@ function getActiveFeedbackCountForVisitorNumber() {
             const count = Number(row?.count);
             resolve(Number.isFinite(count) ? count + 1 : null);
         });
+        // <Jun Kai start>
+        });
+        // <Jun Kai end>
     });
 }
 

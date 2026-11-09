@@ -11,6 +11,10 @@
 
 The visitor flow on the tablets: landing page with the QR code and the RP bear, consent, details, feedback questions, pledge, photo with face detection and filters, thank-you page and email. Server side it validates the submission, encrypts the email, stores the feedback and answers, picks badges and sends the thank-you email.
 
+<!-- <Jun Kai start> -->
+Role 3 hooks (Visitor Data Archive, marked in routes.js): the visitor number adds the feedback the archive deleted (backend/features/archive/deletedCounts.js), so a number is never handed out twice, and the background save goes through backend/features/archive/saveGate.js, so an archive never deletes a returning visitor in the middle of their save. See docs/features/archive.md.
+<!-- <Jun Kai end> -->
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |

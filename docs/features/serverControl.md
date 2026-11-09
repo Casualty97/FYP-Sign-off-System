@@ -47,7 +47,7 @@ Look (9 Nov 2026): the Controls card sits right under the Automation card, so th
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- Auto-archive never runs when the PC hibernates every night (old 6466-6487).
+- Auto-archive never ran when the PC hibernates every night (old 6466-6487): fixed in November 2026, see docs/features/archive.md.
 - Waking from hibernation needs a PC whose firmware supports RTC wake (most desktops do); test it once on the wall PC.
 
 ---

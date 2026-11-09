@@ -142,6 +142,12 @@ async function archiveStep(cookie) {
     const onDisk = photoFiles.filter((f) => fs.existsSync(f)).length;
     check(onDisk === 3, `the 3 seeded photo files are in this checkout's uploads folder (${onDisk}/3)`);
 
+    // running totals before the delete: the deleted rows go into deleted_record_counts, so the kiosk count must not drop
+    const tallyOf = async () => Object.fromEntries((await conn.query('SELECT kind, SUM(record_count) AS n FROM deleted_record_counts GROUP BY kind'))[0].map((t) => [t.kind, Number(t.n)]));
+    const visitorsShown = async () => { const r = await get(`${BASE}/api/feedback/visitor-count`); return r.body ? r.body.totalVisitors : null; };
+    const tallyBefore = await tallyOf();
+    const visitorsBefore = await visitorsShown();
+
     await expect('GET /api/admin/visitor-archive/overview with the session', `${API}/overview`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.due || r.text.slice(0, 160), { headers: { cookie } });
     const before = new Date(Date.now() + 8 * 3600 * 1000 - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10); // a year ago, as a Singapore date
     const criteria = { types: ['feedback', 'lostFound'], feedbackBefore: before, lostFoundBefore: before, onlyResolved: false, includePhotos: true, only: { feedbackIds: [row.id], lostFoundIds: [reportId] } };
@@ -191,6 +197,35 @@ async function archiveStep(cookie) {
       if (Number(count.n)) left.push(`${table} ${count.n}`);
     }
     check(!left.length, 'the archived rows are gone from users, feedback, feedback_answers, pledge_likes and lost_found_reports', `still there: ${left.join(', ')}`);
+    const tallyAfter = await tallyOf();
+    const grew = (kind) => (tallyAfter[kind] || 0) - (tallyBefore[kind] || 0);
+    check(['feedback', 'leaf', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1), 'the deleted rows were added to deleted_record_counts (1 feedback, 1 leaf, 1 visitor, 1 lost & found)', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
+    const visitorsAfter = await visitorsShown();
+    check(Number.isFinite(visitorsBefore) && visitorsAfter === visitorsBefore, `the kiosk visitor count does not drop after the delete (${visitorsBefore} before, ${visitorsAfter} after)`);
+    const seededYear = Number(new Date(old.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 4));
+    await expect(`GET /api/tree/years still counts the deleted leaf in ${seededYear}`, `${BASE}/api/tree/years`, (r) => {
+      const year = ((r.body && r.body.years) || []).find((item) => Number(item.year) === seededYear);
+      return year && year.archivedLeafCount >= 1 && year.leafCount >= year.archivedLeafCount || r.text.slice(0, 200);
+    });
+    const [[gate]] = await conn.query('SELECT COUNT(*) AS n FROM visitor_save_gate');
+    check(Number(gate.n) === 0, `the visitor save gate is empty once the run is over (${gate.n} rows)`);
+
+    // the old Permanent Data Deletion counts its deletes too: one archived 2-year-old visitor through delete-selected
+    const [permUser] = await conn.query('INSERT INTO users (name, visit_count, created_at, last_visit) VALUES (?, 1, ?, ?)', [`Perm Smoke ${stamp}`, old, old]);
+    const [permFeedback] = await conn.query("INSERT INTO feedback (user_id, comment, metadata, data_retention, created_at, is_active, archive_status) VALUES (?, ?, '{}', 'longterm', ?, 1, 'archived')", [permUser.insertId, `Perm smoke pledge ${stamp}`, old]);
+    const tallyBeforePerm = await tallyOf();
+    const visitorsBeforePerm = await visitorsShown();
+    await expect('POST /api/admin/archive/delete-selected deletes the archived pledge', `${BASE}/api/admin/archive/delete-selected`, (r) => r.status === 200 && r.body && r.body.deletedCount === 1 || r.text.slice(0, 160), send({ feedbackIds: [permFeedback.insertId], password: ADMIN_PASS }));
+    let permUserLeft = 1;
+    for (let i = 0; i < 20 && permUserLeft; i++) { // the visitor row goes just after the reply
+      const [[row]] = await conn.query('SELECT COUNT(*) AS n FROM users WHERE id = ?', [permUser.insertId]);
+      permUserLeft = Number(row.n);
+      if (permUserLeft) await sleep(250);
+    }
+    const tallyAfterPerm = await tallyOf();
+    const grewPerm = (kind) => (tallyAfterPerm[kind] || 0) - (tallyBeforePerm[kind] || 0);
+    check(['feedback', 'leaf', 'visitor'].every((kind) => grewPerm(kind) === 1) && permUserLeft === 0, 'Permanent Data Deletion adds its deletes to deleted_record_counts too (1 feedback, 1 leaf, 1 visitor)', JSON.stringify({ before: tallyBeforePerm, after: tallyAfterPerm, visitorLeft: permUserLeft }));
+    check((await visitorsShown()) === visitorsBeforePerm, 'the kiosk visitor count does not drop after Permanent Data Deletion');
     const stillThere = photoFiles.filter((f) => fs.existsSync(f)).length;
     check(onDisk === 3 && stillThere === 0, `the archived photo files are gone (${stillThere} left)`);
   } catch (e) {
@@ -238,6 +273,9 @@ async function archiveStep(cookie) {
     const json = (b) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
     await expect('POST /api/admin/login with a wrong password is refused', `${BASE}/api/admin/login`, (r) => r.status === 401, json({ username: ADMIN_USER, password: 'definitely-wrong' }));
     await expect('GET /api/admin/server-schedules without a session is refused', `${BASE}/api/admin/server-schedules`, (r) => r.status === 401);
+    // <Jun Kai start>
+    await expect('POST /api/admin/archive/update-status without a session is refused', `${BASE}/api/admin/archive/update-status`, (r) => r.status === 401, { method: 'POST' });
+    // <Jun Kai end>
     let cookie = '';
     try {
       const r = await fetch(`${BASE}/api/admin/login`, json({ username: ADMIN_USER, password: ADMIN_PASS }));
