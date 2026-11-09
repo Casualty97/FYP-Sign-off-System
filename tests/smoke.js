@@ -5,6 +5,10 @@
 //   node tests/smoke.js              full run (submits one feedback; CI neutralises email first)
 //   node tests/smoke.js --no-submit  skip the submission (safe on a machine with real email settings)
 //   node tests/smoke.js --external   do not start the servers, test the ones already running
+// <Jun Kai start>
+//   node tests/smoke.js --archive    also archive and delete the records it seeds (a throwaway database with blank email
+//                                    settings only, see archiveStep); it needs the submissions, so --no-submit skips it
+// <Jun Kai end>
 //
 // It never calls /api/admin/server/* (stop hibernates the machine the server runs on).
 
@@ -74,6 +78,128 @@ function tinyPng() {
   const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(1, 0); ihdr.writeUInt32BE(1, 4); ihdr[8] = 8; ihdr[9] = 2;
   return 'data:image/png;base64,' + Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(Buffer.from([0, 255, 255, 255]))), chunk('IEND', Buffer.alloc(0))]).toString('base64');
 }
+
+// <Jun Kai start>
+// --archive: seeds one visitor and one lost & found report through the API, back-dates them 2 years with SQL, then
+// archives and deletes exactly those records through /api/admin/visitor-archive and checks the zip, the database and
+// the photo files. DB_* must point at the server's own database (it stops when /api/test-db names another one).
+let archiveDir = null;
+async function archiveStep(cookie) {
+  const crypto = require('crypto');
+  const os = require('os');
+  const mysql = require('mysql2/promise');
+  const writer = require('../backend/features/archive/visitorWriter');
+  const API = `${BASE}/api/admin/visitor-archive`;
+  const dbName = process.env.DB_NAME || 'dp_kiosk_db';
+  const send = (body) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body) });
+  const plain = (text) => String(text).replace(/TypeError|ReferenceError/g, 'Error'); // those words fail the CI log check
+  const check = (ok, name, detail) => (ok ? pass(name) : fail(detail ? `${name}: ${plain(detail)}` : name));
+
+  await expect('GET /api/admin/visitor-archive/overview without a session is refused', `${API}/overview`, (r) => r.status === 401);
+  await expect('POST /api/admin/visitor-archive/folder-check refuses a folder inside frontend/', `${API}/folder-check`, (r) => r.body && r.body.success === true && !!r.body.folder && typeof r.body.folder.problem === 'string' && r.body.folder.problem.length > 0 || r.text.slice(0, 160), send({ folder: path.join(ROOT, 'frontend', 'archives') }));
+  const testDb = await get(`${BASE}/api/test-db`);
+  const serverDb = testDb.body && testDb.body.database;
+  if (serverDb !== dbName) return fail(`visitor archive step skipped: the server uses database ${serverDb} but DB_NAME here is ${dbName}`);
+
+  const conn = await mysql.createConnection({ host: process.env.DB_HOST || '127.0.0.1', user: process.env.DB_USER || 'kiosk_user', password: process.env.DB_PASSWORD || 'kiosk123', database: dbName, timezone: 'Z' });
+  try {
+    await conn.query("SET time_zone = '+00:00'");
+    const stamp = Date.now();
+    const name = 'Archive Smoke';
+    const email = `archive+${stamp}@example.com`;
+    const pledge = `I pledge to keep old visitor data safe ${stamp}`;
+    const photo = await get(`${BASE}/api/feedback/save-photo`, send({ photo: tinyPng(), userName: name, device: 'kiosk' }));
+    const processed = await get(`${BASE}/api/feedback/save-processed-photo`, send({ photo: tinyPng(), userName: name, device: 'kiosk', theme: 'nature' }));
+    const photoId = photo.body && photo.body.photoId;
+    const processedPhotoId = processed.body && processed.body.processedPhotoId;
+    const [[question]] = await conn.query('SELECT id FROM questions WHERE is_active = 1 ORDER BY display_order, id LIMIT 1');
+    const submitted = await get(`${BASE}/api/feedback/submit-feedback`, send({
+      userData: { name, email, pledge, pledgeTopic: 'sustainable-living', photoId, processedPhotoId, answers: question ? { [question.id]: 'Yes' } : {} },
+      device: 'kiosk', theme: 'nature',
+    }));
+    // the row is written after the reply, so wait for it and its answer
+    let row = null;
+    for (let i = 0; i < 20 && !row; i++) {
+      const [rows] = await conn.query('SELECT f.id, f.user_id, u.email_encrypted, (SELECT COUNT(*) FROM feedback_answers a WHERE a.feedback_id = f.id) AS answers FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.comment = ?', [pledge]);
+      if (rows[0] && Number(rows[0].answers) > 0) row = rows[0]; else await sleep(500);
+    }
+    const like = row ? await get(`${BASE}/api/pledgeboard/like/${row.id}`, send({ userIdentifier: `user_${stamp}_smoke` })) : null;
+    const report = await get(`${BASE}/api/feedback/lost-found`, send({
+      report: { type: 'lost', item: 'Smoke test umbrella', location: 'Entrance', contact: email, itemPhotoDataUrl: tinyPng(), itemPhotoName: 'umbrella.png' },
+      feedbackProgress: { userData: { name, email } },
+    }));
+    const reportId = report.body && report.body.reportId;
+    const seeded = !!(photoId && processedPhotoId && submitted.body && submitted.body.success && row && like && like.body && like.body.success && reportId);
+    check(seeded, 'seed a visitor with 2 photos, an answer and a like, and a lost & found report with a photo', `photo ${photo.status}, processed ${processed.status}, submit ${submitted.status}, row ${row ? row.id : 'missing'}, like ${like ? like.status : '-'}, lost & found ${report.status}`);
+    if (!seeded) return;
+
+    // 2 years old, past the default 12 months; last_visit and updated_at reset on every UPDATE unless they are set too
+    const old = new Date(Date.now() - 2 * 365 * 24 * 3600 * 1000);
+    await conn.query('UPDATE feedback SET created_at = ? WHERE id = ?', [old, row.id]);
+    await conn.query('UPDATE users SET created_at = ?, last_visit = ? WHERE id = ?', [old, old, row.user_id]);
+    await conn.query('UPDATE lost_found_reports SET created_at = ?, updated_at = ? WHERE id = ?', [old, old, reportId]);
+    const photoFiles = [path.join(ROOT, 'uploads', 'photos', photoId), path.join(ROOT, 'uploads', 'processed', processedPhotoId), path.join(ROOT, report.body.itemPhotoPath)];
+    const onDisk = photoFiles.filter((f) => fs.existsSync(f)).length;
+    check(onDisk === 3, `the 3 seeded photo files are in this checkout's uploads folder (${onDisk}/3)`);
+
+    await expect('GET /api/admin/visitor-archive/overview with the session', `${API}/overview`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.due || r.text.slice(0, 160), { headers: { cookie } });
+    const before = new Date(Date.now() + 8 * 3600 * 1000 - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10); // a year ago, as a Singapore date
+    const criteria = { types: ['feedback', 'lostFound'], feedbackBefore: before, lostFoundBefore: before, onlyResolved: false, includePhotos: true, only: { feedbackIds: [row.id], lostFoundIds: [reportId] } };
+    await expect('POST /api/admin/visitor-archive/preview counts the seeded records', `${API}/preview`, (r) => {
+      const c = (r.body && r.body.counts) || {};
+      return c.feedback === 1 && c.visitors === 1 && c.visitorsDeleted === 1 && c.answers === 1 && c.likes === 1 && c.lostFound === 1 && c.photos === 3 && c.missingPhotos === 0 || r.text.slice(0, 200);
+    }, send(criteria));
+
+    archiveDir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'kiosk-archive-'));
+    const started = await get(`${API}/runs`, send({ ...criteria, password: ADMIN_PASS, deleteAfter: true, folder: archiveDir }));
+    const runId = started.body && started.body.runId;
+    check(started.status === 202 && runId, `POST /api/admin/visitor-archive/runs starts the archive (${started.status})`, !runId && started.text.slice(0, 160));
+    if (!runId) return;
+    let run = null;
+    for (let i = 0; i < 120; i++) {
+      const r = await get(`${API}/runs/${runId}`, { headers: { cookie } });
+      run = r.body && r.body.run;
+      if (run && !['running', 'deleting', 'cleaning'].includes(run.status)) break;
+      await sleep(500);
+    }
+    const c = (run && run.counts) || {};
+    check(run && run.status === 'done' && !run.error && c.feedback === 1 && c.lostFound === 1 && c.visitorsDeleted === 1 && c.photos === 3, `the archive run ends as done (${run ? run.status : 'no answer'})`, run && run.error);
+
+    const zips = fs.readdirSync(archiveDir).filter((f) => f.endsWith('.zip'));
+    const file = run && run.file && run.file.name ? path.join(archiveDir, run.file.name) : null;
+    const bytes = file && fs.existsSync(file) ? fs.readFileSync(file) : null;
+    const sha = bytes ? crypto.createHash('sha256').update(bytes).digest('hex') : null;
+    const sidecar = file && fs.existsSync(`${file}.sha256`) ? fs.readFileSync(`${file}.sha256`, 'utf8') : '';
+    check(zips.length === 1 && bytes && bytes.subarray(0, 4).toString('latin1') === 'PK\x03\x04' && sha === run.file.sha256 && sidecar === `${sha}  ${run.file.name}\n`,
+      `the archive is one zip that starts with PK and matches the run's SHA-256 and its .sha256 file (${zips.length} zip)`);
+    if (bytes) {
+      const data = await writer.readArchiveData(file);
+      const contact = (data.lostFound[0] && data.lostFound[0].contact_info_encrypted) || '';
+      check(data.visitors[0] && data.visitors[0].email_encrypted === row.email_encrypted && /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/.test(contact) && !JSON.stringify(data).includes(email),
+        'the archive keeps the email as the same ciphertext and the lost & found contact encrypted');
+      // the viewer needs the password again, and a photo it shows is never kept in the browser cache
+      const photoEntry = Object.keys((data.manifest && data.manifest.entries) || {}).find((name) => name.startsWith('photos/')) || '';
+      const photoUrl = `${API}/runs/${runId}/photo?entry=${encodeURIComponent(photoEntry)}`;
+      await expect('GET /api/admin/visitor-archive/runs/:id/photo is refused until the password is entered again', photoUrl, (r) => r.status === 403 && r.body && r.body.locked === true || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('POST /api/admin/visitor-archive/unlock with the admin password', `${API}/unlock`, (r) => r.body && r.body.success === true && !!r.body.unlockedUntil || r.text.slice(0, 160), send({ password: ADMIN_PASS }));
+      await expect('GET /api/admin/visitor-archive/runs/:id/photo sends the photo with Cache-Control: no-store', photoUrl, (r) => r.status === 200 && r.headers.get('cache-control') === 'no-store' && /^image\//.test(r.headers.get('content-type') || '') || `cache-control ${r.headers.get('cache-control')}, type ${r.headers.get('content-type')}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
+    }
+
+    const left = [];
+    for (const [table, column, id] of [['users', 'id', row.user_id], ['feedback', 'id', row.id], ['feedback_answers', 'feedback_id', row.id], ['pledge_likes', 'feedback_id', row.id], ['lost_found_reports', 'id', reportId]]) {
+      const [[count]] = await conn.query(`SELECT COUNT(*) AS n FROM ${table} WHERE ${column} = ?`, [id]);
+      if (Number(count.n)) left.push(`${table} ${count.n}`);
+    }
+    check(!left.length, 'the archived rows are gone from users, feedback, feedback_answers, pledge_likes and lost_found_reports', `still there: ${left.join(', ')}`);
+    const stillThere = photoFiles.filter((f) => fs.existsSync(f)).length;
+    check(onDisk === 3 && stillThere === 0, `the archived photo files are gone (${stillThere} left)`);
+  } catch (e) {
+    fail(`visitor archive step: ${plain(e.message)}`);
+  } finally {
+    await conn.end().catch(() => {});
+  }
+}
+// <Jun Kai end>
 
 (async () => {
   try {
@@ -182,6 +308,12 @@ function tinyPng() {
         const tree = await get(`${BASE}/api/tree`);
         (/CI Smoke/.test(tree.text) ? pass : fail)('the new visitor appears on /api/tree');
       }
+      // <Jun Kai start>
+      if (ARGS.has('--archive')) {
+        if (cookie) await archiveStep(cookie);
+        else fail('visitor archive step skipped: no admin session');
+      }
+      // <Jun Kai end>
     }
 
     // The previous team's pulse check, if present
@@ -194,6 +326,13 @@ function tinyPng() {
 
   stopServers();
   await sleep(1500);
+  // <Jun Kai start>
+  if (archiveDir) {
+    try { fs.rmSync(archiveDir, { recursive: true, force: true, maxRetries: 5 }); } catch (e) { console.log(`Could not remove ${archiveDir}: ${e.message}`); }
+  }
+  // printed, not counted: the archive step never ran
+  if (ARGS.has('--archive') && ARGS.has('--no-submit')) console.log('SKIP visitor archive step: it archives the records the submissions seed, so it does not run with --no-submit (npm run smoke adds it). Run node tests/smoke.js --archive instead.');
+  // <Jun Kai end>
   if (!ARGS.has('--external') && fs.existsSync(LOG)) {
     const log = fs.readFileSync(LOG, 'utf8');
     const markers = ['ERR_HTTP_HEADERS_SENT', 'UnhandledPromiseRejection', 'ReferenceError', 'TypeError', 'Error connecting to MySQL database', 'Failed to start'];

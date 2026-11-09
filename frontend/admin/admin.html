@@ -281,8 +281,16 @@
                         </a>
                         <a href="#" class="nav-item" onclick="showPage('archive')">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
-                            Archive
+                            <!-- <Jun Kai start> -->
+                            Archived Feedback
+                            <!-- <Jun Kai end> -->
                         </a>
+                        <!-- <Jun Kai start> -->
+                        <a href="#" class="nav-item" onclick="showPage('visitor-archive')">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
+                            Visitor Data Archive
+                        </a>
+                        <!-- <Jun Kai end> -->
                         <a href="#" class="nav-item" onclick="showPage('audit')">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
                             Audit Logs
@@ -1645,8 +1653,10 @@
                 <!-- Archive Page (DONE BY PRETI)-->
                 <div id="archive-page" class="page">
                     <div class="page-header">
-                        <h2>Archive</h2>
-                        <p>View and manage feedback that has already been moved into Archive</p>
+                        <!-- <Jun Kai start> -->
+                        <h2>Archived Feedback</h2>
+                        <p>Feedback older than the auto-archive period (Parameter Adjustment). After its keep period, set on <button type="button" class="inline-link-btn" onclick="showPage('visitor-archive')">Visitor Data Archive</button>, feedback can be saved to disk and removed from the database.</p>
+                        <!-- <Jun Kai end> -->
                     </div>
 
                     <div class="feedback-section">
@@ -1896,6 +1906,9 @@
                                         <option value="EDIT">Edit</option>
                                         <option value="DOWNLOAD">Download</option>
                                         <option value="VIEW">View</option>
+                                        <!-- <Jun Kai start> -->
+                                        <option value="ARCHIVE">Archive</option>
+                                        <!-- <Jun Kai end> -->
                                     </select>
                                 </div>
 
@@ -1917,6 +1930,9 @@
                                         <option value="feedback">Feedback</option>
                                         <option value="overlay">Overlay</option>
                                         <option value="question">Question</option>
+                                        <!-- <Jun Kai start> -->
+                                        <option value="visitor_archive">Visitor archive</option>
+                                        <!-- <Jun Kai end> -->
                                     </select>
                                 </div>
 
@@ -3180,18 +3196,24 @@
                     <div id="archive-tab" class="parameter-section">
                         <div class="section-header">
                             <h3>Auto Archive Rules</h3>
-                            <p class="section-description">Choose when submitted feedback should move from Feedback Data into Archive, counted from each feedback submission date</p>
+                            <!-- <Jun Kai start> -->
+                            <p class="section-description">Choose when submitted feedback should move from Feedback Data into Archived Feedback, counted from each feedback submission date</p>
+                            <!-- <Jun Kai end> -->
                         </div>
 
                         <div class="parameter-toggle-grid compact">
                             <label class="parameter-toggle-card">
                                 <input type="checkbox" id="archive-autoArchiveEnabled">
-                                <span><strong>Turn On Auto Archive</strong><small>Automatically move feedback into Archive after the selected age</small></span>
+                                <!-- <Jun Kai start> -->
+                                <span><strong>Turn On Auto Archive</strong><small>Automatically move feedback into Archived Feedback after the selected age</small></span>
+                                <!-- <Jun Kai end> -->
                             </label>
                         </div>
 
                         <div class="form-group">
-                            <label for="archive-archiveAfterDays">Move feedback to Archive after</label>
+                            <!-- <Jun Kai start> -->
+                            <label for="archive-archiveAfterDays">Move feedback to Archived Feedback after</label>
+                            <!-- <Jun Kai end> -->
                             <select id="archive-archiveAfterDays">
                                 <option value="15">1/2 month</option>
                                 <option value="30">1 month</option>
@@ -3573,6 +3595,513 @@
                 </div>
                 <!-- <Jun Kai end> -->
 
+                <!-- <Jun Kai start> -->
+                <!-- Visitor Data Archive (Role 3, Admin Screen point 2). Every element the script looks up is here, dialogs included. -->
+                <div id="visitor-archive-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Visitor Data Archive</h2>
+                            <p>Saves visitor records older than their keep period to a zip file on this PC, checks the file, then deletes them from the database.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button type="button" class="ui-btn ui-btn-secondary" id="va-refresh-btn" onclick="vaLoad(true)">Refresh</button>
+                            <button type="button" class="ui-btn ui-btn-primary" id="va-archive-btn" onclick="vaOpenArchive()" disabled>Archive now</button>
+                        </div>
+                    </div>
+
+                    <div class="va-alert" id="va-load-error" role="alert" hidden>
+                        <span id="va-load-error-text">The archive overview could not be loaded.</span>
+                        <button type="button" class="ui-btn ui-btn-secondary" onclick="vaLoad(true)">Try again</button>
+                    </div>
+
+                    <div class="ui-card" id="va-summary">
+                        <div class="ui-card-body">
+                            <div class="ui-facts va-facts">
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Ready to archive</span>
+                                    <span class="ui-fact-value" id="va-due-value"><span class="va-skel" style="width: 58%"></span></span>
+                                    <span class="ui-fact-hint" id="va-due-hint"><span class="va-skel" style="width: 82%"></span></span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Automatic archiving<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-auto-enabled')" aria-label="Change automatic archiving">Change</button></span>
+                                    <span class="ui-fact-value" id="va-auto-value"><span class="va-skel" style="width: 46%"></span></span>
+                                    <span class="ui-fact-hint" id="va-auto-hint"><span class="va-skel" style="width: 70%"></span></span>
+                                </div>
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Last archive</span>
+                                    <span class="ui-fact-value" id="va-last-value"><span class="va-skel" style="width: 66%"></span></span>
+                                    <span class="ui-fact-hint" id="va-last-hint"><span class="va-skel" style="width: 76%"></span></span>
+                                </div>
+                                <div class="ui-fact" id="va-folder-fact">
+                                    <span class="ui-fact-label">Archive folder<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-folder')" aria-label="Change the archive folder">Change</button></span>
+                                    <span class="ui-fact-value" id="va-folder-value"><span class="va-skel" style="width: 50%"></span></span>
+                                    <span class="ui-fact-hint va-fact-path" id="va-folder-hint"><span class="va-skel" style="width: 88%"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ui-card-body va-run-strip" id="va-run-strip" hidden>
+                            <div class="va-run-strip-top">
+                                <span><strong>Archive running</strong><span class="ui-sr-only">: </span><span id="va-run-strip-text">Collecting the records</span></span>
+                            </div>
+                            <div class="va-bar va-bar-thin" role="progressbar" aria-label="Archive progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="va-bar-fill" id="va-run-strip-bar"></div></div>
+                        </div>
+                        <div class="ui-card-body va-lifecycle-body">
+                            <ol class="va-lifecycle" aria-label="What happens to visitor feedback over time">
+                                <li>
+                                    <button type="button" class="va-link va-step-name" onclick="showPage('feedback-data')">Feedback Data</button>
+                                    <span class="va-step-when">New submissions</span>
+                                </li>
+                                <li>
+                                    <button type="button" class="va-link va-step-name" onclick="showPage('archive')">Archived Feedback</button>
+                                    <span class="va-step-when" id="va-life-soft">After 90 days</span>
+                                </li>
+                                <li class="is-here">
+                                    <span class="va-step-name">Visitor Data Archive</span>
+                                    <span class="va-step-when" id="va-life-archive">After 12 months, when you archive</span>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="ui-card-header va-history-head">
+                            <div>
+                                <h3 id="va-history-title" tabindex="-1">History</h3>
+                                <p>Every archive made on this PC, newest first. Records are deleted only after their file has been checked.</p>
+                            </div>
+                            <span class="ui-fact-hint" id="va-history-totals"></span>
+                        </div>
+                        <div class="ui-table-wrap" id="va-history-wrap">
+                            <table class="ui-table va-history">
+                                <thead><tr><th>When</th><th>Started by</th><th>Records</th><th class="va-num">Size</th><th>Status</th><th class="ui-th-actions"><span class="ui-sr-only">Actions</span></th></tr></thead>
+                                <tbody id="va-history-rows">
+                                    <tr class="va-skel-row"><td colspan="6"><span class="va-skel" style="width: 74%"></span></td></tr>
+                                    <tr class="va-skel-row"><td colspan="6"><span class="va-skel" style="width: 62%"></span></td></tr>
+                                    <tr class="va-skel-row"><td colspan="6"><span class="va-skel" style="width: 68%"></span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="ui-card-body va-history-foot" id="va-history-foot" hidden>
+                            <span class="ui-fact-hint" id="va-history-more-text"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="va-history-more" onclick="vaShowMoreHistory()">Show more</button>
+                        </div>
+                    </div>
+
+                    <form class="va-settings" id="va-settings-form" novalidate onsubmit="vaSaveSettings(event)">
+                        <fieldset class="va-fieldset" id="va-settings-fields" disabled>
+                            <legend class="ui-sr-only">Archive settings</legend>
+                            <div class="ui-card">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3 id="va-settings-title" tabindex="-1">What to archive</h3>
+                                        <p>A record is due once it is older than its keep period. Automatic archiving takes every due record; Archive now starts from these choices.</p>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="va-types">
+                                        <div class="va-type" id="va-feedback-type">
+                                            <div class="va-option">
+                                                <div class="va-option-text">
+                                                    <label class="va-option-label" for="va-feedback-enabled">Feedback and pledges</label>
+                                                    <span class="va-option-desc" id="va-feedback-desc">Submissions with their pledges, answers, likes and photos, and the visitors who made them. Archived submissions also leave the digital tree, the pledgeboard and the visitor count.</span>
+                                                </div>
+                                                <label class="ui-switch"><input type="checkbox" id="va-feedback-enabled" role="switch" aria-describedby="va-feedback-desc" checked><span class="ui-switch-track"></span></label>
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="va-feedback-keep">Keep for</label>
+                                                <select class="ui-select" id="va-feedback-keep" data-va-keep="feedback-keep">
+                                                    <option value="3:months">3 months</option>
+                                                    <option value="6:months">6 months</option>
+                                                    <option value="12:months" selected>12 months</option>
+                                                    <option value="18:months">18 months</option>
+                                                    <option value="24:months">24 months</option>
+                                                    <option value="36:months">36 months</option>
+                                                    <option value="custom">Custom</option>
+                                                </select>
+                                                <div class="hw-custom" id="va-feedback-keep-custom" hidden>
+                                                    <input class="ui-input" type="number" id="va-feedback-keep-amount" min="1" step="1" inputmode="numeric" aria-label="Custom keep period for feedback" aria-describedby="va-feedback-keep-hint">
+                                                    <select class="ui-select" id="va-feedback-keep-unit" data-va-keep="feedback-keep" aria-label="Unit of the keep period for feedback">
+                                                        <option value="days">days</option>
+                                                        <option value="weeks">weeks</option>
+                                                        <option value="months">months</option>
+                                                        <option value="years">years</option>
+                                                    </select>
+                                                </div>
+                                                <p class="ui-help hw-custom-hint" id="va-feedback-keep-hint" hidden></p>
+                                            </div>
+                                        </div>
+                                        <div class="va-type" id="va-lostfound-type">
+                                            <div class="va-option">
+                                                <div class="va-option-text">
+                                                    <label class="va-option-label" for="va-lostfound-enabled">Lost &amp; found reports</label>
+                                                    <span class="va-option-desc" id="va-lostfound-desc">Reports with their item photos. Contact details are encrypted in the archive.</span>
+                                                </div>
+                                                <label class="ui-switch"><input type="checkbox" id="va-lostfound-enabled" role="switch" aria-describedby="va-lostfound-desc" checked><span class="ui-switch-track"></span></label>
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="va-lostfound-keep">Keep for</label>
+                                                <select class="ui-select" id="va-lostfound-keep" data-va-keep="lostfound-keep">
+                                                    <option value="3:months">3 months</option>
+                                                    <option value="6:months">6 months</option>
+                                                    <option value="12:months" selected>12 months</option>
+                                                    <option value="18:months">18 months</option>
+                                                    <option value="24:months">24 months</option>
+                                                    <option value="36:months">36 months</option>
+                                                    <option value="custom">Custom</option>
+                                                </select>
+                                                <div class="hw-custom" id="va-lostfound-keep-custom" hidden>
+                                                    <input class="ui-input" type="number" id="va-lostfound-keep-amount" min="1" step="1" inputmode="numeric" aria-label="Custom keep period for lost and found reports" aria-describedby="va-lostfound-keep-hint">
+                                                    <select class="ui-select" id="va-lostfound-keep-unit" data-va-keep="lostfound-keep" aria-label="Unit of the keep period for lost and found reports">
+                                                        <option value="days">days</option>
+                                                        <option value="weeks">weeks</option>
+                                                        <option value="months">months</option>
+                                                        <option value="years">years</option>
+                                                    </select>
+                                                </div>
+                                                <p class="ui-help hw-custom-hint" id="va-lostfound-keep-hint" hidden></p>
+                                            </div>
+                                            <label class="ui-check"><input type="checkbox" id="va-lostfound-resolved"><span>Only resolved reports</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="va-types">
+                                        <div class="va-option">
+                                            <div class="va-option-text">
+                                                <label class="va-option-label" for="va-include-photos">Include photos</label>
+                                                <span class="va-option-desc" id="va-photos-desc">When off, photos are deleted with the records and not kept.</span>
+                                            </div>
+                                            <label class="ui-switch"><input type="checkbox" id="va-include-photos" role="switch" aria-describedby="va-photos-desc" checked><span class="ui-switch-track"></span></label>
+                                        </div>
+                                        <div class="va-radios" role="radiogroup" aria-labelledby="va-after-label">
+                                            <span class="ui-label" id="va-after-label">After a checked archive</span>
+                                            <label class="ui-check"><input type="radio" name="va-after" id="va-after-delete" value="delete" checked><span>Delete the records from the database</span></label>
+                                            <label class="ui-check"><input type="radio" name="va-after" id="va-after-keep" value="keep"><span>Keep them in the database (export only)</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ui-grid-2">
+                                <div class="ui-card">
+                                    <div class="ui-card-header">
+                                        <div>
+                                            <h3>Schedule</h3>
+                                            <p>Archive due records on a schedule. Archive now works at any time.</p>
+                                        </div>
+                                    </div>
+                                    <div class="ui-card-body">
+                                        <div class="va-option">
+                                            <div class="va-option-text">
+                                                <label class="va-option-label" for="va-auto-enabled">Automatic archiving</label>
+                                                <span class="va-option-desc" id="va-auto-desc">Uses the choices in What to archive. Needs at least one record type switched on and Delete the records from the database.</span>
+                                            </div>
+                                            <label class="ui-switch"><input type="checkbox" id="va-auto-enabled" role="switch" aria-describedby="va-auto-desc va-auto-error"><span class="ui-switch-track"></span></label>
+                                        </div>
+                                        <p class="ui-help va-switch-error" id="va-auto-error" hidden></p>
+                                        <div class="ui-form-grid va-schedule-grid">
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="va-auto-frequency">Repeat</label>
+                                                <select class="ui-select" id="va-auto-frequency">
+                                                    <option value="daily">Every day</option>
+                                                    <option value="weekly">Every week</option>
+                                                    <option value="monthly" selected>Every month</option>
+                                                    <option value="custom">Custom</option>
+                                                </select>
+                                            </div>
+                                            <div class="ui-field" id="va-auto-weekday-field" hidden>
+                                                <label class="ui-label" for="va-auto-weekday">On</label>
+                                                <select class="ui-select" id="va-auto-weekday">
+                                                    <option value="1">Monday</option>
+                                                    <option value="2">Tuesday</option>
+                                                    <option value="3">Wednesday</option>
+                                                    <option value="4">Thursday</option>
+                                                    <option value="5">Friday</option>
+                                                    <option value="6">Saturday</option>
+                                                    <option value="0">Sunday</option>
+                                                </select>
+                                            </div>
+                                            <div class="ui-field" id="va-auto-day-field">
+                                                <label class="ui-label" for="va-auto-day">On</label>
+                                                <select class="ui-select" id="va-auto-day"></select>
+                                            </div>
+                                            <div class="ui-field" id="va-auto-every-field" hidden>
+                                                <label class="ui-label" for="va-auto-every">Every</label>
+                                                <div class="hw-custom">
+                                                    <input class="ui-input" type="number" id="va-auto-every" min="1" max="365" step="1" inputmode="numeric" aria-describedby="va-auto-every-hint">
+                                                    <span class="hw-custom-unit" aria-hidden="true">days</span>
+                                                </div>
+                                                <p class="ui-help hw-custom-hint" id="va-auto-every-hint">From 1 to 365 days.</p>
+                                            </div>
+                                            <div class="ui-field" id="va-auto-time-field">
+                                                <label class="ui-label" for="va-auto-time">At</label>
+                                                <input class="ui-input" type="time" id="va-auto-time" aria-describedby="va-auto-time-hint" disabled>
+                                                <label class="ui-check va-check-small"><input type="checkbox" id="va-auto-anytime" checked><span>Any time</span></label>
+                                                <p class="ui-help hw-custom-hint" id="va-auto-time-hint" hidden></p>
+                                            </div>
+                                        </div>
+                                        <dl class="ui-kv va-next">
+                                            <dt>Next run</dt>
+                                            <dd id="va-next-run">Switched off</dd>
+                                            <dt>Last automatic run</dt>
+                                            <dd id="va-last-auto">None yet</dd>
+                                        </dl>
+                                        <p class="ui-note">The server PC hibernates outside opening hours, so a run that falls in that time happens the next time the server is on.</p>
+                                    </div>
+                                </div>
+                                <div class="ui-card">
+                                    <div class="ui-card-header">
+                                        <div>
+                                            <h3>Storage</h3>
+                                            <p>Where the zip files are kept on this PC, and for how long.</p>
+                                        </div>
+                                    </div>
+                                    <div class="ui-card-body">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="va-folder">Archive folder</label>
+                                            <div class="ui-input-row va-folder-row">
+                                                <input class="ui-input" type="text" id="va-folder" maxlength="400" spellcheck="false" autocomplete="off" aria-describedby="va-folder-status-text">
+                                                <button type="button" class="ui-btn ui-btn-secondary" id="va-folder-check" onclick="vaCheckFolder()">Check folder</button>
+                                                <button type="button" class="ui-btn ui-btn-secondary" onclick="vaUseDefaultFolder()">Use default</button>
+                                            </div>
+                                            <div class="va-folder-status" aria-live="polite">
+                                                <span id="va-folder-status-pill"></span>
+                                                <span class="va-folder-status-text" id="va-folder-status-text"></span>
+                                            </div>
+                                        </div>
+                                        <div class="ui-field va-field-gap">
+                                            <label class="ui-label" for="va-keep-files">Keep archive files</label>
+                                            <select class="ui-select" id="va-keep-files" data-va-keep="keep-files" aria-describedby="va-keep-files-help va-keep-files-expiring">
+                                                <option value="0:years">Forever</option>
+                                                <option value="1:years">1 year</option>
+                                                <option value="2:years">2 years</option>
+                                                <option value="3:years">3 years</option>
+                                                <option value="5:years">5 years</option>
+                                                <option value="7:years">7 years</option>
+                                                <option value="custom">Custom</option>
+                                            </select>
+                                            <div class="hw-custom" id="va-keep-files-custom" hidden>
+                                                <input class="ui-input" type="number" id="va-keep-files-amount" min="1" step="1" inputmode="numeric" aria-label="Custom time to keep archive files" aria-describedby="va-keep-files-hint">
+                                                <select class="ui-select" id="va-keep-files-unit" data-va-keep="keep-files" aria-label="Unit of the time to keep archive files">
+                                                    <option value="months">months</option>
+                                                    <option value="years">years</option>
+                                                </select>
+                                            </div>
+                                            <p class="ui-help hw-custom-hint" id="va-keep-files-hint" hidden></p>
+                                            <p class="ui-help" id="va-keep-files-help">Zip files older than this are deleted for good, even when automatic archiving is off.</p>
+                                            <div class="va-expiring" id="va-keep-files-expiring" aria-live="polite"></div>
+                                        </div>
+                                        <p class="ui-note">Emails and lost &amp; found contact details stay encrypted inside the archive. Keep a copy of ENCRYPTION_KEY from backend/.env somewhere safe: without it they cannot be read later. <span id="va-key-text"></span></p>
+                                        <p class="ui-note ui-note-warn" id="va-devkey-note" hidden>This server uses the built-in development key, which is public in the project's source code. Anyone with the code could decrypt these archives.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <div class="va-savebar" id="va-savebar" hidden>
+                            <div class="va-savebar-main" id="va-savebar-main">
+                                <span class="va-savebar-text">Unsaved changes</span>
+                                <div class="ui-row">
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="vaDiscardSettings()">Discard</button>
+                                    <button type="submit" class="ui-btn ui-btn-primary" id="va-save-btn">Save changes</button>
+                                </div>
+                            </div>
+                            <div class="va-savebar-confirm" id="va-savebar-confirm" hidden>
+                                <div class="va-confirm-text" id="va-confirm-text">Saving deletes archive files for good.</div>
+                                <input type="text" class="va-username" autocomplete="username" tabindex="-1" aria-hidden="true" hidden>
+                                <div class="ui-field va-confirm-field">
+                                    <label class="ui-label" for="va-confirm-password">Your password</label>
+                                    <input class="ui-input" type="password" id="va-confirm-password" autocomplete="current-password" aria-describedby="va-confirm-text va-confirm-password-hint">
+                                    <p class="ui-help" id="va-confirm-password-hint">Needed to delete archive files.</p>
+                                </div>
+                                <div class="ui-row va-confirm-actions">
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="vaCancelConfirm()">Cancel</button>
+                                    <button type="submit" class="ui-btn ui-btn-danger" id="va-confirm-btn">Save and delete files</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="ui-sr-only" id="va-live" aria-live="polite"></div>
+
+                    <dialog class="va-dialog" id="va-archive-dialog" aria-labelledby="va-archive-title" aria-describedby="va-archive-sub">
+                        <form class="va-dialog-inner" id="va-archive-form" novalidate onsubmit="vaStartRun(event)">
+                            <div class="va-dialog-head">
+                                <div>
+                                    <h3 id="va-archive-title">Archive visitor records</h3>
+                                    <div class="va-dialog-sub" id="va-archive-sub">The records below are saved to a zip file and checked, then deleted from the database. This cannot be undone.</div>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="vaCloseDialog('va-archive-dialog')" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                            <div class="va-dialog-body" id="va-archive-setup">
+                                <div class="va-preview" id="va-run-preview">
+                                    <div class="va-preview-lead" id="va-run-preview-text" aria-live="polite">Counting the records</div>
+                                    <dl class="va-summary" id="va-run-summary" hidden>
+                                        <div class="va-summary-row" id="va-sum-feedback-row"><dt>Feedback</dt><dd id="va-sum-feedback"></dd></div>
+                                        <div class="va-summary-row" id="va-sum-lostfound-row"><dt>Lost &amp; found</dt><dd id="va-sum-lostfound"></dd></div>
+                                        <div class="va-summary-row" id="va-sum-photos-row"><dt>Photos</dt><dd id="va-sum-photos"></dd></div>
+                                        <div class="va-summary-row"><dt>File</dt><dd><span id="va-sum-file"></span><span class="va-sum-folder va-fact-path" id="va-run-folder"></span></dd></div>
+                                    </dl>
+                                </div>
+                                <details class="va-change" id="va-run-change">
+                                    <summary>Change what is archived</summary>
+                                    <div class="va-change-body">
+                                        <div class="va-run-list" role="group" aria-labelledby="va-run-types-label">
+                                            <span class="ui-sr-only" id="va-run-types-label">Record types</span>
+                                            <div class="va-run-type">
+                                                <label class="ui-check"><input type="checkbox" id="va-run-feedback"><span>Feedback and pledges</span></label>
+                                                <div class="va-run-date">
+                                                    <label class="ui-label" for="va-run-feedback-before">Submitted before</label>
+                                                    <input class="ui-input" type="date" id="va-run-feedback-before" aria-describedby="va-run-feedback-hint">
+                                                </div>
+                                                <div class="va-date-hint" id="va-run-feedback-hint"></div>
+                                            </div>
+                                            <div class="va-run-type">
+                                                <label class="ui-check"><input type="checkbox" id="va-run-lostfound"><span>Lost &amp; found reports</span></label>
+                                                <div class="va-run-date">
+                                                    <label class="ui-label" for="va-run-lostfound-before">Submitted before</label>
+                                                    <input class="ui-input" type="date" id="va-run-lostfound-before" aria-describedby="va-run-lostfound-hint">
+                                                </div>
+                                                <div class="va-date-hint" id="va-run-lostfound-hint"></div>
+                                                <label class="ui-check va-run-sub"><input type="checkbox" id="va-run-resolved"><span>Only resolved reports</span></label>
+                                            </div>
+                                        </div>
+                                        <div class="va-run-options">
+                                            <label class="ui-check"><input type="checkbox" id="va-run-photos"><span>Include photos</span></label>
+                                            <div class="va-radios" role="radiogroup" aria-labelledby="va-run-after-label">
+                                                <span class="ui-label" id="va-run-after-label">After the check</span>
+                                                <label class="ui-check"><input type="radio" name="va-run-after" id="va-run-delete" value="delete"><span>Delete the records from the database</span></label>
+                                                <label class="ui-check"><input type="radio" name="va-run-after" id="va-run-keep" value="keep"><span>Keep them in the database (export only)</span></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                                <div class="ui-note ui-note-warn" id="va-run-photos-note" hidden></div>
+                                <div class="va-safety" id="va-run-safety">Nothing is deleted unless the zip file passes its check. Deleted records can be opened later from History, but not restored.</div>
+                                <input type="text" class="va-username" autocomplete="username" tabindex="-1" aria-hidden="true" hidden>
+                                <div class="ui-field va-password-field">
+                                    <label class="ui-label" for="va-run-password">Your password</label>
+                                    <input class="ui-input" type="password" id="va-run-password" autocomplete="current-password" aria-describedby="va-run-password-hint">
+                                    <p class="ui-help" id="va-run-password-hint">Needed to start an archive.</p>
+                                </div>
+                                <div class="va-form-error" id="va-run-error" role="alert" hidden></div>
+                            </div>
+                            <div class="va-dialog-body" id="va-archive-live" hidden>
+                                <div id="va-run-progress">
+                                    <ol class="va-stages" id="va-stages" aria-label="Archive steps"></ol>
+                                    <div class="va-bar" role="progressbar" aria-label="Archive progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="va-bar-fill" id="va-run-bar"></div></div>
+                                    <div class="va-run-detail" id="va-run-detail"></div>
+                                    <p class="ui-help va-run-note">You can close this window. The archive keeps running on the server and this page shows its progress.</p>
+                                </div>
+                                <div class="va-result" id="va-run-result" hidden></div>
+                            </div>
+                            <div class="va-dialog-foot">
+                                <button type="button" class="ui-btn ui-btn-secondary" id="va-run-view" onclick="vaViewResult()" hidden>View records</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" id="va-run-cancel" onclick="vaCloseDialog('va-archive-dialog')">Cancel</button>
+                                <button type="submit" class="ui-btn ui-btn-danger" id="va-run-submit" disabled>Archive and delete</button>
+                            </div>
+                            <div class="ui-sr-only va-announce" id="va-archive-announce" aria-live="polite"></div>
+                        </form>
+                    </dialog>
+
+                    <dialog class="va-dialog va-dialog-wide" id="va-view-dialog" aria-labelledby="va-view-title">
+                        <div class="va-dialog-inner">
+                            <div class="va-dialog-head">
+                                <div class="va-view-heading">
+                                    <h3 id="va-view-title">Archived records</h3>
+                                    <div class="va-dialog-sub" id="va-view-meta"></div>
+                                </div>
+                                <div class="va-view-side">
+                                    <span id="va-view-key"></span>
+                                    <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="vaCloseDialog('va-view-dialog')" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                                </div>
+                            </div>
+                            <div class="va-view-toolbar">
+                                <div class="hw-segment" role="group" aria-label="Record type">
+                                    <button type="button" class="hw-seg-btn active" id="va-tab-feedback" aria-pressed="true" onclick="vaSetViewType('feedback')">Feedback</button>
+                                    <button type="button" class="hw-seg-btn" id="va-tab-lostfound" aria-pressed="false" onclick="vaSetViewType('lostFound')">Lost &amp; found</button>
+                                </div>
+                                <div class="va-view-tools">
+                                    <input class="ui-input va-search" type="search" id="va-view-search" placeholder="Search names, pledges, items or codes" aria-label="Search the archived records" autocomplete="off">
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="va-view-decrypt" onclick="vaToggleDecrypt()" disabled>Show emails</button>
+                                </div>
+                            </div>
+                            <div class="va-view-alert" id="va-view-key-alert" role="status"></div>
+                            <div class="va-view-alert" id="va-view-locked" hidden>
+                                <span>The records locked again after 10 minutes.</span>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="vaRelockView()">Enter password</button>
+                            </div>
+                            <div class="va-view-alert va-view-note" id="va-view-note" role="status"></div>
+                            <div class="va-view-scroll" id="va-view-scroll">
+                                <table class="ui-table va-records">
+                                    <thead id="va-view-head"></thead>
+                                    <tbody id="va-view-rows"></tbody>
+                                </table>
+                            </div>
+                            <div class="va-dialog-foot va-view-foot">
+                                <span class="ui-fact-hint" id="va-view-count"></span>
+                                <div class="ui-row">
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="va-view-prev" onclick="vaViewPage(-1)" disabled>Previous</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="va-view-next" onclick="vaViewPage(1)" disabled>Next</button>
+                                </div>
+                            </div>
+                            <div class="ui-sr-only va-announce" id="va-view-announce" aria-live="polite"></div>
+                        </div>
+                    </dialog>
+
+                    <dialog class="va-dialog va-dialog-small" id="va-unlock-dialog" aria-labelledby="va-unlock-title">
+                        <form class="va-dialog-inner" novalidate onsubmit="vaSubmitUnlock(event)">
+                            <div class="va-dialog-head">
+                                <div>
+                                    <h3 id="va-unlock-title">Open archived records</h3>
+                                    <div class="va-dialog-sub" id="va-unlock-text">Enter your password to see the records in this archive.</div>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="vaCloseDialog('va-unlock-dialog')" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                            <div class="va-dialog-body">
+                                <input type="text" class="va-username" autocomplete="username" tabindex="-1" aria-hidden="true" hidden>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="va-unlock-password">Your password</label>
+                                    <input class="ui-input" type="password" id="va-unlock-password" autocomplete="current-password" aria-describedby="va-unlock-password-hint">
+                                    <p class="ui-help" id="va-unlock-password-hint">Archives stay unlocked for 10 minutes.</p>
+                                </div>
+                            </div>
+                            <div class="va-dialog-foot">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="vaCloseDialog('va-unlock-dialog')">Cancel</button>
+                                <button type="submit" class="ui-btn ui-btn-primary" id="va-unlock-submit">Unlock</button>
+                            </div>
+                        </form>
+                    </dialog>
+
+                    <dialog class="va-dialog va-dialog-small" id="va-delete-dialog" aria-labelledby="va-delete-title">
+                        <form class="va-dialog-inner" novalidate onsubmit="vaSubmitDelete(event)">
+                            <div class="va-dialog-head">
+                                <div>
+                                    <h3 id="va-delete-title">Delete archive file</h3>
+                                    <div class="va-dialog-sub">The zip file is removed from this PC. The line in the history stays. This cannot be undone.</div>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="vaCloseDialog('va-delete-dialog')" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                            <div class="va-dialog-body">
+                                <div class="va-delete-file">
+                                    <div class="va-cell-main" id="va-delete-name">Archive file</div>
+                                    <div class="va-cell-sub" id="va-delete-detail"></div>
+                                </div>
+                                <div class="ui-note ui-note-warn" id="va-delete-warn" hidden>The records in this file were deleted from the database, so this file is the only copy left.</div>
+                                <input type="text" class="va-username" autocomplete="username" tabindex="-1" aria-hidden="true" hidden>
+                                <div class="ui-field va-password-field">
+                                    <label class="ui-label" for="va-delete-password">Your password</label>
+                                    <input class="ui-input" type="password" id="va-delete-password" autocomplete="current-password" aria-describedby="va-delete-password-hint">
+                                    <p class="ui-help" id="va-delete-password-hint">Needed to delete an archive file.</p>
+                                </div>
+                                <div class="va-form-error" id="va-delete-error" role="alert" hidden></div>
+                            </div>
+                            <div class="va-dialog-foot">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="vaCloseDialog('va-delete-dialog')">Cancel</button>
+                                <button type="submit" class="ui-btn ui-btn-danger" id="va-delete-submit">Delete file</button>
+                            </div>
+                        </form>
+                    </dialog>
+                </div>
+                <!-- <Jun Kai end> -->
+
                 <div id="server-schedule-page" class="page">
                     <div class="ui-page-header">
                         <div>
@@ -3901,6 +4430,7 @@
     <script src="/admin/js/health.js"></script>
     <!-- <Jun Kai start> -->
     <script src="/admin/js/hardware.js"></script>
+    <script src="/admin/js/visitorArchive.js"></script>
     <!-- <Jun Kai end> -->
     <script src="/admin/js/vips.js"></script>
     <script src="/admin/js/kioskReload.js"></script>

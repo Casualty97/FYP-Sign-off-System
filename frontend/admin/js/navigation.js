@@ -249,6 +249,9 @@ function showPage(pageName) {
     
     // Check if user is trying to access admin pages without system_admin role
     const adminPages = ['overlay', 'users', 'audit', 'questions', 'archive', 'lost-found', 'data-export', 'badge-email-templates', 'parameter-adjustment', 'asset']; // changes made by nick
+    // <Jun Kai start>
+    adminPages.push('visitor-archive');
+    // <Jun Kai end>
     if (adminPages.includes(pageName) && userRole !== 'system_admin') {
         alert('Access denied. System Administrator privileges required.');
         return;
@@ -297,6 +300,9 @@ function showPage(pageName) {
     } else if (pageName === 'hardware') {
         loadHardware();
         startHardwarePolling();
+    } else if (pageName === 'visitor-archive') {
+        vaLoad();
+        vaStartPolling();
     // <Jun Kai end>
     } else if (pageName === 'tree-adjustment') {
         initTreeStageMode();

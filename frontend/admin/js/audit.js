@@ -89,7 +89,9 @@ function filterAuditLogs() {
         const userMatch = !filterUser || (log.admin_username === filterUser);
         
         // Target Type filter
-        const targetMatch = !filterTargetType || (log.target_type === filterTargetType);
+        // <Jun Kai start> text targets are saved as "type:name" (visitor_archive:settings), so they match their type too
+        const targetMatch = !filterTargetType || log.target_type === filterTargetType || String(log.target_type || '').startsWith(`${filterTargetType}:`);
+        // <Jun Kai end>
         
         // IP Address filter
         const ipMatch = !filterIp || (log.ip_address && log.ip_address.toLowerCase().includes(filterIp));
@@ -208,15 +210,17 @@ function updateAuditTable(logs) {
         return;
     }
     
+    // <Jun Kai start> rows with a text target (target_id null) show only the target, not "#null"
     tbody.innerHTML = logs.map(log => `
         <tr>
             <td>${new Date(log.created_at).toLocaleString()}</td>
             <td><strong>${escapeHtml(log.admin_username)}</strong></td>
             <td><span class="badge badge-${getAuditBadgeType(log.action)}">${escapeHtml(log.action)}</span></td>
-            <td>${log.target_type ? `${escapeHtml(log.target_type)} #${log.target_id}` : '–'}</td>
+            <td>${log.target_type ? `${escapeHtml(log.target_type)}${log.target_id !== null && log.target_id !== undefined ? ` #${log.target_id}` : ''}` : '–'}</td>
             <td style="font-size: 12px; color: #64748b;">${escapeHtml(log.ip_address) || '–'}</td>
         </tr>
     `).join('');
+    // <Jun Kai end>
 }
 
 // Get badge type for action

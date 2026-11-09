@@ -7763,7 +7763,9 @@ input:checked + .slider:before {
 }
 
 /* Role 3 pages share the schedule page's content padding (the other pages pad themselves) */
-#health-page, #hardware-page { min-height: 100%; padding: 30px; }
+/* <Jun Kai start> */
+#health-page, #hardware-page, #visitor-archive-page { min-height: 100%; padding: 30px; }
+/* <Jun Kai end> */
 #server-schedule-page .ui-table td { font-weight: 400; }
 
 /* <Jun Kai start> */
@@ -7828,8 +7830,9 @@ input:checked + .slider:before {
 /* <Jun Kai start> */
 /* schedule policies and the customisable health page (supervisor meeting 03) */
 /* the kit sets display on fields and grids, which would beat the hidden attribute */
-#health-page [hidden], #server-schedule-page [hidden], #schedule-modal [hidden] { display: none !important; }
-.ui-switch input:focus-visible + .ui-switch-track { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35); }
+#health-page [hidden], #server-schedule-page [hidden], #schedule-modal [hidden], #visitor-archive-page [hidden] { display: none !important; }
+/* keyboard only: a solid ring that clears 3:1 (the soft glow it replaces was 1.67:1); mouse clicks show nothing */
+.ui-switch input:focus-visible + .ui-switch-track { outline: 2px solid #2563eb; outline-offset: 2px; }
 .ui-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 .policy-head, .policy-row { display: grid; grid-template-columns: 34px 28px minmax(0, 1fr) 92px 128px 70px 72px; align-items: center; gap: 12px; padding: 0 22px; }
@@ -7995,19 +7998,19 @@ input:checked + .slider:before {
 /* <Jun Kai start> */
 /* Health, Hardware and Server Schedule polish. The theme paints every paragraph #959595 (2.9:1 on white), so these
    pages use darker greys and re-assert their paragraph colours. */
-#health-page, #hardware-page, #server-schedule-page, #schedule-modal { --color-dark-gray: #475569; --color-muted: #64748b; }
-#health-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p,
-#health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p,
+#health-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+#health-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
+#health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p, #visitor-archive-page .ui-card-header p,
 #server-schedule-page .ui-section-title, #server-schedule-page .policy-preview-note { color: var(--color-dark-gray) !important; }
-#health-page p.ui-help, #hardware-page p.ui-help, #server-schedule-page p.ui-help, #schedule-modal p.ui-help { color: var(--color-muted) !important; }
-#hardware-page p.ui-help.is-error, #schedule-modal p.ui-help.is-error { color: #b91c1c !important; }
-#server-schedule-page p.ui-note { color: var(--theme-card-text) !important; }
-#server-schedule-page p.ui-note-warn { color: #78350f !important; }
+#health-page p.ui-help, #hardware-page p.ui-help, #server-schedule-page p.ui-help, #schedule-modal p.ui-help, #visitor-archive-page p.ui-help { color: var(--color-muted) !important; }
+#hardware-page p.ui-help.is-error, #schedule-modal p.ui-help.is-error, #visitor-archive-page p.ui-help.is-error { color: #b91c1c !important; }
+#server-schedule-page p.ui-note, #visitor-archive-page p.ui-note { color: var(--theme-card-text) !important; }
+#server-schedule-page p.ui-note-warn, #visitor-archive-page p.ui-note-warn { color: #78350f !important; }
 #schedule-modal p.policy-summary { color: var(--theme-text-color) !important; }
 #schedule-modal p.policy-summary.is-error { color: #b91c1c !important; }
 #server-schedule-page .policy-empty p { margin: 0 0 12px; color: var(--color-dark-gray) !important; }
-#health-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p,
-#health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p { text-wrap: pretty; }
+#health-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
+#health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p, #visitor-archive-page .ui-card-header p { text-wrap: pretty; }
 
 #health-page .health-card-summary, #health-page .health-card-detail { overflow-wrap: anywhere; }
 .ui-btn-danger:disabled { color: var(--color-dark-gray); border-color: var(--theme-border-color); }
@@ -8030,9 +8033,258 @@ input:checked + .slider:before {
 
 /* the page settles in once when it opens; the 30 and 60 second refreshes never animate */
 @keyframes uiPageIn { from { opacity: 0; transform: translateY(4px); } }
-#health-page.active, #hardware-page.active, #server-schedule-page.active { animation: uiPageIn 0.24s cubic-bezier(0.16, 1, 0.3, 1); }
+#health-page.active, #hardware-page.active, #server-schedule-page.active, #visitor-archive-page.active { animation: uiPageIn 0.24s cubic-bezier(0.16, 1, 0.3, 1); }
 @media (prefers-reduced-motion: reduce) {
-    #health-page.active, #hardware-page.active, #server-schedule-page.active { animation: none; }
+    #health-page.active, #hardware-page.active, #server-schedule-page.active, #visitor-archive-page.active { animation: none; }
     .health-card, .policy-rules-more summary::before { transition: none; }
+}
+/* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Visitor Data Archive page (Admin Screen point 2): the kit cards plus a lifecycle strip, a save bar and native dialogs */
+.va-skel { display: inline-block; max-width: 100%; height: 0.75em; border-radius: 4px; vertical-align: middle; background: linear-gradient(90deg, #eef2f6 25%, #f7f9fb 37%, #eef2f6 63%); background-size: 400% 100%; animation: vaShimmer 1.4s ease infinite; }
+@keyframes vaShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+.va-skel-row td { padding-top: 17px; padding-bottom: 17px; }
+.va-facts .ui-fact { min-width: 0; }
+.va-facts .ui-fact-value { min-height: 1.25em; }
+.va-facts .ui-fact-hint { min-height: 1.4em; }
+.va-fact-path { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.va-facts .is-problem .ui-fact-value { color: #b91c1c; }
+.va-facts .is-problem .va-fact-path { white-space: normal; }
+.va-alert { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; padding: 10px 12px 10px 16px; border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; font-size: 13px; line-height: 1.5; color: #991b1b; }
+
+.va-link { padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; font-weight: 600; color: var(--theme-btn-primary-bg); cursor: pointer; }
+.va-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.va-link:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+.va-fact-change { margin-left: 8px; font-size: 12px; }
+/* a Change link lands here: the setting is marked for a moment */
+.va-flash { border-radius: 8px; animation: vaFlash 1.6s ease-out; }
+@keyframes vaFlash { 0%, 35% { background-color: rgba(37, 99, 235, 0.08); box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.08); } 100% { background-color: transparent; box-shadow: 0 0 0 6px transparent; } }
+
+/* while an archive runs, a thin strip under the facts shows the stage and one bar for the whole run */
+.va-run-strip { display: grid; gap: 10px; padding-top: 14px; padding-bottom: 16px; }
+.va-run-strip-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; color: var(--color-dark-gray); font-variant-numeric: tabular-nums; }
+.va-run-strip-top strong { margin-right: 8px; font-weight: 600; color: var(--theme-text-color); }
+.va-bar { height: 6px; overflow: hidden; border-radius: 3px; background: var(--theme-border-color); }
+.va-bar-thin { height: 4px; border-radius: 2px; }
+.va-bar-fill { height: 100%; background: #2a78d6; transform: scaleX(0); transform-origin: left center; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* where feedback goes over time: three quiet steps, this page's step marked in the accent colour */
+.va-lifecycle-body { padding-top: 16px; padding-bottom: 16px; border-radius: 0 0 12px 12px; background: var(--theme-bg-color); }
+.va-lifecycle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; margin: 0; padding: 0; list-style: none; }
+.va-lifecycle li { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; padding-top: 18px; }
+.va-lifecycle li::before { content: ""; position: absolute; top: 1px; left: 0; width: 9px; height: 9px; box-sizing: border-box; border: 2px solid var(--color-muted); border-radius: 50%; background: var(--theme-bg-color); }
+.va-lifecycle li:not(:last-child)::after { content: ""; position: absolute; top: 5px; left: 15px; right: -18px; height: 1px; background: #cbd5e1; }
+.va-lifecycle li.is-here::before { border-color: #2a78d6; background: #2a78d6; box-shadow: 0 0 0 3px rgba(42, 120, 214, 0.16); }
+.va-step-name { font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--theme-text-color); }
+.va-link.va-step-name { color: var(--theme-btn-primary-bg); }
+.va-step-when { font-size: 12px; line-height: 1.45; color: var(--color-dark-gray); }
+
+/* settings: one form over three cards, a save bar only while something changed */
+.va-settings { margin-top: 20px; }
+.va-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; transition: opacity 0.2s ease; }
+.va-fieldset:disabled { opacity: 0.6; }
+.va-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); align-items: start; gap: 22px 40px; }
+/* the kit's 340px column is wider than a phone's content box */
+#visitor-archive-page .ui-grid-2 { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
+.va-type { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.va-type.is-off .ui-label { color: var(--color-muted); }
+.va-option { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.va-option-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.va-option-label { font-size: 14px; font-weight: 600; color: var(--theme-text-color); cursor: pointer; }
+.va-option-desc { max-width: 52ch; font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+.va-option .ui-switch { margin-top: 1px; }
+.va-radios { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+#visitor-archive-page .ui-check { margin-right: 0; }
+#visitor-archive-page .ui-btn:focus-visible, #visitor-archive-page .ui-check input:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+#visitor-archive-page .ui-check input:disabled + span { color: var(--color-muted); cursor: not-allowed; }
+#visitor-archive-page .ui-select:disabled { background-color: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
+.va-switch-error { margin: 8px 0 0; }
+.va-schedule-grid { margin-top: 18px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.va-check-small { margin-top: 2px; font-size: 13px; }
+.va-next { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--theme-border-color); }
+.va-next dd { font-variant-numeric: tabular-nums; }
+.va-folder-row { flex-wrap: wrap; }
+.va-folder-row .ui-input { flex: 1 1 220px; min-width: 0; }
+.va-folder-status { display: flex; align-items: flex-start; gap: 10px; min-height: 26px; margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.va-folder-status-text { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
+.va-field-gap { margin-top: 18px; }
+.va-expiring { font-size: 12px; font-weight: 600; line-height: 1.45; color: #92400e; }
+.va-expiring:empty { display: block; margin: 0; }
+#va-settings-title:focus { outline: none; }
+.va-code { padding: 1px 6px; border: 1px solid var(--theme-border-color); border-radius: 5px; background: var(--theme-card-bg); font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; color: var(--theme-text-color); }
+/* the content column is a scroll container that never scrolls (the window does), which would stop the save bar from sticking */
+.page-content:has(> #visitor-archive-page.active) { overflow: visible; }
+.va-savebar { position: sticky; bottom: 16px; z-index: 6; margin-top: 16px; padding: 10px 12px 10px 18px; border: 1px solid var(--theme-border-color); border-radius: 12px; background: var(--theme-card-bg); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 1px 2px rgba(15, 23, 42, 0.06); animation: vaRise 0.22s cubic-bezier(0.23, 1, 0.32, 1); }
+.va-savebar-main { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.va-savebar-text { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.va-savebar-text::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #d97706; }
+@keyframes vaRise { from { opacity: 0; transform: translateY(8px); } }
+/* a save that deletes archive files asks for the password inside the bar; the field's label, box and hint line up with the buttons */
+.va-savebar-confirm { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) auto; grid-template-areas: "text label ." "text input actions" "text hint ."; align-items: center; gap: 6px 16px; padding: 2px 0; }
+.va-confirm-text { grid-area: text; max-width: 62ch; font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--theme-text-color); }
+.va-confirm-field { display: contents; }
+.va-confirm-field .ui-label { grid-area: label; }
+.va-confirm-field .ui-input { grid-area: input; }
+.va-confirm-field .ui-help { grid-area: hint; margin: 0; }
+.va-confirm-actions { grid-area: actions; flex-wrap: nowrap; }
+
+/* history table; the wrap holds the screen-reader label of the actions column, so it scrolls with the table */
+#visitor-archive-page .ui-table-wrap { position: relative; }
+.va-history td { font-weight: 400; }
+.va-history th.va-num, .va-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.va-nowrap { white-space: nowrap; }
+.va-history .ui-th-actions { width: 156px; }
+.va-row-note { max-width: 280px; margin-top: 5px; overflow: hidden; font-size: 12px; line-height: 1.4; color: var(--color-muted); white-space: nowrap; text-overflow: ellipsis; }
+.va-empty-title { display: block; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.va-empty-line { display: block; margin-top: 4px; }
+.va-history-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 12px; padding-bottom: 12px; }
+#va-history-totals { margin-top: 0; white-space: nowrap; }
+#va-history-title:focus { outline: none; }
+#va-history-title:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 3px; border-radius: 3px; }
+/* on a phone the table scrolls sideways: the right edge fades while there is more to the right */
+@media (max-width: 640px) {
+    #va-history-wrap.has-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+}
+.ui-btn-icon.is-busy svg { animation: vaSpin 0.9s linear infinite; }
+@keyframes vaSpin { to { transform: rotate(360deg); } }
+
+/* native dialogs: the browser traps the focus and handles Escape; open and close with a short fade and scale */
+.va-dialog { width: min(600px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 48px); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--theme-border-color); border-radius: 14px; background: var(--theme-card-bg); color: var(--theme-text-color); box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28); }
+.va-dialog-small { width: min(460px, calc(100vw - 32px)); }
+.va-dialog-wide { width: min(1120px, calc(100vw - 32px)); height: calc(100vh - 48px); }
+.va-dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
+.va-dialog[open] { animation: vaDialogIn 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+.va-dialog[open]::backdrop { animation: vaFadeIn 0.2s ease-out; }
+.va-dialog.is-closing { animation: vaDialogOut 0.15s ease-out forwards; }
+.va-dialog.is-closing::backdrop { animation: vaFadeOut 0.15s ease-out forwards; }
+@keyframes vaDialogIn { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@keyframes vaDialogOut { to { opacity: 0; transform: scale(0.98); } }
+@keyframes vaFadeIn { from { opacity: 0; } }
+@keyframes vaFadeOut { to { opacity: 0; } }
+.va-dialog-inner { display: flex; flex-direction: column; max-height: calc(100vh - 48px); }
+.va-dialog-wide .va-dialog-inner { height: 100%; }
+.va-dialog-head { display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; gap: 16px; padding: 20px 24px 16px; border-bottom: 1px solid var(--theme-border-color); }
+.va-dialog-head h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; line-height: 1.3; color: var(--theme-text-color); overflow-wrap: break-word; }
+.va-dialog-sub { max-width: 62ch; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.va-dialog-close { flex-shrink: 0; margin: -4px -8px 0 0; }
+.va-dialog-body { flex: 1 1 auto; min-height: 0; padding: 20px 24px; overflow-y: auto; }
+.va-dialog-foot { display: flex; justify-content: flex-end; align-items: center; flex-shrink: 0; gap: 10px; padding: 14px 24px; border-top: 1px solid var(--theme-border-color); }
+/* the Archive dialog leads with what will happen; the choices are folded under "Change what is archived" */
+.va-preview { min-height: 66px; padding: 14px 16px; border-radius: 10px; background: var(--theme-bg-color); font-size: 13px; line-height: 1.55; color: var(--theme-text-color); transition: opacity 0.15s ease; }
+.va-preview.is-loading { opacity: 0.55; }
+.va-preview.is-error { background: #fef2f2; color: #b91c1c; }
+.va-preview-lead { font-size: 14px; font-weight: 600; line-height: 1.5; text-wrap: pretty; }
+.va-summary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--theme-border-color); }
+.va-summary-row { display: contents; }
+.va-summary dt { font-weight: 500; color: var(--color-dark-gray); }
+.va-summary dd { min-width: 0; margin: 0; color: var(--theme-text-color); overflow-wrap: break-word; }
+.va-sum-folder { display: block; font-size: 12px; color: var(--color-dark-gray); }
+.va-warn-text { font-weight: 600; color: #92400e; }
+.va-change { margin-top: 14px; border: 1px solid var(--theme-border-color); border-radius: 10px; }
+.va-change > summary { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--color-dark-gray); list-style: none; cursor: pointer; }
+.va-change > summary::-webkit-details-marker { display: none; }
+.va-change > summary::before { content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s ease; }
+.va-change[open] > summary::before { transform: rotate(45deg); }
+.va-change > summary:hover { color: var(--theme-text-color); }
+.va-change > summary:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+.va-change-body { padding: 0 14px 14px; }
+.va-run-type { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 16px; padding: 12px 0; border-top: 1px solid var(--theme-border-color); }
+.va-run-date { display: flex; align-items: center; gap: 10px; }
+.va-run-date .ui-label { white-space: nowrap; }
+.va-run-date .ui-input { width: 164px; height: 36px; }
+.va-date-hint { grid-column: 1 / -1; font-size: 12px; line-height: 1.45; color: var(--color-dark-gray); text-align: right; }
+.va-date-hint:empty { display: none; }
+.va-run-sub { grid-column: 1 / -1; margin-left: 24px; font-size: 13px; }
+.va-run-options { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 14px 40px; padding-top: 14px; border-top: 1px solid var(--theme-border-color); }
+.va-safety { margin-top: 16px; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); text-wrap: pretty; }
+.va-password-field { margin-top: 14px; }
+.va-form-error { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: #fef2f2; font-size: 13px; line-height: 1.45; color: #b91c1c; }
+.va-stages { display: grid; gap: 12px; margin: 0 0 20px; padding: 0; list-style: none; }
+.va-stage { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--color-muted); }
+.va-stage-mark { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 20px; height: 20px; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 50%; color: #ffffff; }
+.va-stage.is-done { color: var(--theme-text-color); }
+.va-stage.is-done .va-stage-mark { border-color: #16a34a; background: #16a34a; }
+.va-stage.is-active { font-weight: 600; color: var(--theme-text-color); }
+.va-stage.is-active .va-stage-mark { border-color: #2a78d6; border-top-color: transparent; animation: vaSpin 0.8s linear infinite; }
+.va-stage.is-skipped .va-stage-mark { border-style: dashed; }
+.va-stage-note { font-size: 12px; font-weight: 400; color: var(--color-muted); }
+.va-run-detail { min-height: 20px; margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); font-variant-numeric: tabular-nums; }
+.va-run-note { margin-top: 14px; }
+.va-result-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 12px; }
+.va-result-lead { flex: 1 1 280px; font-size: 14px; line-height: 1.5; color: var(--theme-text-color); }
+.va-result-kv { margin-top: 18px; }
+.va-result-kv dd { overflow-wrap: anywhere; }
+.ui-note.va-note-error { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+.va-delete-file { padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 10px; background: var(--theme-bg-color); }
+.va-delete-file .va-cell-sub { color: var(--color-dark-gray); }
+
+/* record viewer */
+.va-view-heading { min-width: 0; }
+.va-view-side { display: flex; align-items: center; flex-shrink: 0; gap: 12px; }
+.va-view-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--theme-border-color); }
+.va-view-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.va-search { width: 300px; height: 36px; }
+.va-tab-count { margin-left: 6px; font-weight: 500; color: var(--color-dark-gray); font-variant-numeric: tabular-nums; }
+.va-view-alert { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 12px; margin: 12px 24px 0; padding: 10px 12px 10px 14px; border: 1px solid #fde68a; border-radius: 10px; background: #fffbeb; font-size: 13px; line-height: 1.45; color: #78350f; }
+/* the status rows stay in the page while empty (zero size), so a sentence put into them is read out */
+.va-view-alert:empty { margin: 0; padding: 0; border: 0; }
+.va-view-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
+/* on a narrow screen the table keeps its columns and scrolls inside the box instead of squeezing every word */
+.va-records { min-width: 760px; }
+.va-records th { position: sticky; top: 0; z-index: 1; }
+.va-records td { vertical-align: top; font-weight: 400; }
+.va-records tbody { transition: opacity 0.15s ease; }
+.va-records tbody.is-loading { opacity: 0.5; }
+.va-cell-main { font-weight: 600; color: var(--theme-text-color); overflow-wrap: break-word; }
+.va-cell-sub { margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--color-muted); overflow-wrap: break-word; }
+.va-pledge { display: -webkit-box; max-width: 380px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-height: 1.45; overflow-wrap: break-word; }
+.va-encrypted { display: inline-block; padding: 1px 8px; border: 1px solid var(--theme-border-color); border-radius: 999px; background: var(--theme-bg-color); font-size: 11px; font-weight: 600; color: var(--color-dark-gray); white-space: nowrap; }
+.va-secret { color: var(--theme-text-color); overflow-wrap: anywhere; }
+.va-answers summary { display: inline-block; border-radius: 3px; font-size: 13px; font-weight: 600; color: var(--theme-btn-primary-bg); list-style: none; cursor: pointer; }
+.va-answers summary::-webkit-details-marker { display: none; }
+.va-answers summary:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+.va-answers dl { max-width: 340px; margin: 6px 0 0; font-size: 12px; line-height: 1.45; }
+.va-answers dt { margin-top: 6px; font-weight: 600; color: var(--color-dark-gray); }
+.va-answers dd { margin: 1px 0 0; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.va-thumbs { display: flex; gap: 6px; }
+.va-thumb { display: block; flex-shrink: 0; width: 44px; height: 44px; overflow: hidden; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-bg-color); }
+.va-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.va-thumb.is-missing { display: inline-flex; align-items: center; justify-content: center; color: var(--color-muted); }
+.va-thumb:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+.va-view-foot { justify-content: space-between; }
+
+@media (max-width: 720px) {
+    .va-lifecycle { grid-template-columns: 1fr; gap: 14px; }
+    .va-lifecycle li { padding-top: 0; padding-left: 22px; }
+    .va-lifecycle li::before { top: 4px; }
+    .va-lifecycle li:not(:last-child)::after { top: 17px; bottom: -12px; left: 4px; right: auto; width: 1px; height: auto; }
+    .va-run-type, .va-run-options { grid-template-columns: 1fr; }
+    .va-run-date { flex-wrap: wrap; }
+    .va-run-date .ui-input { width: 100%; }
+    .va-date-hint { text-align: left; }
+    .va-run-sub { margin-left: 0; }
+    .va-summary { grid-template-columns: 1fr; gap: 2px; }
+    .va-summary-row:not(:last-child) dd { margin-bottom: 8px; }
+    .va-view-tools, .va-search { width: 100%; }
+    .va-savebar-main { flex-direction: column; align-items: stretch; }
+    .va-savebar-confirm { grid-template-columns: minmax(0, 1fr); grid-template-areas: "text" "label" "input" "hint" "actions"; }
+    .va-confirm-text { margin-bottom: 6px; }
+    .va-confirm-actions { justify-content: flex-end; margin-top: 6px; }
+    .va-dialog-wide { height: calc(100vh - 32px); }
+    .va-alert, .va-view-alert { flex-direction: column; align-items: flex-start; }
+    .va-history-head { flex-wrap: wrap; row-gap: 8px; }
+    /* viewer head on a phone: title and close on the first line, the key pill under them */
+    .va-dialog-wide .va-dialog-head { flex-wrap: wrap; row-gap: 10px; }
+    .va-view-side { display: contents; }
+    .va-view-heading { flex: 1 1 0; }
+    .va-view-side .va-dialog-close { order: 2; }
+    #va-view-key { order: 3; flex: 1 1 100%; }
+    #va-view-key:empty { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .va-skel, .va-stage.is-active .va-stage-mark, .ui-btn-icon.is-busy svg, .va-savebar,
+    .va-dialog[open], .va-dialog[open]::backdrop, .va-dialog.is-closing, .va-dialog.is-closing::backdrop { animation: none; }
+    .va-bar-fill, .va-preview, .va-fieldset, .va-records tbody, .va-change > summary::before { transition: none; }
 }
 /* <Jun Kai end> */

@@ -9,7 +9,7 @@
 
 **What it does**
 
-Visitors report a lost item from the kiosk (with a photo); admins list, export and update the reports.
+Visitors report a lost item from the kiosk (with a photo); admins list, export and update the reports. Reports older than the keep period (12 months by default, set on the Visitor Data Archive page, optionally only resolved ones) are saved to the archive zip with their item photos, contact details encrypted, and then deleted (docs/features/archive.md).
 
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
