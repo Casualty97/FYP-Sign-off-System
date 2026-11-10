@@ -5,6 +5,7 @@
 **Where the code is**
 
 - routes inside backend/features/admin/routes.js; table audit_logs
+- backend/core/audit.js: the same logAudit for feature routers (the Visitor Data Archive writes VISITOR_ARCHIVE_SETTINGS, _RUN, _AUTO, _UNLOCK, _UNLOCK_FAILED, _DOWNLOAD, _DECRYPT, _DELETE_FILE and _EXPIRE)
 - frontend/admin/js/audit.js
 
 **What it does**

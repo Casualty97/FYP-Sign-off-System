@@ -154,7 +154,7 @@
     ]
   },
   "archiveSettings": {
-    "autoArchiveEnabled": true,
+    "autoArchiveEnabled": false,
     "archiveAfterDays": 90,
     "keepRecentFeedbackCount": 0
   },

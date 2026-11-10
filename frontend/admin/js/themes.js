@@ -198,7 +198,9 @@ const themeConfig = {
         { id: 'email-management-page', name: 'Email Management', icon: '📧', requiredRole: 'system_admin' },
         { id: 'badge-email-templates-page', name: 'Badge Email Templates', icon: 'Mail', requiredRole: 'system_admin' },
         { id: 'form-management-page', name: 'Form Management', icon: '📝', requiredRole: 'system_admin' },
-        { id: 'archive-page', name: 'Archive', icon: '📚', requiredRole: 'system_admin' },
+        // <Jun Kai start>
+        { id: 'archive-page', name: 'Archived Feedback', icon: '📚', requiredRole: 'system_admin' },
+        // <Jun Kai end>
         { id: 'audit-page', name: 'Audit Logs', icon: '📋', requiredRole: 'system_admin' },
         { id: 'data-export-page', name: 'Data Export', icon: '📦', requiredRole: 'system_admin' },
         { id: 'timer-countdown-page', name: 'Timer Countdown', icon: '🕔', requiredRole: 'system_admin' },

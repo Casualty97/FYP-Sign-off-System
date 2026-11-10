@@ -777,7 +777,11 @@ class TreeManager {
         const leafCount = Number(page.leafCount) || 0;
 
         this.bookYear.textContent = page.year;
-        this.bookCount.textContent = `${leafCount} ${leafCount === 1 ? 'leaf' : 'leaves'}`;
+        // <Jun Kai start>
+        // archived leaves are in the count but no longer on that year's tree, so the book says how many
+        const archivedLeaves = Number(page.archivedLeafCount) || 0;
+        this.bookCount.textContent = `${leafCount} ${leafCount === 1 ? 'leaf' : 'leaves'}${archivedLeaves ? ` · ${archivedLeaves} archived` : ''}`;
+        // <Jun Kai end>
         this.reviewTreePreview.innerHTML = '';
 
         const dotCount = Math.min(leafCount, 90);

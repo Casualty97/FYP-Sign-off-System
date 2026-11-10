@@ -181,7 +181,13 @@ db.connect((err) => {
                                         }
                                         
                                         console.log(`   ✅ Deleted ${result.affectedRows} users`);
-                                        
+                                        // <Jun Kai start>
+                                        // counts of deleted visitor records and the kiosk save gate belong to the rows just
+                                        // cleared, so they go too (a table that is not there yet has nothing to clear)
+                                        db.query('DELETE FROM deleted_record_counts', () => {});
+                                        db.query('DELETE FROM visitor_save_gate', () => {});
+                                        // <Jun Kai end>
+
                                         // Reset auto-increment counter for pledge_likes table
                                         db.query('ALTER TABLE pledge_likes AUTO_INCREMENT = 1', (err) => {
                                             if (!err) console.log('   ✅ Reset pledge_likes auto-increment');

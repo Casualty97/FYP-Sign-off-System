@@ -531,10 +531,16 @@ async function setupVisitorMilestone(data = {}) {
 }
 
 async function fetchCelebrationImpactSnapshot() {
-    const [pledgeResult, treeResult] = await Promise.allSettled([
+    // <Jun Kai start>
+    // the third request is every pledge ever made (archived and deleted ones too); the pledgeboard list only has the ones on show
+    const [pledgeResult, treeResult, countResult] = await Promise.allSettled([
         fetch('/api/pledgeboard/pledges', { headers: { 'Cache-Control': 'no-cache' } }).then(response => response.json()),
-        fetch('/api/tree', { headers: { 'Cache-Control': 'no-cache' } }).then(response => response.json())
+        fetch('/api/tree', { headers: { 'Cache-Control': 'no-cache' } }).then(response => response.json()),
+        fetch('/api/feedback/visitor-count', { headers: { 'Cache-Control': 'no-cache' } }).then(response => response.json())
     ]);
+    const reportedPledges = countResult.status === 'fulfilled' ? countResult.value?.totalPledges : null;
+    const allTimePledges = typeof reportedPledges === 'number' && Number.isFinite(reportedPledges) ? reportedPledges : null;
+    // <Jun Kai end>
 
     const pledges = pledgeResult.status === 'fulfilled' && Array.isArray(pledgeResult.value?.pledges)
         ? pledgeResult.value.pledges
@@ -553,7 +559,9 @@ async function fetchCelebrationImpactSnapshot() {
 
     return {
         monthPledges,
-        totalPledges: pledges.length,
+        // <Jun Kai start>
+        totalPledges: allTimePledges ?? pledges.length,
+        // <Jun Kai end>
         treeLeaves
     };
 }

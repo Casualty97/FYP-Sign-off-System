@@ -10,7 +10,7 @@
 
 **What it does**
 
-Classifies feedback as positive, neutral or negative with rules, the BERT model (@xenova/transformers, loaded on first use) or an Ollama model (phi3, qwen, gemma), caches results, flags inappropriate text and builds the insight report.
+Classifies feedback as positive, neutral or negative with rules, the BERT model (@xenova/transformers, loaded on first use) or an Ollama model (phi3, qwen, gemma), caches results, flags inappropriate text and builds the insight report. When the Visitor Data Archive deletes feedback, cacheStore.purgeTexts removes the cached analyses of texts that no remaining feedback uses.
 
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
