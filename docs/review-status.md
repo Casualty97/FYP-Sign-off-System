@@ -61,13 +61,13 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | open | themes | Save Theme always fails: it reads hex-* inputs that no longer exist; card swatches always grey | themes.js | |
 | open | users | soft-deleted admins can still log in | core/auth.js 258 | |
 | open | audit | several routes write the audit row before the auth or password check; EDIT_USER names the target as the actor | old 3545, 3647, 4182, 4368, 4516, 4738, 5090, 3850 | |
-| open | archive | archive hard-delete unlinks the photos before the SQL DELETE and has no transaction | old 3053, 3203 | |
+| fixed | archive | archive hard-delete unlinks the photos before the SQL DELETE and has no transaction (now one transaction with its deleted counts; photos go after it, only for the rows deleted) | old 3053, 3203 | feat/role3-archive |
 | open | archive | /archive/delete-selected and the export downloads answer 401 on a wrong password (should be 403) | routes.js, exportRoutes.js | |
 | open | analysis | engine failures are cached as "neutral" forever; Ollama failures show nothing in the admin page | old 2426 | |
 | open | analysis | cacheStore never persists hit statistics and rewrites the whole JSON cache every run | analysis/cacheStore.js 404 | |
 | open | analysis | /feedback-sentiment-analysis downloads a 164 MB model and has no auth | routes.js | |
 | open | admin routes | three queries use a `feedback.rating` column that does not exist | old 1399, 4252, 4345 | |
-| open | archive | auto-archive never runs when the PC hibernates every night | old 6466 | |
+| fixed | archive | auto-archive never runs when the PC hibernates every night (now checked at start and every 15 minutes, once per Singapore day; shipped default off) | old 6466 | feat/role3-archive |
 | open | archive | temporary retention is dead end-to-end; the clean-up re-processes the same legacy rows from both servers | archive/retention.js 149 | |
 | open | archive | CSV export turns 0 into a blank, has no formula neutralisation and prints raw Date strings | exportRoutes.js 974 | |
 | open | email | initEmailService always reports success | email/service.js 1085 | |

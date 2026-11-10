@@ -186,6 +186,11 @@ async function setup() {
         const { spawnSync } = require('child_process');
         const migrateRun = spawnSync(process.execPath, [path.join(__dirname, '..', '..', 'database', 'migrate.js'), 'up'], { stdio: 'inherit' });
         if (migrateRun.status !== 0) throw new Error('migrations failed (database/migrate.js up)');
+        // <Jun Kai start>
+        // schema.sql has just emptied the visitor tables, so counts of earlier deletes no longer belong to anything
+        await userConnection.query('DELETE FROM deleted_record_counts');
+        await userConnection.query('DELETE FROM visitor_save_gate');
+        // <Jun Kai end>
 
         // Verify all tables were created successfully
         console.log('🔍 [6/9] Verifying tables...');

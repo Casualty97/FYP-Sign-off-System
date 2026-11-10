@@ -29,6 +29,9 @@ const express = require('express');
 const router = express.Router();
 const { getBadgeSummary } = require('../email/service');
 const { isFeedbackFlagged } = require('../analysis/flagged');
+// <Jun Kai start>
+const deletedCounts = require('../archive/deletedCounts');
+// <Jun Kai end>
 
 let db;
 
@@ -162,7 +165,9 @@ router.get('/years', (req, res) => {
         ORDER BY f.created_at DESC
     `;
 
-    db.all(sql, [], (err, rows) => {
+    // <Jun Kai start>
+    db.all(sql, [], async (err, rows) => {
+    // <Jun Kai end>
         if (err) {
             console.error('❌ Tree years DB error:', err);
             return res.status(500).json({ success: false, currentYear, years: [] });
@@ -197,6 +202,10 @@ router.get('/years', (req, res) => {
                 }
             });
 
+        // <Jun Kai start>
+        // leaves deleted by the Visitor Data Archive still count in their year (archivedLeafCount says how many)
+        await deletedCounts.addToYearBook(yearMap, currentYear);
+        // <Jun Kai end>
         const years = Array.from(yearMap.values()).sort((a, b) => b.year - a.year);
 
         if (!years.some(item => item.year === currentYear)) {

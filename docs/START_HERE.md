@@ -50,7 +50,7 @@ The wall pages (`frontend/tree`, `frontend/3dTree`, `frontend/pulse`, `frontend/
 ```
 startAll.js                   starts both servers
 backend/
-  core/                       shared: db.js, auth.js, paths.js (every file path), jsonFile.js, zip.js
+  core/                       shared: db.js, auth.js, paths.js (every file path), jsonFile.js, zip.js, audit.js
   features/<feature>/         one folder per feature; the owner is in the README "Team" table and in CODEOWNERS
   config/defaults/            committed starting values of the settings files (JSON)
   data/                       the live copies the admin page edits (made at boot, never in git)
@@ -186,7 +186,7 @@ Two labels exist for special cases: `big-change` for a PR over 1500 changed line
 | pr-rules | PR title format, forbidden files (photos, `.env`, logs), size label | fix the title or remove the file |
 | secret-scan | gitleaks on the new commits | remove the secret, rotate it if it was real |
 | static | `node --check`, ESLint errors, the contract checks (below) | run `npm run check` locally and fix |
-| smoke (Ubuntu and Windows) | fresh MySQL 8.4, migrations, boots both servers, hits the routes, submits one feedback | run `npm run smoke` locally; read the server log in the job artifacts |
+| smoke (Ubuntu and Windows) | fresh MySQL 8.4, migrations, boots both servers, hits the routes, submits one feedback, then archives and deletes the records it seeded (`--archive`) | run `npm run smoke` locally; read the server log in the job artifacts |
 | ci-summary | the one required check | green when all of the above are |
 
 The contract checks catch the mistakes that are easy to make in a page with shared scope: every `fetch('/api/...')`

@@ -218,7 +218,9 @@ jobs:
           EOF
       - name: Boot both servers and run the smoke checks
         shell: bash
-        run: node tests/smoke.js
+        # <Jun Kai start>
+        run: node tests/smoke.js --archive
+        # <Jun Kai end>
       - uses: actions/upload-artifact@v7
         if: always()
         with:

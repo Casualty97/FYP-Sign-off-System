@@ -29,7 +29,9 @@ const mysql = require('mysql2');
 const path = require('path');
 
 // Create MySQL connection pool with default credentials
-const pool = mysql.createPool({
+// <Jun Kai start>
+const POOL_OPTIONS = {
+// <Jun Kai end>
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'kiosk_user',
     password: process.env.DB_PASSWORD || 'kiosk123',
@@ -41,13 +43,30 @@ const pool = mysql.createPool({
     keepAliveInitialDelay: 0,
     connectTimeout: 30000, // a cold start takes longer than the 10 s default
     timezone: 'Z' // matches the UTC session below, so JS Dates round-trip as the right instant
-});
+// <Jun Kai start>
+};
+const pool = mysql.createPool(POOL_OPTIONS);
+// <Jun Kai end>
 
 // Every session runs in UTC. The queries convert with CONVERT_TZ(col, '+00:00', '+08:00'), which only
 // gives Singapore time when the session is UTC; on the wall PC (SGT) the unpinned session was 8 h off.
 pool.on('connection', (connection) => {
     connection.query("SET time_zone = '+00:00'");
 });
+
+// <Jun Kai start>
+// A small pool of its own (same settings, UTC session) for short bookkeeping that must never queue behind the main
+// pool: the kiosk save gate is asked while a delete transaction holds row locks that main-pool queries may wait on
+const sidePools = new Map();
+function sidePool(name, connectionLimit = 2) {
+    if (!sidePools.has(name)) {
+        const side = mysql.createPool({ ...POOL_OPTIONS, connectionLimit });
+        side.on('connection', (connection) => connection.query("SET time_zone = '+00:00'"));
+        sidePools.set(name, side);
+    }
+    return sidePools.get(name);
+}
+// <Jun Kai end>
 
 // =================== 2. DATABASE CONNECTION TEST =================== 
 // Test connection on startup; retry a few times before giving up (MySQL may still be waking up)
@@ -143,7 +162,13 @@ function withTransaction(work, done) {
         const finish = (err, result) => {
             if (finished) return;
             finished = true;
-            if (err) return connection.rollback(() => { connection.release(); done(err); });
+            // <Jun Kai start>
+            // returns nothing: a mysql2 query object handed back into a promise chain throws and stops the server
+            if (err) {
+                connection.rollback(() => { connection.release(); done(err); });
+                return;
+            }
+            // <Jun Kai end>
             connection.commit((commitErr) => {
                 if (commitErr) return connection.rollback(() => { connection.release(); done(commitErr); });
                 connection.release();
@@ -173,6 +198,9 @@ module.exports = {
     all,            // SQLite-compatible all()
     run,            // SQLite-compatible run()
     query: (sql, params, callback) => pool.query(sql, params, callback),
-    
-    withTransaction
+
+    withTransaction,
+    // <Jun Kai start>
+    sidePool
+    // <Jun Kai end>
 };

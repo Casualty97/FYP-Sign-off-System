@@ -158,6 +158,8 @@ const healthPublicRoutes = require('./features/health/publicRoutes');
 // <Jun Kai start>
 const hardwareRoutes = require('./features/hardware/routes');
 const hardwareSampler = require('./features/hardware/sampler');
+const visitorArchiveRoutes = require('./features/archive/visitorRoutes');
+const visitorArchiveScheduler = require('./features/archive/visitorScheduler');
 // <Jun Kai end>
 
 // Import QR code generation
@@ -432,6 +434,7 @@ app.use('/api/admin/health', healthRoutes);
 app.use('/api/health', healthPublicRoutes);
 // <Jun Kai start>
 app.use('/api/admin/hardware', hardwareRoutes);
+app.use('/api/admin/visitor-archive', visitorArchiveRoutes);
 // <Jun Kai end>
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
@@ -714,6 +717,7 @@ function printServerInfo(isHttps) {
     kioskScheduler.start();
     // <Jun Kai start>
     hardwareSampler.start();
+    visitorArchiveScheduler.start(); // finishes interrupted archives, then automatic archiving and file expiry
     // <Jun Kai end>
 }
 

@@ -485,3 +485,19 @@ module.exports = {
     // Bluetooth proximity check
     bluetoothAccessControl
 };
+
+// <Jun Kai start>
+// A short fingerprint of the email key (never the key): tells the Visitor Data Archive page whether an archive
+// was written with the key this server has now
+function keyFingerprint() {
+    return crypto.createHash('sha256').update(Buffer.from(ENCRYPTION_KEY.slice(0, 64), 'hex')).digest('hex').slice(0, 16);
+}
+
+// True when backend/.env has no ENCRYPTION_KEY, so the public development key above is in use
+function usesDevelopmentKey() {
+    return !process.env.ENCRYPTION_KEY;
+}
+
+module.exports.keyFingerprint = keyFingerprint;
+module.exports.usesDevelopmentKey = usesDevelopmentKey;
+// <Jun Kai end>
