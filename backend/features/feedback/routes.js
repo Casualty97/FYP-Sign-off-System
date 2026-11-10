@@ -1554,11 +1554,18 @@ router.get('/visitor-count', async (req, res) => {
         const totalVisitors = Number.isFinite(Number(nextVisitorNumber))
             ? Math.max(0, Number(nextVisitorNumber) - 1)
             : null;
+        // <Jun Kai start>
+        // every pledge ever made, archived and deleted ones included, for the thank-you page's pledge totals
+        const totalPledges = await deletedCounts.allTimePledges();
+        // <Jun Kai end>
 
         res.json({
             success: true,
             totalVisitors,
             nextVisitorNumber,
+            // <Jun Kai start>
+            totalPledges,
+            // <Jun Kai end>
             updatedAt: new Date().toISOString()
         });
     } catch (error) {

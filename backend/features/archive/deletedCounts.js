@@ -1,7 +1,8 @@
 // Owner: Role 3, Jun Kai.
-// Deleted record counts: when visitor records are deleted (Visitor Data Archive, Permanent Data Deletion), how many of
-// each kind were made on each Singapore day goes into deleted_record_counts in the same transaction, so running totals
-// (the kiosk's visitor number, the tree's year book) keep counting them. Counts only: no names, emails or ids.
+// Deleted record counts: when visitor records are deleted (Visitor Data Archive, Permanent Data Deletion, the per-row
+// Delete), how many of each kind were made on each Singapore day goes into deleted_record_counts in the same
+// transaction, so running totals (the kiosk's visitor number and pledge totals, Pulse's All-Time Pledges, the tree's
+// year book) keep counting them. Counts only: no names, emails or ids.
 // <Jun Kai start>
 const { isFeedbackFlagged } = require('../analysis/flagged');
 const { toSgtDay } = require('./visitorSchedule');
@@ -10,12 +11,16 @@ const saveGate = require('./saveGate');
 const TABLE = 'deleted_record_counts';
 const KINDS = Object.freeze({
     feedback: 'feedback',     // feedback rows with is_active = 1 (the kiosk's visitor number counts these)
+    pledge: 'pledge',         // the same rows with a pledge written (the all-time pledge totals count these)
     leaf: 'leaf',             // the same rows without flagged words in the pledge or answers (the tree draws these)
     visitor: 'visitor',       // users rows
     lostFound: 'lost_found'   // lost_found_reports rows
 });
 const CHUNK_SIZE = 500;
 const db = () => require('../../core/db'); // loaded on first use, so the counting below works without a database
+
+// The SQL rule "comment IS NOT NULL AND comment != ''" in JS: the column's collation ignores trailing spaces
+const hasPledge = (comment) => comment !== null && comment !== undefined && String(comment).replace(/ +$/, '') !== '';
 
 // The answers of a feedback row joined exactly like the tree joins them, so the flagged check gives the tree's answer
 const ANSWERS_SQL = `SELECT feedback_id, GROUP_CONCAT(answer_value SEPARATOR ' ') AS answer_values
@@ -35,7 +40,10 @@ const SOURCES = {
         },
         kinds: (row) => {
             if (Number(row.is_active) !== 1) return [];
-            return isFeedbackFlagged([row.comment, row.answer_values]) ? [KINDS.feedback] : [KINDS.feedback, KINDS.leaf];
+            const kinds = [KINDS.feedback];
+            if (hasPledge(row.comment)) kinds.push(KINDS.pledge);
+            if (!isFeedbackFlagged([row.comment, row.answer_values])) kinds.push(KINDS.leaf);
+            return kinds;
         }
     },
     users: {
@@ -129,6 +137,31 @@ function deleteFailure(error) {
 const VISITOR_NUMBER_SQL = `SELECT (SELECT COUNT(*) FROM feedback WHERE is_active = 1)
     + (SELECT COALESCE(SUM(record_count), 0) FROM ${TABLE} WHERE kind = '${KINDS.feedback}') AS count`;
 
+// Every pledge ever made: the pledges in the database (archived ones too, whatever their moderation) plus the ones
+// deletes removed, in one statement for the same reason
+const LIVE_PLEDGES_SQL = "SELECT COUNT(*) AS count FROM feedback WHERE is_active = 1 AND comment IS NOT NULL AND comment != ''";
+const ALL_PLEDGES_SQL = `SELECT (${LIVE_PLEDGES_SQL.replace(' AS count', '')})
+    + (SELECT COALESCE(SUM(record_count), 0) FROM ${TABLE} WHERE kind = '${KINDS.pledge}') AS count`;
+
+// The all-time pledge total for the kiosk and Pulse; without the deleted_record_counts table only the database's
+// pledges, and null when the database cannot be read
+async function allTimePledges() {
+    try {
+        const [rows] = await db().pool.promise().query(ALL_PLEDGES_SQL);
+        return Number(rows[0] && rows[0].count) || 0;
+    } catch (error) {
+        readFailed(error);
+        if (error.code !== 'ER_NO_SUCH_TABLE') return null;
+        try {
+            const [rows] = await db().pool.promise().query(LIVE_PLEDGES_SQL);
+            return Number(rows[0] && rows[0].count) || 0;
+        } catch (fallbackError) {
+            readFailed(fallbackError);
+            return null;
+        }
+    }
+}
+
 const reported = new Set();
 function readFailed(error) {
     const code = error.code || error.message;
@@ -186,5 +219,8 @@ async function addToYearBook(yearMap, currentYear) {
     return mergeYearBook(yearMap, await byYear(KINDS.leaf), currentYear);
 }
 
-module.exports = { TABLE, KINDS, SOURCES, ANSWERS_SQL, VISITOR_NUMBER_SQL, tally, deleteCounted, deleteWhere, deleteFailure, total, byYear, mergeYearBook, addToYearBook };
+module.exports = {
+    TABLE, KINDS, SOURCES, ANSWERS_SQL, VISITOR_NUMBER_SQL, ALL_PLEDGES_SQL, hasPledge, tally, deleteCounted, deleteWhere,
+    deleteFailure, total, byYear, allTimePledges, mergeYearBook, addToYearBook
+};
 // <Jun Kai end>

@@ -6292,20 +6292,8 @@ const autoArchiveCheck = { startedAt: 0 };
 const readAutoArchiveState = () => readJson(paths.dataFile(AUTO_ARCHIVE_STATE), {}) || {};
 const saveAutoArchiveState = (changes) => writeJsonAtomic(paths.dataFile(AUTO_ARCHIVE_STATE), { ...readAutoArchiveState(), ...changes });
 
-// The old timer never ran, so an "on" saved before this update was never seen working (the shipped default was on).
-// The first start after the update switches it off once; an admin turns it on again on purpose (Parameters > Auto Archive).
-function switchAutoArchiveOffOnce() {
-  try {
-    if (readAutoArchiveState().switchedOffAfterUpdate) return;
-    const wasOn = (parametersConfigStore.readParametersConfig().archiveSettings || {}).autoArchiveEnabled === true;
-    if (wasOn) parametersConfigStore.updateCategory('archiveSettings', { autoArchiveEnabled: false });
-    saveAutoArchiveState({ switchedOffAfterUpdate: new Date().toISOString(), wasOn });
-    if (wasOn) console.log('Auto archive was switched off once after the update; turn it on in Parameters > Auto Archive when the team agrees.');
-  } catch (error) {
-    console.error('Auto archive: the one-time switch-off failed:', error.message);
-  }
-}
-
+// The switch (Parameters > Auto Archive) keeps whatever it was last saved as: an install that saved "on" starts archiving
+// at the first check after this update
 function runAutoArchiveIfEnabled(now = new Date()) {
   try {
     const config = parametersConfigStore.readParametersConfig();
@@ -6340,7 +6328,6 @@ function runAutoArchiveIfEnabled(now = new Date()) {
   }
 }
 
-switchAutoArchiveOffOnce();
 setTimeout(() => {
   setInterval(() => runAutoArchiveIfEnabled(), 15 * 60 * 1000).unref();
   runAutoArchiveIfEnabled();

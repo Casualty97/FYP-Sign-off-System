@@ -680,12 +680,14 @@ test('deleted counts: one entry per Singapore day and kind; flagged rows count a
         { id: 3, created_at: at('2026-01-01T02:00:00Z'), is_active: 1, comment: 'This kiosk is bad', answer_values: null },
         { id: 4, created_at: at('2026-01-01T03:00:00Z'), is_active: 1, comment: 'Fine', answer_values: 'The screen was broken' },
         { id: 5, created_at: at('2026-01-01T04:00:00Z'), is_active: 0, comment: 'hidden by an admin', answer_values: null },
-        { id: 6, created_at: null, is_active: 1, comment: 'no date', answer_values: null }
+        { id: 6, created_at: null, is_active: 1, comment: 'no date', answer_values: null },
+        { id: 7, created_at: at('2026-01-01T05:00:00Z'), is_active: 1, comment: '   ', answer_values: 'Yes' } // no pledge written
     ];
     assert.deepEqual(deletedCounts.tally(rows, deletedCounts.SOURCES.feedback.kinds).sort(), [
-        ['2025-12-31', 'feedback', 1], ['2025-12-31', 'leaf', 1],
-        ['2026-01-01', 'feedback', 3], ['2026-01-01', 'leaf', 1]
+        ['2025-12-31', 'feedback', 1], ['2025-12-31', 'leaf', 1], ['2025-12-31', 'pledge', 1],
+        ['2026-01-01', 'feedback', 4], ['2026-01-01', 'leaf', 2], ['2026-01-01', 'pledge', 3]
     ]);
+    assert.deepEqual([null, undefined, '', '   ', ' a', 'a  '].map(deletedCounts.hasPledge), [false, false, false, false, true, true]);
     const visitors = [{ id: 7, created_at: '2024-05-01T10:00:00.000Z' }, { id: 8, created_at: at('2024-05-01T17:00:00Z') }];
     assert.deepEqual(deletedCounts.tally(visitors, deletedCounts.SOURCES.users.kinds).sort(), [['2024-05-01', 'visitor', 1], ['2024-05-02', 'visitor', 1]]);
 });
@@ -733,7 +735,7 @@ test('deleted counts lock the feedback rows, then join their answers the way the
     assert.match(calls[0].sql, /FOR UPDATE$/);
     assert.deepEqual(calls[1].ids, [1, 2], 'answers are read only for the rows that were locked');
     assert.doesNotMatch(calls[1].sql, /FOR UPDATE/);
-    assert.deepEqual(deletedCounts.tally(rows, deletedCounts.SOURCES.feedback.kinds).sort(), [['2025-06-01', 'feedback', 2], ['2025-06-01', 'leaf', 1]]);
+    assert.deepEqual(deletedCounts.tally(rows, deletedCounts.SOURCES.feedback.kinds).sort(), [['2025-06-01', 'feedback', 2], ['2025-06-01', 'leaf', 1], ['2025-06-01', 'pledge', 2]]);
     const squash = (sql) => sql.replace(/\s+/g, ' ');
     const tree = squash(fs.readFileSync(path.join(paths.ROOT, 'backend', 'features', 'tree', 'routes.js'), 'utf8'));
     assert.ok(tree.includes("GROUP_CONCAT(answer_value SEPARATOR ' ') AS answer_values FROM feedback_answers WHERE answer_value IS NOT NULL AND TRIM(answer_value) != ''"), 'the tree still joins the answers this way');
@@ -885,5 +887,8 @@ test('save gate: an admin delete with small limits answers kioskBusy instead of 
     assert.equal(deletedCounts.deleteFailure(new Error('deadlock')), null);
     assert.equal(deletedCounts.deleteFailure(null), null);
     assert.match(deletedCounts.VISITOR_NUMBER_SQL, /COUNT\(\*\) FROM feedback WHERE is_active = 1\)\s*\+ \(SELECT COALESCE\(SUM\(record_count\), 0\) FROM deleted_record_counts WHERE kind = 'feedback'\)/);
+    // every pledge ever: archived rows count too (no archive_status filter), plus the deleted pledges
+    assert.match(deletedCounts.ALL_PLEDGES_SQL, /^SELECT \(SELECT COUNT\(\*\) FROM feedback WHERE is_active = 1 AND comment IS NOT NULL AND comment != ''\)\s*\+ \(SELECT COALESCE\(SUM\(record_count\), 0\) FROM deleted_record_counts WHERE kind = 'pledge'\) AS count$/);
+    assert.doesNotMatch(deletedCounts.ALL_PLEDGES_SQL, /archive_status/);
 });
 // <Jun Kai end>

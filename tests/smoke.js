@@ -145,8 +145,10 @@ async function archiveStep(cookie) {
     // running totals before the delete: the deleted rows go into deleted_record_counts, so the kiosk count must not drop
     const tallyOf = async () => Object.fromEntries((await conn.query('SELECT kind, SUM(record_count) AS n FROM deleted_record_counts GROUP BY kind'))[0].map((t) => [t.kind, Number(t.n)]));
     const visitorsShown = async () => { const r = await get(`${BASE}/api/feedback/visitor-count`); return r.body ? r.body.totalVisitors : null; };
+    const pledgesShown = async () => { const r = await get(`${BASE}/api/feedback/visitor-count`); return r.body ? r.body.totalPledges : null; };
     const tallyBefore = await tallyOf();
     const visitorsBefore = await visitorsShown();
+    const pledgesBefore = await pledgesShown();
 
     await expect('GET /api/admin/visitor-archive/overview with the session', `${API}/overview`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.due || r.text.slice(0, 160), { headers: { cookie } });
     const before = new Date(Date.now() + 8 * 3600 * 1000 - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10); // a year ago, as a Singapore date
@@ -199,9 +201,12 @@ async function archiveStep(cookie) {
     check(!left.length, 'the archived rows are gone from users, feedback, feedback_answers, pledge_likes and lost_found_reports', `still there: ${left.join(', ')}`);
     const tallyAfter = await tallyOf();
     const grew = (kind) => (tallyAfter[kind] || 0) - (tallyBefore[kind] || 0);
-    check(['feedback', 'leaf', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1), 'the deleted rows were added to deleted_record_counts (1 feedback, 1 leaf, 1 visitor, 1 lost & found)', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
+    check(['feedback', 'pledge', 'leaf', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1), 'the deleted rows were added to deleted_record_counts (1 feedback, 1 pledge, 1 leaf, 1 visitor, 1 lost & found)', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
     const visitorsAfter = await visitorsShown();
     check(Number.isFinite(visitorsBefore) && visitorsAfter === visitorsBefore, `the kiosk visitor count does not drop after the delete (${visitorsBefore} before, ${visitorsAfter} after)`);
+    const pledgesAfter = await pledgesShown();
+    check(Number.isFinite(pledgesBefore) && pledgesAfter === pledgesBefore, `the all-time pledge total does not drop after the delete (${pledgesBefore} before, ${pledgesAfter} after)`);
+    await expect('GET /api/pulse/summary shows the same all-time pledge total', `${BASE}/api/pulse/summary`, (r) => r.body && r.body.stats && r.body.stats.totalPledges === pledgesAfter || `pulse ${r.body && r.body.stats && r.body.stats.totalPledges} vs ${pledgesAfter}`);
     const seededYear = Number(new Date(old.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 4));
     await expect(`GET /api/tree/years still counts the deleted leaf in ${seededYear}`, `${BASE}/api/tree/years`, (r) => {
       const year = ((r.body && r.body.years) || []).find((item) => Number(item.year) === seededYear);
@@ -215,6 +220,7 @@ async function archiveStep(cookie) {
     const [permFeedback] = await conn.query("INSERT INTO feedback (user_id, comment, metadata, data_retention, created_at, is_active, archive_status) VALUES (?, ?, '{}', 'longterm', ?, 1, 'archived')", [permUser.insertId, `Perm smoke pledge ${stamp}`, old]);
     const tallyBeforePerm = await tallyOf();
     const visitorsBeforePerm = await visitorsShown();
+    const pledgesBeforePerm = await pledgesShown();
     await expect('POST /api/admin/archive/delete-selected deletes the archived pledge', `${BASE}/api/admin/archive/delete-selected`, (r) => r.status === 200 && r.body && r.body.deletedCount === 1 || r.text.slice(0, 160), send({ feedbackIds: [permFeedback.insertId], password: ADMIN_PASS }));
     let permUserLeft = 1;
     for (let i = 0; i < 20 && permUserLeft; i++) { // the visitor row goes just after the reply
@@ -224,8 +230,8 @@ async function archiveStep(cookie) {
     }
     const tallyAfterPerm = await tallyOf();
     const grewPerm = (kind) => (tallyAfterPerm[kind] || 0) - (tallyBeforePerm[kind] || 0);
-    check(['feedback', 'leaf', 'visitor'].every((kind) => grewPerm(kind) === 1) && permUserLeft === 0, 'Permanent Data Deletion adds its deletes to deleted_record_counts too (1 feedback, 1 leaf, 1 visitor)', JSON.stringify({ before: tallyBeforePerm, after: tallyAfterPerm, visitorLeft: permUserLeft }));
-    check((await visitorsShown()) === visitorsBeforePerm, 'the kiosk visitor count does not drop after Permanent Data Deletion');
+    check(['feedback', 'pledge', 'leaf', 'visitor'].every((kind) => grewPerm(kind) === 1) && permUserLeft === 0, 'Permanent Data Deletion adds its deletes to deleted_record_counts too (1 feedback, 1 pledge, 1 leaf, 1 visitor)', JSON.stringify({ before: tallyBeforePerm, after: tallyAfterPerm, visitorLeft: permUserLeft }));
+    check((await visitorsShown()) === visitorsBeforePerm && (await pledgesShown()) === pledgesBeforePerm, 'the kiosk visitor count and the all-time pledge total do not drop after Permanent Data Deletion');
     const stillThere = photoFiles.filter((f) => fs.existsSync(f)).length;
     check(onDisk === 3 && stillThere === 0, `the archived photo files are gone (${stillThere} left)`);
   } catch (e) {
