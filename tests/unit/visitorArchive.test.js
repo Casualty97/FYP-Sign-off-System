@@ -780,7 +780,7 @@ test('save gate: a save that starts during a delete step makes it roll back and 
         attempts++;
         await checkpoint();
         if (attempts === 1) {
-            const saveId = await store.add('save', saveGate.SAVE_TTL_MS); // a kiosk save in the other server process
+            const saveId = await store.add('save', saveGate.TTL_MS); // a kiosk save in the other server process
             let polls = 0;
             clock.onSleep = async () => { if (++polls === 3) await store.remove(saveId); };
         }
@@ -794,17 +794,17 @@ test('save gate: a save that starts during a delete step makes it roll back and 
 
 test('save gate: a delete step does not start while a save is running, and a stale save row expires', async () => {
     const { clock, store, gate, held } = gateWithClock();
-    const saveId = await store.add('save', saveGate.SAVE_TTL_MS);
+    const saveId = await store.add('save', saveGate.TTL_MS);
     let polls = 0;
     clock.onSleep = async () => { if (++polls === 5) await store.remove(saveId); };
     await gate.deleteStep(async () => { assert.equal(polls, 5, 'started only after the save ended'); });
 
-    await store.add('save', saveGate.SAVE_TTL_MS); // never removed: a server that stopped mid-save
+    await store.add('save', saveGate.TTL_MS); // never removed: a server that stopped mid-save
     clock.onSleep = async () => {};
     const before = clock.now;
     let ran = false;
     await gate.deleteStep(async () => { ran = true; });
-    assert.ok(ran && clock.now - before >= saveGate.SAVE_TTL_MS && clock.now - before < saveGate.DELETE_WAIT_MS);
+    assert.ok(ran && clock.now - before >= saveGate.TTL_MS && clock.now - before < saveGate.DELETE_WAIT_MS);
     assert.equal(held('delete'), 0);
 });
 
@@ -813,7 +813,7 @@ test('save gate: too many back-offs end with kioskBusy, and a real error is pass
     let attempts = 0;
     await assert.rejects(gate.deleteStep(async (checkpoint) => {
         attempts++;
-        const saveId = await store.add('save', saveGate.SAVE_TTL_MS);
+        const saveId = await store.add('save', saveGate.TTL_MS);
         clock.onSleep = async () => store.remove(saveId);
         await checkpoint();
     }), (error) => error.kioskBusy === true && error.message === saveGate.KIOSK_BUSY_MESSAGE);
@@ -854,7 +854,7 @@ test('save gate: a long save (a first model download) keeps its row by renewing 
     const done = await gate.enterSave();
     const renewal = timers[0];
     for (let i = 0; i < 10; i++) { // 5 minutes, far past the 2-minute lease
-        clock.now += saveGate.SAVE_RENEW_MS;
+        clock.now += saveGate.RENEW_MS;
         renewal.fn();
         await settle();
     }
@@ -866,17 +866,35 @@ test('save gate: a long save (a first model download) keeps its row by renewing 
     assert.equal(renewal.stopped, true, 'releasing the save stops its renewal');
     assert.equal(held('save'), 0);
 
+    const before = timers.length;
     const stuck = await gate.enterSave();
-    const stuckRenewal = timers[1];
+    const stuckRenewal = timers[before];
     clock.now += saveGate.SAVE_MAX_MS + 1;
     stuckRenewal.fn();
     assert.equal(stuckRenewal.stopped, true, 'a save stuck for 15 minutes stops holding deletes back');
     stuck();
 });
 
+test('save gate: a long delete step keeps its own row alive while it runs, then stops renewing and removes it', async () => {
+    const { clock, store, gate, timers, held } = gateWithClock();
+    let renewal = null;
+    await gate.deleteStep(async (checkpoint) => {
+        renewal = timers[timers.length - 1];
+        for (let i = 0; i < 8; i++) { // 4 minutes, past the 2-minute lease
+            clock.now += saveGate.RENEW_MS;
+            renewal.fn();
+            await settle();
+        }
+        assert.equal(await store.active('delete'), true, 'kiosk saves still see the delete step after 4 minutes');
+        await checkpoint();
+    });
+    assert.equal(renewal.stopped, true);
+    assert.equal(held('delete'), 0);
+});
+
 test('save gate: an admin delete with small limits answers kioskBusy instead of waiting long', async () => {
     const { clock, store, gate } = gateWithClock();
-    await store.add('save', saveGate.SAVE_TTL_MS);
+    await store.add('save', saveGate.TTL_MS);
     clock.onSleep = async () => {};
     const before = clock.now;
     await assert.rejects(gate.deleteStep(async () => { throw new Error('must not run'); }, { maxTries: 3, waitMs: 20 * 1000 }), (error) => error.kioskBusy === true);

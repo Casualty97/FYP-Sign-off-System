@@ -187,8 +187,12 @@ router.get('/summary', async (req, res) => {
                   AND MONTH(CONVERT_TZ(created_at, '+00:00', '+08:00')) = MONTH(CONVERT_TZ(NOW(), '+00:00', '+08:00'))
             `),
             // <Jun Kai start>
-            // All-Time Pledges: every pledge ever made, archived and deleted ones included (deletedCounts.js)
-            deletedCounts.allTimePledges().then((count) => ({ count })),
+            // All-Time Pledges: every pledge ever made, archived and deleted ones included (deletedCounts.js); when it
+            // cannot be read the whole summary fails, as before, so the screen keeps its last numbers instead of a 0
+            deletedCounts.allTimePledges().then((count) => {
+                if (count === null) throw new Error('all-time pledge total unavailable');
+                return { count };
+            }),
             // <Jun Kai end>
             queryAll(`
                 SELECT id, comment, metadata, created_at

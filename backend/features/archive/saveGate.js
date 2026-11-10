@@ -4,20 +4,22 @@
 // - a save adds a 'save' row, waits while a delete step is running (that step backs off within one statement), then saves;
 // - a delete step waits until no save is running, adds a 'delete' row, and before every statement and just before its
 //   commit looks for a 'save' row: when one appears it rolls back, waits for the saves, then runs again from the start.
+// Both kinds of row are renewed while their work runs; one left by a server that stopped expires on its own.
 // <Jun Kai start>
-const SAVE_TTL_MS = 2 * 60 * 1000;               // a save's row is renewed while the save runs; one left by a stopped server expires
-const SAVE_RENEW_MS = 30 * 1000;
+const TTL_MS = 2 * 60 * 1000;
+const RENEW_MS = 30 * 1000;
 const SAVE_MAX_MS = 15 * 60 * 1000;              // a save stuck longer than this (a hung model download) stops holding deletes back
-const DELETE_TTL_MS = 10 * 60 * 1000;            // a row left by a server that stopped stops counting after this
 const SAVE_WAIT_MS = 30 * 1000;                  // a save never waits longer than this for a delete step
-const DELETE_WAIT_MS = SAVE_TTL_MS + 30 * 1000;  // a delete step waits this long for running saves, so an orphan row expires first
+const DELETE_WAIT_MS = TTL_MS + 30 * 1000;       // a delete step waits this long for running saves, so an orphan row expires first
 const MAX_TRIES = 10;
 const SAVE_POLL_MS = 100;
 const DELETE_POLL_MS = 250;
 const KIOSK_BUSY_MESSAGE = 'Visitors kept submitting at the kiosk while the archive was deleting, so nothing was deleted. Run the archive again.';
 
-const db = () => require('../../core/db'); // loaded on first use, so the logic below can be tested without a database
-const query = async (sql, params) => (await db().pool.promise().query(sql, params))[0];
+// The gate has a small pool of its own: a delete step asks it while its transaction holds row locks, and main-pool
+// queries waiting on those locks must never leave it without a connection. Loaded on first use, so the logic below
+// can be tested without a database.
+const query = async (sql, params) => (await require('../../core/db').sidePool('visitor-save-gate', 3).promise().query(sql, params))[0];
 
 const sqlStore = {
     async add(holder, ttlMs) {
@@ -54,18 +56,24 @@ const busyError = () => Object.assign(new Error(KIOSK_BUSY_MESSAGE), { kioskBusy
 // store: { add(holder, ttlMs) -> id, renew(id, ttlMs), remove(id), active(holder) -> boolean }; sleep, now and every are
 // swapped in by the tests
 function createGate(store, { sleep = sleeper, now = () => Date.now(), every = repeater } = {}) {
+    // keeps a row alive every RENEW_MS until the returned function is called (or until maxMs has passed)
+    function keepAlive(id, maxMs = Infinity) {
+        const startedAt = now();
+        const stop = every(() => {
+            if (now() - startedAt > maxMs) return stop();
+            Promise.resolve().then(() => store.renew(id, TTL_MS)).catch(reportOnce);
+        }, RENEW_MS);
+        return stop;
+    }
+
     // Kiosk side: await it before the save, then call the returned function once the save is done or has failed.
     // Never throws: when the gate is unavailable the save simply goes ahead.
     async function enterSave() {
         let id = null;
         let stopRenewing = () => {};
         try {
-            id = await store.add('save', SAVE_TTL_MS);
-            const startedAt = now();
-            stopRenewing = every(() => {
-                if (now() - startedAt > SAVE_MAX_MS) return stopRenewing();
-                Promise.resolve().then(() => store.renew(id, SAVE_TTL_MS)).catch(reportOnce);
-            }, SAVE_RENEW_MS);
+            id = await store.add('save', TTL_MS);
+            stopRenewing = keepAlive(id, SAVE_MAX_MS);
             const giveUpAt = now() + SAVE_WAIT_MS;
             while (now() < giveUpAt && await store.active('delete')) await sleep(SAVE_POLL_MS);
         } catch (error) {
@@ -90,7 +98,8 @@ function createGate(store, { sleep = sleeper, now = () => Date.now(), every = re
                 if (now() >= giveUpAt) throw busyError();
                 await sleep(DELETE_POLL_MS);
             }
-            const id = await store.add('delete', DELETE_TTL_MS);
+            const id = await store.add('delete', TTL_MS);
+            const stopRenewing = keepAlive(id);
             try {
                 return await work(async () => {
                     if (await store.active('save')) throw Object.assign(new Error('a kiosk save started'), { saveGateBackoff: true });
@@ -98,6 +107,7 @@ function createGate(store, { sleep = sleeper, now = () => Date.now(), every = re
             } catch (error) {
                 if (!error || !error.saveGateBackoff) throw error;
             } finally {
+                stopRenewing();
                 await Promise.resolve().then(() => store.remove(id)).catch(reportOnce);
             }
         }
@@ -109,5 +119,18 @@ function createGate(store, { sleep = sleeper, now = () => Date.now(), every = re
 
 const gate = createGate(sqlStore);
 
-module.exports = { enterSave: gate.enterSave, deleteStep: gate.deleteStep, createGate, KIOSK_BUSY_MESSAGE, MAX_TRIES, SAVE_TTL_MS, SAVE_RENEW_MS, SAVE_MAX_MS, SAVE_WAIT_MS, DELETE_WAIT_MS };
+// Called by server.js at start (the only process that runs delete steps): a 'delete' row still there was left by a
+// server that stopped in the middle of one, and would make kiosk saves wait until it expires.
+async function clearStaleDeletes() {
+    try {
+        await query("DELETE FROM visitor_save_gate WHERE holder = 'delete' OR expires_at < UTC_TIMESTAMP(3)");
+    } catch (error) {
+        reportOnce(error);
+    }
+}
+
+module.exports = {
+    enterSave: gate.enterSave, deleteStep: gate.deleteStep, clearStaleDeletes, createGate,
+    KIOSK_BUSY_MESSAGE, MAX_TRIES, TTL_MS, RENEW_MS, SAVE_MAX_MS, SAVE_WAIT_MS, DELETE_WAIT_MS
+};
 // <Jun Kai end>

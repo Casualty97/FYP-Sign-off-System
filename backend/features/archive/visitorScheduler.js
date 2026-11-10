@@ -4,6 +4,7 @@
 const settingsStore = require('./visitorSettings');
 const schedule = require('./visitorSchedule');
 const runner = require('./visitorRunner');
+const saveGate = require('./saveGate');
 
 const FIRST_TICK_MS = 2 * 60 * 1000;
 const TICK_MS = 15 * 60 * 1000;
@@ -73,6 +74,7 @@ async function tick(now = new Date()) {
 function start() {
     if (state.started) return;
     state.started = true;
+    saveGate.clearStaleDeletes(); // a delete step cut off by a stop would otherwise make kiosk saves wait
     runner.ensureRecovered()
         .catch((error) => {
             if (error.code === 'ER_NO_SUCH_TABLE') console.warn('Visitor Data Archive: table visitor_archives is missing, run npm run db:migrate');
