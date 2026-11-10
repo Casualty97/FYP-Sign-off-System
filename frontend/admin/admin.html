@@ -1453,7 +1453,7 @@
                         <div class="asset-hero">
                             <div>
                                 <h3>Bluetooth Asset Registry</h3>
-                                <p>Start by adding the Bluetooth ID, then attach a name, location, and notes for each asset.</p>
+                                <p>Register the unique service UUID advertised by each asset, then attach its name, location, and notes.</p>
                             </div>
                             <div class="asset-hero-actions">
                                 <button class="btn-secondary" onclick="refreshAssetData()">Refresh</button>
@@ -1471,11 +1471,12 @@
                                 <strong id="asset-detected-count">0</strong>
                             </div>
                             <div class="asset-summary-card">
-                                <span>Offline</span>
+                                <span>Not confirmed nearby</span>
                                 <strong id="asset-offline-count">0</strong>
                             </div>
                         </div>
 
+                        <p id="asset-scanner-status" role="status">Loading scanner status...</p>
                         <div class="asset-grid" id="asset-grid">
                             <div class="asset-empty-state">Loading assets...</div>
                         </div>

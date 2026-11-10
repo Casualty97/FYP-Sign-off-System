@@ -267,7 +267,6 @@ const {
     analyzeFlaggedFeedbackText
 } = require('../analysis/flagged');
 const badgeEmailTemplateStore = require('../email/templateStore');
-const assetStore = require('../assets/store');
 const parametersConfigStore = require('../parameters/store');
 const dataRetentionCleanup = require('../archive/retention');
 const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
@@ -7637,57 +7636,6 @@ function resolveHealthDetails() {
     };
 }
 
-function normalizeBluetoothAssetPayload(body = {}) {
-    const bluetoothId = String(body.bluetoothId || body.bluetooth_id || body.id || '').trim().toUpperCase();
-    return {
-        bluetoothId,
-        name: String(body.name || body.assetName || '').trim(),
-        category: String(body.category || '').trim(),
-        location: String(body.location || '').trim(),
-        notes: String(body.notes || '').trim(),
-        active: body.active !== false && body.active !== 'false'
-    };
-}
-
-function getNearbyDeviceMap() {
-    try {
-        const { nearbyDevices } = require('../assets/bluetooth');
-        return nearbyDevices;
-    } catch (error) {
-        console.error('Failed to access nearby bluetooth devices:', error);
-        return new Map();
-    }
-}
-
-function enrichBluetoothAssets(list = []) {
-    const nearbyDevices = getNearbyDeviceMap();
-
-    return list.map((asset) => {
-        const normalizedId = String(asset.bluetoothId || '').trim().toUpperCase();
-        const nearby = nearbyDevices.get(normalizedId);
-
-        return {
-            ...asset,
-            isDetected: Boolean(nearby),
-            lastSeen: nearby?.lastSeen || null,
-            rssi: nearby?.rssi ?? null,
-            nearbyName: nearby?.name || null,
-            source: nearby?.source || null
-        };
-    });
-}
-
-// GET /api/admin/assets
-router.get('/assets', auth.requireAdmin, (req, res) => {
-    try {
-        const assets = enrichBluetoothAssets(assetStore.readBluetoothAssets());
-        res.json({ success: true, assets });
-    } catch (error) {
-        console.error('❌ Failed to load Bluetooth assets:', error);
-        res.status(500).json({ success: false, error: 'Failed to load assets' });
-    }
-});
-
 // POST /api/admin/parameters/vip-leaf - Upload a custom VIP leaf image and activate it
 // Storage for custom VIP leaf image uploads
 const vipLeafStorage = multer.diskStorage({
@@ -7880,34 +7828,6 @@ router.post('/parameters/vip-leaf/select', auth.requireAdmin, (req, res) => {
     } catch (error) {
         console.error('❌ Error selecting VIP leaf image:', error.message, error.stack);
         res.status(500).json({ success: false, error: error.message || 'Failed to select VIP leaf image' });
-    }
-});
-
-// POST /api/admin/assets
-router.post('/assets', auth.requireAdmin, express.json(), (req, res) => {
-    try {
-        const payload = normalizeBluetoothAssetPayload(req.body);
-        if (!payload.bluetoothId) {
-            return res.status(400).json({ success: false, error: 'Bluetooth ID is required' });
-        }
-
-        const assets = assetStore.addBluetoothAsset(payload);
-        res.json({ success: true, assets: enrichBluetoothAssets(assets) });
-    } catch (error) {
-        console.error('❌ Failed to save Bluetooth asset:', error);
-        res.status(500).json({ success: false, error: error.message || 'Failed to save asset' });
-    }
-});
-
-// DELETE /api/admin/assets/:bluetoothId
-router.delete('/assets/:bluetoothId', auth.requireAdmin, (req, res) => {
-    try {
-        const bluetoothId = String(req.params.bluetoothId || '').trim().toUpperCase();
-        const assets = assetStore.removeBluetoothAsset(bluetoothId);
-        res.json({ success: true, assets: enrichBluetoothAssets(assets) });
-    } catch (error) {
-        console.error('❌ Failed to delete Bluetooth asset:', error);
-        res.status(500).json({ success: false, error: 'Failed to delete asset' });
     }
 });
 

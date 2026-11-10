@@ -123,6 +123,8 @@ const session = require('express-session');
 const db = require('./core/db');
 const feedbackRoutes = require('./features/feedback/routes');
 const adminRoutes = require('./features/admin/routes');
+const assetRoutes = require('./features/assets/routes');
+const bluetoothAssets = require('./features/assets/bluetooth');
 const dataExportRoutes = require('./features/archive/exportRoutes');
 const pledgeboardRoutes = require('./features/pledgeboard/routes');
 const pulseRoutes = require('./features/pulse/routes');
@@ -436,6 +438,7 @@ app.use('/api/health', healthPublicRoutes);
 app.use('/api/admin/hardware', hardwareRoutes);
 app.use('/api/admin/visitor-archive', visitorArchiveRoutes);
 // <Jun Kai end>
+app.use('/api/admin', assetRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
 app.use('/api/pledgeboard', pledgeboardRoutes);
@@ -647,6 +650,7 @@ function startServer() {
     });
     server.listen(PORT, bindHost, () => {
         printServerInfo(!!sslOptions);
+        bluetoothAssets.startBluetoothScanner();
     });
 }
 
@@ -793,6 +797,7 @@ if (args.includes('--help') || args.includes('-h')) {
 }
 
 // Start the server
+process.once('exit', () => bluetoothAssets.stopBluetoothScanner());
 startServer();
 
 // ==================== PLATFORM-SPECIFIC NOTES ====================

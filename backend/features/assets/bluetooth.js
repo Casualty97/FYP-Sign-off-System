@@ -1,116 +1,97 @@
-// Owner: Role 4, Ryan. Previous team: Yu Kang (1).
-//===============================================================
-// Done by Yu Kang
-// Bluetooth proximity manager (accepts reports from browsers using Web Bluetooth)
-// - Browsers can use navigator.bluetooth APIs and post reports to the server
-// - Server stores recent device reports (id or mac) with RSSI and lastSeen
-// - Keeps compatibility with existing code that checks for 'mac' by accepting either
-//===============================================================
+// Owner: Role 4, Ryan.
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
+const { spawn } = require('child_process');
+const paths = require('../../core/paths');
+const { readBluetoothAssets } = require('./store');
+const { BluetoothTracker } = require('./tracker');
 
-const nearbyDevices = new Map();
+function numericSetting(raw, fallback, min, max) {
+    const value = Number(raw);
+    return raw !== undefined && raw !== '' && Number.isFinite(value) && value >= min && value <= max ? value : fallback;
+}
+const tracker = new BluetoothTracker({
+    threshold: numericSetting(process.env.BLUETOOTH_RSSI_THRESHOLD, -75, -127, 0),
+    timeoutMs: numericSetting(process.env.BLUETOOTH_TIMEOUT_MS, 20000, 3000, 600000)
+});
+let worker = null;
+let assets = [];
+let assetsReadAt = -Infinity;
 
-// RSSI threshold for proximity (adjust as needed)
-const RSSI_THRESHOLD = -10;
-
-// How long to keep a device without being re-reported (ms)
-const DEVICE_TIMEOUT = 20000;
+function registeredAssets() {
+    if (Date.now() - assetsReadAt >= 1000) {
+        assets = readBluetoothAssets();
+        assetsReadAt = Date.now();
+        const activeIds = new Set(assets.filter(asset => asset.active !== false).map(asset => asset.bluetoothId));
+        for (const id of tracker.devices.keys()) if (!activeIds.has(id)) tracker.devices.delete(id);
+    }
+    return assets;
+}
 
 function startBluetoothScanner() {
-    // No-op for server-side now: scanning happens in browser clients
-    console.log('Bluetooth scanning moved to client (Web Bluetooth). Start endpoint is ready to accept reports.');
-}
-
-/**
- * Report a device seen by a client.
- * payload should include at least one identifier: { id, mac }
- * optional: name, rssi, source
- */
-function reportDevice({ id, mac, name, rssi, source }) {
-    const key = (mac || id || '').toString().toUpperCase();
-    if (!key) return false;
-
-    const device = {
-        id: id || null,
-        mac: mac || null,
-        name: name || null,
-        rssi: typeof rssi === 'number' ? rssi : null,
-        source: source || 'client',
-        lastSeen: Date.now()
-    };
-
-    nearbyDevices.set(key, device);
-    
-    // Debug logging
-    console.log(`✅ Device reported: MAC=${device.mac} ID=${device.id} Name=${device.name} RSSI=${device.rssi} dBm`);
-
-    return true;
-}
-
-function isDeviceNearby(identifier) {
-    if (!identifier) return false;
-    const key = identifier.toString().toUpperCase();
-    const device = nearbyDevices.get(key);
-    if (!device) return false;
-    // If RSSI exists, apply threshold
-    if (device.rssi !== null && device.rssi !== undefined) {
-        return device.rssi >= RSSI_THRESHOLD;
-    }
-    // If no RSSI provided, treat presence as nearby
-    return true;
-}
-
-function getDeviceRSSI(identifier) {
-    if (!identifier) return null;
-    const key = identifier.toString().toUpperCase();
-    const device = nearbyDevices.get(key);
-    return device ? device.rssi : null;
-}
-
-function getNearbyDevicesList() {
-    cleanupOldDevices();
-    return Array.from(nearbyDevices.entries()).map(([key, data]) => ({ key, ...data }));
-}
-
-function cleanupOldDevices() {
-    const now = Date.now();
-    for (const [key, device] of nearbyDevices.entries()) {
-        if (now - device.lastSeen > DEVICE_TIMEOUT) {
-            nearbyDevices.delete(key);
-        }
-    }
-}
-
-// Periodic cleanup
-setInterval(cleanupOldDevices, 5000);
-
-function logNearbyDevices() {
-    cleanupOldDevices();
-    const devices = getNearbyDevicesList();
-    
-    if (devices.length === 0) {
-        console.log('📡 [Bluetooth] No devices detected nearby');
+    if (worker) return;
+    if (process.env.BLUETOOTH_SCANNER !== 'on') {
+        tracker.setScanner('disabled', 'Scanner is disabled. Set BLUETOOTH_SCANNER=on in backend/.env to enable it.');
         return;
     }
-    
-    console.log(`📡 [Bluetooth] ${devices.length} device(s) detected nearby:`);
-    devices.forEach((device, idx) => {
-        const mac = device.mac ? device.mac.toUpperCase() : 'N/A';
-        const id = device.id || 'N/A';
-        const name = device.name ? `"${device.name}"` : '(unnamed)';
-        const rssi = device.rssi !== null ? `${device.rssi} dBm` : 'N/A';
-        const age = Math.round((Date.now() - device.lastSeen) / 1000);
-        
-        console.log(`   [${idx + 1}] MAC: ${mac} | ID: ${id} | Name: ${name} | RSSI: ${rssi} | Age: ${age}s`);
+    const defaultPython = path.join(paths.ROOT, '..', 'esg-bluetooth-venv', process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'python.exe' : 'python');
+    const python = process.env.BLUETOOTH_PYTHON || defaultPython;
+    if (!fs.existsSync(python)) {
+        tracker.setScanner('error', 'Python environment was not found. Set BLUETOOTH_PYTHON to its python executable.');
+        return;
+    }
+    tracker.setScanner('starting', 'Starting Bluetooth scanner.');
+    worker = spawn(python, ['-u', path.join(__dirname, 'scanner.py')], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    const child = worker;
+    child.stdin.on('error', () => {}); // The worker may exit before shutdown closes its input.
+    const lines = readline.createInterface({ input: child.stdout });
+    lines.on('line', line => {
+        if (worker !== child) return;
+        try {
+            const report = JSON.parse(line);
+            if (report.type === 'ready') tracker.setScanner('running', 'Scanner is receiving Bluetooth advertisements.');
+            else if (report.type === 'heartbeat') tracker.heartbeat();
+            else if (report.type === 'advertisement') tracker.report(report, registeredAssets());
+            else if (report.type === 'error') {
+                tracker.setScanner('error', 'Bluetooth scanning failed. Check Bluetooth is on and see the server terminal.');
+                console.error('[Bluetooth]', String(report.message).slice(0, 500));
+            }
+        } catch (error) {
+            tracker.setScanner('error', 'Scanner returned an invalid report. Restart the application.');
+            console.error('[Bluetooth] Invalid scanner report:', error.message);
+        }
     });
+    child.stderr.on('data', chunk => console.error('[Bluetooth]', chunk.toString().slice(0, 1000)));
+    child.once('error', error => {
+        tracker.setScanner('error', 'Could not launch the Python scanner. Check BLUETOOTH_PYTHON.');
+        console.error('[Bluetooth]', error.message);
+    });
+    child.once('close', () => {
+        lines.close();
+        if (worker === child) {
+            worker = null;
+            if (tracker.scannerInfo().status !== 'error') tracker.setScanner('error', 'Scanner stopped. Restart the application.');
+        }
+    });
+    console.log('[Bluetooth] Scanner starting.');
 }
 
+function stopBluetoothScanner() {
+    const child = worker;
+    worker = null;
+    if (child) child.stdin.end(); // Closing the pipe also stops scanner.py if Node is terminated on Windows.
+    tracker.setScanner('stopped', 'Scanner stopped.');
+}
+function isDeviceNearby(identifier) {
+    const asset = registeredAssets().find(item => item.bluetoothId === String(identifier || '').toUpperCase());
+    return !!asset && tracker.assetStatus(asset).isDetected;
+}
 module.exports = {
-    startBluetoothScanner,
-    reportDevice,
-    isDeviceNearby,
-    getDeviceRSSI,
-    getNearbyDevicesList,
-    logNearbyDevices,
-    nearbyDevices,
-    RSSI_THRESHOLD
+    startBluetoothScanner, stopBluetoothScanner, isDeviceNearby,
+    getScannerStatus: () => tracker.scannerInfo(),
+    enrichBluetoothAssets: list => list.map(asset => tracker.assetStatus(asset)),
+    getDeviceRSSI: identifier => tracker.devices.get(String(identifier || '').toUpperCase())?.rssi ?? null,
+    getNearbyDevicesList: () => [...tracker.devices.values()].filter(device => isDeviceNearby(device.id)),
+    nearbyDevices: tracker.devices, RSSI_THRESHOLD: tracker.threshold
 };

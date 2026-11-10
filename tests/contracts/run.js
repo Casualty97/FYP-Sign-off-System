@@ -9,7 +9,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SKIP_DIRS = new Set(['node_modules', '.git', 'legacy', 'uploads', 'assets', 'logs', 'docs', 'Team_Documentation']);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'legacy', 'uploads', 'logs', 'docs', 'Team_Documentation']);
 const UPDATE_SNAPSHOT = process.argv.includes('--update-snapshot');
 const SNAPSHOT_FILE = path.join(__dirname, 'routes.snapshot.txt');
 
@@ -18,7 +18,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g,
 const lineOf = (text, idx) => text.slice(0, idx).split('\n').length;
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(path.join(dir, e.name), out); } else out.push(rel(path.join(dir, e.name)));
+    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name) && rel(path.join(dir, e.name)) !== 'assets') walk(path.join(dir, e.name), out); } else out.push(rel(path.join(dir, e.name)));
   }
   return out;
 }

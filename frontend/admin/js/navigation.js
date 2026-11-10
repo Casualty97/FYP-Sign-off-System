@@ -3,13 +3,18 @@
 // ==================== 17. NAVIGATION & PAGE MANAGEMENT ====================
 
 let bluetoothAssetData = [];
+let assetScannerData = null;
+let assetPollTimer = null;
+let assetRequestInFlight = false;
+let assetPageEpoch = 0;
 
 function getAssetElements() {
     return {
         grid: document.getElementById('asset-grid'),
         totalCount: document.getElementById('asset-total-count'),
         detectedCount: document.getElementById('asset-detected-count'),
-        offlineCount: document.getElementById('asset-offline-count')
+        offlineCount: document.getElementById('asset-offline-count'),
+        scannerStatus: document.getElementById('asset-scanner-status')
     };
 }
 
@@ -30,7 +35,7 @@ function formatAssetDate(value) {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleString();
+    return date.toLocaleString('en-SG', { timeZone: 'Asia/Singapore' });
 }
 
 async function fetchAssetJson(url, options = {}) {
@@ -43,9 +48,15 @@ async function fetchAssetJson(url, options = {}) {
 }
 
 function renderBluetoothAssets() {
-    const { grid, totalCount, detectedCount, offlineCount } = getAssetElements();
+    const { grid, totalCount, detectedCount, offlineCount, scannerStatus } = getAssetElements();
     if (!grid) return;
 
+    if (scannerStatus) {
+        const scanner = assetScannerData;
+        scannerStatus.textContent = scanner
+            ? `${scanner.message} Signal threshold: ${scanner.threshold} dBm. Detection timeout: ${scanner.timeoutMs / 1000}s.`
+            : 'Scanner status is unavailable.';
+    }
     const total = bluetoothAssetData.length;
     const detected = bluetoothAssetData.filter((asset) => asset.isDetected).length;
     const offline = Math.max(total - detected, 0);
@@ -70,9 +81,15 @@ function renderBluetoothAssets() {
         const category = escapeAssetHtml(asset.category || '-');
         const location = escapeAssetHtml(asset.location || '-');
         const notes = escapeAssetHtml(asset.notes || '-');
-        const lastSeen = formatAssetDate(asset.lastSeen || asset.addedAt);
+        const lastSeen = asset.lastSeen ? formatAssetDate(asset.lastSeen) : 'Never detected';
         const statusClass = asset.isDetected ? 'detected' : 'offline';
-        const statusText = asset.isDetected ? 'Detected Nearby' : 'Not Detected';
+        const statusText = ({
+            nearby: 'Detected Nearby', weak_signal: 'Below signal threshold',
+            not_detected: 'Not Detected', scanner_unavailable: 'Scanner unavailable',
+            unsupported_id: 'Register a service UUID', inactive: 'Inactive'
+        })[asset.status] || 'Unknown';
+        const rssiText = Number.isFinite(asset.rssi)
+            ? `${asset.rssi} dBm${asset.readingFresh ? '' : ' (last reading)'}` : 'No reading';
         const safeBluetoothId = String(asset.bluetoothId || '').replace(/'/g, "\\'");
 
         return `
@@ -99,6 +116,10 @@ function renderBluetoothAssets() {
                         <span class="asset-detail-value">${notes}</span>
                     </div>
                     <div class="asset-detail-row">
+                        <span class="asset-detail-label">Signal strength</span>
+                        <span class="asset-detail-value">${rssiText}</span>
+                    </div>
+                    <div class="asset-detail-row">
                         <span class="asset-detail-label">Last Seen</span>
                         <span class="asset-detail-value">${lastSeen}</span>
                     </div>
@@ -113,25 +134,42 @@ function renderBluetoothAssets() {
     }).join('');
 }
 
-async function loadAssetData() {
-    const { grid } = getAssetElements();
-    if (!grid) return;
-
-    grid.innerHTML = '<div class="asset-empty-state">Loading assets...</div>';
-
+async function loadAssetData(quiet = false) {
+    const { grid, scannerStatus, totalCount, detectedCount, offlineCount } = getAssetElements();
+    if (!grid || assetRequestInFlight) return;
+    assetRequestInFlight = true;
+    const epoch = assetPageEpoch;
+    if (!quiet) grid.innerHTML = '<div class="asset-empty-state">Loading assets...</div>';
     try {
         const data = await fetchAssetJson('/api/admin/assets');
+        if (epoch !== assetPageEpoch) return;
         bluetoothAssetData = Array.isArray(data.assets) ? data.assets : [];
+        assetScannerData = data.scanner || null;
         renderBluetoothAssets();
     } catch (error) {
+        if (epoch !== assetPageEpoch) return;
         console.error('Asset load error:', error);
-        grid.innerHTML = `
-            <div class="asset-empty-state" style="color:#b91c1c;">
-                <strong>Failed to load assets</strong>
-                Please try again after checking the admin API.
-            </div>
-        `;
+        if (scannerStatus) scannerStatus.textContent = 'Live status unavailable. Check the server is running.';
+        for (const count of [totalCount, detectedCount, offlineCount]) if (count) count.textContent = '-';
+        grid.innerHTML = '<div class="asset-empty-state"><strong>Could not refresh asset status</strong>Check the server and your admin session. Retrying automatically while this page is open.</div>';
+    } finally {
+        assetRequestInFlight = false;
     }
+}
+
+function stopAssetPolling() {
+    clearInterval(assetPollTimer);
+    assetPollTimer = null;
+    assetPageEpoch++;
+}
+
+function startAssetPolling() {
+    stopAssetPolling();
+    loadAssetData();
+    assetPollTimer = setInterval(() => {
+        const page = document.getElementById('asset-page');
+        if (!document.hidden && page?.classList.contains('active')) loadAssetData(true);
+    }, 2500);
 }
 
 function refreshAssetData() {
@@ -154,7 +192,7 @@ function showAddAssetModal(defaultBluetoothId = '') {
             <div class="asset-modal-header">
                 <div>
                     <h3>${defaultBluetoothId ? 'Edit Asset' : 'Add Bluetooth Asset'}</h3>
-                    <p>${defaultBluetoothId ? 'Update the asset details for this Bluetooth ID.' : 'Enter the Bluetooth ID first so the kiosk can match the device when it appears nearby.'}</p>
+                    <p>${defaultBluetoothId ? 'Update the asset details for this Bluetooth ID.' : 'Enter the unique 128-bit service UUID advertised by this asset. Each tracked asset needs its own UUID.'}</p>
                 </div>
                 <button type="button" class="asset-modal-close" onclick="closeAssetModal()">×</button>
             </div>
@@ -162,8 +200,8 @@ function showAddAssetModal(defaultBluetoothId = '') {
             <form id="asset-form">
                 <div class="asset-form-grid">
                     <div class="full-span">
-                        <label for="asset-bluetooth-id">Bluetooth ID</label>
-                        <input id="asset-bluetooth-id" name="bluetoothId" type="text" placeholder="AA:BB:CC:DD:EE:FF" value="${escapeAssetHtml(defaultBluetoothId)}" required>
+                        <label for="asset-bluetooth-id">Advertised service UUID</label>
+                        <input id="asset-bluetooth-id" name="bluetoothId" type="text" placeholder="7b9e1001-4c6a-4f52-9a83-28b176db1020" value="${escapeAssetHtml(defaultBluetoothId)}" ${defaultBluetoothId ? 'readonly' : ''} required>
                     </div>
                     <div>
                         <label for="asset-name">Asset Name</label>
@@ -257,6 +295,8 @@ function showPage(pageName) {
         return;
     }
     
+    stopAssetPolling();
+
     // Special handling for data export page
     if (pageName === 'data-export') {
         if (!initDataExportPage()) {
@@ -314,7 +354,7 @@ function showPage(pageName) {
     } else if (pageName === 'overlay') {
         loadOverlayData();
     } else if (pageName === 'asset') {
-        loadAssetData();
+        startAssetPolling();
     } else if (pageName === 'users') {
         loadUserManagementData();
     } else if (pageName === 'questions') {
@@ -364,3 +404,5 @@ function initializeArchivePage() {
     initializeDeletionControls();
 }
 
+
+window.addEventListener('pagehide', stopAssetPolling);

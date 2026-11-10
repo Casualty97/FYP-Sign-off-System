@@ -175,8 +175,8 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 
 | Status | Area | Problem | Where | Fixed in |
 |---|---|---|---|---|
-| open | assets | bluetooth.js is unreachable from any route, its threshold is unattainable, and its timer runs in both servers | assets/bluetooth.js 18, 21, 89 | |
-| open | assets | the README's test endpoints (/api/bluetooth/test-device, /nearby-devices) do not exist | README | |
+| fixed | assets | local BLE worker reports registered service UUIDs; configurable threshold and expiry; scanner starts only in main server | assets/bluetooth.js, tracker.js, scanner.py | Role 4 Bluetooth integration patch |
+| fixed | assets | obsolete test endpoint notes replaced with the supported local-worker setup and manual checks; no public report endpoints added | docs/features/assets.md | Role 4 Bluetooth integration patch |
 
 ## Shared (users, audit, VIP, lost and found)
 

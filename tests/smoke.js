@@ -282,6 +282,7 @@ async function archiveStep(cookie) {
     // <Jun Kai start>
     await expect('POST /api/admin/archive/update-status without a session is refused', `${BASE}/api/admin/archive/update-status`, (r) => r.status === 401, { method: 'POST' });
     // <Jun Kai end>
+    await expect('GET /api/admin/assets without a session is refused', `${BASE}/api/admin/assets`, (r) => r.status === 403 && r.body?.error === 'Admin access required');
     let cookie = '';
     try {
       const r = await fetch(`${BASE}/api/admin/login`, json({ username: ADMIN_USER, password: ADMIN_PASS }));
@@ -291,6 +292,7 @@ async function archiveStep(cookie) {
       else fail(`POST /api/admin/login with the seeded admin (${r.status}, cookie ${cookie ? 'set' : 'missing'})`);
     } catch (e) { fail(`POST /api/admin/login: ${e.message}`); }
     if (cookie) {
+      await expect('GET /api/admin/assets includes scanner health and live readings', `${BASE}/api/admin/assets`, (r) => r.status === 200 && r.body?.success === true && Array.isArray(r.body.assets) && typeof r.body.scanner?.status === 'string' && r.headers.get('cache-control') === 'no-store', { headers: { cookie } });
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
