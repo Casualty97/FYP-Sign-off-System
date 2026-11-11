@@ -190,6 +190,10 @@ async function setup() {
         // schema.sql has just emptied the visitor tables, so counts of earlier deletes no longer belong to anything
         await userConnection.query('DELETE FROM deleted_record_counts');
         await userConnection.query('DELETE FROM visitor_save_gate');
+        // the anomaly detection's incidents and health history start over as well
+        await userConnection.query('DELETE FROM incident_events');
+        await userConnection.query('DELETE FROM incidents');
+        await userConnection.query('DELETE FROM health_check_results');
         // <Jun Kai end>
 
         // Verify all tables were created successfully

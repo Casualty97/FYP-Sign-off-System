@@ -186,6 +186,10 @@ db.connect((err) => {
                                         // cleared, so they go too (a table that is not there yet has nothing to clear)
                                         db.query('DELETE FROM deleted_record_counts', () => {});
                                         db.query('DELETE FROM visitor_save_gate', () => {});
+                                        // the anomaly detection's incidents and health history belong to this data too
+                                        db.query('DELETE FROM incident_events', () => {});
+                                        db.query('DELETE FROM incidents', () => {});
+                                        db.query('DELETE FROM health_check_results', () => {});
                                         // <Jun Kai end>
 
                                         // Reset auto-increment counter for pledge_likes table

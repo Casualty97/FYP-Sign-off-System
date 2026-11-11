@@ -112,6 +112,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env'), quiet: true }); // backend/.env regardless of the working directory
 // <Jun Kai start>
 require('./core/log').setupLogging(); // request chatter only with LOG_LEVEL=debug
+require('./core/log').captureEvents('server'); // warnings and errors also go to logs/app-events-server.jsonl for the anomaly detection
 // <Jun Kai end>
 const express = require('express');
 const https = require('https');
@@ -160,6 +161,8 @@ const hardwareRoutes = require('./features/hardware/routes');
 const hardwareSampler = require('./features/hardware/sampler');
 const visitorArchiveRoutes = require('./features/archive/visitorRoutes');
 const visitorArchiveScheduler = require('./features/archive/visitorScheduler');
+const aiopsRoutes = require('./features/aiops/routes');
+const aiopsEngine = require('./features/aiops/engine');
 // <Jun Kai end>
 
 // Import QR code generation
@@ -440,6 +443,7 @@ app.use('/api/health', healthPublicRoutes);
 // <Jun Kai start>
 app.use('/api/admin/hardware', hardwareRoutes);
 app.use('/api/admin/visitor-archive', visitorArchiveRoutes);
+app.use('/api/admin/aiops', aiopsRoutes);
 // <Jun Kai end>
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);
@@ -722,6 +726,7 @@ function printServerInfo(isHttps) {
     kioskScheduler.start();
     // <Jun Kai start>
     hardwareSampler.start();
+    aiopsEngine.start(); // anomaly detection: health recorder, log reader and the incident checks (System Health page)
     visitorArchiveScheduler.start(); // finishes interrupted archives, then automatic archiving and file expiry
     // <Jun Kai end>
 }

@@ -16,7 +16,8 @@ const OPTIONS = [
     { key: 'disk', label: 'Disk space', description: 'Free space on the project drive' },
     { key: 'server', label: 'Server PC', description: 'CPU and memory load, uptime, app memory' },
     { key: 'automation', label: 'Schedules', description: 'Policies and the next stop and start' },
-    { key: 'tablets', label: 'Tablets', description: 'Which kiosk screens report in, and the tablets panel' }
+    { key: 'tablets', label: 'Tablets', description: 'Which kiosk screens report in, and the tablets panel' },
+    { key: 'incidents', label: 'Anomaly detection', description: 'Incidents the detectors found, with their evidence' }
 ];
 const KEYS = OPTIONS.map((o) => o.key);
 

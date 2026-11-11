@@ -3323,7 +3323,9 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>System health</h2>
-                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation. Refreshes every 30 seconds while this page is open.</p>
+                            <!-- <Jun Kai start> -->
+                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation, with the incidents the anomaly detection found. Refreshes every 30 seconds while this page is open.</p>
+                            <!-- <Jun Kai end> -->
                         </div>
                         <!-- <Jun Kai start> -->
                         <div class="ui-row">
@@ -3360,6 +3362,76 @@
                     <!-- <Jun Kai start> the Tablets list is the one panel under the cards: the Server PC card points to the Hardware page instead -->
                     <div id="health-panels">
                     <!-- <Jun Kai end> -->
+                        <!-- <Jun Kai start> -->
+                        <div class="ui-card" id="health-incidents-card" hidden>
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Incidents</h3>
+                                    <p>Unusual behaviour of the server PC, its services, the named tablets and the server logs, found by comparing each with its own past. Checked every minute while the servers run.</p>
+                                </div>
+                                <div class="ui-row inc-header-actions">
+                                    <span id="incidents-state" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Loading</span>
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="incidents-test-btn" onclick="raiseTestIncident()">Test incident</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-btn" onclick="toggleIncidentSettings()" aria-expanded="false" aria-controls="incidents-settings">Settings</button>
+                                </div>
+                            </div>
+                            <div class="ui-card-body inc-settings" id="incidents-settings" hidden>
+                                <div class="ui-section-title">AI features</div>
+                                <label class="inc-master">
+                                    <span class="ui-switch"><input type="checkbox" id="incidents-enabled" aria-label="Anomaly detection"><span class="ui-switch-track"></span></span>
+                                    <span class="inc-master-text"><strong>Anomaly detection</strong><small>Statistics on this PC's own data: nothing is sent anywhere. Off means nothing is compared and no incident is opened; open ones stay as they are.</small></span>
+                                </label>
+                                <div class="ui-section-title inc-section">Detectors</div>
+                                <div class="inc-detectors" id="incidents-detectors"></div>
+                                <div class="ui-section-title inc-section">Behaviour</div>
+                                <div class="ui-form-grid">
+                                    <label class="inc-quiet">
+                                        <span class="ui-switch"><input type="checkbox" id="incidents-quiet" aria-label="Quiet hours"><span class="ui-switch-track"></span></span>
+                                        <span class="inc-master-text"><strong>Quiet hours</strong><small>Mute tablet and kiosk alerts while the policies say the kiosk is off</small></span>
+                                    </label>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="incidents-interval">Check every</label>
+                                        <select class="ui-select" id="incidents-interval">
+                                            <option value="30">30 s</option>
+                                            <option value="60">1 min</option>
+                                            <option value="120">2 min</option>
+                                            <option value="300">5 min</option>
+                                            <option value="600">10 min</option>
+                                        </select>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="incidents-retention">Keep health results</label>
+                                        <select class="ui-select" id="incidents-retention">
+                                            <option value="7">7 days</option>
+                                            <option value="30">30 days</option>
+                                            <option value="90">90 days</option>
+                                            <option value="365">365 days</option>
+                                        </select>
+                                    </div>
+                                    <div class="ui-field">
+                                        <label class="ui-label" for="incidents-keep">Keep resolved incidents</label>
+                                        <select class="ui-select" id="incidents-keep">
+                                            <option value="30">30 days</option>
+                                            <option value="90">90 days</option>
+                                            <option value="365">365 days</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="inc-settings-foot ui-row ui-row-between">
+                                    <p class="ui-help" id="incidents-settings-help"></p>
+                                    <div class="ui-row">
+                                        <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-cancel" onclick="toggleIncidentSettings(false)">Cancel</button>
+                                        <button type="button" class="ui-btn ui-btn-primary" id="incidents-settings-save" onclick="saveIncidentSettings()">Save</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="inc-summary" id="incidents-summary"></div>
+                                <div class="inc-list" id="incidents-list"></div>
+                                <div class="inc-recent" id="incidents-recent"></div>
+                            </div>
+                        </div>
+                        <!-- <Jun Kai end> -->
                         <div class="ui-card" id="health-tablets-card">
                             <div class="ui-card-header">
                                 <div>
@@ -4467,6 +4539,7 @@
     <script src="/admin/js/serverControl.js"></script>
     <script src="/admin/js/health.js"></script>
     <!-- <Jun Kai start> -->
+    <script src="/admin/js/incidents.js"></script>
     <script src="/admin/js/hardware.js"></script>
     <script src="/admin/js/visitorArchive.js"></script>
     <!-- <Jun Kai end> -->
