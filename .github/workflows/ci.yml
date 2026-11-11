@@ -221,6 +221,19 @@ jobs:
         # <Jun Kai start>
         run: node tests/smoke.js --archive
         # <Jun Kai end>
+      # <Jun Kai start>
+      # The install scripts on a clean Windows PowerShell 5.1: the read-only check, then dry runs that change nothing
+      - name: Install scripts (check and dry runs)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          .\scripts\install\install.ps1 -Check -NonInteractive
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\scripts\install\install.ps1 -DryRun -Role WallPC -NonInteractive -PowerSettings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\scripts\install\uninstall.ps1 -DryRun -NonInteractive -RemoveData -ConfirmDatabase dp_kiosk_db
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # <Jun Kai end>
       - uses: actions/upload-artifact@v7
         if: always()
         with:

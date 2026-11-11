@@ -16,6 +16,11 @@ MySQL 8.4 runs on the PC. Ollama is optional and only used by the admin feedback
 
 ## Install (any computer)
 
+On Windows, run `install.cmd` in the project folder (or double-click it) once Node.js 22 and MySQL 8.4 are installed:
+it installs the packages, fills `backend/.env`, creates the database if it is missing and applies the migrations.
+`install.cmd -Role WallPC` also sets up the kiosk PC; `uninstall.cmd` removes it again. See
+[docs/features/install.md](docs/features/install.md). The manual steps:
+
 1. Node.js 22 (`.nvmrc`), MySQL Server 8.4, Git. Optional: Ollama with `ollama pull phi3`, `gemma2:2b`, `qwen2.5:3b`.
 2. Clone into a normal folder (not one whose name starts with a dot, Express cannot serve from those):
    ```bash
