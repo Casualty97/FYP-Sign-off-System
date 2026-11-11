@@ -37,11 +37,12 @@ async function loadOverlayOptions() {
                 themeOption.className = 'theme-option';
                 themeOption.onclick = () => selectTheme(overlay.theme_id, themeOption);
                 
-                // Generate a consistent color based on theme_id
-                const color = generateColorFromThemeId(overlay.theme_id);
-                
+      
+                 // Thumbnail of the real frame image for this device (replaces the plain colour box) - zihan
+                const thumbnailPath = currentDevice === 'mobile' ? overlay.mobile_filename : overlay.desktop_filename;
+
                 themeOption.innerHTML = `
-                    <div class="theme-swatch" style="background: ${color};"></div>
+                    ${buildThemeThumbnail(overlay.theme_id, thumbnailPath)}
                     <div class="theme-name">${overlay.display_name}</div>
                 `;
                 
@@ -91,10 +92,11 @@ function loadDefaultOverlayOptions() {
         themeOption.className = 'theme-option';
         themeOption.onclick = () => selectTheme(theme.theme_id, themeOption);
         
-        const color = generateColorFromThemeId(theme.theme_id);
-        
+         // Same path the preview uses for the default themes
+        const thumbnailPath = `/assets/overlays/${currentDevice === 'mobile' ? 'MobileOverlay' : 'DesktopOverlay'}/${theme.theme_id}Theme${currentDevice === 'mobile' ? 'Mobile' : 'Desktop'}.png`;
+
         themeOption.innerHTML = `
-            <div class="theme-swatch" style="background: ${color};"></div>
+            ${buildThemeThumbnail(theme.theme_id, thumbnailPath)}
             <div class="theme-name">${theme.display_name}</div>
         `;
         
@@ -109,6 +111,18 @@ function loadDefaultOverlayOptions() {
             document.getElementById('selected-overlay-name').textContent = defaultThemes[0].display_name;
         }
     }, 100);
+}
+
+// Build the thumbnail for one frame in the theme picker. (zihan)
+// It shows the real frame image. If the image cannot load, the thumbnail will show a colored box instead. The color is generated from the theme_id. (zihan)
+function buildThemeThumbnail(themeId, imagePath) {
+    const color = generateColorFromThemeId(themeId);
+    const shapeClass = currentDevice === 'mobile' ? 'is-portrait' : 'is-landscape';
+    return `
+        <div class="theme-thumb ${shapeClass}" style="--thumb-color: ${color};">
+            <img src="${imagePath || ''}" alt="" loading="lazy" decoding="async"
+                 onerror="this.parentElement.classList.add('thumb-failed'); this.remove();">
+        </div>`;
 }
 
 // Generate consistent colors from theme_id
