@@ -1,6 +1,7 @@
 // Owner: Role 3, Jun Kai.
 // Hardware page: stat tiles from GET /api/admin/hardware/overview, four Chart.js line graphs with the
-// forecast from GET /api/admin/hardware/series?range=..., the table view and the sampling settings.
+// forecast from GET /api/admin/hardware/series?range=..., the table view and the sampling settings (a forecast
+// longer than the stored history is marked as a rough guide, and saving one asks first).
 // Charts are created once and updated in place, so nothing on the page jumps while data arrives.
 // <Jun Kai start>
 let hardwareRange = '24h';
@@ -28,15 +29,17 @@ const HARDWARE_GPU_SOURCE = { 'nvidia-smi': 'nvidia-smi', 'windows-counters': 'W
 const HARDWARE_SETTING_FIELDS = {
     interval: { key: 'intervalSeconds', words: [[60, 'minute'], [1, 'second']] },
     retention: { key: 'retentionDays', words: [[1, 'day']] },
-    horizon: { key: 'forecastHours', words: [[24, 'day'], [1, 'hour']] }
+    horizon: { key: 'forecastHours', words: [[8760, 'year'], [720, 'month'], [24, 'day'], [1, 'hour']] }
 };
-let hardwareLimits = { intervalSeconds: [15, 600], retentionDays: [1, 365], forecastHours: [1, 168] };
+let hardwareLimits = { intervalSeconds: [15, 600], retentionDays: [1, 365], forecastHours: [1, 8760] };
 // Custom graph ranges such as "3mo" (the last 3 months): the server works out the exact seconds and the bucket size
 const HARDWARE_RANGE_UNITS = { h: ['hour', 3600], d: ['day', 86400], w: ['week', 604800], mo: ['month', 2629800], y: ['year', 31557600] };
 const HARDWARE_RANGE_MAX = { h: 43824, d: 1826, w: 260, mo: 60, y: 5 }; // 5 years in each unit
 const HARDWARE_RANGE_SAME = { '1d': '24h', '1w': '7d' };
 let hardwareRetentionDays = 30;
 let hardwareIntervalSeconds = 60;
+let hardwareSaved = null; // the settings as last loaded, to tell what a save changes
+let hardwarePendingSave = null; // the settings waiting behind the long-forecast reminder
 
 function hardwareTheme() {
     const css = getComputedStyle(document.documentElement);
@@ -103,7 +106,7 @@ function hardwareRangeInfo(key, data) {
     return {
         seconds,
         text: `Averages per ${bucket ? hardwareBucketWords(bucket) : 'period'}, last ${hardwareRangeWords(custom.amount, custom.unit, true)}`,
-        forecast: seconds >= 86400 && seconds <= 31 * 86400,
+        forecast: seconds >= 86400,
         plan: hardwareTickPlan(seconds)
     };
 }
@@ -233,7 +236,8 @@ function renderHardwareSeries(data) {
     const theme = hardwareTheme();
     const now = Date.now();
     const lastT = points.length ? points[points.length - 1].t : null;
-    const showForecast = range.forecast && lastT !== null;
+    // on a range longer than a month a short forecast would be an invisible sliver: it is drawn once it spans a twelfth of the range
+    const showForecast = range.forecast && lastT !== null && (range.seconds <= 31 * 86400 || (forecast.horizonHours || 0) * 3600 >= range.seconds / 12);
     const horizonLimit = lastT === null ? now : lastT + range.seconds * 1000; // the forecast never squeezes the history
     hardwareLastPoints = points;
     // a range longer than the samples are kept can never fill, so the graphs start at the oldest sample instead
@@ -272,7 +276,9 @@ function renderHardwareSeries(data) {
         if (showForecast && key === 'disk' && forecast.disk && forecast.disk.gbPerDay !== null && lastValue !== null && forecast.disk.totalGb) {
             const hours = Math.min(forecast.horizonHours || 24, range.seconds / 3600);
             const end = lastT + hours * 3600000;
-            const endValue = Math.min(100, Math.max(0, lastValue + (forecast.disk.gbPerDay / forecast.disk.totalGb) * 100 * (hours / 24)));
+            // a disk that is not growing stays level: space freed by a clean-up is not a trend to continue
+            const perDay = forecast.disk.daysUntilFull === null ? 0 : forecast.disk.gbPerDay;
+            const endValue = Math.min(100, Math.max(0, lastValue + (perDay / forecast.disk.totalGb) * 100 * (hours / 24)));
             projected.data = [{ x: lastT, y: lastValue }, { x: end, y: endValue }];
             low.data = []; high.data = [];
             horizonEnd = end;
@@ -354,21 +360,24 @@ function renderHardwareTiles(overview) {
 
 function renderHardwareForecast(forecast, latest) {
     const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-    const hours = (forecast && forecast.horizonHours) || 24;
-    const horizon = hours % 24 === 0 ? `${hours / 24} day${hours === 24 ? '' : 's'}` : `${hours} h`;
+    const horizon = hardwareSpell('horizon', (forecast && forecast.horizonHours) || 24);
+    // beyond a week the server forecasts from daily averages: the value is the usual level, not "now plus a trend"
+    const daily = !!forecast && forecast.basis === 'daily';
     set('hardware-forecast-method', forecast && forecast.method ? `Method: ${forecast.method}` : '');
     for (const key of ['cpu', 'memory', 'gpu']) {
         set(`hardware-fc-${key}-label`, `${key === 'cpu' ? 'CPU' : key === 'gpu' ? 'GPU' : 'Memory'} in ${horizon}`);
         const fc = forecast && forecast[key];
         if (!fc || !fc.points || !fc.points.length) {
+            const waiting = daily ? `Needs 6 days with samples (${forecast.basedOnPoints || 0} so far)` : 'Needs an hour of unbroken samples; the count restarts when the PC wakes';
             set(`hardware-fc-${key}`, '–');
-            set(`hardware-fc-${key}-hint`, key === 'gpu' && latest && !latest.gpu ? 'No GPU reading' : 'Needs an hour of unbroken samples; the count restarts when the PC wakes');
+            set(`hardware-fc-${key}-hint`, key === 'gpu' && latest && !latest.gpu ? 'No GPU reading' : waiting);
             continue;
         }
         const end = fc.points[fc.points.length - 1];
         const current = latest && (key === 'cpu' ? latest.cpu : latest[key] && latest[key].percent);
+        const likely = `likely between ${end.low.toFixed(0)} and ${end.high.toFixed(0)}%`;
         set(`hardware-fc-${key}`, `${end.value.toFixed(0)}%`);
-        set(`hardware-fc-${key}-hint`, `${current === null || current === undefined ? '' : `now ${Number(current).toFixed(0)}%, `}likely between ${end.low.toFixed(0)} and ${end.high.toFixed(0)}%`);
+        set(`hardware-fc-${key}-hint`, daily ? `usual daily average, ${likely}` : `${current === null || current === undefined ? '' : `now ${Number(current).toFixed(0)}%, `}${likely}`);
     }
     const disk = forecast && forecast.disk;
     if (!disk) {
@@ -381,6 +390,37 @@ function renderHardwareForecast(forecast, latest) {
         set('hardware-fc-disk', disk.daysUntilFull > 3650 ? '10+ years' : `${disk.daysUntilFull} days`);
         set('hardware-fc-disk-hint', `growing ${disk.gbPerDay} GB per day over the last ${disk.spanDays} days`);
     }
+    const fitDays = disk ? Math.round(disk.spanDays) : 0;
+    const fitWords = fitDays >= 1 ? `of the last ${fitDays === 1 ? 'day' : `${fitDays} days`}` : 'measured so far';
+    set('hardware-disk-note', disk && disk.daysUntilFull === null ? 'Used space on the project drive. It is not growing, so the dashed line stays level.' : `Used space on the project drive. The dashed line continues the growth ${fitWords}.`);
+    const note = document.getElementById('hardware-forecast-rough');
+    if (note) {
+        const check = forecast && forecast.check;
+        note.hidden = !(check && check.rough);
+        note.textContent = check && check.rough ? `Rough guide. ${hardwareRoughLines(check).slice(0, 2).join(' ')}` : '';
+    }
+}
+
+// 300 hours -> "13 days": how far back the samples go
+function hardwareHistoryWords(hours) {
+    if (!hours || hours < 1) return 'less than an hour';
+    if (hours < 48) return `${Math.round(hours)} hour${Math.round(hours) === 1 ? '' : 's'}`;
+    return `${Math.round(hours / 24)} days`;
+}
+
+function hardwareDateWords(iso) {
+    return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Why a forecast is only a rough guide, in plain sentences: the note in the Forecast card shows the first two,
+// the reminder before saving shows all of them. check comes from the server (forecast.horizonCheck).
+function hardwareRoughLines(check) {
+    const horizon = hardwareSpell('horizon', check.horizonHours);
+    const lines = [`The samples on this PC go back ${hardwareHistoryWords(check.historyHours)} and the forecast looks ${horizon} ahead. A forecast is dependable for about as far ahead as the samples go back.`];
+    if (check.reason === 'retention') lines.push(`Samples are kept for ${hardwareSpell('retention', check.retentionDays)}, so the history can never reach ${horizon}. Set "Keep samples for" to at least ${hardwareSpell('retention', check.neededRetentionDays)} to let it get there.`);
+    else if (check.dependableAt) lines.push(`While the sampler keeps running it becomes dependable around ${hardwareDateWords(check.dependableAt)}.`);
+    lines.push('Until then CPU, memory and GPU show their usual level and range, and the disk line continues the growth measured so far.');
+    return lines;
 }
 
 function renderHardwareSettings(overview) {
@@ -391,6 +431,7 @@ function renderHardwareSettings(overview) {
     if (overview.limits) hardwareLimits = { ...hardwareLimits, ...overview.limits };
     hardwareRetentionDays = settings.retentionDays || 30;
     hardwareIntervalSeconds = settings.intervalSeconds || 60;
+    hardwareSaved = { ...settings };
     set('hardware-interval-text', hardwareSpell('interval', settings.intervalSeconds || 60));
     set('hardware-retention-text', hardwareSpell('retention', settings.retentionDays || 30));
     if (!hardwareSettingsFilled) {
@@ -404,6 +445,7 @@ function renderHardwareSettings(overview) {
     const rows = [
         ['GPU reading', `${HARDWARE_GPU_SOURCE[sampler.gpu && sampler.gpu.source] || '–'}${sampler.gpu && sampler.gpu.name ? ` (${sampler.gpu.name})` : ''}`],
         ['Samples stored', `${(stored.total || 0).toLocaleString('en-SG')} in total, ${(stored.last24h || 0).toLocaleString('en-SG')} in the last 24 hours`],
+        ['Oldest sample', stored.oldestAt ? `${hardwareDateWords(stored.oldestAt)} (${hardwareHistoryWords((Date.now() - new Date(stored.oldestAt).getTime()) / 3600000)} ago)` : 'none yet'],
         ['Last sample', sampler.lastSampledAt ? `${hardwareTimeLabel(new Date(sampler.lastSampledAt).getTime(), true)} (${hardwareAgo(sampler.lastSampledAt)})` : 'none yet'],
         ['Last error', sampler.lastError || 'none']
     ];
@@ -664,6 +706,67 @@ async function saveHardwareSettings() {
         }
         payload[field.key] = result.value;
     }
+    // a forecast that reaches further than the samples go back is a rough guide: the admin is told before it is saved
+    const riskier = !hardwareSaved || payload.forecastHours !== hardwareSaved.forecastHours || payload.retentionDays < hardwareSaved.retentionDays;
+    const check = riskier ? await hardwareHorizonCheck(payload) : null;
+    if (check && check.rough && openHardwareHorizonDialog(check, payload)) return;
+    await putHardwareSettings(payload);
+}
+
+// null when the server could not say (the save itself then reports a server that is down)
+async function hardwareHorizonCheck(payload) {
+    const button = document.getElementById('hardware-settings-save');
+    if (button) button.disabled = true;
+    try {
+        const response = await fetch(`/api/admin/hardware/forecast-check?forecastHours=${payload.forecastHours}&retentionDays=${payload.retentionDays}`, { cache: 'no-store' });
+        const data = await response.json();
+        return response.ok && data.success ? data.check : null;
+    } catch (error) {
+        return null;
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+// The reminder: "Go back" keeps the form as it is, "Save anyway" saves it. Returns false when it cannot be shown.
+function openHardwareHorizonDialog(check, payload) {
+    const dialog = document.getElementById('hardware-horizon-dialog');
+    const page = document.getElementById('hardware-page');
+    if (!dialog || typeof dialog.showModal !== 'function' || !page || !page.classList.contains('active')) return false;
+    if (!dialog.dataset.bound) {
+        dialog.dataset.bound = '1';
+        dialog.addEventListener('close', () => { hardwarePendingSave = null; dialog.classList.remove('is-closing'); });
+    }
+    const title = document.getElementById('hardware-horizon-title');
+    const list = document.getElementById('hardware-horizon-list');
+    if (title) title.textContent = `A forecast ${hardwareSpell('horizon', check.horizonHours)} ahead will be a rough guide`;
+    if (list) list.innerHTML = hardwareRoughLines(check).map((line) => `<li>${escapeHtmlSafe(line)}</li>`).join('');
+    hardwarePendingSave = payload;
+    dialog.classList.remove('is-closing');
+    if (!dialog.open) dialog.showModal();
+    const back = document.getElementById('hardware-horizon-back');
+    if (back) back.focus();
+    return true;
+}
+
+function closeHardwareHorizonDialog() {
+    const dialog = document.getElementById('hardware-horizon-dialog');
+    if (!dialog || !dialog.open) return;
+    if (HARDWARE_REDUCE_MOTION) {
+        dialog.close();
+        return;
+    }
+    dialog.classList.add('is-closing');
+    setTimeout(() => { if (dialog.open) dialog.close(); }, 150);
+}
+
+async function confirmHardwareHorizon() {
+    const payload = hardwarePendingSave;
+    closeHardwareHorizonDialog();
+    if (payload) await putHardwareSettings(payload);
+}
+
+async function putHardwareSettings(payload) {
     const button = document.getElementById('hardware-settings-save');
     if (button) button.disabled = true;
     try {

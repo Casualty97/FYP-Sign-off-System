@@ -1,7 +1,8 @@
 // Owner: Role 3, Jun Kai.
 // Usage forecasting for the Hardware page, statistics only (no AI, as agreed with the supervisor):
 // Holt's damped trend (double exponential smoothing) for CPU, memory and GPU, a straight-line fit for
-// the disk. Pure functions, unit-tested in tests/unit/forecast.test.js.
+// the disk, daily averages for forecasts longer than a week, and the check that tells a dependable forecast from
+// a rough guide. Pure functions, unit-tested in tests/unit/forecast.test.js.
 // <Jun Kai start>
 const ALPHAS = [0.2, 0.35, 0.5, 0.65, 0.8];
 const BETAS = [0.02, 0.05, 0.1, 0.2, 0.3];
@@ -129,7 +130,34 @@ function bucketAverage(rows, bucketMs, keys) {
     });
 }
 
+// Forecasts longer than a week work on one average per day instead of 10-minute steps.
+// values: daily averages, oldest first, only the days that have samples; days: how far ahead.
+// Returns the Holt result with at most maxPoints points, each { day (1 = tomorrow), value, low, high }, or null
+// with fewer than 6 days. The damped trend fades within weeks, so far ahead this is the usual level and range.
+function dailyForecast(values, days, maxPoints = 200) {
+    const result = holtForecast(values, days);
+    if (!result) return null;
+    const stepDays = Math.max(1, Math.ceil(days / maxPoints));
+    const points = [];
+    result.points.forEach((p, i) => { if ((i + 1) % stepDays === 0 || i === result.points.length - 1) points.push({ day: i + 1, ...p }); });
+    return { ...result, points, stepDays };
+}
+
+// A forecast is dependable for about as far ahead as the stored samples go back (5 % short still counts: the
+// hourly clean-up keeps the oldest sample hovering around the keep period).
+// rough: the history is shorter than the horizon. reason 'history': it gets there by waiting (waitHours);
+// reason 'retention': samples are deleted before it can (neededRetentionDays is the keep period that would do).
+const HISTORY_TOLERANCE = 0.95;
+function horizonCheck({ horizonHours, historyHours, retentionDays }) {
+    const keptHours = retentionDays * 24;
+    const history = Math.max(0, Math.min(Number(historyHours) || 0, keptHours));
+    const base = { horizonHours, historyHours: Math.round(history), retentionDays };
+    if (history >= horizonHours * HISTORY_TOLERANCE) return { ...base, rough: false, reason: null, waitHours: 0 };
+    if (keptHours < horizonHours * HISTORY_TOLERANCE) return { ...base, rough: true, reason: 'retention', waitHours: null, neededRetentionDays: Math.ceil(horizonHours / 24) };
+    return { ...base, rough: true, reason: 'history', waitHours: Math.ceil(horizonHours - history) };
+}
+
 function round1(n) { return Math.round(n * 10) / 10; }
 
-module.exports = { holt, fitHolt, holtForecast, linearTrend, diskForecast, bucketAverage, clamp, dampingFor };
+module.exports = { holt, fitHolt, holtForecast, dailyForecast, horizonCheck, linearTrend, diskForecast, bucketAverage, clamp, dampingFor };
 // <Jun Kai end>

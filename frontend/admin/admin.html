@@ -3478,7 +3478,7 @@
                             <div class="ui-card-header">
                                 <div>
                                     <h3>Disk</h3>
-                                    <p>Used space on the project drive. The dashed line continues the growth of the last 30 days.</p>
+                                    <p id="hardware-disk-note">Used space on the project drive. The dashed line continues the growth measured so far.</p>
                                 </div>
                             </div>
                             <div class="hw-chart">
@@ -3516,6 +3516,7 @@
                                     <div><span class="ui-fact-label" id="hardware-fc-gpu-label">GPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-gpu">–</span><span class="ui-fact-hint" id="hardware-fc-gpu-hint"></span></div>
                                     <div><span class="ui-fact-label">Disk full in</span><span class="ui-fact-value" id="hardware-fc-disk">–</span><span class="ui-fact-hint" id="hardware-fc-disk-hint"></span></div>
                                 </div>
+                                <div class="ui-note ui-note-warn" id="hardware-forecast-rough" role="note" hidden></div>
                                 <p class="ui-help hw-forecast-method" id="hardware-forecast-method"></p>
                             </div>
                         </div>
@@ -3576,6 +3577,10 @@
                                             <option value="48">2 days</option>
                                             <option value="72">3 days</option>
                                             <option value="168">7 days</option>
+                                            <option value="720">1 month</option>
+                                            <option value="2160">3 months</option>
+                                            <option value="4320">6 months</option>
+                                            <option value="8760">1 year</option>
                                             <option value="custom">Custom</option>
                                         </select>
                                         <div class="hw-custom" id="hardware-horizon-custom" hidden>
@@ -3583,6 +3588,8 @@
                                             <select class="ui-select" id="hardware-horizon-unit" aria-label="Unit of the forecast length">
                                                 <option value="1">hours</option>
                                                 <option value="24">days</option>
+                                                <option value="720">months</option>
+                                                <option value="8760">years</option>
                                             </select>
                                         </div>
                                         <p class="ui-help hw-custom-hint" id="hardware-horizon-hint" hidden></p>
@@ -3592,6 +3599,25 @@
                             <div class="ui-card-body"><dl class="ui-kv" id="hardware-sampler-details"></dl></div>
                         </div>
                     </div>
+                    <!-- shown before a forecast longer than the stored history is saved -->
+                    <dialog class="va-dialog va-dialog-small" id="hardware-horizon-dialog" aria-labelledby="hardware-horizon-title" aria-describedby="hardware-horizon-sub">
+                        <div class="va-dialog-inner">
+                            <div class="va-dialog-head">
+                                <div>
+                                    <h3 id="hardware-horizon-title">This forecast will be a rough guide</h3>
+                                    <div class="va-dialog-sub" id="hardware-horizon-sub">You can still save it. Here is what to expect.</div>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="closeHardwareHorizonDialog()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                            <div class="va-dialog-body">
+                                <ul class="hw-check-list" id="hardware-horizon-list"></ul>
+                            </div>
+                            <div class="va-dialog-foot">
+                                <button type="button" class="ui-btn ui-btn-secondary" id="hardware-horizon-back" onclick="closeHardwareHorizonDialog()">Go back</button>
+                                <button type="button" class="ui-btn ui-btn-primary" id="hardware-horizon-save" onclick="confirmHardwareHorizon()">Save anyway</button>
+                            </div>
+                        </div>
+                    </dialog>
                 </div>
                 <!-- <Jun Kai end> -->
 

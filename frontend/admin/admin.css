@@ -8288,3 +8288,11 @@ input:checked + .slider:before {
     .va-bar-fill, .va-preview, .va-fieldset, .va-records tbody, .va-change > summary::before { transition: none; }
 }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Hardware: the note and the reminder for a forecast that reaches further than the stored samples */
+#hardware-forecast-rough { margin-top: 18px; }
+#hardware-forecast-rough[hidden] { display: none; }
+.hw-check-list { display: grid; gap: 10px; margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.55; color: var(--theme-text-color); }
+#hardware-horizon-dialog .ui-btn:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+/* <Jun Kai end> */

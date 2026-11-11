@@ -112,4 +112,43 @@ test('diskForecast reports a shrinking disk as not growing', () => {
     assert.equal(result.gbPerDay, -2);
     assert.equal(result.totalGb, 200);
 });
+test('dailyForecast needs 6 days and gives at most 200 points for a year', () => {
+    assert.equal(forecast.dailyForecast([20, 21, 22, 21, 20], 30), null);
+    const days = Array.from({ length: 30 }, (_, i) => 30 + (i % 5)); // 30 ... 34, a steady working week
+    const year = forecast.dailyForecast(days, 365);
+    assert.ok(year.points.length <= 200, `${year.points.length} points`);
+    assert.equal(year.points[year.points.length - 1].day, 365);
+    assert.equal(year.stepDays, 2);
+    for (const p of year.points) assert.ok(p.value >= 0 && p.value <= 100 && p.low <= p.value && p.value <= p.high);
+    const month = forecast.dailyForecast(days, 30);
+    assert.equal(month.points.length, 30);
+    assert.deepEqual(month.points.map((p) => p.day).slice(0, 3), [1, 2, 3]);
+});
+
+test('a forecast a year ahead of a steady load stays at its usual level', () => {
+    const days = Array.from({ length: 40 }, (_, i) => 30 + (i % 5));
+    const end = forecast.dailyForecast(days, 365).points.pop();
+    assert.ok(end.value > 27 && end.value < 37, `${end.value} should stay near 32`);
+    assert.ok(end.low < end.value && end.high > end.value, 'with a range around it');
+});
+
+test('horizonCheck: dependable once the samples go back as far as the forecast looks ahead', () => {
+    const week = forecast.horizonCheck({ horizonHours: 24, historyHours: 200, retentionDays: 30 });
+    assert.deepEqual([week.rough, week.reason], [false, null]);
+    // a month ahead with samples kept for 30 days: the oldest sample hovers around 720 hours, which still counts
+    assert.equal(forecast.horizonCheck({ horizonHours: 720, historyHours: 719, retentionDays: 30 }).rough, false);
+    assert.equal(forecast.horizonCheck({ horizonHours: 8760, historyHours: 9000, retentionDays: 365 }).rough, false);
+});
+
+test('horizonCheck: a short history is rough and says whether waiting or a longer keep period fixes it', () => {
+    const waiting = forecast.horizonCheck({ horizonHours: 8760, historyHours: 200, retentionDays: 365 });
+    assert.deepEqual([waiting.rough, waiting.reason, waiting.waitHours], [true, 'history', 8560]);
+    const deleted = forecast.horizonCheck({ horizonHours: 8760, historyHours: 200, retentionDays: 30 });
+    assert.deepEqual([deleted.rough, deleted.reason, deleted.neededRetentionDays], [true, 'retention', 365]);
+    // samples older than the keep period are about to be deleted, so they do not count as history
+    const capped = forecast.horizonCheck({ horizonHours: 2160, historyHours: 5000, retentionDays: 30 });
+    assert.deepEqual([capped.rough, capped.reason, capped.historyHours], [true, 'retention', 720]);
+    const fresh = forecast.horizonCheck({ horizonHours: 24, historyHours: 0, retentionDays: 30 });
+    assert.deepEqual([fresh.rough, fresh.reason, fresh.waitHours], [true, 'history', 24]);
+});
 // <Jun Kai end>
