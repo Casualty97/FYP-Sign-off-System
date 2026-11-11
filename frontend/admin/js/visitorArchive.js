@@ -159,6 +159,24 @@ function vaRecordTotal(c) {
     return { n: records, text: vaPlural(records, 'record') };
 }
 
+// "12 leaves stay on the tree without names", "... with initials" or "..., 5 with initials"; '' when none stays
+function vaLeavesText(kept, initials) {
+    const n = Number(kept) || 0;
+    if (!n) return '';
+    const start = `${vaNum(n)} ${n === 1 ? 'leaf stays' : 'leaves stay'} on the tree`;
+    const named = Math.min(n, Number(initials) || 0);
+    if (!named) return `${start} without ${n === 1 ? 'a name' : 'names'}`;
+    return named === n ? `${start} with initials` : `${start}, ${vaNum(named)} with initials`;
+}
+
+// the leaves of the previewed submissions under the saved "Leaves on the tree" choice; '' when nothing changes on the tree
+function vaLeavesPlan(c, mode, deleting) {
+    const leaves = Number(c.leaves || 0);
+    if (!deleting || !leaves) return '';
+    if (mode === 'remove') return `${vaPlural(leaves, 'leaf leaves', 'leaves leave')} the tree; its year book still counts ${leaves === 1 ? 'it' : 'them'}`;
+    return vaLeavesText(leaves, mode === 'initials' ? c.leavesNamed : 0);
+}
+
 function vaCountsText(c) {
     const visitors = `${vaPlural(c.feedback, 'feedback submission')} from ${vaPlural(c.visitors, 'visitor')}${Number(c.visitorsDeleted) ? ` (${vaNum(c.visitorsDeleted)} deleted)` : ''}`;
     const photos = `${vaPlural(c.photos, 'photo')}${Number(c.missingPhotos) ? ` (${vaNum(c.missingPhotos)} missing)` : ''}`;
@@ -539,6 +557,7 @@ function vaFillForm(s) {
     check('va-include-photos', s.includePhotos);
     check('va-after-delete', s.deleteAfterArchive !== false);
     check('va-after-keep', s.deleteAfterArchive === false);
+    document.getElementById('va-leaves').value = ['initials', 'remove'].includes(s.leaves) ? s.leaves : 'keep';
     check('va-auto-enabled', auto.enabled);
     document.getElementById('va-auto-frequency').value = auto.frequency || 'monthly';
     document.getElementById('va-auto-weekday').value = String(auto.weekday ?? 1);
@@ -749,6 +768,7 @@ function vaReadForm() {
             lostFound: { enabled: lostFoundOn, keep: periods['lostfound-keep'], onlyResolved: document.getElementById('va-lostfound-resolved').checked },
             includePhotos: document.getElementById('va-include-photos').checked,
             deleteAfterArchive: deleteAfter,
+            leaves: document.getElementById('va-leaves').value,
             automatic: {
                 enabled: autoOn, frequency, dayOfMonth: Number(document.getElementById('va-auto-day').value),
                 weekday: Number(document.getElementById('va-auto-weekday').value), everyDays, time, enabledAt: savedAuto.enabledAt ?? null
@@ -998,6 +1018,8 @@ function vaRunRow(run) {
     if (file.state === 'deleted') fileNote = 'File deleted';
     else if (file.state === 'expired') fileNote = 'Expired';
     else if (file.state === 'present' && file.exists === false) fileNote = 'File missing';
+    // a run that left leaves on the digital tree says how many under its records
+    const leaves = vaLeavesText(c.leavesKept, c.leavesWithInitials);
     let note = '';
     if (run.error) note = `<div class="va-row-note" title="${escapeHtmlSafe(run.error)}">${escapeHtmlSafe(run.status === 'done' ? `With a warning: ${run.error}` : run.error)}</div>`;
     const when = vaDateTime(run.startedAt);
@@ -1005,7 +1027,7 @@ function vaRunRow(run) {
     return `<tr data-run="${escapeHtmlSafe(run.id)}">`
         + `<td class="ui-time va-nowrap">${escapeHtmlSafe(when)}</td>`
         + `<td>${escapeHtmlSafe(run.trigger === 'automatic' ? 'Automatic' : run.startedBy || '–')}</td>`
-        + `<td class="va-nowrap" title="${escapeHtmlSafe(vaCountsText(c))}">${escapeHtmlSafe(vaRecordsText(c))}</td>`
+        + `<td class="va-nowrap" title="${escapeHtmlSafe(vaCountsText(c))}">${escapeHtmlSafe(vaRecordsText(c))}${leaves ? `<div class="ui-muted va-row-note">${escapeHtmlSafe(leaves)}</div>` : ''}</td>`
         + `<td class="va-num">${file.size ? escapeHtmlSafe(vaBytes(file.size)) : '<span class="ui-muted">–</span>'}</td>`
         + `<td>${uiPill(tone, word)}${fileNote ? `<div class="ui-muted va-row-note">${fileNote}</div>` : ''}${note}</td>`
         + `<td><div class="ui-actions">${action('view', 'eye', 'View records')}${action('download', 'download', 'Download')}${action('verify', 'search', 'Check file')}${action('delete', 'trash', 'Delete file', true)}</div></td>`
@@ -1478,6 +1500,9 @@ function vaRenderPreview() {
     const photos = vaPhotoParts(c, d, deleting);
     document.getElementById('va-sum-photos').innerHTML = photos.join(', ');
     document.getElementById('va-sum-photos-row').hidden = !photos.length;
+    const leaves = types.includes('feedback') ? vaLeavesPlan(c, s.leaves, deleting) : '';
+    vaSetText('va-sum-leaves', leaves);
+    document.getElementById('va-sum-leaves-row').hidden = !leaves;
     document.getElementById('va-sum-file').innerHTML = escapeHtmlSafe(`About ${vaBytes(d.estimatedBytes)}, ${vaBytes(d.freeBytes)} free`)
         + (numbers.tooBig ? ' <span class="va-warn-text">Not enough free space in the archive folder.</span>' : '');
     document.getElementById('va-run-summary').hidden = false;
@@ -1641,6 +1666,7 @@ function vaShowResult(run) {
     if (file.folder) rows.push(['Folder', file.folder]);
     if (file.size) rows.push(['Size', vaBytes(file.size)]);
     if (run.status === 'done' || run.status === 'saved') rows.push(['Records', vaCountsText(c)]);
+    if (run.status === 'done' && Number(c.leavesKept)) rows.push(['Tree', vaLeavesText(c.leavesKept, c.leavesWithInitials)]);
     const note = run.error ? `<div class="ui-note ${run.status === 'failed' ? 'va-note-error' : 'ui-note-warn'}">${escapeHtmlSafe(vaSentence(run.error))}</div>` : '';
     document.getElementById('va-run-result').innerHTML = `<div class="va-result-head">${uiPill(tone, word)}<span class="va-result-lead">${escapeHtmlSafe(lead)}</span></div>`
         + (rows.length ? `<dl class="ui-kv va-result-kv">${rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(v)}</dd>`).join('')}</dl>` : '')

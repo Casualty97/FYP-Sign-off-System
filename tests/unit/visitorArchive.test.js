@@ -145,6 +145,7 @@ test('read() repairs a hand-edited settings file and write() saves what read() g
         lostFound: { enabled: false, keep: { amount: 1, unit: 'months' }, onlyResolved: false },
         includePhotos: false,
         deleteAfterArchive: true,
+        leaves: 'keep',
         automatic: { enabled: true, frequency: 'monthly', dayOfMonth: 28, weekday: 6, everyDays: 1, time: '', enabledAt: null },
         folder: '',
         keepFiles: { amount: 20, unit: 'years' }

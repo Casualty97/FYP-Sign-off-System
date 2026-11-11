@@ -83,6 +83,8 @@ function tinyPng() {
 // --archive: seeds one visitor and one lost & found report through the API, back-dates them 2 years with SQL, then
 // archives and deletes exactly those records through /api/admin/visitor-archive and checks the zip, the database and
 // the photo files. DB_* must point at the server's own database (it stops when /api/test-db names another one).
+// The archive runs with "Leaves on the tree" on initials (the saved choice is put back afterwards): the seeded leaf
+// must stay on GET /api/tree without the name or the pledge, and must not be counted as a deleted leaf.
 let archiveDir = null;
 async function archiveStep(cookie) {
   const crypto = require('crypto');
@@ -92,6 +94,9 @@ async function archiveStep(cookie) {
   const API = `${BASE}/api/admin/visitor-archive`;
   const dbName = process.env.DB_NAME || 'dp_kiosk_db';
   const send = (body) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body) });
+  const put = (body) => ({ ...send(body), method: 'PUT' });
+  let savedLeaves = null; // the "Leaves on the tree" choice to put back
+  let leafId = null;      // the seeded feedback id, whose kept leaf is removed at the end
   const plain = (text) => String(text).replace(/TypeError|ReferenceError/g, 'Error'); // those words fail the CI log check
   const check = (ok, name, detail) => (ok ? pass(name) : fail(detail ? `${name}: ${plain(detail)}` : name));
 
@@ -120,7 +125,7 @@ async function archiveStep(cookie) {
     // the row is written after the reply, so wait for it and its answer
     let row = null;
     for (let i = 0; i < 20 && !row; i++) {
-      const [rows] = await conn.query('SELECT f.id, f.user_id, u.email_encrypted, (SELECT COUNT(*) FROM feedback_answers a WHERE a.feedback_id = f.id) AS answers FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.comment = ?', [pledge]);
+      const [rows] = await conn.query('SELECT f.id, f.user_id, f.data_retention, u.email_encrypted, (SELECT COUNT(*) FROM feedback_answers a WHERE a.feedback_id = f.id) AS answers FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.comment = ?', [pledge]);
       if (rows[0] && Number(rows[0].answers) > 0) row = rows[0]; else await sleep(500);
     }
     const like = row ? await get(`${BASE}/api/pledgeboard/like/${row.id}`, send({ userIdentifier: `user_${stamp}_smoke` })) : null;
@@ -151,11 +156,26 @@ async function archiveStep(cookie) {
     const pledgesBefore = await pledgesShown();
 
     await expect('GET /api/admin/visitor-archive/overview with the session', `${API}/overview`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.due || r.text.slice(0, 160), { headers: { cookie } });
+
+    // "Leaves on the tree": a wrong value is refused, a valid one is saved and read back; initials for this run
+    const overview = await get(`${API}/overview`, { headers: { cookie } });
+    const leavesBefore = overview.body && overview.body.settings ? overview.body.settings.leaves : null;
+    check(['keep', 'initials', 'remove'].includes(leavesBefore), `the overview sends the "Leaves on the tree" setting (${leavesBefore})`);
+    await expect('PUT /api/admin/visitor-archive/settings refuses an unknown "Leaves on the tree" value', `${API}/settings`, (r) => r.status === 400 && r.body && r.body.field === 'leaves' || r.text.slice(0, 160), put({ leaves: 'everything' }));
+    if (['keep', 'initials', 'remove'].includes(leavesBefore)) savedLeaves = leavesBefore;
+    for (const choice of ['remove', 'initials']) {
+      await expect(`PUT /api/admin/visitor-archive/settings saves "Leaves on the tree" as ${choice}`, `${API}/settings`, (r) => r.body && r.body.success === true && r.body.settings && r.body.settings.leaves === choice || r.text.slice(0, 160), put({ leaves: choice }));
+    }
+    await expect('GET /api/admin/visitor-archive/overview reads the saved choice back', `${API}/overview`, (r) => r.body && r.body.settings && r.body.settings.leaves === 'initials' || r.text.slice(0, 160), { headers: { cookie } });
+    // the tree shows a name only with long-term consent, and only such a leaf keeps initials
+    const nameShown = ['longterm', 'indefinite'].includes(String(row.data_retention || '').toLowerCase());
+    const leafLabel = nameShown ? 'A. S.' : 'Visitor';
+    leafId = row.id;
     const before = new Date(Date.now() + 8 * 3600 * 1000 - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10); // a year ago, as a Singapore date
     const criteria = { types: ['feedback', 'lostFound'], feedbackBefore: before, lostFoundBefore: before, onlyResolved: false, includePhotos: true, only: { feedbackIds: [row.id], lostFoundIds: [reportId] } };
     await expect('POST /api/admin/visitor-archive/preview counts the seeded records', `${API}/preview`, (r) => {
       const c = (r.body && r.body.counts) || {};
-      return c.feedback === 1 && c.visitors === 1 && c.visitorsDeleted === 1 && c.answers === 1 && c.likes === 1 && c.lostFound === 1 && c.photos === 3 && c.missingPhotos === 0 || r.text.slice(0, 200);
+      return c.feedback === 1 && c.visitors === 1 && c.visitorsDeleted === 1 && c.answers === 1 && c.likes === 1 && c.lostFound === 1 && c.photos === 3 && c.missingPhotos === 0 && c.leaves === 1 && c.leavesNamed === (nameShown ? 1 : 0) || r.text.slice(0, 200);
     }, send(criteria));
 
     archiveDir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'kiosk-archive-'));
@@ -172,6 +192,16 @@ async function archiveStep(cookie) {
     }
     const c = (run && run.counts) || {};
     check(run && run.status === 'done' && !run.error && c.feedback === 1 && c.lostFound === 1 && c.visitorsDeleted === 1 && c.photos === 3, `the archive run ends as done (${run ? run.status : 'no answer'})`, run && run.error);
+    check(c.leavesKept === 1 && c.leavesWithInitials === (nameShown ? 1 : 0), `the run says 1 leaf stays on the tree (${c.leavesKept} kept, ${c.leavesWithInitials} with initials)`);
+    await expect('GET /api/admin/visitor-archive/runs lists the kept leaf with the run', `${API}/runs?limit=5`, (r) => {
+      const listed = ((r.body && r.body.runs) || []).find((item) => item.id === runId);
+      return listed && listed.counts && listed.counts.leavesKept === 1 || r.text.slice(0, 200);
+    }, { headers: { cookie } });
+    if (savedLeaves) {
+      const restored = await get(`${API}/settings`, put({ leaves: savedLeaves }));
+      check(restored.body && restored.body.success === true && restored.body.settings.leaves === savedLeaves, `the "Leaves on the tree" setting is put back (${savedLeaves})`, restored.text.slice(0, 160));
+      if (restored.body && restored.body.success === true) savedLeaves = null;
+    }
 
     const zips = fs.readdirSync(archiveDir).filter((f) => f.endsWith('.zip'));
     const file = run && run.file && run.file.name ? path.join(archiveDir, run.file.name) : null;
@@ -182,6 +212,11 @@ async function archiveStep(cookie) {
       `the archive is one zip that starts with PK and matches the run's SHA-256 and its .sha256 file (${zips.length} zip)`);
     if (bytes) {
       const data = await writer.readArchiveData(file);
+      const zipFile = require('../backend/core/zip');
+      const handle = await zipFile.openZip(file);
+      let readme = '';
+      try { readme = (await zipFile.readEntry(handle, (await zipFile.listEntries(handle)).get('README.txt'))).toString('utf8'); } finally { handle.close(); }
+      check(readme.includes("Digital tree: 1 leaf was to stay on the tree, with the visitor's initials where the tree showed the name"), 'README.txt in the zip says that the leaf stays on the tree');
       const contact = (data.lostFound[0] && data.lostFound[0].contact_info_encrypted) || '';
       check(data.visitors[0] && data.visitors[0].email_encrypted === row.email_encrypted && /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/.test(contact) && !JSON.stringify(data).includes(email),
         'the archive keeps the email as the same ciphertext and the lost & found contact encrypted');
@@ -201,17 +236,32 @@ async function archiveStep(cookie) {
     check(!left.length, 'the archived rows are gone from users, feedback, feedback_answers, pledge_likes and lost_found_reports', `still there: ${left.join(', ')}`);
     const tallyAfter = await tallyOf();
     const grew = (kind) => (tallyAfter[kind] || 0) - (tallyBefore[kind] || 0);
-    check(['feedback', 'pledge', 'leaf', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1), 'the deleted rows were added to deleted_record_counts (1 feedback, 1 pledge, 1 leaf, 1 visitor, 1 lost & found)', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
+    check(['feedback', 'pledge', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1) && grew('leaf') === 0, 'the deleted rows were added to deleted_record_counts (1 feedback, 1 pledge, 1 visitor, 1 lost & found) and the leaf that stays was not counted', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
     const visitorsAfter = await visitorsShown();
     check(Number.isFinite(visitorsBefore) && visitorsAfter === visitorsBefore, `the kiosk visitor count does not drop after the delete (${visitorsBefore} before, ${visitorsAfter} after)`);
     const pledgesAfter = await pledgesShown();
     check(Number.isFinite(pledgesBefore) && pledgesAfter === pledgesBefore, `the all-time pledge total does not drop after the delete (${pledgesBefore} before, ${pledgesAfter} after)`);
     await expect('GET /api/pulse/summary shows the same all-time pledge total', `${BASE}/api/pulse/summary`, (r) => r.body && r.body.stats && r.body.stats.totalPledges === pledgesAfter || `pulse ${r.body && r.body.stats && r.body.stats.totalPledges} vs ${pledgesAfter}`);
     const seededYear = Number(new Date(old.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 4));
-    await expect(`GET /api/tree/years still counts the deleted leaf in ${seededYear}`, `${BASE}/api/tree/years`, (r) => {
+    const removedInYear = (await conn.query("SELECT COALESCE(SUM(record_count), 0) AS n FROM deleted_record_counts WHERE kind = 'leaf' AND YEAR(record_day) = ?", [seededYear]))[0][0];
+    await expect(`GET /api/tree/years counts the kept leaf as a leaf of ${seededYear}, not as archived`, `${BASE}/api/tree/years`, (r) => {
       const year = ((r.body && r.body.years) || []).find((item) => Number(item.year) === seededYear);
-      return year && year.archivedLeafCount >= 1 && year.leafCount >= year.archivedLeafCount || r.text.slice(0, 200);
+      return year && year.keptLeafCount >= 1 && year.leafCount >= year.keptLeafCount + (year.archivedLeafCount || 0) && (year.archivedLeafCount || 0) === Number(removedInYear.n) || r.text.slice(0, 200);
     });
+    // the leaf is still on that year's tree: its id, the label, no name, no pledge
+    await expect(`GET /api/tree?year=${seededYear} still lists the archived visitor's leaf as "${leafLabel}"`, `${BASE}/api/tree?year=${seededYear}`, (r) => {
+      const leaf = (Array.isArray(r.body) ? r.body : []).find((item) => item.id === row.id);
+      if (!leaf) return `leaf ${row.id} is not in the answer: ${r.text.slice(0, 160)}`;
+      const text = JSON.stringify(leaf);
+      const empty = Object.entries(leaf).filter(([, value]) => value === undefined || value === 'undefined').map(([key]) => key);
+      return leaf.archived === true && leaf.name === leafLabel && leaf.pledgeSnippet === '' && leaf.pledgeTopic === '' && leaf.badgeKey === 'sustainable-living-advocate'
+        && !!leaf.badgeName && !!leaf.privacyLabel && !empty.length && !text.includes(name) && !r.text.includes(pledge) && !r.text.includes(email) || text.slice(0, 300);
+    });
+    const [[keptLeaf]] = await conn.query('SELECT * FROM archived_leaves WHERE feedback_id = ?', [row.id]);
+    check(keptLeaf && keptLeaf.label === leafLabel && keptLeaf.badge_key === 'sustainable-living-advocate' && Number(keptLeaf.is_vip) === 0 && keptLeaf.archive_id === runId
+      && Math.abs(new Date(keptLeaf.created_at).getTime() - old.getTime()) <= 1000
+      && Object.keys(keptLeaf).sort().join() === 'archive_id,archived_at,badge_key,badge_keys,created_at,feedback_id,is_vip,label',
+    'archived_leaves holds the leaf: its id, date, label, badge and run, and no other column', JSON.stringify(keptLeaf || null));
     const [[gate]] = await conn.query('SELECT COUNT(*) AS n FROM visitor_save_gate');
     check(Number(gate.n) === 0, `the visitor save gate is empty once the run is over (${gate.n} rows)`);
 
@@ -231,12 +281,17 @@ async function archiveStep(cookie) {
     const tallyAfterPerm = await tallyOf();
     const grewPerm = (kind) => (tallyAfterPerm[kind] || 0) - (tallyBeforePerm[kind] || 0);
     check(['feedback', 'pledge', 'leaf', 'visitor'].every((kind) => grewPerm(kind) === 1) && permUserLeft === 0, 'Permanent Data Deletion adds its deletes to deleted_record_counts too (1 feedback, 1 pledge, 1 leaf, 1 visitor)', JSON.stringify({ before: tallyBeforePerm, after: tallyAfterPerm, visitorLeft: permUserLeft }));
+    const [[permLeaf]] = await conn.query('SELECT COUNT(*) AS n FROM archived_leaves WHERE feedback_id = ?', [permFeedback.insertId]);
+    check(Number(permLeaf.n) === 0, 'Permanent Data Deletion leaves no leaf on the tree (a deliberate removal)');
     check((await visitorsShown()) === visitorsBeforePerm && (await pledgesShown()) === pledgesBeforePerm, 'the kiosk visitor count and the all-time pledge total do not drop after Permanent Data Deletion');
     const stillThere = photoFiles.filter((f) => fs.existsSync(f)).length;
     check(onDisk === 3 && stillThere === 0, `the archived photo files are gone (${stillThere} left)`);
   } catch (e) {
     fail(`visitor archive step: ${plain(e.message)}`);
   } finally {
+    // a step that stopped early still puts the setting back, and the seeded leaf never stays on a developer's tree
+    if (savedLeaves) await get(`${API}/settings`, put({ leaves: savedLeaves })).catch(() => {});
+    if (leafId) await conn.query('DELETE FROM archived_leaves WHERE feedback_id = ?', [leafId]).catch(() => {});
     await conn.end().catch(() => {});
   }
 }

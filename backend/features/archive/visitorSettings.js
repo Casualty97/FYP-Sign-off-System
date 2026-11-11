@@ -11,6 +11,7 @@ const DEFAULTS = {
     lostFound: { enabled: true, keep: { amount: 12, unit: 'months' }, onlyResolved: false },
     includePhotos: true,
     deleteAfterArchive: true,
+    leaves: 'keep',
     automatic: { enabled: false, frequency: 'monthly', dayOfMonth: 1, weekday: 1, everyDays: 30, time: '', enabledAt: null },
     folder: '',
     keepFiles: { amount: 0, unit: 'years' }
@@ -23,7 +24,10 @@ const LIMITS = {
     dayOfMonth: [1, 28],
     weekday: [0, 6],
     everyDays: [1, 365],
-    folderMaxLength: 400
+    folderMaxLength: 400,
+    // what happens to a visitor's leaf on the digital tree when their records are archived and deleted:
+    // keep (the leaf stays, no name), initials (it stays with initials), remove (it goes, the year book counts it)
+    leaves: ['keep', 'initials', 'remove']
 };
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 // also used by the scheduler when a hand-edited file has both switched on
@@ -65,6 +69,7 @@ function read() {
         lostFound: { enabled: lf.enabled !== false, keep: readKeep(lf.keep, DEFAULTS.lostFound.keep, LIMITS.keep), onlyResolved: lf.onlyResolved === true },
         includePhotos: stored.includePhotos !== false,
         deleteAfterArchive: stored.deleteAfterArchive !== false,
+        leaves: LIMITS.leaves.includes(stored.leaves) ? stored.leaves : DEFAULTS.leaves,
         automatic: {
             enabled,
             frequency: LIMITS.frequency.includes(auto.frequency) ? auto.frequency : DEFAULTS.automatic.frequency,
@@ -135,6 +140,7 @@ function validate(body, previous = read()) {
         boolField(lostFound.onlyResolved, 'lostFound.onlyResolved'),
         boolField(top('includePhotos'), 'includePhotos'),
         boolField(top('deleteAfterArchive'), 'deleteAfterArchive'),
+        LIMITS.leaves.includes(top('leaves')) ? { value: top('leaves') } : fail('leaves', 'Choose keep the leaf, keep it with initials, or remove it.'),
         boolField(automatic.enabled, 'automatic.enabled'),
         LIMITS.frequency.includes(automatic.frequency) ? { value: automatic.frequency } : fail('automatic.frequency', 'Choose every day, every week, every month or custom.'),
         intField(automatic.dayOfMonth, LIMITS.dayOfMonth, 'automatic.dayOfMonth'),
@@ -146,7 +152,7 @@ function validate(body, previous = read()) {
     ];
     const problem = checks.find((check) => check.error);
     if (problem) return problem;
-    const [fbEnabled, fbKeep, lfEnabled, lfKeep, onlyResolved, includePhotos, deleteAfterArchive, autoEnabled, frequency, dayOfMonth, weekday, everyDays, time, folder, keepFiles] = checks.map((check) => check.value);
+    const [fbEnabled, fbKeep, lfEnabled, lfKeep, onlyResolved, includePhotos, deleteAfterArchive, leaves, autoEnabled, frequency, dayOfMonth, weekday, everyDays, time, folder, keepFiles] = checks.map((check) => check.value);
     if (autoEnabled && !fbEnabled && !lfEnabled) {
         return fail('automatic.enabled', 'Switch on feedback or lost & found archiving before turning on automatic archiving.');
     }
@@ -161,6 +167,7 @@ function validate(body, previous = read()) {
             lostFound: { enabled: lfEnabled, keep: lfKeep, onlyResolved },
             includePhotos,
             deleteAfterArchive,
+            leaves,
             automatic: { enabled: autoEnabled, frequency, dayOfMonth, weekday, everyDays, time, enabledAt },
             folder,
             keepFiles
