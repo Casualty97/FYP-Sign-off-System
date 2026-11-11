@@ -3739,52 +3739,36 @@
                         <button type="button" class="ui-btn ui-btn-secondary" onclick="vaLoad(true)">Try again</button>
                     </div>
 
-                    <div class="ui-card" id="va-summary">
-                        <div class="ui-card-body">
-                            <div class="ui-facts va-facts">
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Ready to archive</span>
-                                    <span class="ui-fact-value" id="va-due-value"><span class="va-skel" style="width: 58%"></span></span>
-                                    <span class="ui-fact-hint" id="va-due-hint"><span class="va-skel" style="width: 82%"></span></span>
-                                </div>
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Automatic archiving<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-auto-enabled')" aria-label="Change automatic archiving">Change</button></span>
-                                    <span class="ui-fact-value" id="va-auto-value"><span class="va-skel" style="width: 46%"></span></span>
-                                    <span class="ui-fact-hint" id="va-auto-hint"><span class="va-skel" style="width: 70%"></span></span>
-                                </div>
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Last archive</span>
-                                    <span class="ui-fact-value" id="va-last-value"><span class="va-skel" style="width: 66%"></span></span>
-                                    <span class="ui-fact-hint" id="va-last-hint"><span class="va-skel" style="width: 76%"></span></span>
-                                </div>
-                                <div class="ui-fact" id="va-folder-fact">
-                                    <span class="ui-fact-label">Archive folder<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-folder')" aria-label="Change the archive folder">Change</button></span>
-                                    <span class="ui-fact-value" id="va-folder-value"><span class="va-skel" style="width: 50%"></span></span>
-                                    <span class="ui-fact-hint va-fact-path" id="va-folder-hint"><span class="va-skel" style="width: 88%"></span></span>
-                                </div>
+                    <div class="va-top" id="va-summary">
+                        <div class="va-facts va-tiles">
+                            <div class="ui-card ui-fact va-tile">
+                                <span class="ui-fact-label">Ready to archive</span>
+                                <span class="ui-fact-value" id="va-due-value"><span class="va-skel" style="width: 58%"></span></span>
+                                <span class="ui-fact-hint" id="va-due-hint"><span class="va-skel" style="width: 82%"></span></span>
+                            </div>
+                            <div class="ui-card ui-fact va-tile">
+                                <span class="ui-fact-label">Automatic archiving<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-auto-enabled')" aria-label="Change automatic archiving">Change</button></span>
+                                <span class="ui-fact-value" id="va-auto-value"><span class="va-skel" style="width: 46%"></span></span>
+                                <span class="ui-fact-hint" id="va-auto-hint"><span class="va-skel" style="width: 70%"></span></span>
+                            </div>
+                            <div class="ui-card ui-fact va-tile">
+                                <span class="ui-fact-label">Last archive</span>
+                                <span class="ui-fact-value" id="va-last-value"><span class="va-skel" style="width: 66%"></span></span>
+                                <span class="ui-fact-hint" id="va-last-hint"><span class="va-skel" style="width: 76%"></span></span>
+                            </div>
+                            <div class="ui-card ui-fact va-tile" id="va-folder-fact">
+                                <span class="ui-fact-label">Archive folder<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-folder')" aria-label="Change the archive folder">Change</button></span>
+                                <span class="ui-fact-value" id="va-folder-value"><span class="va-skel" style="width: 50%"></span></span>
+                                <span class="ui-fact-hint va-fact-path" id="va-folder-hint"><span class="va-skel" style="width: 88%"></span></span>
                             </div>
                         </div>
-                        <div class="ui-card-body va-run-strip" id="va-run-strip" hidden>
-                            <div class="va-run-strip-top">
-                                <span><strong>Archive running</strong><span class="ui-sr-only">: </span><span id="va-run-strip-text">Collecting the records</span></span>
+                        <div class="ui-card va-run-card" id="va-run-strip" hidden>
+                            <div class="ui-card-body va-run-strip">
+                                <div class="va-run-strip-top">
+                                    <span><strong>Archive running</strong><span class="ui-sr-only">: </span><span id="va-run-strip-text">Collecting the records</span></span>
+                                </div>
+                                <div class="va-bar va-bar-thin" role="progressbar" aria-label="Archive progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="va-bar-fill" id="va-run-strip-bar"></div></div>
                             </div>
-                            <div class="va-bar va-bar-thin" role="progressbar" aria-label="Archive progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="va-bar-fill" id="va-run-strip-bar"></div></div>
-                        </div>
-                        <div class="ui-card-body va-lifecycle-body">
-                            <ol class="va-lifecycle" aria-label="What happens to visitor feedback over time">
-                                <li>
-                                    <button type="button" class="va-link va-step-name" onclick="showPage('feedback-data')">Feedback Data</button>
-                                    <span class="va-step-when">New submissions</span>
-                                </li>
-                                <li>
-                                    <button type="button" class="va-link va-step-name" onclick="showPage('archive')">Archived Feedback</button>
-                                    <span class="va-step-when" id="va-life-soft">After 90 days</span>
-                                </li>
-                                <li class="is-here">
-                                    <span class="va-step-name">Visitor Data Archive</span>
-                                    <span class="va-step-when" id="va-life-archive">After 12 months, when you archive</span>
-                                </li>
-                            </ol>
                         </div>
                     </div>
 
@@ -3808,7 +3792,7 @@
                         </div>
                         <div class="ui-card-body va-history-foot" id="va-history-foot" hidden>
                             <span class="ui-fact-hint" id="va-history-more-text"></span>
-                            <button type="button" class="ui-btn ui-btn-secondary" id="va-history-more" onclick="vaShowMoreHistory()">Show more</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="va-history-more" onclick="vaHistoryMoreClick()">Show more</button>
                         </div>
                     </div>
 
@@ -3823,7 +3807,7 @@
                                     </div>
                                 </div>
                                 <div class="ui-card-body">
-                                    <div class="va-types">
+                                    <div class="va-types va-types-3">
                                         <div class="va-type" id="va-feedback-type">
                                             <div class="va-option">
                                                 <div class="va-option-text">
@@ -3887,17 +3871,19 @@
                                             </div>
                                             <label class="ui-check"><input type="checkbox" id="va-lostfound-resolved"><span>Only resolved reports</span></label>
                                         </div>
+                                        <div class="va-type" id="va-photos-type">
+                                            <div class="va-option">
+                                                <div class="va-option-text">
+                                                    <label class="va-option-label" for="va-include-photos">Include photos</label>
+                                                    <span class="va-option-desc" id="va-photos-desc">When off, photos are deleted with the records and not kept.</span>
+                                                </div>
+                                                <label class="ui-switch"><input type="checkbox" id="va-include-photos" role="switch" aria-describedby="va-photos-desc" checked><span class="ui-switch-track"></span></label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="ui-card-body">
                                     <div class="va-types">
-                                        <div class="va-option">
-                                            <div class="va-option-text">
-                                                <label class="va-option-label" for="va-include-photos">Include photos</label>
-                                                <span class="va-option-desc" id="va-photos-desc">When off, photos are deleted with the records and not kept.</span>
-                                            </div>
-                                            <label class="ui-switch"><input type="checkbox" id="va-include-photos" role="switch" aria-describedby="va-photos-desc" checked><span class="ui-switch-track"></span></label>
-                                        </div>
                                         <div class="va-radios" role="radiogroup" aria-labelledby="va-after-label">
                                             <span class="ui-label" id="va-after-label">After a checked archive</span>
                                             <label class="ui-check"><input type="radio" name="va-after" id="va-after-delete" value="delete" checked><span>Delete the records from the database</span></label>

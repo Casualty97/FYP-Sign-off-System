@@ -35,6 +35,9 @@ const vaAfterClose = {};
 
 const VA_PAGE_SIZE = 25;
 const VA_HISTORY_STEP = 100;
+// the history shows the 5 newest archives until Show all is clicked (12 Nov 2026 design)
+const VA_HISTORY_FOLD = 5;
+let vaHistoryFolded = true;
 const VA_HISTORY_MAX = 1000;
 const VA_AUTO_NEEDS_DELETE = 'Automatic archiving needs Delete the records from the database. With export only, every run would save the same records again.';
 const VA_NETWORK_FOLDER = 'Choose a folder on this PC or on a drive plugged into it. Network folders are not supported.';
@@ -1057,18 +1060,43 @@ function vaRenderHistory(failed) {
         vaUpdateTableFade();
         return;
     }
-    const markup = vaRuns.map(vaRunRow);
-    const sameRows = vaHistoryMarkup.length === markup.length && [...body.rows].every((row, i) => row.dataset.run === String(vaRuns[i].id));
+    const shown = vaHistoryFolded ? vaRuns.slice(0, VA_HISTORY_FOLD) : vaRuns;
+    const markup = shown.map(vaRunRow);
+    const sameRows = vaHistoryMarkup.length === markup.length && [...body.rows].every((row, i) => row.dataset.run === String(shown[i].id));
     if (sameRows) markup.forEach((html, i) => { if (vaHistoryMarkup[i] !== html) body.rows[i].outerHTML = html; });
     else body.innerHTML = markup.join('');
     vaHistoryMarkup = markup;
-    // Show more adds 100 rows at a time, up to the server's limit of 1,000
-    foot.hidden = !(runs > vaRuns.length);
+    // Show all opens the rest of the loaded rows, Show more fetches 100 more (up to the server's limit of 1,000), Show
+    // fewer folds the list back to the 5 newest
+    const folded = vaHistoryFolded && vaRuns.length > VA_HISTORY_FOLD;
+    const more = !folded && runs > vaRuns.length && vaHistoryLimit < VA_HISTORY_MAX;
+    const fewer = !folded && !more && vaRuns.length > VA_HISTORY_FOLD;
+    foot.hidden = !(folded || more || fewer || runs > vaRuns.length);
     if (!foot.hidden) {
-        vaSetText('va-history-more-text', `Showing the latest ${vaNum(vaRuns.length)} of ${vaNum(runs)} archives.`);
-        document.getElementById('va-history-more').hidden = vaHistoryLimit >= VA_HISTORY_MAX;
+        vaSetText('va-history-more-text', folded ? `Showing the ${VA_HISTORY_FOLD} newest of ${vaNum(runs)} archives.`
+            : runs > vaRuns.length ? `Showing the latest ${vaNum(vaRuns.length)} of ${vaNum(runs)} archives.` : `Showing all ${vaNum(runs)} archives.`);
+        const button = document.getElementById('va-history-more');
+        button.hidden = !(folded || more || fewer);
+        button.textContent = folded ? `Show all ${vaNum(runs)} archives` : more ? 'Show more' : 'Show fewer';
     }
     vaUpdateTableFade();
+}
+
+function vaHistoryMoreClick() {
+    if (vaHistoryFolded) {
+        vaHistoryFolded = false;
+        vaRenderHistory();
+        return;
+    }
+    const runs = Number((vaData && vaData.totals && vaData.totals.runs) || 0);
+    if (runs > vaRuns.length && vaHistoryLimit < VA_HISTORY_MAX) {
+        vaShowMoreHistory();
+        return;
+    }
+    vaHistoryFolded = true;
+    vaRenderHistory();
+    const title = document.getElementById('va-history-title');
+    if (title) title.focus();
 }
 
 function vaShowMoreHistory() {

@@ -8589,3 +8589,28 @@ button.policy-cal-day:hover { border-color: #b8c4d3; }
 }
 @media (prefers-reduced-motion: reduce) { .policy-cal-day, .policy-color input + span { transition: none; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Visitor Data Archive, 12 Nov 2026 design: four plain tiles on top (big numbers, no colour), the record types as
+   coloured cards at the bottom */
+.va-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+.va-tiles > .ui-card + .ui-card { margin-top: 0; }
+/* contain: a long folder path must not widen the page; it is cut with an ellipsis inside its tile */
+.va-tile { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 4px; min-width: 0; padding: 18px 20px; contain: inline-size; }
+.va-tile .va-fact-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.va-tile .ui-fact-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-dark-gray); }
+.va-tile .va-fact-change { margin-left: 0; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.va-tile .ui-fact-value { font-size: 26px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+.va-tile .ui-fact-hint { margin-top: 2px; }
+.va-run-card { margin-bottom: 20px; }
+.va-types-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.va-types-3 > .va-type { padding: 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; }
+#va-feedback-type { background: #f0f6ff; border-color: #c7dcfb; }
+#va-lostfound-type { background: #effaf6; border-color: #b9e8d9; }
+#va-photos-type { background: #fbf3f9; border-color: #ecc9e2; }
+@media (max-width: 1100px) {
+    .va-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .va-types-3 { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) { .va-tiles { grid-template-columns: 1fr; } }
+/* <Jun Kai end> */
