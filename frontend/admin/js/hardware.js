@@ -1,5 +1,6 @@
 // Owner: Role 3, Jun Kai.
-// Hardware page: stat tiles from GET /api/admin/hardware/overview, four Chart.js line graphs with the
+// Hardware page: a card per part from GET /api/admin/hardware/overview (the cards pick what the graph shows: every
+// part together or one part with its own numbers), Chart.js line graphs with the
 // forecast from GET /api/admin/hardware/series?range=..., the table view and the sampling settings (a forecast
 // longer than the stored history is marked as a rough guide, and saving one asks first).
 // Charts are created once and updated in place, so nothing on the page jumps while data arrives.
@@ -16,6 +17,18 @@ const hardwareCharts = {};
 
 const HARDWARE_METRICS = ['cpu', 'memory', 'gpu', 'disk'];
 const HARDWARE_ACCENT = '#2a78d6';
+// a colour per part, the same on its card and its line (checked for colour-blind readers)
+const HARDWARE_COLORS = { cpu: '#1f6fd0', memory: '#14a88a', gpu: '#a0408f', disk: '#1e293b' };
+const HARDWARE_NAMES = { cpu: 'CPU', memory: 'Memory', gpu: 'GPU', disk: 'Disk' };
+const HARDWARE_PART_TEXT = {
+    all: 'Every part on one graph. Click a part on the left to see it on its own.',
+    cpu: 'Average use. The dashed line is the forecast, the shaded band its typical error.',
+    memory: 'Share of the installed memory in use.',
+    gpu: 'Busiest GPU engine, as Task Manager reports it.',
+    disk: 'Used space on the project drive.'
+};
+let hardwarePart = 'all';
+let hardwareDiskText = HARDWARE_PART_TEXT.disk;
 const HARDWARE_RANGES = {
     '1h': { seconds: 3600, tick: 10 * 60000, text: 'Averages per minute, last hour', forecast: false },
     '6h': { seconds: 6 * 3600, tick: 3600000, text: 'Averages per 5 minutes, last 6 hours', forecast: false },
@@ -139,6 +152,45 @@ function hardwareBuildTicks(scale) {
 // Draws the "now" hairline that separates measured values from the forecast, and the hover crosshair
 const hardwareGuidePlugin = {
     id: 'hardwareGuide',
+    // under the lines: hatching where there were no samples, and the 85 % and 95 % limits
+    beforeDatasetsDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        if (!chartArea || !scales.x || !scales.y) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+        ctx.lineWidth = 1;
+        for (const [from, to] of chart.$hardwareSpans || []) {
+            const x1 = Math.max(chartArea.left, scales.x.getPixelForValue(from));
+            const x2 = Math.min(chartArea.right, scales.x.getPixelForValue(to));
+            if (x2 - x1 < 3) continue;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x1, chartArea.top, x2 - x1, chartArea.bottom - chartArea.top);
+            ctx.clip();
+            const height = chartArea.bottom - chartArea.top;
+            ctx.beginPath();
+            for (let x = x1 - height; x < x2; x += 7) { ctx.moveTo(x, chartArea.bottom); ctx.lineTo(x + height, chartArea.top); }
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+        ctx.textAlign = 'right';
+        ctx.setLineDash([3, 4]);
+        for (const [value, color, label] of [[85, '#b45309', '85% amber'], [95, '#b91c1c', '95% red']]) {
+            const y = scales.y.getPixelForValue(value);
+            ctx.strokeStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(chartArea.left, y);
+            ctx.lineTo(chartArea.right, y);
+            ctx.stroke();
+            ctx.fillStyle = color;
+            ctx.fillText(label, chartArea.right - 6, y - 4);
+        }
+        ctx.restore();
+    },
     afterDraw(chart) {
         const { ctx, chartArea, scales } = chart;
         if (!chartArea || !scales.x) return;
@@ -170,12 +222,13 @@ const hardwareGuidePlugin = {
 
 function hardwareChartConfig(key) {
     const theme = hardwareTheme();
+    const color = HARDWARE_COLORS[key] || HARDWARE_ACCENT;
     const series = (label, dash) => ({
-        label, data: [], borderColor: HARDWARE_ACCENT, borderWidth: 2, borderDash: dash, borderCapStyle: 'round', borderJoinStyle: 'round',
-        pointRadius: 0, pointHitRadius: 16, pointHoverRadius: 4, pointHoverBackgroundColor: HARDWARE_ACCENT, pointHoverBorderColor: theme.card, pointHoverBorderWidth: 2,
+        label, data: [], borderColor: color, borderWidth: 2, borderDash: dash, borderCapStyle: 'round', borderJoinStyle: 'round',
+        pointRadius: 0, pointHitRadius: 16, pointHoverRadius: 4, pointHoverBackgroundColor: color, pointHoverBorderColor: theme.card, pointHoverBorderWidth: 2,
         tension: 0.25, spanGaps: false, fill: false
     });
-    const band = (fill) => ({ label: 'band', data: [], borderWidth: 0, pointRadius: 0, pointHitRadius: 0, pointHoverRadius: 0, backgroundColor: 'rgba(42, 120, 214, 0.10)', fill, isBand: true, tension: 0.25 });
+    const band = (fill) => ({ label: 'band', data: [], borderWidth: 0, pointRadius: 0, pointHitRadius: 0, pointHoverRadius: 0, backgroundColor: `${color}1f`, fill, isBand: true, tension: 0.25 });
     return {
         type: 'line',
         data: { datasets: [series('Measured', []), series('Forecast', [5, 4]), band(false), band('-1')] },
@@ -225,6 +278,13 @@ function ensureHardwareCharts() {
         if (!hardwareCharts[key]) hardwareCharts[key] = new Chart(canvas, hardwareChartConfig(key));
         else hardwareCharts[key].resize();
     }
+    // the graph with every part: the four datasets of each part, one after the other
+    const canvas = document.getElementById('hardware-all-chart');
+    if (canvas && !hardwareCharts.all) {
+        const config = hardwareChartConfig('cpu');
+        config.data.datasets = HARDWARE_METRICS.flatMap((key) => hardwareChartConfig(key).data.datasets.map((d) => ({ ...d, label: d.isBand ? 'band' : `${HARDWARE_NAMES[key]} ${d.label.toLowerCase()}` })));
+        hardwareCharts.all = new Chart(canvas, config);
+    } else if (hardwareCharts.all) hardwareCharts.all.resize();
     return true;
 }
 
@@ -266,6 +326,11 @@ function renderHardwareSeries(data) {
     // overnight) gets an empty point, so the line breaks there instead of drawing straight across the night
     const gapMs = Math.max(data.bucketSeconds || 0, hardwareIntervalSeconds) * 3000;
     const gapAfter = new Set(points.filter((p, i) => i + 1 < points.length && points[i + 1].t - p.t > gapMs).map((p) => p.t));
+    // stretches of the range with no samples at all (the PC asleep or the server stopped): the graphs hatch them
+    const spans = [];
+    let seen = xMin;
+    for (const p of points) { if (p.t - seen > gapMs) spans.push([seen, p.t]); seen = Math.max(seen, p.t); }
+    if (points.length && now - seen > gapMs) spans.push([seen, now]);
     for (const key of HARDWARE_METRICS) {
         const chart = hardwareCharts[key];
         if (!chart) continue;
@@ -295,6 +360,7 @@ function renderHardwareSeries(data) {
         }
         chart.$hardwareNow = showForecast && projected.data.length ? lastT : null;
         chart.$hardwareTheme = theme;
+        chart.$hardwareSpans = spans;
         chart.$hardwareRange = rangeKey;
         // ticks follow the span actually drawn: a forecast or a clipped start changes it
         const span = (horizonEnd - xMin) / 1000;
@@ -312,25 +378,100 @@ function renderHardwareSeries(data) {
             empty.textContent = key === 'gpu' && !hasValue && points.length ? 'No GPU reading on this PC' : 'Waiting for samples';
         }
     }
+    const together = hardwareCharts.all;
+    if (together) {
+        const parts = HARDWARE_METRICS.map((key) => hardwareCharts[key]).filter(Boolean);
+        parts.forEach((chart, i) => chart.data.datasets.forEach((d, j) => { together.data.datasets[i * 4 + j].data = d.data; }));
+        const xMax = Math.max(now, ...parts.map((chart) => chart.options.scales.x.max));
+        const forecastFrom = parts.map((chart) => chart.$hardwareNow).find(Boolean) || null;
+        const span = (xMax - xMin) / 1000;
+        together.$hardwareNow = forecastFrom;
+        together.$hardwareTheme = theme;
+        together.$hardwareSpans = spans;
+        together.$hardwareRange = rangeKey;
+        together.$hardwarePlan = clipped || span > range.seconds * 1.25 ? hardwareTickPlan(span) : range.plan;
+        together.options.scales.x.min = xMin;
+        together.options.scales.x.max = xMax;
+        together.options.scales.x.ticks.color = theme.muted;
+        together.options.scales.y.ticks.color = theme.muted;
+        together.options.scales.y.grid.color = theme.grid;
+        together.update(hardwareDrawn ? 'none' : undefined);
+        const empty = document.getElementById('hardware-all-empty');
+        if (empty) empty.hidden = points.length > 0;
+    }
     hardwareDrawn = true;
 }
 
-function renderHardwareTiles(overview) {
+// The card of each part: Normal, High or Critical, by the same limits as the lines on the graph
+function renderHardwareKeys(overview) {
+    const latest = overview.latest || {};
+    const now = { cpu: latest.cpu, memory: latest.memory && latest.memory.percent, gpu: latest.gpu && latest.gpu.percent, disk: latest.disk && latest.disk.percent };
+    for (const key of HARDWARE_METRICS) {
+        const pill = document.getElementById(`hardware-${key}-pill`);
+        if (!pill) continue;
+        const value = now[key];
+        const known = value !== null && value !== undefined;
+        const tone = known ? hardwareTone(value) : 'muted';
+        pill.className = `ui-pill ui-pill-${tone}`;
+        pill.innerHTML = `<span class="ui-dot"></span>${known ? { ok: 'Normal', warn: 'High', down: 'Critical' }[tone] : 'No reading'}`;
+    }
+}
+
+// Under the graph of one part: now, average, peak and lowest of the range shown, and its forecast.
+// Also the short forecast line on each card.
+function renderHardwareFacts(latest) {
+    const text = (id) => { const el = document.getElementById(id); return el ? el.textContent : ''; };
+    const percent = (v) => (v === null || v === undefined ? '–' : `${Number(v).toFixed(0)}%`);
+    const now = { cpu: latest && latest.cpu, memory: latest && latest.memory && latest.memory.percent, gpu: latest && latest.gpu && latest.gpu.percent, disk: latest && latest.disk && latest.disk.percent };
+    for (const key of HARDWARE_METRICS) {
+        const rows = hardwareLastPoints.filter((p) => p[key] !== null && p[key] !== undefined);
+        let low = null; let high = null; let sum = 0;
+        for (const p of rows) { if (!low || p[key] < low[key]) low = p; if (!high || p[key] > high[key]) high = p; sum += p[key]; }
+        const label = key === 'disk' ? 'Disk full in' : text(`hardware-fc-${key}-label`);
+        const value = text(`hardware-fc-${key}`);
+        const facts = [
+            ['Now', percent(now[key]), latest && latest.at ? `sampled ${hardwareAgo(latest.at)}` : ''],
+            ['Average in this range', rows.length ? percent(sum / rows.length) : '–', `${rows.length} points`],
+            ['Peak in this range', high ? percent(high[key]) : '–', high ? `at ${hardwareTimeLabel(high.t, true)}` : ''],
+            ['Lowest in this range', low ? percent(low[key]) : '–', low ? `at ${hardwareTimeLabel(low.t, true)}` : ''],
+            [label, value, text(`hardware-fc-${key}-hint`)]
+        ];
+        const box = document.getElementById(`hardware-${key}-facts`);
+        if (box) box.innerHTML = facts.map(([l, v, h]) => `<div><span class="ui-fact-label">${escapeHtmlSafe(l)}</span><span class="ui-fact-value">${escapeHtmlSafe(v)}</span><span class="ui-fact-hint">${escapeHtmlSafe(h)}</span></div>`).join('');
+        const next = document.getElementById(`hardware-${key}-next`);
+        if (next) next.textContent = value === '–' || !value ? 'forecast not ready' : key === 'disk' ? (value === 'Not growing' ? 'not growing' : `full in ${value}`) : `${value} ${label.replace(/^\S+ /, '')}`;
+    }
+    hardwarePartWords();
+}
+
+function hardwarePartWords() {
+    const title = document.getElementById('hardware-main-title');
+    const words = document.getElementById('hardware-main-text');
+    if (title) title.textContent = hardwareTableOpen ? 'Values' : hardwarePart === 'all' ? 'All parts' : HARDWARE_NAMES[hardwarePart];
+    if (words) words.textContent = hardwareTableOpen ? 'The same averages as the graph, every part, newest first.' : hardwarePart === 'disk' ? hardwareDiskText : HARDWARE_PART_TEXT[hardwarePart];
+}
+
+// The cards on the left are the switch: every part on one graph, or one part with its own numbers
+function setHardwarePart(part) {
+    if (part !== 'all' && !HARDWARE_METRICS.includes(part)) return;
+    hardwarePart = part;
+    document.querySelectorAll('#hardware-page .hw-key').forEach((key) => key.setAttribute('aria-pressed', String(key.dataset.part === part)));
+    document.querySelectorAll('#hardware-page .hw-plot').forEach((panel) => { panel.hidden = panel.dataset.partPanel !== part; });
+    hardwarePartWords();
+    ensureHardwareCharts();
+}
+
+// The number and the line under it on each part card
+function renderHardwareCards(overview) {
     const latest = overview.latest;
     const sampler = overview.sampler || {};
     const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-    const meter = (key, percent) => {
-        const el = document.getElementById(`hardware-${key}-meter`);
-        if (!el) return;
-        el.style.width = percent === null || percent === undefined ? '0%' : `${Math.max(2, percent)}%`;
-        el.className = `hw-meter-fill${percent === null || percent === undefined ? '' : ` hw-meter-${hardwareTone(percent)}`}`;
-    };
     const gb = (mb) => (mb / 1024).toFixed(1);
     const pill = document.getElementById('hardware-sampler-pill');
     const pillState = sampler.lastError ? ['down', 'Sampler error'] : sampler.running ? ['ok', `Sampling every ${sampler.intervalSeconds} s`] : ['muted', 'Sampler off'];
     if (pill) { pill.className = `ui-pill ui-pill-${pillState[0]}`; pill.innerHTML = `<span class="ui-dot"></span>${escapeHtmlSafe(pillState[1])}`; }
     if (!latest) {
-        for (const key of HARDWARE_METRICS) { set(`hardware-${key}-value`, '–'); meter(key, null); }
+        for (const key of HARDWARE_METRICS) set(`hardware-${key}-value`, '–');
         const waiting = sampler.lastError ? sampler.lastError : 'Waiting for the first sample (about 10 seconds after the server starts)';
         set('hardware-cpu-hint', waiting);
         set('hardware-memory-hint', '');
@@ -340,23 +481,18 @@ function renderHardwareTiles(overview) {
     }
     const ago = hardwareAgo(latest.at);
     set('hardware-cpu-value', latest.cpu === null || latest.cpu === undefined ? '–' : latest.cpu.toFixed(0));
-    meter('cpu', latest.cpu);
     set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'No CPU reading in the last sample' : `Average over the last interval, sampled ${ago}`);
     set('hardware-memory-value', latest.memory ? latest.memory.percent.toFixed(0) : '–');
-    meter('memory', latest.memory ? latest.memory.percent : null);
     set('hardware-memory-hint', latest.memory ? `${gb(latest.memory.usedMb)} of ${gb(latest.memory.totalMb)} GB in use` : '');
     set('hardware-disk-value', latest.disk ? latest.disk.percent.toFixed(0) : '–');
-    meter('disk', latest.disk ? latest.disk.percent : null);
     set('hardware-disk-hint', latest.disk ? `${latest.disk.usedGb} of ${latest.disk.totalGb} GB used on the project drive` : '');
     if (latest.gpu && latest.gpu.percent !== null && latest.gpu.percent !== undefined) {
         set('hardware-gpu-value', latest.gpu.percent.toFixed(0));
-        meter('gpu', latest.gpu.percent);
         const memoryText = latest.gpu.memoryUsedMb ? `${gb(latest.gpu.memoryUsedMb)} GB${latest.gpu.memoryTotalMb ? ` of ${gb(latest.gpu.memoryTotalMb)} GB` : ''} memory in use` : '';
         const name = sampler.gpu && sampler.gpu.name ? sampler.gpu.name : '';
         set('hardware-gpu-hint', [name, memoryText].filter(Boolean).join(', '));
     } else {
         set('hardware-gpu-value', '–');
-        meter('gpu', null);
         set('hardware-gpu-hint', HARDWARE_GPU_SOURCE[sampler.gpu && sampler.gpu.source] || 'No GPU reading on this PC');
     }
 }
@@ -395,7 +531,7 @@ function renderHardwareForecast(forecast, latest) {
     }
     const fitDays = disk ? Math.round(disk.spanDays) : 0;
     const fitWords = fitDays >= 1 ? `of the last ${fitDays === 1 ? 'day' : `${fitDays} days`}` : 'measured so far';
-    set('hardware-disk-note', disk && disk.daysUntilFull === null ? 'Used space on the project drive. It is not growing, so the dashed line stays level.' : `Used space on the project drive. The dashed line continues the growth ${fitWords}.`);
+    hardwareDiskText = disk && disk.daysUntilFull === null ? 'Used space on the project drive. It is not growing, so the dashed line stays level.' : `Used space on the project drive. The dashed line continues the growth ${fitWords}.`;
     const note = document.getElementById('hardware-forecast-rough');
     if (note) {
         const check = forecast && forecast.check;
@@ -487,12 +623,14 @@ async function loadHardware() {
         ]);
         const overview = await overviewResponse.json();
         if (!overviewResponse.ok || !overview.success) throw new Error(overview.error || 'Overview failed');
-        renderHardwareTiles(overview.overview);
+        renderHardwareCards(overview.overview);
+        renderHardwareKeys(overview.overview);
         renderHardwareSettings(overview.overview);
         const series = await seriesResponse.json();
         if (!seriesResponse.ok || !series.success) throw new Error(series.error || 'Series failed');
         renderHardwareSeries(series);
         renderHardwareForecast(series.forecast, overview.overview.latest);
+        renderHardwareFacts(overview.overview.latest);
         if (hardwareTableOpen) renderHardwareTable();
     } catch (error) {
         console.error('❌ Error loading hardware:', error);
@@ -605,6 +743,7 @@ function toggleHardwareTable() {
     if (table) table.hidden = !hardwareTableOpen;
     if (charts) charts.hidden = hardwareTableOpen;
     if (button) button.textContent = hardwareTableOpen ? 'Graph view' : 'Table view';
+    hardwarePartWords();
     if (hardwareTableOpen) renderHardwareTable();
     else ensureHardwareCharts();
 }

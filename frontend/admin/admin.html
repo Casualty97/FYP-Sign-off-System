@@ -3377,34 +3377,51 @@
                             <button class="ui-btn ui-btn-secondary" id="hardware-refresh-btn" onclick="loadHardware()">Refresh</button>
                         </div>
                     </div>
-                    <div class="hw-tiles">
-                        <div class="hw-tile" id="hardware-tile-cpu">
-                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span><span>CPU</span></div>
-                            <div class="hw-tile-value"><span id="hardware-cpu-value">–</span><span class="hw-tile-unit">%</span></div>
-                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-cpu-meter"></div></div>
-                            <div class="hw-tile-hint" id="hardware-cpu-hint"></div>
+                    <div class="hw-room">
+                        <div class="hw-keys" role="group" aria-label="Part of the PC to show">
+                            <button type="button" class="hw-key hw-key-all" data-part="all" aria-pressed="true" onclick="setHardwarePart('all')">
+                                <span class="hw-key-name"><span class="hw-swatches" aria-hidden="true"><span class="hw-c-cpu"></span><span class="hw-c-memory"></span><span class="hw-c-gpu"></span><span class="hw-c-disk"></span></span>All parts</span>
+                                <span class="hw-key-side">on one graph</span>
+                            </button>
+                            <button type="button" class="hw-key hw-key-cpu" data-part="cpu" aria-pressed="false" onclick="setHardwarePart('cpu')">
+                                <span class="hw-key-name"><span class="hw-key-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span>CPU</span>
+                                <span class="ui-pill ui-pill-muted" id="hardware-cpu-pill"><span class="ui-dot"></span>Loading</span>
+                                <span class="hw-key-value"><span id="hardware-cpu-value">–</span><small>%</small></span>
+                                <span class="hw-key-side" id="hardware-cpu-next"></span>
+                                <span class="hw-key-hint" id="hardware-cpu-hint"></span>
+                            </button>
+                            <button type="button" class="hw-key hw-key-memory" data-part="memory" aria-pressed="false" onclick="setHardwarePart('memory')">
+                                <span class="hw-key-name"><span class="hw-key-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg></span>Memory</span>
+                                <span class="ui-pill ui-pill-muted" id="hardware-memory-pill"><span class="ui-dot"></span>Loading</span>
+                                <span class="hw-key-value"><span id="hardware-memory-value">–</span><small>%</small></span>
+                                <span class="hw-key-side" id="hardware-memory-next"></span>
+                                <span class="hw-key-hint" id="hardware-memory-hint"></span>
+                            </button>
+                            <button type="button" class="hw-key hw-key-gpu" data-part="gpu" aria-pressed="false" onclick="setHardwarePart('gpu')">
+                                <span class="hw-key-name"><span class="hw-key-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>GPU</span>
+                                <span class="ui-pill ui-pill-muted" id="hardware-gpu-pill"><span class="ui-dot"></span>Loading</span>
+                                <span class="hw-key-value"><span id="hardware-gpu-value">–</span><small>%</small></span>
+                                <span class="hw-key-side" id="hardware-gpu-next"></span>
+                                <span class="hw-key-hint" id="hardware-gpu-hint"></span>
+                            </button>
+                            <button type="button" class="hw-key hw-key-disk" data-part="disk" aria-pressed="false" onclick="setHardwarePart('disk')">
+                                <span class="hw-key-name"><span class="hw-key-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg></span>Disk</span>
+                                <span class="ui-pill ui-pill-muted" id="hardware-disk-pill"><span class="ui-dot"></span>Loading</span>
+                                <span class="hw-key-value"><span id="hardware-disk-value">–</span><small>%</small></span>
+                                <span class="hw-key-side" id="hardware-disk-next"></span>
+                                <span class="hw-key-hint" id="hardware-disk-hint"></span>
+                            </button>
                         </div>
-                        <div class="hw-tile" id="hardware-tile-memory">
-                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg></span><span>Memory</span></div>
-                            <div class="hw-tile-value"><span id="hardware-memory-value">–</span><span class="hw-tile-unit">%</span></div>
-                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-memory-meter"></div></div>
-                            <div class="hw-tile-hint" id="hardware-memory-hint"></div>
-                        </div>
-                        <div class="hw-tile" id="hardware-tile-gpu">
-                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span><span>GPU</span></div>
-                            <div class="hw-tile-value"><span id="hardware-gpu-value">–</span><span class="hw-tile-unit">%</span></div>
-                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-gpu-meter"></div></div>
-                            <div class="hw-tile-hint" id="hardware-gpu-hint"></div>
-                        </div>
-                        <div class="hw-tile" id="hardware-tile-disk">
-                            <div class="hw-tile-top"><span class="hw-tile-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg></span><span>Disk</span></div>
-                            <div class="hw-tile-value"><span id="hardware-disk-value">–</span><span class="hw-tile-unit">%</span></div>
-                            <div class="hw-meter"><div class="hw-meter-fill" id="hardware-disk-meter"></div></div>
-                            <div class="hw-tile-hint" id="hardware-disk-hint"></div>
-                        </div>
-                    </div>
-                    <div class="hw-toolbar">
-                        <div class="hw-range" id="hardware-range-wrap">
+                        <div class="ui-card hw-main">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3 id="hardware-main-title">All parts</h3>
+                                    <p id="hardware-main-text">Every part on one graph. Click a part on the left to see it on its own.</p>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-secondary" id="hardware-table-btn" onclick="toggleHardwareTable()">Table view</button>
+                            </div>
+                            <div class="hw-toolbar">
+                                <div class="hw-range" id="hardware-range-wrap">
                             <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
                                 <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
                                 <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
@@ -3432,73 +3449,58 @@
                                 </div>
                             </form>
                         </div>
-                        <div class="ui-row">
-                            <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
-                            <button type="button" class="ui-btn ui-btn-secondary" id="hardware-table-btn" onclick="toggleHardwareTable()">Table view</button>
-                        </div>
-                    </div>
-                    <div class="hw-charts" id="hardware-charts">
-                        <div class="ui-card hw-chart-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>CPU</h3>
-                                    <p>Average use. The dashed line is the forecast, the shaded band its typical error.</p>
+                                <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
+                            </div>
+                            <div class="hw-plots" id="hardware-charts">
+                                <div class="hw-plot" data-part-panel="all">
+                                    <div class="hw-chart hw-chart-big">
+                                        <canvas id="hardware-all-chart" aria-label="CPU, memory, GPU and disk usage on one graph" role="img"></canvas>
+                                        <div class="hw-chart-empty" id="hardware-all-empty">Waiting for samples</div>
+                                    </div>
+                                </div>
+                                <div class="hw-plot" data-part-panel="cpu" hidden>
+                                    <div class="hw-chart hw-chart-big">
+                                        <canvas id="hardware-cpu-chart" aria-label="CPU usage graph" role="img"></canvas>
+                                        <div class="hw-chart-empty" id="hardware-cpu-empty">Waiting for samples</div>
+                                    </div>
+                                    <div class="ui-facts hw-part-facts" id="hardware-cpu-facts"></div>
+                                </div>
+                                <div class="hw-plot" data-part-panel="memory" hidden>
+                                    <div class="hw-chart hw-chart-big">
+                                        <canvas id="hardware-memory-chart" aria-label="Memory usage graph" role="img"></canvas>
+                                        <div class="hw-chart-empty" id="hardware-memory-empty">Waiting for samples</div>
+                                    </div>
+                                    <div class="ui-facts hw-part-facts" id="hardware-memory-facts"></div>
+                                </div>
+                                <div class="hw-plot" data-part-panel="gpu" hidden>
+                                    <div class="hw-chart hw-chart-big">
+                                        <canvas id="hardware-gpu-chart" aria-label="GPU usage graph" role="img"></canvas>
+                                        <div class="hw-chart-empty" id="hardware-gpu-empty">Waiting for samples</div>
+                                    </div>
+                                    <div class="ui-facts hw-part-facts" id="hardware-gpu-facts"></div>
+                                </div>
+                                <div class="hw-plot" data-part-panel="disk" hidden>
+                                    <div class="hw-chart hw-chart-big">
+                                        <canvas id="hardware-disk-chart" aria-label="Disk usage graph" role="img"></canvas>
+                                        <div class="hw-chart-empty" id="hardware-disk-empty">Waiting for samples</div>
+                                    </div>
+                                    <div class="ui-facts hw-part-facts" id="hardware-disk-facts"></div>
+                                </div>
+                                <div class="hw-legend">
+                                    <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line></svg>Measured</span>
+                                    <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"></line></svg>Forecast, with its typical error shaded</span>
+                                    <span><span class="hw-legend-gap" aria-hidden="true"></span>No samples (PC asleep or server stopped)</span>
+                                    <span class="hw-legend-limit"><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"></line></svg>Amber from 85%, red from 95%</span>
                                 </div>
                             </div>
-                            <div class="hw-chart">
-                                <canvas id="hardware-cpu-chart" aria-label="CPU usage graph" role="img"></canvas>
-                                <div class="hw-chart-empty" id="hardware-cpu-empty">Waiting for samples</div>
-                            </div>
-                        </div>
-                        <div class="ui-card hw-chart-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Memory</h3>
-                                    <p>Share of the installed memory in use.</p>
+                            <div class="hw-table" id="hardware-table-card" hidden>
+                                <div class="ui-table-wrap">
+                                    <table class="ui-table">
+                                        <thead><tr><th>Time</th><th>CPU %</th><th>Memory %</th><th>GPU %</th><th>Disk %</th><th>Samples</th></tr></thead>
+                                        <tbody id="hardware-table-body"><tr><td colspan="6" class="ui-empty">No samples in this range yet</td></tr></tbody>
+                                    </table>
                                 </div>
                             </div>
-                            <div class="hw-chart">
-                                <canvas id="hardware-memory-chart" aria-label="Memory usage graph" role="img"></canvas>
-                                <div class="hw-chart-empty" id="hardware-memory-empty">Waiting for samples</div>
-                            </div>
-                        </div>
-                        <div class="ui-card hw-chart-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>GPU</h3>
-                                    <p>Busiest GPU engine, as Task Manager reports it.</p>
-                                </div>
-                            </div>
-                            <div class="hw-chart">
-                                <canvas id="hardware-gpu-chart" aria-label="GPU usage graph" role="img"></canvas>
-                                <div class="hw-chart-empty" id="hardware-gpu-empty">Waiting for samples</div>
-                            </div>
-                        </div>
-                        <div class="ui-card hw-chart-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Disk</h3>
-                                    <p id="hardware-disk-note">Used space on the project drive. The dashed line continues the growth measured so far.</p>
-                                </div>
-                            </div>
-                            <div class="hw-chart">
-                                <canvas id="hardware-disk-chart" aria-label="Disk usage graph" role="img"></canvas>
-                                <div class="hw-chart-empty" id="hardware-disk-empty">Waiting for samples</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="ui-card" id="hardware-table-card" hidden>
-                        <div class="ui-card-header">
-                            <div>
-                                <h3>Values</h3>
-                                <p>The same averages as the graphs, newest first.</p>
-                            </div>
-                        </div>
-                        <div class="ui-table-wrap">
-                            <table class="ui-table">
-                                <thead><tr><th>Time</th><th>CPU %</th><th>Memory %</th><th>GPU %</th><th>Disk %</th><th>Samples</th></tr></thead>
-                                <tbody id="hardware-table-body"><tr><td colspan="6" class="ui-empty">No samples in this range yet</td></tr></tbody>
-                            </table>
                         </div>
                     </div>
                     <div class="ui-grid-2">
