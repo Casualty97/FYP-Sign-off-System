@@ -236,8 +236,10 @@ function renderHardwareSeries(data) {
     const theme = hardwareTheme();
     const now = Date.now();
     const lastT = points.length ? points[points.length - 1].t : null;
-    // on a range longer than a month a short forecast would be an invisible sliver: it is drawn once it spans a twelfth of the range
-    const showForecast = range.forecast && lastT !== null && (range.seconds <= 31 * 86400 || (forecast.horizonHours || 0) * 3600 >= range.seconds / 12);
+    // a forecast made from daily averages has one point per day, so it is not drawn on a range under two days; on a
+    // range longer than a month a short forecast would be an invisible sliver: it is drawn once it spans a twelfth of it
+    const dailyOnShortRange = forecast.basis === 'daily' && range.forecast && range.seconds < 2 * 86400;
+    const showForecast = range.forecast && lastT !== null && !dailyOnShortRange && (range.seconds <= 31 * 86400 || (forecast.horizonHours || 0) * 3600 >= range.seconds / 12);
     const horizonLimit = lastT === null ? now : lastT + range.seconds * 1000; // the forecast never squeezes the history
     hardwareLastPoints = points;
     // a range longer than the samples are kept can never fill, so the graphs start at the oldest sample instead
@@ -248,7 +250,8 @@ function renderHardwareSeries(data) {
     const xMin = clipped ? firstT : rangeStart;
     const note = document.getElementById('hardware-series-note');
     if (note) {
-        const text = points.length ? range.text : `${range.text} (no samples yet)`;
+        const shown = points.length ? range.text : `${range.text} (no samples yet)`;
+        const text = dailyOnShortRange ? `${shown}. The forecast looks ${hardwareSpell('horizon', forecast.horizonHours)} ahead: choose 7 days or longer to see it` : shown;
         const kept = `Samples are kept for ${hardwareSpell('retention', hardwareRetentionDays)}`;
         note.textContent = !beyondKept ? text : clipped ? `${text}. ${kept}, so the graphs start on ${hardwareTickLabel(firstT, 'date')}.` : `${text}. ${kept}.`;
     }
