@@ -3349,16 +3349,26 @@
                         </div>
                     </div>
                     <!-- <Jun Kai end> -->
-                    <div class="ui-card">
-                        <div class="ui-card-body ui-row ui-row-between">
-                            <div class="ui-row">
-                                <span id="health-overall" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
-                                <span id="health-summary-text" class="ui-mode-desc">Running the checks</span>
-                            </div>
-                            <span id="health-checked-at" class="ui-fact-hint"></span>
+                    <!-- <Jun Kai start> -->
+                    <div class="ui-card health-status" id="health-status" role="status" aria-live="polite">
+                        <div class="health-status-mark" id="health-status-mark"></div>
+                        <div>
+                            <div class="health-status-line" id="health-status-line">Running the checks</div>
+                            <div class="health-status-sub" id="health-summary-text">The page shows each result as it comes in.</div>
                         </div>
+                        <div class="health-status-counts" id="health-status-counts"></div>
+                        <span class="health-status-time" id="health-checked-at"></span>
                     </div>
                     <div class="health-grid" id="health-cards"></div>
+                    <div class="health-legend" id="health-history-legend" hidden>
+                        <span class="health-legend-key"><i class="health-h-o"></i>Healthy</span>
+                        <span class="health-legend-key"><i class="health-h-w"></i>Attention</span>
+                        <span class="health-legend-key"><i class="health-h-d"></i>Down</span>
+                        <span class="health-legend-key"><i class="health-h-u"></i>Unknown</span>
+                        <span class="health-legend-key"><i class="health-h-n"></i>Not checked</span>
+                        <span id="health-history-note">One block is half an hour of the background checks.</span>
+                    </div>
+                    <!-- <Jun Kai end> -->
                     <!-- <Jun Kai start> the Tablets list is the one panel under the cards: the Server PC card points to the Hardware page instead -->
                     <div id="health-panels">
                     <!-- <Jun Kai end> -->

@@ -45,6 +45,11 @@ const incidentIsNumber = (value) => typeof value === 'number' && Number.isFinite
 const incidentIsOpen = (incident) => incident.status === 'open' || incident.status === 'acknowledged';
 const incidentMs = (iso) => { const t = new Date(iso || '').getTime(); return Number.isNaN(t) ? null : t; };
 
+// Server log lines quoted in an incident keep their words but not the emoji some old console messages carry
+function incidentText(text) {
+    return String(text === null || text === undefined ? '' : text).replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]+\s*/gu, '').replace(/ {2,}/g, ' ').trim();
+}
+
 function incidentWords(key) {
     const words = String(key || '').replace(/([A-Z])/g, ' $1').replace(/[_-]+/g, ' ').trim().toLowerCase();
     return words.charAt(0).toUpperCase() + words.slice(1);
@@ -364,7 +369,7 @@ function incidentDetailHtml(incident) {
     const rows = incidentEvidenceRows(evidence);
     const spark = incidentSparkline(evidence.points, unit);
     const kv = rows.length
-        ? `<dl class="ui-kv">${rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(v)}</dd>`).join('')}</dl>`
+        ? `<dl class="ui-kv">${rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(incidentText(v))}</dd>`).join('')}</dl>`
         : '<p class="ui-help">No numbers were stored for this incident.</p>';
     const verdicts = Object.entries(INCIDENT_VERDICT_LABEL).map(([key, label]) => {
         const chosen = incident.verdict === key;
@@ -390,7 +395,7 @@ function renderIncidentRow(incident, nowMs = Date.now()) {
     const id = String(incident.id);
     const severity = INCIDENT_SEVERITY[incident.severity] || INCIDENT_SEVERITY.warn;
     const expanded = incidentsExpanded.has(id);
-    const title = escapeHtmlSafe(incident.title || 'Incident');
+    const title = escapeHtmlSafe(incidentText(incident.title || 'Incident'));
     const classes = ['inc-row', `is-${INCIDENT_SEVERITY[incident.severity] ? incident.severity : 'warn'}`];
     if (incident.status === 'acknowledged') classes.push('is-acknowledged');
     if (incident.status === 'resolved') classes.push('is-resolved');
@@ -405,7 +410,7 @@ function renderIncidentRow(incident, nowMs = Date.now()) {
             <div class="inc-main">
                 <div class="inc-title">${title}</div>
                 <div class="inc-meta">${incidentMetaHtml(incident, nowMs)}</div>
-                ${incident.explanation ? `<div class="inc-text">${escapeHtmlSafe(incident.explanation)}</div>` : ''}
+                ${incident.explanation ? `<div class="inc-text">${escapeHtmlSafe(incidentText(incident.explanation))}</div>` : ''}
             </div>
             <div class="inc-actions ui-row">${actions}</div>
             ${expanded ? incidentDetailHtml(incident) : `<div class="inc-detail" id="incident-detail-${id}" hidden></div>`}

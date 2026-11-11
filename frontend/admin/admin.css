@@ -8499,3 +8499,46 @@ html[data-theme="dark"] :is(.badge-warning, .badge-permanent) { color: #0b1120; 
 html[data-theme="dark"] .hw-swatches .hw-c-disk { background-color: #cbd5e1; }
 @media (prefers-reduced-motion: reduce) { .theme-toggle { transition: none; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* System Health, 12 Nov 2026 design: a big status line, the checks that need a look first, a 24-hour strip per card */
+.health-status { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 20px; align-items: center; padding: 20px 24px; transition: background 0.2s ease, border-color 0.2s ease; }
+.health-status-ok { background: #f1faf5; border-color: #bfe5cf; }
+.health-status-warn { background: #fffaf0; border-color: #f6d9a8; }
+.health-status-down { background: #fef4f4; border-color: #f5c2c2; }
+.health-status-mark { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: var(--theme-bg-color); color: var(--color-dark-gray); }
+.health-status-ok .health-status-mark { background: #d3f0df; color: #166534; }
+.health-status-warn .health-status-mark { background: #fdebc8; color: #92400e; }
+.health-status-down .health-status-mark { background: #fbdada; color: #b91c1c; }
+.health-status-mark svg { width: 22px; height: 22px; }
+.health-status-line { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: var(--theme-text-color); }
+.health-status-sub { margin-top: 3px; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.health-status-counts { display: flex; gap: 22px; padding: 0 22px; border-left: 1px solid rgba(15, 23, 42, 0.08); border-right: 1px solid rgba(15, 23, 42, 0.08); }
+.health-status-counts:empty { display: none; }
+.health-status-counts span { display: grid; font-size: 12px; color: var(--color-dark-gray); }
+.health-status-counts b { font-size: 22px; font-weight: 600; line-height: 1.15; color: var(--theme-text-color); font-variant-numeric: tabular-nums; }
+.health-status-time { font-size: 12px; color: var(--color-muted); white-space: nowrap; }
+.health-group { grid-column: 1 / -1; margin: 6px 0 -6px; font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-dark-gray); }
+.health-group:first-child { margin-top: 0; }
+.health-card.health-warn { background: #fffaf0; border-color: #f6d9a8; }
+.health-card.health-down { background: #fef5f5; }
+.health-card.health-unknown { background: #f6f8fa; }
+.health-hist { display: grid; grid-template-columns: repeat(48, minmax(0, 1fr)); gap: 1.5px; margin-top: 14px; }
+.health-hist span { height: 16px; border-radius: 2px; }
+.health-h-o { background: #34b27b; }
+.health-h-w { background: #e8a23a; }
+.health-h-d { background: #dc4c4c; }
+.health-h-u { background: #aab4c2; }
+.health-h-n { background: #dde2e8; }
+.health-hist-cap { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--color-muted); }
+.health-hist-none { margin-top: 14px; font-size: 12px; color: var(--color-muted); }
+.health-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: -6px 0 20px; font-size: 12px; color: var(--color-dark-gray); }
+.health-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.health-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+@media (max-width: 900px) {
+    .health-status { grid-template-columns: auto minmax(0, 1fr); }
+    .health-status-counts { grid-column: 1 / -1; padding: 0; border: 0; }
+    .health-status-time { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { .health-status { transition: none; } }
+/* <Jun Kai end> */

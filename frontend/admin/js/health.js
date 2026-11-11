@@ -1,5 +1,6 @@
 // Owner: Role 3, Jun Kai.
-// System health page: GET /api/admin/health, one card per check, the tablets table and the server details.
+// System health page: GET /api/admin/health, a status line, one card per check (the ones that need a look first, each
+// with its last 24 hours from GET /api/admin/health/history), the tablets table and the incidents panel.
 // <Jun Kai start>
 // Since supervisor meeting 03 (4 Nov 2026) each admin chooses which checks the page shows and runs
 // (GET/PUT /api/admin/health/layout). Placeholder cards hold the layout while the checks run, so nothing jumps.
@@ -10,6 +11,9 @@ let healthLayout = null;   // { options: [{ key, label, description }], hidden: 
 let healthLast = null;     // the last answer from GET /api/admin/health
 let healthError = null;    // the message of the last failed check run, cleared by the next good one
 let healthCardMarkup = []; // the HTML of each card as last drawn, in page order
+let healthHistory = null;  // GET /api/admin/health/history: { from, slotMs, slots, checks: { key: 'oow-...' } }
+let healthHistoryAt = 0;
+let healthHistoryNote = '';
 
 const HEALTH_STATUS_LABEL = { ok: 'Healthy', warn: 'Attention', down: 'Down', unknown: 'Unknown' };
 const HEALTH_STATUS_TONE = { ok: 'ok', warn: 'warn', down: 'down', unknown: 'muted' };
@@ -21,6 +25,7 @@ const HEALTH_LABEL = {
 };
 // 'incidents' is the anomaly detection panel under the cards (incidents.js), never a card
 const HEALTH_PANEL_KEYS = ['incidents'];
+const HEALTH_BLOCK_WORD = { o: 'Healthy', w: 'Attention', d: 'Down', u: 'Unknown', '-': 'Not checked' };
 // <Jun Kai end>
 
 function healthRelativeTime(secondsAgo) {
@@ -102,7 +107,54 @@ function renderHealthCard(check) {
             </div>
             <div class="health-card-summary">${escapeHtmlSafe(check.summary || '')}${check.cached ? '<span class="health-cached">cached</span>' : ''}</div>
             ${lines ? `<div class="health-card-detail">${lines}</div>` : ''}
+            ${healthHistoryStrip(check.key)}
         </div>`;
+}
+
+// The last 24 hours of one check: a block per half hour, the worst result in it (empty until the history has loaded)
+function healthHistoryStrip(key) {
+    if (!healthHistory || !Object.keys(healthHistory.checks).length) return '';
+    const blocks = healthHistory.checks[key];
+    if (!blocks) return `<div class="health-hist-none">${key === 'ollama' ? 'No 24-hour history: Ollama is checked only while this page is open.' : 'No result recorded in the last 24 hours.'}</div>`;
+    const time = (ms) => new Date(ms).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const counts = {};
+    const spans = [...blocks].map((letter, i) => {
+        counts[letter] = (counts[letter] || 0) + 1;
+        const start = healthHistory.from + i * healthHistory.slotMs;
+        return `<span class="health-h-${letter === '-' ? 'n' : letter}" title="${time(start)} to ${time(start + healthHistory.slotMs)}: ${HEALTH_BLOCK_WORD[letter]}"></span>`;
+    }).join('');
+    const others = ['d', 'w', 'u', '-'].filter((letter) => counts[letter]).map((letter) => `${counts[letter]} ${HEALTH_BLOCK_WORD[letter].toLowerCase()}`);
+    const label = `Last 24 hours, in half hours: ${counts.o || 0} healthy${others.length ? `, ${others.join(', ')}` : ''}`;
+    return `<div class="health-hist" role="img" aria-label="${escapeHtmlSafe(label)}">${spans}</div><div class="health-hist-cap"><span>24 h ago</span><span>now</span></div>`;
+}
+
+// Refreshed at most once a minute: the background checks run every few minutes
+async function loadHealthHistory() {
+    if (Date.now() - healthHistoryAt < 60000) return;
+    healthHistoryAt = Date.now();
+    try {
+        const response = await fetch('/api/admin/health/history', { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'History failed');
+        healthHistory = data.history;
+        healthHistoryNote = data.missing || '';
+    } catch (error) {
+        healthHistory = null;
+        healthHistoryNote = '';
+        console.error('❌ Could not load the health history:', error);
+    }
+    renderHealthCards();
+    renderHealthLegend();
+}
+
+function renderHealthLegend() {
+    const legend = document.getElementById('health-history-legend');
+    const note = document.getElementById('health-history-note');
+    if (!legend) return;
+    const hasData = !!healthHistory && Object.keys(healthHistory.checks).length > 0;
+    legend.hidden = !hasData && !healthHistoryNote && !healthHistory;
+    legend.querySelectorAll('.health-legend-key').forEach((key) => { key.hidden = !hasData; });
+    if (note) note.textContent = healthHistoryNote || (hasData ? 'One block is half an hour of the background checks. Point at a block to see its time.' : 'The 24-hour history fills in while the server runs: the background checks run every few minutes.');
 }
 
 function renderHealthPlaceholder(key) {
@@ -130,11 +182,21 @@ function renderHealthCards() {
     if (!visible.length) {
         const text = healthVisibleKeys().length ? 'No checks are shown on this page. The incidents panel below still runs.' : 'Nothing is monitored on this page.';
         cards.innerHTML = `<div class="health-empty">${text}<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>`;
+        healthCardMarkup = [];
     } else {
         const byKey = new Map(((healthLast && healthLast.checks) || []).map((check) => [check.key, check]));
-        const markup = visible.map((key) => (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key)).trim());
+        // the checks that need a look come first, under their own heading (12 Nov 2026 design)
+        const look = visible.filter((key) => byKey.has(key) && byKey.get(key).status !== 'ok');
+        const rest = visible.filter((key) => !look.includes(key));
+        const items = [];
+        if (look.length) items.push({ key: '#look', html: '<div class="health-group" data-key="#look">Needs a look</div>' });
+        for (const key of look) items.push({ key, html: renderHealthCard(byKey.get(key)).trim() });
+        if (look.length && rest.length) items.push({ key: '#fine', html: '<div class="health-group" data-key="#fine">Healthy</div>' });
+        for (const key of rest) items.push({ key, html: (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key)).trim() });
+        const keys = items.map((item) => item.key);
+        const markup = items.map((item) => item.html);
         // the 30-second refresh swaps only the cards whose text changed, so hover and the rest of the grid stay still
-        const sameCards = [...cards.children].map((el) => el.dataset.key).join(',') === visible.join(',');
+        const sameCards = [...cards.children].map((el) => el.dataset.key).join(',') === keys.join(',');
         if (sameCards) {
             markup.forEach((html, i) => { if (healthCardMarkup[i] !== html) cards.children[i].outerHTML = html; });
         } else {
@@ -158,24 +220,32 @@ function renderHealthPanels() {
     if (showIncidents && typeof loadIncidents === 'function') loadIncidents();
 }
 
-// The top pill counts only the checks on the page
+// The status line at the top: one sentence, the counts, and a tint for the worst state. It counts only the checks
+// on the page.
+function setHealthStatus(tone, line, sub, counts) {
+    const card = document.getElementById('health-status');
+    if (!card) return;
+    card.className = `ui-card health-status health-status-${tone}`;
+    const mark = document.getElementById('health-status-mark');
+    if (mark) mark.innerHTML = uiIcon({ ok: 'check', warn: 'alert', down: 'cross', muted: 'clock' }[tone] || 'info', 22);
+    const lineEl = document.getElementById('health-status-line');
+    if (lineEl) lineEl.textContent = line;
+    const subEl = document.getElementById('health-summary-text');
+    if (subEl) subEl.textContent = sub;
+    const countsEl = document.getElementById('health-status-counts');
+    if (countsEl) countsEl.innerHTML = (counts || []).map(([n, word]) => `<span><b>${n}</b>${escapeHtmlSafe(word)}</span>`).join('');
+}
+
 function renderHealthSummary() {
-    const overall = document.getElementById('health-overall');
-    const text = document.getElementById('health-summary-text');
     const at = document.getElementById('health-checked-at');
-    if (!overall) return;
     const visible = healthCardKeys();
     if (!visible.length) {
-        overall.className = 'ui-pill ui-pill-muted';
-        overall.innerHTML = '<span class="ui-dot"></span>Nothing selected';
-        if (text) text.textContent = 'Open Customise to choose what this page monitors.';
+        setHealthStatus('muted', 'Nothing selected', 'Open Customise to choose what this page monitors.');
         if (at) at.textContent = '';
         return;
     }
     if (healthError) {
-        overall.className = 'ui-pill ui-pill-down';
-        overall.innerHTML = '<span class="ui-dot"></span>Checks unavailable';
-        if (text) text.textContent = `Could not run the checks: ${healthError}`;
+        setHealthStatus('down', 'Checks unavailable', `Could not run the checks: ${healthError}`);
         return;
     }
     if (!healthLast) return;
@@ -183,13 +253,19 @@ function renderHealthSummary() {
     const counts = { ok: 0, warn: 0, down: 0, unknown: 0 };
     for (const check of checks) counts[check.status] = (counts[check.status] || 0) + 1;
     const state = counts.down ? 'down' : counts.warn ? 'warn' : 'ok';
-    overall.className = `ui-pill ui-pill-${HEALTH_STATUS_TONE[state]}`;
-    overall.innerHTML = `<span class="ui-dot"></span>${state === 'ok' ? 'All systems operational' : state === 'warn' ? 'Needs attention' : 'Something is down'}`;
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    const line = state === 'down' ? `${plural(counts.down, 'check is', 'checks are')} down`
+        : state === 'warn' ? `${plural(counts.warn, 'check needs', 'checks need')} attention` : 'All checks healthy';
     const parts = [];
     if (counts.down) parts.push(`${counts.down} down`);
     if (counts.warn) parts.push(`${counts.warn} need${counts.warn === 1 ? 's' : ''} attention`);
     if (counts.unknown) parts.push(`${counts.unknown} unknown`);
-    if (text) text.textContent = parts.length ? `${counts.ok} healthy, ${parts.join(', ')}.` : `All ${counts.ok} checks healthy.`;
+    const sub = parts.length ? `${counts.ok} healthy, ${parts.join(', ')}. The ones to look at are listed first.` : `All ${counts.ok} checks on this page are healthy.`;
+    const shown = [[counts.ok, 'healthy']];
+    if (counts.warn) shown.push([counts.warn, 'attention']);
+    if (counts.down) shown.push([counts.down, 'down']);
+    if (counts.unknown) shown.push([counts.unknown, 'unknown']);
+    setHealthStatus(state, line, sub, shown);
     if (at) at.textContent = `Checked at ${new Date(healthLast.checkedAt).toLocaleTimeString('en-SG', { hour12: false })}`;
 }
 // <Jun Kai end>
@@ -391,13 +467,11 @@ async function loadHealth(refresh) {
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || 'Health checks failed');
         renderHealth(data.health);
+        loadHealthHistory();
     } catch (error) {
         console.error('❌ Error loading health:', error);
         healthError = error.message;
-        const text = document.getElementById('health-summary-text');
-        if (text) text.textContent = `Could not run the checks: ${error.message}`;
-        const overall = document.getElementById('health-overall');
-        if (overall) { overall.className = 'ui-pill ui-pill-down'; overall.innerHTML = '<span class="ui-dot"></span>Checks unavailable'; }
+        setHealthStatus('down', 'Checks unavailable', `Could not run the checks: ${error.message}`);
         const at = document.getElementById('health-checked-at');
         if (at && at.textContent.startsWith('Checked at')) at.textContent = at.textContent.replace('Checked at', 'Cards show the last good check at');
     } finally {

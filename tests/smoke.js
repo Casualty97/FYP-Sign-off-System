@@ -367,6 +367,9 @@ async function archiveStep(cookie) {
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai start>
+      await expect('GET /api/admin/health/history with the session', `${BASE}/api/admin/health/history`, (r) => r.body && r.body.success === true && (r.body.history === null || (r.body.history.slots === 48 && typeof r.body.history.checks === 'object')) || r.text.slice(0, 160), { headers: { cookie } });
+      // <Jun Kai end>
+      // <Jun Kai start>
       await expect('GET /api/admin/hardware/overview with the session', `${BASE}/api/admin/hardware/overview`, (r) => r.body && r.body.success === true && !!r.body.overview && typeof r.body.overview.settings === 'object' || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/hardware/series?range=1h with the session', `${BASE}/api/admin/hardware/series?range=1h`, (r) => r.body && r.body.success === true && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/hardware/series?range=3mo (a custom range, longer than the samples are kept: daily summaries)', `${BASE}/api/admin/hardware/series?range=3mo`, (r) => r.body && r.body.success === true && r.body.range === '3mo' && r.body.bucketSeconds === 86400 && r.body.source === 'daily' && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
