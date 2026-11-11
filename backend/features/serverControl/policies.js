@@ -181,6 +181,7 @@ function preview(policies, now, days = 7, start = now) {
             on: s.on,
             id: s.policy.id,
             name: s.policy.schedule_name,
+            color: s.policy.color || null,
             action: actionOf(s.policy),
             position: s.index + 1
         }));
@@ -253,6 +254,9 @@ function validDate(text) {
 }
 
 // Checks a policy from the admin page (merged over `previous` when editing). Returns { policy } or { error }.
+// The colours a policy can have on the calendar (Stop policies are always drawn grey); no colour = picked from the id
+const COLORS = ['blue', 'green', 'purple', 'orange', 'teal', 'rose', 'indigo', 'amber', 'cyan', 'brown'];
+
 function normalize(input, previous = {}) {
     const merged = { ...previous };
     for (const [key, value] of Object.entries(input || {})) {
@@ -287,7 +291,8 @@ function normalize(input, previous = {}) {
         days_of_week: null,
         months: null,
         specific_date: null,
-        is_active: isEnabled(merged)
+        is_active: isEnabled(merged),
+        color: COLORS.includes(merged.color) ? merged.color : null
     };
     if (policy.schedule_type === 'weekly') {
         const days = numberList(merged.days_of_week, 1, 7);
@@ -308,6 +313,6 @@ function normalize(input, previous = {}) {
 module.exports = {
     TYPES, SPECIFICITY, TYPE_LABEL,
     actionOf, isEnabled, parseTime, numberList, localYmd, appliesOn, windowOn, winnerAt, timeline, transitions,
-    decide, offReason, status, wakeTimes, preview, rank, insertIndex, defaultOrder, placementReason, normalize, overlaps
+    decide, offReason, status, wakeTimes, preview, rank, insertIndex, defaultOrder, placementReason, normalize, overlaps, COLORS
 };
 // <Jun Kai end>

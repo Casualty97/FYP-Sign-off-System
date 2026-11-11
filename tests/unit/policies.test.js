@@ -241,4 +241,16 @@ test('preview cuts each day at midnight and names the deciding policy', () => {
     const monday = p.days[0].segments.map((s) => [s.from, s.to, s.on, s.name]);
     assert.deepEqual(monday, [['00:00', '02:00', true, 'late'], ['12:00', '13:00', false, 'lunch'], ['22:00', '24:00', true, 'late']]);
 });
+test('a policy keeps one of the calendar colours, an edit without one keeps the saved colour, the preview carries it', () => {
+    const base = { schedule_name: 'Open house', schedule_type: 'daily', start_time: '09:00', end_time: '21:00' };
+    assert.equal(policies.normalize({ ...base, color: 'teal' }).policy.color, 'teal');
+    assert.equal(policies.normalize({ ...base, color: 'neon' }).policy.color, null);
+    assert.equal(policies.normalize({ ...base }).policy.color, null);
+    assert.equal(policies.normalize({ ...base, start_time: '10:00' }, { ...base, color: 'rose' }).policy.color, 'rose');
+    assert.equal(policies.COLORS.length, 10);
+    const open = make({ schedule_name: 'open', color: 'indigo' });
+    const plain = make({ schedule_name: 'plain', start_time: '18:00', end_time: '20:00' });
+    const day = policies.preview([open, plain], at(9, 7), 1).days[0];
+    assert.deepEqual(day.segments.map((s) => [s.name, s.color]), [['open', 'indigo'], ['plain', null]]);
+});
 // <Jun Kai end>

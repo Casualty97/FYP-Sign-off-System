@@ -7395,11 +7395,12 @@ router.post('/server-schedules/reorder', auth.requireAuth, (req, res) => {
   }
 });
 
-// GET /api/admin/server-schedules/preview?days=7[&from=2026-11-10]  which policy decides each part of those days;
+// GET /api/admin/server-schedules/preview?days=7[&from=2026-11-10]  which policy decides each part of those days (up to
+// 42 days: the month calendar asks for a whole month);
 // manual: true in manual mode, where the policies are paused and the page shows the days empty
 router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
   try {
-    const days = Math.min(14, Math.max(1, parseInt(req.query.days, 10) || 7));
+    const days = Math.min(42, Math.max(1, parseInt(req.query.days, 10) || 7));
     const now = new Date();
     let start = now;
     if (req.query.from !== undefined) {
