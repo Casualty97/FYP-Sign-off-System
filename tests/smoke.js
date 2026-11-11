@@ -290,6 +290,22 @@ async function archiveStep(cookie) {
       if (r.status === 200 && cookie) pass('POST /api/admin/login with the seeded admin (200, session cookie set)');
       else fail(`POST /api/admin/login with the seeded admin (${r.status}, cookie ${cookie ? 'set' : 'missing'})`);
     } catch (e) { fail(`POST /api/admin/login: ${e.message}`); }
+    // <Jun Kai start> "keep me signed in for 1 day": the token alone signs the admin back in, Logout ends it
+    try {
+      const r = await fetch(`${BASE}/api/admin/login`, json({ username: ADMIN_USER, password: ADMIN_PASS, remember: true }));
+      const setCookies = typeof r.headers.getSetCookie === 'function' ? r.headers.getSetCookie() : [r.headers.get('set-cookie') || ''];
+      const token = setCookies.map((c) => c.split(';')[0]).find((c) => c.startsWith('esg_admin_remember='));
+      const flags = (setCookies.find((c) => c.startsWith('esg_admin_remember=')) || '').toLowerCase();
+      const body = await r.json().catch(() => ({}));
+      if (r.status === 200 && token && flags.includes('httponly') && body.rememberUntil) pass('POST /api/admin/login with remember sets an httpOnly token cookie for 1 day');
+      else fail(`POST /api/admin/login with remember (${r.status}, token ${token ? 'set' : 'missing'}, httpOnly ${flags.includes('httponly')})`);
+      if (token) {
+        await expect('GET /api/admin/remember with only the token cookie signs the admin back in', `${BASE}/api/admin/remember`, (x) => x.body && x.body.success === true && x.body.user && x.body.user.username === ADMIN_USER || x.text.slice(0, 160), { headers: { cookie: token } });
+        await expect('POST /api/admin/logout-audit ends the token', `${BASE}/api/admin/logout-audit`, (x) => x.status === 200, { method: 'POST', headers: { cookie: token, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: ADMIN_USER }) });
+        await expect('GET /api/admin/remember with the ended token is refused', `${BASE}/api/admin/remember`, (x) => x.status === 401, { headers: { cookie: token } });
+      }
+    } catch (e) { fail(`keep me signed in: ${e.message}`); }
+    // <Jun Kai end>
     if (cookie) {
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });

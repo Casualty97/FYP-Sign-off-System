@@ -555,6 +555,9 @@ function checkSessionTimeout() {
     if (!loggedUser) {
         return;
     }
+    // <Jun Kai start> signed in for 1 day: no idle logout, the server renews the session from the token
+    if (adminRememberedUntil()) return;
+    // <Jun Kai end>
     
     const timeSinceLastActivity = Date.now() - lastActivityTime;
     const timeUntilTimeout = SESSION_TIMEOUT_MS - timeSinceLastActivity;
@@ -891,7 +894,9 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ username, password })
+            // <Jun Kai start>
+            body: JSON.stringify({ username, password, remember: !!(document.getElementById('remember-me') || {}).checked })
+            // <Jun Kai end>
         });
         
         console.log('Response status:', response.status);
@@ -900,25 +905,9 @@ async function handleLogin(event) {
         
         if (data.success) {
             console.log('✅ Login successful');
-            // Store logged in user
-            sessionStorage.setItem('loggedUser', data.user.username);
-            sessionStorage.setItem('userRole', data.user.role);
-            await loadActiveThemeOnLogin();
-
-            // Load active theme on login
-            setTimeout(() => {
-                loadActiveThemeOnLogin();
-            }, 500);
-            
-            // Update UI and apply role-based access
-            updateUIForUser(data.user.username, data.user.role);
-            
-            // Load dashboard data
-            await loadDashboardData();
-            
-            // Show dashboard
-            document.getElementById('login-page').style.display = 'none';
-            document.getElementById('admin-dashboard').style.display = 'block';
+            // <Jun Kai start> the same steps as a remembered sign-in (finishAdminSignIn, below)
+            await finishAdminSignIn(data.user, data.rememberUntil || null);
+            // <Jun Kai end>
         } else {
             console.log('❌ Login failed:', data.error);
             alert(data.error || 'Invalid username or password');
@@ -928,6 +917,89 @@ async function handleLogin(event) {
         alert('Login failed. Please check your connection and try again.');
     }
 }
+
+// <Jun Kai start>
+// After a good login or a remembered sign-in: the user, the theme, the dashboard. rememberUntil: ISO time or null.
+async function finishAdminSignIn(user, rememberUntil) {
+    sessionStorage.setItem('loggedUser', user.username);
+    sessionStorage.setItem('userRole', user.role);
+    if (rememberUntil) {
+        sessionStorage.setItem('rememberedUntil', rememberUntil);
+        try { localStorage.setItem('adminRememberHint', JSON.stringify({ username: user.username, until: rememberUntil })); } catch { /* private window: fine */ }
+    } else {
+        sessionStorage.removeItem('rememberedUntil');
+        clearAdminRememberHint();
+    }
+    await loadActiveThemeOnLogin();
+    setTimeout(() => { loadActiveThemeOnLogin(); }, 500);
+    updateUIForUser(user.username, user.role);
+    await loadDashboardData();
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('admin-dashboard').style.display = 'block';
+}
+
+// the time "keep me signed in" ends in this tab, or null
+function adminRememberedUntil() {
+    const until = Date.parse(sessionStorage.getItem('rememberedUntil') || '');
+    return Number.isFinite(until) && until > Date.now() ? until : null;
+}
+
+// This browser asked to stay signed in: { username, until } (no password, the token itself is an httpOnly cookie)
+function adminRememberHint() {
+    try {
+        const hint = JSON.parse(localStorage.getItem('adminRememberHint') || 'null');
+        return hint && hint.username && Date.parse(hint.until) > Date.now() ? hint : null;
+    } catch {
+        return null;
+    }
+}
+
+function clearAdminRememberHint() {
+    try { localStorage.removeItem('adminRememberHint'); } catch { /* private window: fine */ }
+}
+
+function showLoginNote(text) {
+    const note = document.getElementById('login-note');
+    if (!note) return;
+    note.textContent = text || '';
+    note.hidden = !text;
+}
+
+// On page load without a signed-in tab: when this browser chose "keep me signed in", the server's token decides
+async function tryRememberedSignIn() {
+    const hint = adminRememberHint();
+    if (!hint) return;
+    showLoginNote(`Signing you in as ${hint.username}`);
+    try {
+        const response = await fetch('/api/admin/remember', { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Not signed in');
+        await finishAdminSignIn(data.user, data.rememberUntil || hint.until);
+        showLoginNote('');
+        initActivityTracking();
+        startSessionMonitoring();
+    } catch (error) {
+        clearAdminRememberHint();
+        const username = document.getElementById('username');
+        if (username && !username.value) username.value = hint.username;
+        showLoginNote('Your 1-day sign-in has ended. Enter your password to sign in again.');
+        const password = document.getElementById('password');
+        if (password) password.focus();
+    }
+}
+
+function toggleLoginPassword() {
+    const input = document.getElementById('password');
+    const button = document.getElementById('login-eye');
+    if (!input || !button) return;
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    button.setAttribute('aria-pressed', String(show));
+    button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    button.title = show ? 'Hide password' : 'Show password';
+    input.focus();
+}
+// <Jun Kai end>
 
 // Handle logout
 function handleLogout() {
@@ -942,7 +1014,10 @@ function handleLogout() {
     }).catch(() => {});
     
     sessionStorage.clear();
-    
+    // <Jun Kai start> signing out also forgets "keep me signed in" here (the server deletes the token)
+    clearAdminRememberHint();
+    // <Jun Kai end>
+
     // Reload page to ensure clean state for next login
     window.location.reload();
 }
