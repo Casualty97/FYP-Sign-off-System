@@ -140,6 +140,8 @@ function listText(names) {
 }
 
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+// old console messages start with an emoji; incident texts quote the words only
+const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]+\s*/gu;
 const QUOTED = /"[^"\n]{0,300}"|(?<!\w)'[^'\n]{0,300}'(?!\w)/g;
 const WIN_PATH = /(?<![A-Za-z])[A-Za-z]:[\\/][^\s"'`<>|()[\]{},;:]*/g;
 const POSIX_PATH = /(?<![\w.:/\\])\/(?:[\w.@%+-]+\/)+[\w.@%+-]*/g;
@@ -152,6 +154,7 @@ const NUMBER = /\d+(?:\.\d+)?/g;
 // the same template, so the log detector can count and recognise it
 function templateOf(message) {
     return String(message === undefined || message === null ? '' : message)
+        .replace(EMOJI, '')
         .replace(EMAIL, '<email>')
         .replace(QUOTED, '"..."')
         .replace(WIN_PATH, '<path>')

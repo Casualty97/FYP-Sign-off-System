@@ -74,6 +74,12 @@ test('sgtHour and sgtWeekday are Singapore time, including the day roll-over', (
     assert.equal(d.sgtHour(new Date(t)), 10, 'accepts a Date');
 });
 
+test('templateOf drops the emoji old console messages start with', () => {
+    assert.equal(d.templateOf('❌ Email transporter not initialized'), 'Email transporter not initialized');
+    assert.equal(d.templateOf('⚠️  Hardware sampler: GPU read failed 3 times'), 'Hardware sampler: GPU read failed # times');
+    assert.equal(d.templateOf('Thank-you email failed ❌ again'), 'Thank-you email failed again');
+});
+
 test('templateOf masks numbers, ids, quoted text, paths and dates', () => {
     assert.equal(d.templateOf('Database query failed: code 1234 after 2.5 s'), 'Database query failed: code # after # s');
     assert.equal(d.templateOf('Cannot find module \'C:\\Users\\yoga\\app.js\''), 'Cannot find module "..."');
