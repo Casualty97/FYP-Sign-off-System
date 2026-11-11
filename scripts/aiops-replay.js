@@ -41,6 +41,8 @@ const span = (minutes) => (minutes < 60 ? `${minutes} min` : minutes < 1440 ? `$
     console.log(`\nPrecision ${result.precision.toFixed(2)}   (incidents that were real: 1.00 means no false alarm)`);
     console.log(`Recall    ${result.recall.toFixed(2)}   (planted faults that were caught: 1.00 means none missed)`);
     console.log(`Mean time to detect ${result.meanMinutesToDetect === null ? '-' : span(Math.round(result.meanMinutesToDetect))}   (the slow creeps set this: a leak is only an incident once memory passes 80 %)`);
+    const sudden = result.faults.filter((fault) => fault.detected && fault.minutesToDetect <= 60).map((fault) => fault.minutesToDetect);
+    if (sudden.length) console.log(`Sudden faults (spike, service, tablet, errors): caught within ${Math.max(...sudden)} min`);
     console.log(`${result.ticks} checks in ${(result.ms / 1000).toFixed(1)} s`);
 
     if (result.precision < 0.8 || result.recall < 0.85) {
