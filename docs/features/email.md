@@ -4,6 +4,8 @@
 
 **Where the code is**
 
+Look (12 Nov 2026, picked by the user from mock-ups): a status line on top says whether the kiosk can send email (the System Health login check; Check again re-runs it), how many thank-you emails went out in the last 7 days (feedback.email_sent_at) and how the last test went (backend/data/email-last-test.json, no address kept): GET /api/admin/email/status, which never returns a password. Beside the settings, a preview shows the real thank-you email for a sample visitor: GET /api/admin/email/preview calls sendThankYouEmail with visitOptions.previewTransport, a stand-in transporter that keeps the message instead of sending it (real sends are unchanged).
+
 - backend/features/email/service.js (transport, badges, templates), configStore.js, templateStore.js
 - email routes still inside backend/features/admin/routes.js and backend/features/feedback/routes.js
 - frontend/admin/js/email.js

@@ -4,6 +4,8 @@
 
 **Where the code is**
 
+Look (12 Nov 2026, picked by the user from mock-ups; supervisor meeting 04 item 1): four tiles on top (Next stop, Next start, Right now, Mode), then the plan as a month calendar like a phone calendar: each day shows the policies that decide it as chips in their colours and the hours the kiosk runs, and clicking a day opens its week in the 7 days view (the bars now in the colour of each policy). Each policy has one of ten colours (field color, picked in its form; a new policy takes the first colour no other Active policy has; without one it gets a colour from its id); Stop policies are always grey. GET /api/admin/server-schedules/preview allows up to 42 days for the month. Then the policies, the controls and the automation details.
+
 - backend/features/serverControl/policies.js (the policy rules: priority order, which policy decides a moment, the on/off timeline, wake times, the 7-day preview; unit tests in tests/unit/policies.test.js), control.js (schedule, mode and automation files, kiosk probe, start and hibernate actions), scheduler.js (the once-a-minute runner, started by server.js only), wakeTask.js (Windows "ESG Kiosk Wake" scheduled task)
 - routes still inside backend/features/admin/routes.js; files backend/data/kiosk-schedules.json, server-control-mode.json, server-automation.json
 - frontend/admin/js/serverControl.js, countdown.js, kioskReload.js
