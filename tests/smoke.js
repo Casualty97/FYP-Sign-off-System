@@ -368,6 +368,8 @@ async function archiveStep(cookie) {
       await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai start>
       await expect('GET /api/admin/health/history with the session', `${BASE}/api/admin/health/history`, (r) => r.body && r.body.success === true && (r.body.history === null || (r.body.history.slots === 48 && typeof r.body.history.checks === 'object')) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/email/status with the session (no password in it)', `${BASE}/api/admin/email/status`, (r) => r.body && r.body.success === true && typeof r.body.status === 'object' && !/"pass"/.test(r.text) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/email/preview builds the thank-you email without sending it', `${BASE}/api/admin/email/preview`, (r) => r.body && r.body.success === true && /<html|<div|<table/i.test(r.body.preview.html || '') || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai end>
       // <Jun Kai start>
       await expect('GET /api/admin/hardware/overview with the session', `${BASE}/api/admin/hardware/overview`, (r) => r.body && r.body.success === true && !!r.body.overview && typeof r.body.overview.settings === 'object' || r.text.slice(0, 160), { headers: { cookie } });

@@ -290,6 +290,8 @@ GET    /api/admin/visitor-archive/runs/:id/records  (backend/features/archive/vi
 GET    /api/admin/visitor-archive/runs/:id/photo  (backend/features/archive/visitorRoutes.js)
 POST   /api/admin/visitor-archive/runs/:id/decrypt  (backend/features/archive/visitorRoutes.js)
 DELETE /api/admin/visitor-archive/runs/:id/file  (backend/features/archive/visitorRoutes.js)
+GET    /api/admin/email/status  (backend/features/email/adminRoutes.js)
+GET    /api/admin/email/preview  (backend/features/email/adminRoutes.js)
 GET    /api/feedback/questions  (backend/features/feedback/routes.js)
 POST   /api/feedback/save-photo  (backend/features/feedback/routes.js)
 POST   /api/feedback/save-processed-photo  (backend/features/feedback/routes.js)

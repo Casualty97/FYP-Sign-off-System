@@ -1136,7 +1136,9 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
             `).join('');
         console.debug(`📧 Preparing to send email to ${email}...`);
         
-        if (!emailTransporter) {
+        // <Jun Kai start> the Email page preview (visitOptions.previewTransport) keeps the message instead of sending it
+        if (!emailTransporter && !visitOptions.previewTransport) {
+        // <Jun Kai end>
             try {
                 await reloadEmailService();
             } catch (e) {
@@ -1338,7 +1340,9 @@ ${footerNote}
         };
 
         console.debug(`📤 Sending email to: ${email}`);
-        const info = await emailTransporter.sendMail(mailOptions);
+        // <Jun Kai start>
+        const info = await (visitOptions.previewTransport || emailTransporter).sendMail(mailOptions);
+        // <Jun Kai end>
         
         console.debug('✅ Email sent successfully!');
         console.debug('📨 Message ID:', info.messageId);

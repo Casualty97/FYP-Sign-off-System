@@ -618,8 +618,9 @@ const themeConfig = {
                 'card-secondary-text': ['#email-management-page .ui-label']
             },
             buttons: {
-                'button-color': ['#email-management-page .ui-btn-primary', '#email-management-page .ui-btn-secondary'],
-                'button-text-color': ['#email-management-page .ui-btn-primary', '#email-management-page .ui-btn-secondary']
+                // the page's own button colour is for the outlined buttons: Save keeps the primary colour of the whole admin
+                'button-color': ['#email-management-page .ui-btn-secondary'],
+                'button-text-color': ['#email-management-page .ui-btn-secondary']
             }
         },
         // <Jun Kai end>

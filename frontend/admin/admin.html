@@ -2441,51 +2441,80 @@
                             <button class="ui-btn ui-btn-primary" type="button" onclick="saveEmailConfig()">Save</button>
                         </div>
                     </div>
-                    <div class="ui-grid-2">
-                        <div class="ui-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Mail account</h3>
-                                    <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
+                    <div class="ui-card health-status" id="email-health" role="status" aria-live="polite">
+                        <div class="health-status-mark" id="email-health-mark"></div>
+                        <div>
+                            <div class="health-status-line" id="email-health-line">Checking the mail account</div>
+                            <div class="health-status-sub" id="email-health-sub">The status of the account the kiosk sends from.</div>
+                        </div>
+                        <div class="health-status-counts" id="email-health-counts"></div>
+                        <div class="email-health-side">
+                            <span class="health-status-time" id="email-health-time"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="email-health-check" onclick="loadEmailHealth(true)">Check again</button>
+                        </div>
+                    </div>
+                    <div class="ui-grid-2 email-grid">
+                        <div class="email-column">
+                            <div class="ui-card">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3>Mail account</h3>
+                                        <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="ui-form-grid">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="email-provider">Provider</label>
+                                            <select class="ui-select" id="email-provider" onchange="renderEmailFields()">
+                                                <option value="gmail">Gmail</option>
+                                                <option value="outlook">Outlook (Office 365)</option>
+                                                <option value="custom">Custom SMTP</option>
+                                            </select>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="sender-email">Sender address (From)</label>
+                                            <input class="ui-input" id="sender-email" type="email" placeholder="noreply@yourdomain.com" autocomplete="off">
+                                            <span class="ui-help">Gmail shows its own address as the sender unless this one is a verified alias.</span>
+                                        </div>
+                                        <div class="ui-field-wide" id="email-fields"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="ui-card-body">
-                                <div class="ui-form-grid">
-                                    <div class="ui-field">
-                                        <label class="ui-label" for="email-provider">Provider</label>
-                                        <select class="ui-select" id="email-provider" onchange="renderEmailFields()">
-                                            <option value="gmail">Gmail</option>
-                                            <option value="outlook">Outlook (Office 365)</option>
-                                            <option value="custom">Custom SMTP</option>
-                                        </select>
+                            <div class="ui-card">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3>Test message</h3>
+                                        <p>Sends a short email with the saved settings. Save first, then test.</p>
                                     </div>
+                                </div>
+                                <div class="ui-card-body">
                                     <div class="ui-field">
-                                        <label class="ui-label" for="sender-email">Sender address (From)</label>
-                                        <input class="ui-input" id="sender-email" type="email" placeholder="noreply@yourdomain.com" autocomplete="off">
-                                        <span class="ui-help">Gmail shows its own address as the sender unless this one is a verified alias.</span>
+                                        <label class="ui-label" for="email-test-to">Send a test to</label>
+                                        <div class="ui-input-row">
+                                            <input class="ui-input" id="email-test-to" type="email" placeholder="you@example.com" autocomplete="off">
+                                            <button class="ui-btn ui-btn-secondary" type="button" onclick="sendTestEmail()">Send test</button>
+                                        </div>
                                     </div>
-                                    <div class="ui-field-wide" id="email-fields"></div>
+                                    <div id="email-status" class="ui-status-slot"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="ui-card">
+                        <div class="ui-card email-preview-card">
                             <div class="ui-card-header">
                                 <div>
-                                    <h3>Test message</h3>
-                                    <p>Sends a short email with the saved settings. Save first, then test.</p>
+                                    <h3>Preview</h3>
+                                    <p>The thank-you email a visitor gets, with a sample visitor. The wording is set under Parameter Adjustment; the visitor's photo is attached in the real email.</p>
                                 </div>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="loadEmailPreview()">Refresh</button>
                             </div>
-                            <div class="ui-card-body">
-                                <div class="ui-field">
-                                    <label class="ui-label" for="email-test-to">Send a test to</label>
-                                    <div class="ui-input-row">
-                                        <input class="ui-input" id="email-test-to" type="email" placeholder="you@example.com" autocomplete="off">
-                                        <button class="ui-btn ui-btn-secondary" type="button" onclick="sendTestEmail()">Send test</button>
-                                    </div>
-                                </div>
-                                <div id="email-status" class="ui-status-slot"></div>
+                            <dl class="email-preview-meta" id="email-preview-meta"></dl>
+                            <div class="email-preview-body">
+                                <iframe class="email-preview-frame" id="email-preview-frame" title="Preview of the thank-you email" sandbox="" referrerpolicy="no-referrer"></iframe>
+                                <p class="email-preview-empty" id="email-preview-empty">Building the preview</p>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
                 <!-- <Jun Kai end> -->
