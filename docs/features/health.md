@@ -10,7 +10,7 @@
 
 **What it does**
 
-One page with a card per check: MySQL (version, latency), kiosk server (:3003 probe), Ollama (models, latency; OLLAMA_URL), email (SMTP login, cached 5 minutes, "Check now" forces it), disk space of the project drive, the server PC (CPU and memory load, uptime, app memory), the schedule automation (mode, next stop and start, wake timer) and the tablets. Every kiosk screen posts a heartbeat once a minute (device id kept in localStorage); one row per device is kept. Refreshes every 30 seconds while open.
+One page with a card per check: MySQL (version, latency), kiosk server (:3003 probe), Ollama (models, latency; OLLAMA_URL), email (SMTP login, cached 5 minutes, "Check now" forces it), disk space of the project drive, the server PC (CPU and memory load, uptime, app memory), the schedule automation (mode, next stop and start) and the tablets. Every kiosk screen posts a heartbeat once a minute (device id kept in localStorage); one row per device is kept. Refreshes every 30 seconds while open.
 
 Customise (supervisor meeting 03): every check is shown by default; an admin removes the ones they do not need with the switches under Customise and adds them back the same way or with Show all (the cross on each card was taken out on 9 Nov 2026). The choice is saved per admin account on the server, hidden checks are not run at all, the top pill counts only the checks on the page, and the Tablets panel follows its card. Placeholder cards hold the layout while the checks run, so the page does not jump. The Monitoring options panel closes with its close button or the Escape key.
 

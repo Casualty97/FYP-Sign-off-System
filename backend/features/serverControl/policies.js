@@ -107,10 +107,10 @@ function transitions(policies, from, to) {
     return changes;
 }
 
-// What the scheduler should do now. It hibernates only right after the kiosk switched off: at an on -> off change
-// in the timeline (within graceMs), or because a policy change turned it off since the last tick (lastOn = what the
-// last tick saw). Never just because the state is off, so a PC switched on by hand at night is left alone. A gap
-// that ends within minGapMs is not worth sleeping through: the wake timer would already be in the past.
+// What the scheduler should do now. switchedOff is true only right after the kiosk switched off: at an on -> off
+// change in the timeline (within graceMs), or because a policy change turned it off since the last tick (lastOn = what
+// the last tick saw). Never just because the state is off. A gap that ends within minGapMs does not count as a
+// switch-off (the kiosk is back in a few minutes).
 function decide(policies, now, lastKey, { graceMs = 90 * 1000, lastOn = null, minGapMs = 5 * 60 * 1000 } = {}) {
     const winner = winnerAt(policies, now);
     const on = !!winner && actionOf(winner.policy) === 'active';
@@ -122,7 +122,7 @@ function decide(policies, now, lastKey, { graceMs = 90 * 1000, lastOn = null, mi
         key = `off|edit|${now.toISOString().slice(0, 16)}`;
     }
     const backSoon = !on && !!due && transitions(policies, now, new Date(now.getTime() + minGapMs)).some((c) => c.on);
-    return { on, winner, due, key, backSoon, hibernate: !!due && !on && key !== lastKey && !backSoon };
+    return { on, winner, due, key, backSoon, switchedOff: !!due && !on && key !== lastKey && !backSoon };
 }
 
 function offReason(change) {

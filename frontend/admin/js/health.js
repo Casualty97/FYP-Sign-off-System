@@ -17,7 +17,7 @@ const HEALTH_ICON_NAME = { database: 'database', kiosk: 'monitor', disk: 'disk',
 const HEALTH_ORDER = ['database', 'kiosk', 'ollama', 'email', 'disk', 'server', 'automation', 'tablets'];
 const HEALTH_LABEL = {
     database: 'MySQL database', kiosk: 'Kiosk server (:3003)', ollama: 'Ollama (local LLM)', email: 'Email (SMTP)',
-    disk: 'Disk space', server: 'Server PC', automation: 'Schedules & hibernation', tablets: 'Tablets'
+    disk: 'Disk space', server: 'Server PC', automation: 'Schedules', tablets: 'Tablets'
 };
 // <Jun Kai end>
 
@@ -48,7 +48,7 @@ function healthDetailLines(check) {
         ];
         // <Jun Kai end>
         case 'tablets': return [d.devices && d.devices.length ? `Online means a report in the last ${Math.round((d.onlineWindowSeconds || 180) / 60)} minutes` : 'Tablets report from the feedback page once a minute'];
-        case 'automation': return [d.nextStop ? `Next stop ${formatPlannedTime(d.nextStop)}` : null, d.nextStart ? `Next start ${formatPlannedTime(d.nextStart)}` : null, d.wakeTask ? `Wake timer: ${d.wakeTask}` : null];
+        case 'automation': return [d.nextStop ? `Next stop ${formatPlannedTime(d.nextStop)}` : null, d.nextStart ? `Next start ${formatPlannedTime(d.nextStart)}` : null];
         default: return [];
     }
 }

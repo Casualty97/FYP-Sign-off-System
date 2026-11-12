@@ -621,9 +621,9 @@ function renderPolicyPreview(preview) {
         const label = isToday ? 'Today' : new Date(y, m - 1, d).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' });
         // manual mode pauses the policies, so nothing is drawn
         const segments = preview.manual ? '' : day.segments.map((s) => {
-            const what = s.on ? 'Active: the kiosk runs' : 'Stop: the kiosk is off';
+            const what = s.on ? 'Active: the kiosk runs' : 'Stop: off hours'; // <Jun Kai/> a Stop time is only recorded for now
             const when = `${s.from} to ${s.to}, priority ${s.position}`;
-            const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'kiosk off'}, priority ${s.position}`;
+            const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'off hours'}, priority ${s.position}`;
             return `<span class="policy-seg policy-seg-${s.on ? 'on' : 'stop'}" role="img" style="left:${(s.startMin / 14.4).toFixed(3)}%;width:${((s.endMin - s.startMin) / 14.4).toFixed(3)}%" tabindex="0" data-slot="${day.date}-${s.startMin}" data-name="${escapeHtmlSafe(s.name)}" data-what="${escapeHtmlSafe(what)}" data-when="${escapeHtmlSafe(when)}" aria-label="${escapeHtmlSafe(words)}"><span class="policy-seg-label">${escapeHtmlSafe(s.name)}</span></span>`;
         }).join('');
         const now = isToday ? `<span class="policy-now" style="left:${(preview.nowMin / 14.4).toFixed(3)}%"></span>` : '';
@@ -701,8 +701,8 @@ async function toggleServerMode() {
     const isAuto = toggle.checked;
     const newMode = isAuto ? 'auto' : 'manual';
     // <Jun Kai start>
-    // automatic mode can stop the kiosk and hibernate this PC within a minute, so it is confirmed first
-    if (isAuto && !confirm('Switch to automatic mode?\n\nThe policies take over within a minute. If none of them keeps the kiosk on right now, the kiosk stops and this PC hibernates.')) {
+    // automatic mode hands the kiosk to the policies within a minute, so it is confirmed first
+    if (isAuto && !confirm('Switch to automatic mode?\n\nThe policies take over within a minute: they decide when the kiosk runs, and start the kiosk server when one of them needs it.')) {
         toggle.checked = false;
         return;
     }
@@ -757,7 +757,7 @@ function updateModeUI(isAuto) {
     modeStatus.textContent = isAuto ? 'Automatic mode' : 'Manual mode';
     // <Jun Kai start>
     modeDesc.textContent = isAuto
-        ? 'Policies run the kiosk and hibernate the PC'
+        ? 'Policies decide when the kiosk runs'
         : 'Policies are paused; use the controls to start or stop the kiosk';
     if (modeHint) {
         modeHint.textContent = isAuto
@@ -1040,7 +1040,7 @@ async function loadAutomationStatus() {
         const a = data.automation;
         const acting = a.enabled && !a.dryRun && a.mode === 'auto';
         if (acting && lastAutomationStatus && lastAutomationStatus.currentWindow && !a.currentWindow) {
-            showNotification('The policies now keep the kiosk off, so the PC hibernates within a minute.', 'warning');
+            showNotification('Off hours have started. The switch-off is recorded; the kiosk server keeps running.', 'info');
         }
         lastAutomationStatus = a;
         // <Jun Kai end>
@@ -1062,7 +1062,7 @@ function renderAutomationStatus(a) {
     } else if (!isAuto) {
         setAutomationState('Paused', 'warn');
         // <Jun Kai start>
-        setAutomationText('automation-summary', 'Manual mode. Switch to automatic mode below and the policies will hibernate and wake the PC.');
+        setAutomationText('automation-summary', 'Manual mode. Switch to automatic mode below and the policies decide when the kiosk runs.');
         // <Jun Kai end>
     // <Jun Kai start>
     } else if (!a.activeSchedules) {
@@ -1073,15 +1073,15 @@ function renderAutomationStatus(a) {
         setAutomationText('automation-summary', 'Dry run: actions are only logged (KIOSK_AUTOMATION=dry-run).');
     } else {
         setAutomationState('On', 'ok');
-        let summary = `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'}. The PC hibernates when the kiosk switches off and wakes before it switches on.`;
+        let summary = `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'} decide when the kiosk runs.`;
         if (a.currentWindow) {
             summary = a.currentWindow.until
                 ? `The kiosk runs until ${formatPlannedTime(a.currentWindow.until)}. "${a.currentWindow.schedule}" is in force now.`
                 : `The kiosk runs and no policy stops it within a year. "${a.currentWindow.schedule}" is in force now.`;
         } else if (a.stoppedBy) {
             summary = a.stoppedBy.until
-                ? `The kiosk is off until ${formatPlannedTime(a.stoppedBy.until)} because of the Stop policy "${a.stoppedBy.schedule}".`
-                : `The kiosk is off because of the Stop policy "${a.stoppedBy.schedule}", and no policy starts it within a year.`;
+                ? `Off hours until ${formatPlannedTime(a.stoppedBy.until)} (Stop policy "${a.stoppedBy.schedule}"). The switch-off is only recorded: the kiosk server keeps running.`
+                : `Off hours (Stop policy "${a.stoppedBy.schedule}"), and no policy starts the kiosk within a year. The switch-off is only recorded: the kiosk server keeps running.`;
         }
         setAutomationText('automation-summary', summary);
     }
@@ -1090,29 +1090,6 @@ function renderAutomationStatus(a) {
     setAutomationText('automation-next-stop', isAuto && a.enabled ? formatPlannedTime(a.nextStop) : '–');
     setAutomationText('automation-next-start', isAuto && a.enabled ? formatPlannedTime(a.nextStart) : '–');
 
-    const wake = a.wake || {};
-    if (!wake.supported) {
-        setAutomationText('automation-wake-status', 'Windows only');
-        setAutomationText('automation-wake-detail', 'Wake timers need the Windows Task Scheduler');
-    } else if (wake.dryRun) {
-        setAutomationText('automation-wake-status', 'Dry run');
-        setAutomationText('automation-wake-detail', `${wake.triggers || 0} trigger(s) would be set`);
-    } else if (wake.error) {
-        setAutomationText('automation-wake-status', 'Not set');
-        setAutomationText('automation-wake-detail', wake.error);
-    } else if (wake.task && wake.task.exists) {
-        setAutomationText('automation-wake-status', wake.wakeTimersAllowed === false ? 'Set, timers blocked' : 'Set');
-        setAutomationText('automation-wake-detail', wake.wakeTimersAllowed === false
-            ? 'Windows power settings block wake timers: run the install script as administrator'
-            : (wake.task.nextRun ? `Next wake ${wake.task.nextRun}` : 'Scheduled task present'));
-    } else {
-        // <Jun Kai start>
-        const paused = a.mode && a.mode !== 'auto';
-        setAutomationText('automation-wake-status', paused ? 'Paused' : a.wakeNeeded ? 'Missing' : 'Not needed');
-        setAutomationText('automation-wake-detail', paused ? 'Manual mode: the policies do not wake the PC' : a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
-        // <Jun Kai end>
-    }
-
     setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting' : 'Off'));
     // <Jun Kai start>
     setAutomationText('automation-mode-hint', isAuto ? 'Automatic mode: policies apply' : 'Manual mode: policies paused');
@@ -1120,7 +1097,7 @@ function renderAutomationStatus(a) {
 
     const list = document.getElementById('automation-events');
     if (!list) return;
-    const labels = { hibernate: 'Hibernated the PC', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' };
+    const labels = { hibernate: 'Hibernated the PC (Stop button)', off: 'Off hours started (recorded)', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' }; // <Jun Kai/> off: a policy switch-off
     if (!a.events || !a.events.length) {
         list.innerHTML = '<li class="ui-empty">No automatic actions recorded yet</li>';
         return;

@@ -718,7 +718,7 @@ function printServerInfo(isHttps) {
 
     // Initialize data retention cleanup system
     dataRetentionCleanup.initializeCleanup();
-    // Schedules (hibernate at stop time, start the kiosk in the morning); off with KIOSK_AUTOMATION=off
+    // Schedules (record each switch-off, start the kiosk server when a policy needs it); off with KIOSK_AUTOMATION=off
     kioskScheduler.start();
     // <Jun Kai start>
     hardwareSampler.start();

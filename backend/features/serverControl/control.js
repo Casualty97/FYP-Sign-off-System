@@ -1,6 +1,7 @@
 // Owner: Role 3, Jun Kai. Previous team: Bernissa (schedule and mode files), Yu Kang (kiosk status probe).
 // Kiosk server control shared by the admin routes and the automation scheduler: the schedule, mode and
-// automation-log files, the kiosk status probe, the start and hibernate actions, and the schedule maths.
+// automation-log files, the kiosk status probe, the start action, the previous team's manual hibernate (the Stop
+// button), and the schedule maths.
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -56,7 +57,7 @@ function onSchedulesChanged(listener) {
     scheduleListeners.push(listener);
 }
 
-// Manual is the safe default: in auto mode the scheduler hibernates the PC
+// Manual is the safe default: in auto mode the policies run the kiosk
 function readModeConfig() {
     const config = readJson(MODE_FILE, null);
     if (config && ['auto', 'manual'].includes(config.mode)) return config;

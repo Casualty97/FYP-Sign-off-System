@@ -3888,7 +3888,7 @@
                                             <dt>Last automatic run</dt>
                                             <dd id="va-last-auto">None yet</dd>
                                         </dl>
-                                        <p class="ui-note">The server PC hibernates outside opening hours, so a run that falls in that time happens the next time the server is on.</p>
+                                        <p class="ui-note">If the server PC is asleep or off when a run is due, it happens the next time the server is on.</p>
                                     </div>
                                 </div>
                                 <div class="ui-card">
@@ -4149,7 +4149,7 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Operating hours</h2>
-                            <p>Policies decide when the kiosk runs. In automatic mode the PC hibernates when the kiosk switches off and wakes itself a few minutes before it switches on.</p>
+                            <p>Policies decide when the kiosk runs. In automatic mode each switch-off is recorded and the kiosk server is started when a policy needs it. Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</p>
                         </div>
                         <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New policy</button>
                     </div>
@@ -4167,17 +4167,12 @@
                                 <div class="ui-fact">
                                     <span class="ui-fact-label">Next stop</span>
                                     <span class="ui-fact-value" id="automation-next-stop">–</span>
-                                    <span class="ui-fact-hint">Kiosk off, PC hibernates</span>
+                                    <span class="ui-fact-hint">The kiosk switches off</span>
                                 </div>
                                 <div class="ui-fact">
                                     <span class="ui-fact-label">Next start</span>
                                     <span class="ui-fact-value" id="automation-next-start">–</span>
-                                    <span class="ui-fact-hint" id="automation-next-start-hint">PC wakes 3 minutes before</span>
-                                </div>
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Wake timer</span>
-                                    <span class="ui-fact-value" id="automation-wake-status">–</span>
-                                    <span class="ui-fact-hint" id="automation-wake-detail">Windows scheduled task</span>
+                                    <span class="ui-fact-hint" id="automation-next-start-hint">The kiosk server starts if needed</span>
                                 </div>
                                 <div class="ui-fact">
                                     <span class="ui-fact-label">Scheduler</span>
@@ -4214,7 +4209,7 @@
                                     <div>
                                         <div id="mode-status" class="ui-mode-label">Automatic mode</div>
                                         <!-- <Jun Kai start> -->
-                                        <div id="mode-description" class="ui-mode-desc">Policies run the kiosk and hibernate the PC</div>
+                                        <div id="mode-description" class="ui-mode-desc">Policies decide when the kiosk runs</div>
                                         <!-- <Jun Kai end> -->
                                     </div>
                                 </div>
@@ -4276,7 +4271,7 @@
                             <div class="policy-tip" id="policy-tip" role="tooltip" hidden></div>
                             <div class="policy-legend" aria-hidden="true">
                                 <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
-                                <span><i class="policy-swatch policy-swatch-stop"></i>Stopped by a policy</span>
+                                <span><i class="policy-swatch policy-swatch-stop"></i>Off hours (Stop policy)</span>
                             </div>
                         </div>
                     </div>
