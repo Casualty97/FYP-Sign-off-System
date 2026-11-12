@@ -21,8 +21,8 @@ the pages (no React, no build step). What you write is what the browser runs.
 | Android tablets on the same Wi-Fi | Chrome, opened on the feedback page through the QR code | `https://<pc-ip>:3000/feedback` |
 | Any laptop | the admin page | `https://<pc-ip>:3000/admin` |
 
-The PC hibernates at night and wakes in the morning by itself (Server Schedule page, automatic mode). On your own
-laptop that automation must be off (see the `.env` step below) or your laptop will hibernate on you.
+The Server Schedule policies decide when the kiosk runs (automatic mode); putting the PC itself to sleep at night and
+waking it is the system-level part of Role 4. On your own laptop keep the automation off (see the `.env` step below).
 
 ## 3. How a request travels through the code
 
@@ -251,6 +251,6 @@ true for your feature; nobody else will.
 
 - push to `main` (always a branch and a PR);
 - edit `database/schema.sql` (write a migration);
-- set `KIOSK_AUTOMATION=on` on a laptop and switch the Server Schedule page to automatic mode (it hibernates the machine);
+- press Stop and hibernate on the Server Schedule page of your laptop's copy (it hibernates the machine);
 - commit `backend/.env`, `backend/data/`, `uploads/`, `logs/`;
 - change another role's folder without telling the owner.

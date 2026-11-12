@@ -8028,7 +8028,6 @@ router.post('/server/mode', auth.requireAuth, (req, res) => {
     
     // <Jun Kai start>
     console.log(`✅ Server mode changed to ${mode.toUpperCase()} by ${config.updated_by}`);
-    scheduler.modeChanged();
     // <Jun Kai end>
     
     res.json({

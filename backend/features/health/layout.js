@@ -15,7 +15,7 @@ const OPTIONS = [
     { key: 'email', label: 'Email (SMTP)', description: 'The saved mail account can log in' },
     { key: 'disk', label: 'Disk space', description: 'Free space on the project drive' },
     { key: 'server', label: 'Server PC', description: 'CPU and memory load, uptime, app memory' },
-    { key: 'automation', label: 'Schedules & hibernation', description: 'Policies, next stop and start, wake timer' },
+    { key: 'automation', label: 'Schedules', description: 'Policies and the next stop and start' },
     { key: 'tablets', label: 'Tablets', description: 'Which kiosk screens report in, and the tablets panel' }
 ];
 const KEYS = OPTIONS.map((o) => o.key);

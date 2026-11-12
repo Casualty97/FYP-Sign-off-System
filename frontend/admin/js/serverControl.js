@@ -701,8 +701,8 @@ async function toggleServerMode() {
     const isAuto = toggle.checked;
     const newMode = isAuto ? 'auto' : 'manual';
     // <Jun Kai start>
-    // automatic mode can stop the kiosk and hibernate this PC within a minute, so it is confirmed first
-    if (isAuto && !confirm('Switch to automatic mode?\n\nThe policies take over within a minute. If none of them keeps the kiosk on right now, the kiosk stops and this PC hibernates.')) {
+    // automatic mode hands the kiosk to the policies within a minute, so it is confirmed first
+    if (isAuto && !confirm('Switch to automatic mode?\n\nThe policies take over within a minute: they decide when the kiosk runs, and start the kiosk server when one of them needs it.')) {
         toggle.checked = false;
         return;
     }
@@ -757,7 +757,7 @@ function updateModeUI(isAuto) {
     modeStatus.textContent = isAuto ? 'Automatic mode' : 'Manual mode';
     // <Jun Kai start>
     modeDesc.textContent = isAuto
-        ? 'Policies run the kiosk and hibernate the PC'
+        ? 'Policies decide when the kiosk runs'
         : 'Policies are paused; use the controls to start or stop the kiosk';
     if (modeHint) {
         modeHint.textContent = isAuto
@@ -1040,7 +1040,7 @@ async function loadAutomationStatus() {
         const a = data.automation;
         const acting = a.enabled && !a.dryRun && a.mode === 'auto';
         if (acting && lastAutomationStatus && lastAutomationStatus.currentWindow && !a.currentWindow) {
-            showNotification('The policies now keep the kiosk off, so the PC hibernates within a minute.', 'warning');
+            showNotification('The policies now keep the kiosk off.', 'warning');
         }
         lastAutomationStatus = a;
         // <Jun Kai end>
@@ -1062,7 +1062,7 @@ function renderAutomationStatus(a) {
     } else if (!isAuto) {
         setAutomationState('Paused', 'warn');
         // <Jun Kai start>
-        setAutomationText('automation-summary', 'Manual mode. Switch to automatic mode below and the policies will hibernate and wake the PC.');
+        setAutomationText('automation-summary', 'Manual mode. Switch to automatic mode below and the policies decide when the kiosk runs.');
         // <Jun Kai end>
     // <Jun Kai start>
     } else if (!a.activeSchedules) {
@@ -1073,7 +1073,7 @@ function renderAutomationStatus(a) {
         setAutomationText('automation-summary', 'Dry run: actions are only logged (KIOSK_AUTOMATION=dry-run).');
     } else {
         setAutomationState('On', 'ok');
-        let summary = `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'}. The PC hibernates when the kiosk switches off and wakes before it switches on.`;
+        let summary = `${a.activeSchedules} enabled polic${a.activeSchedules === 1 ? 'y' : 'ies'} decide when the kiosk runs.`;
         if (a.currentWindow) {
             summary = a.currentWindow.until
                 ? `The kiosk runs until ${formatPlannedTime(a.currentWindow.until)}. "${a.currentWindow.schedule}" is in force now.`
@@ -1090,29 +1090,6 @@ function renderAutomationStatus(a) {
     setAutomationText('automation-next-stop', isAuto && a.enabled ? formatPlannedTime(a.nextStop) : '–');
     setAutomationText('automation-next-start', isAuto && a.enabled ? formatPlannedTime(a.nextStart) : '–');
 
-    const wake = a.wake || {};
-    if (!wake.supported) {
-        setAutomationText('automation-wake-status', 'Windows only');
-        setAutomationText('automation-wake-detail', 'Wake timers need the Windows Task Scheduler');
-    } else if (wake.dryRun) {
-        setAutomationText('automation-wake-status', 'Dry run');
-        setAutomationText('automation-wake-detail', `${wake.triggers || 0} trigger(s) would be set`);
-    } else if (wake.error) {
-        setAutomationText('automation-wake-status', 'Not set');
-        setAutomationText('automation-wake-detail', wake.error);
-    } else if (wake.task && wake.task.exists) {
-        setAutomationText('automation-wake-status', wake.wakeTimersAllowed === false ? 'Set, timers blocked' : 'Set');
-        setAutomationText('automation-wake-detail', wake.wakeTimersAllowed === false
-            ? 'Windows power settings block wake timers: run the install script as administrator'
-            : (wake.task.nextRun ? `Next wake ${wake.task.nextRun}` : 'Scheduled task present'));
-    } else {
-        // <Jun Kai start>
-        const paused = a.mode && a.mode !== 'auto';
-        setAutomationText('automation-wake-status', paused ? 'Paused' : a.wakeNeeded ? 'Missing' : 'Not needed');
-        setAutomationText('automation-wake-detail', paused ? 'Manual mode: the policies do not wake the PC' : a.wakeNeeded ? 'Created when a policy is saved while automation is on' : 'No policy switches the kiosk on');
-        // <Jun Kai end>
-    }
-
     setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting' : 'Off'));
     // <Jun Kai start>
     setAutomationText('automation-mode-hint', isAuto ? 'Automatic mode: policies apply' : 'Manual mode: policies paused');
@@ -1120,7 +1097,7 @@ function renderAutomationStatus(a) {
 
     const list = document.getElementById('automation-events');
     if (!list) return;
-    const labels = { hibernate: 'Hibernated the PC', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' };
+    const labels = { hibernate: 'Hibernated the PC (Stop button)', off: 'Kiosk switched off', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' }; // <Jun Kai/> off: a policy switch-off
     if (!a.events || !a.events.length) {
         list.innerHTML = '<li class="ui-empty">No automatic actions recorded yet</li>';
         return;
