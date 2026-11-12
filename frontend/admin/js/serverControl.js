@@ -621,9 +621,9 @@ function renderPolicyPreview(preview) {
         const label = isToday ? 'Today' : new Date(y, m - 1, d).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' });
         // manual mode pauses the policies, so nothing is drawn
         const segments = preview.manual ? '' : day.segments.map((s) => {
-            const what = s.on ? 'Active: the kiosk runs' : 'Stop: the kiosk is off';
+            const what = s.on ? 'Active: the kiosk runs' : 'Stop: off hours'; // <Jun Kai/> a Stop time is only recorded for now
             const when = `${s.from} to ${s.to}, priority ${s.position}`;
-            const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'kiosk off'}, priority ${s.position}`;
+            const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'off hours'}, priority ${s.position}`;
             return `<span class="policy-seg policy-seg-${s.on ? 'on' : 'stop'}" role="img" style="left:${(s.startMin / 14.4).toFixed(3)}%;width:${((s.endMin - s.startMin) / 14.4).toFixed(3)}%" tabindex="0" data-slot="${day.date}-${s.startMin}" data-name="${escapeHtmlSafe(s.name)}" data-what="${escapeHtmlSafe(what)}" data-when="${escapeHtmlSafe(when)}" aria-label="${escapeHtmlSafe(words)}"><span class="policy-seg-label">${escapeHtmlSafe(s.name)}</span></span>`;
         }).join('');
         const now = isToday ? `<span class="policy-now" style="left:${(preview.nowMin / 14.4).toFixed(3)}%"></span>` : '';
@@ -1040,7 +1040,7 @@ async function loadAutomationStatus() {
         const a = data.automation;
         const acting = a.enabled && !a.dryRun && a.mode === 'auto';
         if (acting && lastAutomationStatus && lastAutomationStatus.currentWindow && !a.currentWindow) {
-            showNotification('The policies now keep the kiosk off.', 'warning');
+            showNotification('Off hours have started. The switch-off is recorded; the kiosk server keeps running.', 'info');
         }
         lastAutomationStatus = a;
         // <Jun Kai end>
@@ -1080,8 +1080,8 @@ function renderAutomationStatus(a) {
                 : `The kiosk runs and no policy stops it within a year. "${a.currentWindow.schedule}" is in force now.`;
         } else if (a.stoppedBy) {
             summary = a.stoppedBy.until
-                ? `The kiosk is off until ${formatPlannedTime(a.stoppedBy.until)} because of the Stop policy "${a.stoppedBy.schedule}".`
-                : `The kiosk is off because of the Stop policy "${a.stoppedBy.schedule}", and no policy starts it within a year.`;
+                ? `Off hours until ${formatPlannedTime(a.stoppedBy.until)} (Stop policy "${a.stoppedBy.schedule}"). The switch-off is only recorded: the kiosk server keeps running.`
+                : `Off hours (Stop policy "${a.stoppedBy.schedule}"), and no policy starts the kiosk within a year. The switch-off is only recorded: the kiosk server keeps running.`;
         }
         setAutomationText('automation-summary', summary);
     }
@@ -1097,7 +1097,7 @@ function renderAutomationStatus(a) {
 
     const list = document.getElementById('automation-events');
     if (!list) return;
-    const labels = { hibernate: 'Hibernated the PC (Stop button)', off: 'Kiosk switched off', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' }; // <Jun Kai/> off: a policy switch-off
+    const labels = { hibernate: 'Hibernated the PC (Stop button)', off: 'Off hours started (recorded)', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' }; // <Jun Kai/> off: a policy switch-off
     if (!a.events || !a.events.length) {
         list.innerHTML = '<li class="ui-empty">No automatic actions recorded yet</li>';
         return;
