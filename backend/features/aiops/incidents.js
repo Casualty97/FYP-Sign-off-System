@@ -251,6 +251,8 @@ function createEngine({ store, detect, now = () => new Date(), settings, load, a
 
 // Both stores: insert(incident) -> id, update(id, fields) -> boolean, get(id), list({ status: 'open' | 'resolved' | 'all',
 // limit }), listOpen(), findResolvedSince(fingerprint, sinceMs), addEvent(id, type, detail, at) -> id, events(id),
+// examples(detector, limit, exceptId) (resolved, marked correct, newest first), latestEvents(ids, type) -> { id: event },
+// verdicts(detector, sinceMs) -> [{ verdict, verdict_at }] newest first,
 // prune(beforeMs) -> count. Dates in can be Dates or ISO strings; dates out are ISO strings; evidence and detail are objects.
 function memoryStore() {
     const incidents = [];
@@ -307,6 +309,22 @@ function memoryStore() {
         },
         async events(id) {
             return events.filter((event) => event.incident_id === idOf(id)).sort((a, b) => ms(a.at) - ms(b.at) || a.id - b.id).map(copy);
+        },
+        async examples(detector, limit = 3, exceptId = null) {
+            return incidents.filter((row) => row.detector === detector && row.verdict === 'correct' && row.status === 'resolved' && row.id !== idOf(exceptId))
+                .sort(byResolved).slice(0, limit).map(copy);
+        },
+        async verdicts(detector, sinceMs) {
+            return incidents.filter((row) => row.detector === detector && row.verdict && ms(row.verdict_at) >= sinceMs)
+                .sort((a, b) => ms(b.verdict_at) - ms(a.verdict_at)).slice(0, 20).map((row) => ({ verdict: row.verdict, verdict_at: row.verdict_at }));
+        },
+        async latestEvents(ids, type) {
+            const wanted = new Set((Array.isArray(ids) ? ids : []).map(idOf).filter(Boolean));
+            const out = {};
+            for (const event of [...events].sort((a, b) => ms(b.at) - ms(a.at) || b.id - a.id)) {
+                if (event.type === type && wanted.has(event.incident_id) && !out[event.incident_id]) out[event.incident_id] = copy(event);
+            }
+            return out;
         },
         async prune(beforeMs) {
             const gone = new Set(incidents.filter((row) => row.status === 'resolved' && ms(row.resolved_at) < beforeMs).map((row) => row.id));
@@ -394,6 +412,24 @@ function sqlStore(db) {
             const incidentId = idOf(id);
             if (!incidentId) return [];
             return (await all('SELECT id, incident_id, at, type, detail FROM incident_events WHERE incident_id = ? ORDER BY at ASC, id ASC', [incidentId])).map(fromEvent);
+        },
+        async examples(detector, limit = 3, exceptId = null) {
+            const rows = await all("SELECT * FROM incidents WHERE detector = ? AND verdict = 'correct' AND status = 'resolved' AND id <> ? ORDER BY resolved_at DESC, id DESC LIMIT ?",
+                [String(detector || ''), idOf(exceptId) || 0, Math.max(1, Math.min(10, Number(limit) || 3))]);
+            return rows.map(fromRow);
+        },
+        async verdicts(detector, sinceMs) {
+            const rows = await all('SELECT verdict, verdict_at FROM incidents WHERE detector = ? AND verdict IS NOT NULL AND verdict_at >= ? ORDER BY verdict_at DESC LIMIT 20',
+                [String(detector || ''), new Date(sinceMs)]);
+            return rows.map((row) => ({ verdict: row.verdict, verdict_at: iso(row.verdict_at) }));
+        },
+        async latestEvents(ids, type) {
+            const list = (Array.isArray(ids) ? ids : []).map(idOf).filter(Boolean);
+            if (!list.length) return {};
+            const rows = await all('SELECT id, incident_id, at, type, detail FROM incident_events WHERE type = ? AND incident_id IN (?) ORDER BY at DESC, id DESC', [type, list]);
+            const out = {};
+            for (const row of rows.map(fromEvent)) if (!out[row.incident_id]) out[row.incident_id] = row;
+            return out;
         },
         async prune(beforeMs) {
             const before = new Date(beforeMs);

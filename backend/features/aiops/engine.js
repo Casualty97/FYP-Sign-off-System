@@ -10,6 +10,8 @@ const incidents = require('./incidents');
 const input = require('./input');
 const log = require('../../core/log');
 const { createLogReader } = require('./logReader');
+const { createAdvisor } = require('./advisor');
+const learning = require('./learning');
 
 const FIRST_TICK_DELAY_MS = 90 * 1000;
 const SOON_MS = 5 * 1000;
@@ -60,6 +62,9 @@ function createRunner(overrides = {}) {
         all: (...args) => d.db().all(...args),
         run: (...args) => d.db().run(...args)
     });
+
+    // AIOps part 2: explains each open incident in the background (local LLM, or rules when it is not there)
+    const advisor = d.advisor ? d.advisor(store, current) : createAdvisor({ store, settings: current });
 
     // In AUTO mode while the policies say the kiosk is off, the kiosk and tablet detectors are muted
     function quietNow(now, conf) {
@@ -131,7 +136,33 @@ function createRunner(overrides = {}) {
         });
     }
 
-    const engine = incidents.createEngine({ store, settings: current, load: loadInput, audit: d.audit, now: d.now });
+    // the detectors run with the levels learned from the verdicts (learning.js); everything else reads the saved settings
+    const learned = d.learning ? d.learning : { read: learning.read, write: learning.write };
+    const effective = () => learning.apply(current(), learned.read());
+    const engine = incidents.createEngine({ store, settings: effective, load: loadInput, audit: d.audit, now: d.now });
+
+    // a verdict may make its detector one step less (or again more) sensitive
+    async function learnFrom(detector) {
+        if (!detector || !settings.DETECTORS.some((x) => x.key === detector) || current().learnFromVerdicts === false) return null;
+        const nowMs = d.now().getTime();
+        const rows = await store.verdicts(detector, nowMs - learning.WINDOW_DAYS * DAY);
+        const state = learned.read();
+        const before = state[detector];
+        const step = learning.learnStep(rows.map((r) => ({ verdict: r.verdict, at: Date.parse(r.verdict_at) })), before, nowMs);
+        if (!step.changed) return null;
+        if (step.offset === 0) delete state[detector];
+        else state[detector] = { offset: step.offset, countedAt: step.countedAt, reason: step.reason, at: new Date(nowMs).toISOString() };
+        learned.write(state);
+        const label = settings.DETECTORS.find((x) => x.key === detector).label;
+        console.log(`[aiops] learning: "${label}" is now ${step.offset < ((before && before.offset) || 0) ? 'less' : 'more'} sensitive (${step.reason})`);
+        return step;
+    }
+
+    async function setVerdict(id, verdict, by) {
+        const incident = await engine.setVerdict(id, verdict, by);
+        if (incident) await learnFrom(incident.detector).catch((error) => logOnce(`learning: ${error.message}`));
+        return incident;
+    }
 
     function logOnce(message) {
         if (state.logged.has(message)) return;
@@ -161,6 +192,8 @@ function createRunner(overrides = {}) {
                 state.notes = result.notes || {};
             }
             state.lastResult = { at: result.at, skipped: result.skipped, anomalies: result.anomalies, opened: result.opened, merged: result.merged, resolved: result.resolved };
+            // new or changed incidents get advice; it runs in the background so the check does not wait for the model
+            if (!result.skipped) advisor.sweep().catch((error) => logOnce(`advisor: ${error.message}`));
             await prune(now.getTime(), current());
             state.lastError = null;
             return result;
@@ -208,6 +241,7 @@ function createRunner(overrides = {}) {
 
     function getStatus() {
         const conf = current();
+        const learnedState = conf.learnFromVerdicts !== false ? learned.read() : {};
         const detectorList = settings.DETECTORS.map(({ key, label, description }) => {
             const own = conf.detectors[key];
             const off = !conf.enabled || !own.enabled;
@@ -216,7 +250,9 @@ function createRunner(overrides = {}) {
             if (!conf.enabled) note = 'Anomaly detection is off';
             else if (!own.enabled) note = 'Switched off';
             else if (detectorState === 'waiting') note = 'Waiting for the first check';
-            return { key, label, description, enabled: own.enabled, sensitivity: own.sensitivity, state: detectorState, note };
+            const learnedStep = learnedState[key];
+            const tuned = learnedStep && learnedStep.offset ? { offset: learnedStep.offset, sensitivity: learning.effectiveSensitivity(own.sensitivity, learnedStep.offset), reason: learnedStep.reason, at: learnedStep.at } : null;
+            return { key, label, description, enabled: own.enabled, sensitivity: own.sensitivity, state: detectorState, note, tuned };
         });
         return {
             enabled: conf.enabled,
@@ -232,7 +268,8 @@ function createRunner(overrides = {}) {
                 namedTablets: state.namedTablets
             },
             quietNow: quietNow(d.now(), conf),
-            recorder: d.recorder().getStatus()
+            recorder: d.recorder().getStatus(),
+            advisor: advisor.getStatus()
         };
     }
 
@@ -249,8 +286,8 @@ function createRunner(overrides = {}) {
     }
 
     return {
-        start, getStatus, runNow: runTick, applySettings, counts, store,
-        acknowledge: engine.acknowledge, resolve: engine.resolve, setVerdict: engine.setVerdict, openTest: engine.openTest
+        start, getStatus, runNow: runTick, applySettings, counts, store, advisor,
+        acknowledge: engine.acknowledge, resolve: engine.resolve, setVerdict, openTest: engine.openTest, learnFrom
     };
 }
 

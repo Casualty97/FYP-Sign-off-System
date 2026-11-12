@@ -19,10 +19,15 @@ const incidentsJson = new Map();    // id -> the incident as last loaded; a chan
 const incidentsEvents = new Map();  // id -> timeline events, or { error }
 const incidentsExpanded = new Set();
 const incidentsTimelineFull = new Set(); // ids whose long timeline is shown in full
+// <Jun Kai start> AIOps part 2: the advisor
+let incidentsAdvisorOn = true;      // from GET /settings; off hides "Ask the advisor"
+let incidentsAdviceTimer = null;    // refreshes every 5 s while an advice is being prepared
+const INCIDENT_LIKELY = { high: 'Most likely', medium: 'Possible', low: 'Less likely' };
+// <Jun Kai end>
 
 const INCIDENT_SEVERITY = { critical: { tone: 'down', label: 'Critical' }, warn: { tone: 'warn', label: 'Attention' }, info: { tone: 'info', label: 'Info' } };
 const INCIDENT_VERDICT_LABEL = { correct: 'Correct', 'not-useful': 'Not useful', 'false-alarm': 'False alarm' };
-const INCIDENT_EVENT_LABEL = { opened: 'Opened', seen: 'Seen again', severity: 'Severity raised', acknowledged: 'Acknowledged', resolved: 'Resolved', reopened: 'Reopened', verdict: 'Marked', note: 'Note' };
+const INCIDENT_EVENT_LABEL = { opened: 'Opened', seen: 'Seen again', severity: 'Severity raised', acknowledged: 'Acknowledged', resolved: 'Resolved', reopened: 'Reopened', advice: 'Advice', verdict: 'Marked', note: 'Note' };
 const INCIDENT_DETECTOR_LABEL = {
     spike: 'Sudden spikes', timeOfDay: 'Unusual for the time of day', drift: 'Slow creep', disk: 'Disk filling up',
     services: 'Services down or slow', tablets: 'Named tablets offline', logs: 'Server errors', test: 'Test'
@@ -35,7 +40,7 @@ const INCIDENT_PROCESS_LABEL = { server: 'the admin server', kiosk: 'the kiosk s
 const INCIDENT_RANK = { critical: 0, warn: 1, info: 2 };
 const INCIDENT_SENSITIVITY = [[1, 'Very low'], [2, 'Low'], [3, 'Normal'], [4, 'High'], [5, 'Very high']];
 const INCIDENT_FIELD_ID = { enabled: 'incidents-enabled', quietHours: 'incidents-quiet', intervalSeconds: 'incidents-interval', retentionDays: 'incidents-retention', keepIncidentsDays: 'incidents-keep' };
-const INCIDENT_ZONES = ['inc-meta', 'inc-timeline']; // the parts of a row that change often: swapped in place so focus and hover survive
+const INCIDENT_ZONES = ['inc-meta', 'inc-timeline', 'inc-advice']; // the parts of a row that change often: swapped in place so focus and hover survive
 const INCIDENT_FRESH_MS = 5000;     // a load this recent is not repeated (health.js asks more than once per cycle)
 const INCIDENT_WEEK_MS = 7 * 24 * 3600 * 1000;
 const INCIDENT_TIMELINE_FOLD = 8;   // a longer timeline shows its first 2 and last 4 entries until it is opened
@@ -176,6 +181,8 @@ function incidentsSummaryText(status) {
     if (count('no-data')) parts.push(`${count('no-data')} waiting for data`);
     if (count('muted')) parts.push(`${count('muted')} paused`);
     if (count('error')) parts.push(`${count('error')} failed`);
+    const tuned = detectors.filter((d) => d.tuned).length; // <Jun Kai/> learned from the verdicts
+    if (tuned) parts.push(`${tuned} tuned by your verdicts`);
     const data = status.data || status.dataWindow || {};
     const spans = [];
     if (incidentIsNumber(data.sampleHours)) spans.push(`${incidentSpan(data.sampleHours)} of samples`);
@@ -342,6 +349,9 @@ function incidentTimelineHtml(events, unit, id) {
                 break;
             case 'verdict': type = `Marked ${(INCIDENT_VERDICT_LABEL[d.verdict] || d.verdict || '').toLowerCase()}`; text = by; break;
             case 'note': text = d.note || ''; break;
+            // <Jun Kai start>
+            case 'advice': text = d.source === 'llm' ? `from the local AI (${d.model || 'model'}) in ${incidentIsNumber(d.seconds) ? d.seconds : '?'} s` : 'rule-based: the local AI was not available'; break;
+            // <Jun Kai end>
             default: text = '';
         }
         return `<li><span class="ui-time">${escapeHtmlSafe(incidentStamp(event.at))}</span><span class="ui-type">${escapeHtmlSafe(type)}</span><span class="ui-detail">${escapeHtmlSafe(text)}</span></li>`;
@@ -362,6 +372,34 @@ function incidentMetaHtml(incident, nowMs) {
     return html;
 }
 
+// <Jun Kai start>
+// The advisor's answer (AIOps part 2): a short summary, the likely causes and one suggested step. Nothing runs by itself.
+function incidentAdviceHtml(incident) {
+    const advice = incident.advice && typeof incident.advice === 'object' ? incident.advice : null;
+    const busy = incident.adviceBusy === true;
+    const open = incidentIsOpen(incident);
+    const ask = open && incidentsAdvisorOn
+        ? `<button type="button" class="ui-btn ui-btn-secondary" data-act="advice"${busy ? ' disabled' : ''}>${busy ? 'Asking the advisor' : advice ? 'Ask again' : 'Ask the advisor'}</button>`
+        : '';
+    if (!advice) {
+        const text = busy ? 'The advisor is looking at this incident. Its advice shows here in a moment.' : open ? (incidentsAdvisorOn ? 'No advice yet.' : 'The advisor is switched off in Settings.') : 'No advice was given.';
+        return `<div class="inc-advice"><div class="ui-section-title">Advice</div><p class="ui-help">${escapeHtmlSafe(text)}</p>${ask ? `<div class="ui-row">${ask}</div>` : ''}</div>`;
+    }
+    const causes = (Array.isArray(advice.causes) ? advice.causes : []).map((c) => `<li><span class="inc-likely">${escapeHtmlSafe(INCIDENT_LIKELY[c.likelihood] || 'Possible')}</span><span>${escapeHtmlSafe(c.cause || '')}</span></li>`).join('');
+    const source = advice.source === 'llm'
+        ? `From the local AI (${advice.model || 'model'}) in ${incidentIsNumber(advice.seconds) ? advice.seconds : '?'} s`
+        : 'Rule-based advice: the local AI was not available';
+    return `<div class="inc-advice">
+                <div class="ui-section-title">Advice</div>
+                ${advice.summary ? `<div class="inc-advice-summary">${escapeHtmlSafe(advice.summary)}</div>` : ''}
+                ${causes ? `<div class="inc-advice-label">Likely causes</div><ul class="inc-causes">${causes}</ul>` : ''}
+                <div class="inc-advice-label">Suggested next step</div>
+                <div class="inc-advice-step">${escapeHtmlSafe(advice.actionText || advice.action || '')}${advice.why ? `<span class="ui-fact-hint">${escapeHtmlSafe(advice.why)}</span>` : ''}</div>
+                <div class="inc-advice-foot"><span class="ui-fact-hint">${escapeHtmlSafe(`${source}, ${incidentStamp(advice.at)}. A suggestion only: nothing is changed by itself.`)}</span>${ask}</div>
+            </div>`;
+}
+// <Jun Kai end>
+
 function incidentDetailHtml(incident) {
     const id = String(incident.id);
     const evidence = incident.evidence && typeof incident.evidence === 'object' ? incident.evidence : {};
@@ -376,6 +414,7 @@ function incidentDetailHtml(incident) {
         return `<button type="button" class="ui-btn ui-btn-secondary${chosen ? ' is-chosen' : ''}" data-act="verdict" data-verdict="${key}" aria-pressed="${chosen}">${label}</button>`;
     }).join('');
     return `<div class="inc-detail" id="incident-detail-${id}">
+                ${incidentAdviceHtml(incident)}
                 <div>
                     <div class="ui-section-title">Evidence</div>
                     ${kv}${spark}${spark ? `<span class="ui-fact-hint">${escapeHtmlSafe(incidentSparkCaption(evidence.points, unit))}</span>` : ''}
@@ -575,6 +614,7 @@ async function loadIncidents(force) {
             incidentsFetch('/api/admin/aiops/incidents?status=all&limit=100')
         ]);
         incidentsStatus = status.status || {};
+        if (incidentsStatus.advisor) incidentsAdvisorOn = incidentsStatus.advisor.on !== false; // <Jun Kai/>
         incidentsList = Array.isArray(list.incidents) ? list.incidents : [];
         incidentsError = null;
         incidentsForgetGone(incidentsList);
@@ -588,6 +628,7 @@ async function loadIncidents(force) {
         incidentsLoadedAt = Date.now();
         incidentsLoading = false;
         renderIncidents();
+        if (incidentsList.some((i) => i.adviceBusy)) incidentsWatchAdvice(); // <Jun Kai/>
         if (incidentsReloadQueued) {
             incidentsReloadQueued = false;
             loadIncidents(true);
@@ -596,6 +637,35 @@ async function loadIncidents(force) {
 }
 
 // ---- actions ----
+
+// <Jun Kai start>
+async function askIncidentAdvice(id, button) {
+    if (button) button.disabled = true;
+    try {
+        await incidentsFetch(`/api/admin/aiops/incidents/${encodeURIComponent(String(id))}/advice`, { method: 'POST', body: '{}' });
+        showNotification('The advisor is looking at it: the advice shows in the details in a moment', 'success');
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+    await loadIncidents(true);
+    incidentsWatchAdvice();
+}
+
+// while any advice is being prepared, the list refreshes every 5 seconds (for at most 3 minutes)
+function incidentsWatchAdvice() {
+    if (incidentsAdviceTimer) return;
+    const until = Date.now() + 3 * 60 * 1000;
+    incidentsAdviceTimer = setInterval(() => {
+        const card = document.getElementById('health-incidents-card');
+        if (Date.now() > until || !card || card.hidden || !incidentsList.some((i) => i.adviceBusy)) {
+            clearInterval(incidentsAdviceTimer);
+            incidentsAdviceTimer = null;
+            return;
+        }
+        loadIncidents(true);
+    }, 5000);
+}
+// <Jun Kai end>
 
 async function toggleIncidentDetail(id) {
     const key = String(id);
@@ -661,6 +731,7 @@ function bindIncidentsPanel() {
             case 'acknowledge': incidentAction(id, 'acknowledge', button); break;
             case 'resolve': incidentAction(id, 'resolve', button); break;
             case 'verdict': incidentAction(id, 'verdict', button, { verdict: button.dataset.verdict }); break;
+            case 'advice': askIncidentAdvice(id, button); break; // <Jun Kai/>
             case 'recent': toggleIncidentsRecent(); break;
             case 'timeline':
                 if (incidentsTimelineFull.has(String(id))) incidentsTimelineFull.delete(String(id));
@@ -730,7 +801,7 @@ function incidentsSelectValue(id, value, label) {
     select.value = text;
 }
 
-function renderIncidentDetectors(chosen) {
+function renderIncidentDetectors(chosen, learned = {}) {
     const box = document.getElementById('incidents-detectors');
     if (!box) return;
     box.innerHTML = incidentsDetectors.map((d) => {
@@ -742,7 +813,7 @@ function renderIncidentDetectors(chosen) {
         return `<div class="inc-detector${on ? '' : ' is-off'}" data-key="${key}">
                     <label class="inc-detector-main">
                         <span class="ui-switch"><input type="checkbox" data-detector="${key}" data-field="enabled"${on ? ' checked' : ''} aria-label="${label}"><span class="ui-switch-track"></span></span>
-                        <span class="inc-detector-text"><strong>${label}</strong><small>${escapeHtmlSafe(d.description || '')}</small></span>
+                        <span class="inc-detector-text"><strong>${label}</strong><small>${escapeHtmlSafe(d.description || '')}</small>${incidentTunedHint(conf, learned[d.key])}</span>
                     </label>
                     <select class="ui-select" data-detector="${key}" data-field="sensitivity" aria-label="Sensitivity of ${label}">${options}</select>
                 </div>`;
@@ -760,11 +831,20 @@ async function fillIncidentSettings() {
         incidentsDetectors = Array.isArray(data.detectors) && data.detectors.length
             ? data.detectors
             : Object.keys(INCIDENT_DETECTOR_LABEL).filter((key) => key !== 'test').map((key) => ({ key, label: INCIDENT_DETECTOR_LABEL[key], description: '' }));
-        renderIncidentDetectors(settings.detectors || {});
+        renderIncidentDetectors(settings.detectors || {}, settings.learnFromVerdicts === false ? {} : data.learned || {});
+        const learn = document.getElementById('incidents-learn'); // <Jun Kai/>
+        if (learn) learn.checked = settings.learnFromVerdicts !== false; // <Jun Kai/>
         const enabled = document.getElementById('incidents-enabled');
         if (enabled) enabled.checked = settings.enabled !== false;
         const quiet = document.getElementById('incidents-quiet');
         if (quiet) quiet.checked = settings.quietHours !== false;
+        // <Jun Kai start> the advisor: its switch and the models Ollama has on this PC
+        const advisor = settings.advisor || {};
+        incidentsAdvisorOn = settings.enabled !== false && advisor.enabled !== false;
+        const advisorBox = document.getElementById('incidents-advisor');
+        if (advisorBox) advisorBox.checked = advisor.enabled !== false;
+        await fillIncidentAdvisorModels(advisor.model || 'qwen2.5:3b');
+        // <Jun Kai end>
         const interval = Number(settings.intervalSeconds) || 60;
         const retention = Number(settings.retentionDays) || 30;
         const keep = Number(settings.keepIncidentsDays) || 90;
@@ -777,6 +857,36 @@ async function fillIncidentSettings() {
         incidentsSettingsHelp(`Could not load the settings: ${error.message}`, true);
     }
 }
+
+// <Jun Kai start>
+async function fillIncidentAdvisorModels(saved) {
+    const select = document.getElementById('incidents-advisor-model');
+    if (!select) return;
+    let models = [];
+    let help = '';
+    try {
+        const data = await incidentsFetch('/api/admin/aiops/advisor');
+        models = Array.isArray(data.models) ? data.models : [];
+        if (!models.length) help = 'Ollama is not running or has no models: the advisor gives rule-based advice until it is.';
+    } catch (error) {
+        help = `Could not ask Ollama for its models: ${error.message}`;
+    }
+    const names = [...new Set([saved, ...models])];
+    select.innerHTML = names.map((name) => `<option value="${escapeHtmlSafe(name)}"${name === saved ? ' selected' : ''}>${escapeHtmlSafe(name)}${models.includes(name) ? '' : ' (not on this PC)'}</option>`).join('');
+    const note = document.getElementById('incidents-advisor-help');
+    if (note) note.textContent = help;
+}
+// <Jun Kai end>
+
+// <Jun Kai start>
+// "Tuned to Low by your verdicts": what learning from the verdicts did to this detector, under its description
+function incidentTunedHint(conf, entry) {
+    if (!entry || !entry.offset) return '';
+    const level = Math.max(1, Math.min(5, (Number(conf.sensitivity) || 3) + Number(entry.offset)));
+    const name = (INCIDENT_SENSITIVITY.find(([value]) => value === level) || [0, 'a lower level'])[1];
+    return `<small class="inc-tuned">Tuned to ${escapeHtmlSafe(name)} by your verdicts${entry.reason ? `: ${escapeHtmlSafe(entry.reason)}` : ''}.</small>`;
+}
+// <Jun Kai end>
 
 function readIncidentSettings() {
     const checked = (id) => { const el = document.getElementById(id); return !!(el && el.checked); };
@@ -793,7 +903,11 @@ function readIncidentSettings() {
         intervalSeconds: number('incidents-interval'),
         retentionDays: number('incidents-retention'),
         keepIncidentsDays: number('incidents-keep'),
-        detectors
+        detectors,
+        // <Jun Kai start>
+        learnFromVerdicts: checked('incidents-learn'),
+        advisor: { enabled: checked('incidents-advisor'), model: (document.getElementById('incidents-advisor-model') || {}).value || 'qwen2.5:3b' }
+        // <Jun Kai end>
     };
 }
 
@@ -803,6 +917,7 @@ function incidentsFieldControl(field) {
     if (parts[0] === 'detectors' && parts.length === 3 && /^[A-Za-z]+$/.test(parts[1]) && /^[a-z]+$/i.test(parts[2])) {
         return document.querySelector(`#incidents-detectors [data-detector="${parts[1]}"][data-field="${parts[2]}"]`);
     }
+    if (parts[0] === 'advisor') return document.getElementById(parts[1] === 'model' ? 'incidents-advisor-model' : 'incidents-advisor'); // <Jun Kai/>
     return INCIDENT_FIELD_ID[parts[0]] ? document.getElementById(INCIDENT_FIELD_ID[parts[0]]) : null;
 }
 

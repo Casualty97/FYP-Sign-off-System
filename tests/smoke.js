@@ -427,10 +427,18 @@ async function archiveStep(cookie) {
           await expect('GET /api/admin/aiops/incidents?status=open lists the test incident', `${AIOPS}/incidents?status=open`, (r) => r.body && Array.isArray(r.body.incidents) && r.body.incidents.some((i) => i.id === incidentId) || r.text.slice(0, 160), { headers: { cookie } });
           await expect('POST acknowledge marks the test incident acknowledged', `${AIOPS}/incidents/${incidentId}/acknowledge`, (r) => r.body && r.body.incident && r.body.incident.status === 'acknowledged' || r.text.slice(0, 160), post({}));
           await expect('POST verdict correct is saved on the test incident', `${AIOPS}/incidents/${incidentId}/verdict`, (r) => r.body && r.body.incident && r.body.incident.verdict === 'correct' || r.text.slice(0, 160), post({ verdict: 'correct' }));
+          // <Jun Kai start> AIOps part 2: the advisor (no Ollama on a runner: it answers with rule-based advice)
+          await expect('POST /api/admin/aiops/incidents/:id/advice asks the advisor', `${AIOPS}/incidents/${incidentId}/advice`, (r) => r.body && r.body.success === true && r.body.queued === true || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
+          // <Jun Kai end>
           await expect('POST verdict maybe is refused', `${AIOPS}/incidents/${incidentId}/verdict`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({ verdict: 'maybe' }));
           await expect('POST resolve closes the test incident as the admin', `${AIOPS}/incidents/${incidentId}/resolve`, (r) => r.body && r.body.incident && r.body.incident.status === 'resolved' && r.body.incident.resolved_by === ADMIN_USER || r.text.slice(0, 160), post({ note: 'Smoke test' }));
           await expect('GET /api/admin/aiops/incidents/:id has the whole timeline', `${AIOPS}/incidents/${incidentId}`, (r) => ['opened', 'acknowledged', 'verdict', 'resolved'].every((t) => ((r.body && r.body.events) || []).some((e) => e.type === t)) || r.text.slice(0, 160), { headers: { cookie } });
         }
+        // <Jun Kai start>
+        if (incidentId) await expect('POST advice on a resolved incident is refused', `${AIOPS}/incidents/${incidentId}/advice`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
+        await expect('POST advice on an unknown incident is 404', `${AIOPS}/incidents/99999999/advice`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
+        await expect('GET /api/admin/aiops/advisor has the step list', `${AIOPS}/advisor`, (r) => r.body && r.body.success === true && !!r.body.actions && typeof r.body.actions.none === 'string' && Array.isArray(r.body.models) || r.text.slice(0, 160), { headers: { cookie } });
+        // <Jun Kai end>
         await expect('POST /api/admin/aiops/run-now runs one check', `${AIOPS}/run-now`, (r) => r.body && r.body.success === true && !!r.body.result && (r.body.result.skipped === null || r.body.result.skipped === 'disabled') || r.text.slice(0, 160), post({}));
         await expect('POST acknowledge on an unknown incident is 404', `${AIOPS}/incidents/999999999/acknowledge`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
       }

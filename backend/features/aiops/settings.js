@@ -23,10 +23,16 @@ const DEFAULTS = {
     retentionDays: 30,
     keepIncidentsDays: 90,
     quietHours: true,
+    // AIOps part 2: a detector whose incidents keep being marked False alarm turns itself less sensitive (learning.js)
+    learnFromVerdicts: true,
     cooldownMinutes: 30,
     clearAfterMinutes: 10,
-    detectors: Object.fromEntries(DETECTORS.map((d) => [d.key, { enabled: true, sensitivity: 3 }]))
+    detectors: Object.fromEntries(DETECTORS.map((d) => [d.key, { enabled: true, sensitivity: 3 }])),
+    // AIOps part 2: the local LLM that explains each incident and suggests one step (advisor.js)
+    advisor: { enabled: true, model: 'qwen2.5:3b' }
 };
+// an Ollama model name such as qwen2.5:3b or gemma2:2b
+const MODEL = /^[A-Za-z0-9._:/-]{1,80}$/;
 // [min, max] like the Hardware settings; sensitivity applies to every detector
 const LIMITS = {
     intervalSeconds: [30, 600],
@@ -54,7 +60,7 @@ function repair(stored) {
     const saved = isObject(s.detectors) ? s.detectors : {};
     const settings = {};
     for (const key of Object.keys(DEFAULTS)) {
-        if (key === 'detectors') continue;
+        if (key === 'detectors' || key === 'advisor') continue;
         settings[key] = isSwitch(key) ? s[key] !== false : clampInt(s[key], LIMITS[key], DEFAULTS[key]);
     }
     settings.detectors = {};
@@ -65,6 +71,11 @@ function repair(stored) {
             sensitivity: clampInt(d.sensitivity, LIMITS.sensitivity, DEFAULTS.detectors[key].sensitivity)
         };
     }
+    const advisor = isObject(s.advisor) ? s.advisor : {};
+    settings.advisor = {
+        enabled: advisor.enabled !== false,
+        model: typeof advisor.model === 'string' && MODEL.test(advisor.model.trim()) ? advisor.model.trim() : DEFAULTS.advisor.model
+    };
     return settings;
 }
 
@@ -92,7 +103,7 @@ function validate(body, previous = read()) {
     const prev = repair(previous);
     const settings = {};
     for (const key of Object.keys(DEFAULTS)) {
-        if (key === 'detectors') continue;
+        if (key === 'detectors' || key === 'advisor') continue;
         const value = has(body, key) ? body[key] : prev[key];
         const check = isSwitch(key) ? boolField(value, key) : intField(value, LIMITS[key], key);
         if (check.error) return check;
@@ -108,6 +119,11 @@ function validate(body, previous = read()) {
         if (sensitivity.error) return sensitivity;
         settings.detectors[key] = { enabled: enabled.value, sensitivity: sensitivity.value };
     }
+    const advisor = { ...prev.advisor, ...(isObject(body.advisor) ? body.advisor : {}) };
+    const advisorOn = boolField(advisor.enabled, 'advisor.enabled');
+    if (advisorOn.error) return advisorOn;
+    if (typeof advisor.model !== 'string' || !MODEL.test(advisor.model.trim())) return fail('advisor.model', 'Choose a model name such as qwen2.5:3b.');
+    settings.advisor = { enabled: advisorOn.value, model: advisor.model.trim() };
     return { settings };
 }
 
