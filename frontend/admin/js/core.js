@@ -883,10 +883,18 @@ async function handleLogin(event) {
     console.log('Username:', username, 'Password:', password ? '***' : 'empty');
     
     if (!username || !password) {
-        alert('Please enter both username and password');
+        // <Jun Kai start> on the card instead of a browser popup
+        showLoginNote('Enter your username and password.', 'error');
+        document.getElementById(username ? 'password' : 'username').focus();
+        // <Jun Kai end>
         return;
     }
     
+    // <Jun Kai start> one sign-in at a time; an old message goes away
+    showLoginNote('');
+    const submitButton = document.querySelector('#login-form button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    // <Jun Kai end>
     try {
         console.log('Attempting API login...');
         const response = await fetch('/api/admin/login', {
@@ -910,12 +918,24 @@ async function handleLogin(event) {
             // <Jun Kai end>
         } else {
             console.log('❌ Login failed:', data.error);
-            alert(data.error || 'Invalid username or password');
+            // <Jun Kai start> on the card instead of a browser popup; the password is cleared, ready to type again
+            showLoginNote(data.error || 'Invalid username or password', 'error');
+            const passwordField = document.getElementById('password');
+            passwordField.value = '';
+            passwordField.focus();
+            // <Jun Kai end>
         }
     } catch (error) {
         console.error('❌ Login error:', error);
-        alert('Login failed. Please check your connection and try again.');
+        // <Jun Kai start>
+        showLoginNote('Could not reach the server. Check the connection and try again.', 'error');
+        // <Jun Kai end>
     }
+    // <Jun Kai start>
+    finally {
+        if (submitButton) submitButton.disabled = false;
+    }
+    // <Jun Kai end>
 }
 
 // <Jun Kai start>
@@ -958,11 +978,19 @@ function clearAdminRememberHint() {
     try { localStorage.removeItem('adminRememberHint'); } catch { /* private window: fine */ }
 }
 
-function showLoginNote(text) {
+// kind 'error': a failed sign-in, in a red box; it goes away as soon as a field is typed in
+function showLoginNote(text, kind) {
     const note = document.getElementById('login-note');
     if (!note) return;
     note.textContent = text || '';
     note.hidden = !text;
+    note.classList.toggle('login-note-error', kind === 'error');
+    note.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    const form = document.getElementById('login-form');
+    if (kind === 'error' && form && !form.dataset.noteClears) {
+        form.dataset.noteClears = '1';
+        form.addEventListener('input', () => { if (note.classList.contains('login-note-error')) showLoginNote(''); });
+    }
 }
 
 // On page load without a signed-in tab: when this browser chose "keep me signed in", the server's token decides
