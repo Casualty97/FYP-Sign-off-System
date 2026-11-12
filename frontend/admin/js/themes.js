@@ -245,7 +245,7 @@ const themeConfig = {
             },
             header: {
                 'admin-header-bg': ['#admin-dashboard .admin-header'],
-                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username'],
+                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username', '#admin-dashboard .theme-toggle'], // <Jun Kai/> the Light / Dark button follows the header text
                 'secondary-header-text': ['#admin-dashboard .header-left p', '#admin-dashboard .user-role']
             },
             navbar: {
@@ -432,7 +432,7 @@ const themeConfig = {
         'admin-dashboard': {
             header: {
                 'admin-header-bg': ['#admin-dashboard .admin-header'],
-                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username'],
+                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username', '#admin-dashboard .theme-toggle'], // <Jun Kai/> the Light / Dark button follows the header text
                 'secondary-header-text': ['#admin-dashboard .header-left p', '#admin-dashboard .user-role']
             },
             navbar: {

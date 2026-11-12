@@ -19,6 +19,10 @@ const HARDWARE_METRICS = ['cpu', 'memory', 'gpu', 'disk'];
 const HARDWARE_ACCENT = '#2a78d6';
 // a colour per part, the same on its card and its line (checked for colour-blind readers)
 const HARDWARE_COLORS = { cpu: '#1f6fd0', memory: '#14a88a', gpu: '#a0408f', disk: '#1e293b' };
+// <Jun Kai start> dark mode: the dark-slate Disk line would vanish on a dark graph, so it turns light grey there
+const hardwareDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+const hardwareColor = (key) => (key === 'disk' && hardwareDark() ? '#cbd5e1' : HARDWARE_COLORS[key] || HARDWARE_ACCENT);
+// <Jun Kai end>
 const HARDWARE_NAMES = { cpu: 'CPU', memory: 'Memory', gpu: 'GPU', disk: 'Disk' };
 const HARDWARE_PART_TEXT = {
     all: 'Every part on one graph. Click a part on the left to see it on its own.',
@@ -179,7 +183,8 @@ const hardwareGuidePlugin = {
         ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
         ctx.textAlign = 'right';
         ctx.setLineDash([3, 4]);
-        for (const [value, color, label] of [[85, '#b45309', '85% amber'], [95, '#b91c1c', '95% red']]) {
+        const dark = hardwareDark(); // <Jun Kai/> lighter amber and red on a dark graph
+        for (const [value, color, label] of [[85, dark ? '#fbbf24' : '#b45309', '85% amber'], [95, dark ? '#f87171' : '#b91c1c', '95% red']]) {
             const y = scales.y.getPixelForValue(value);
             ctx.strokeStyle = color;
             ctx.beginPath();
@@ -259,7 +264,7 @@ const hardwareEndLabelPlugin = {
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         for (const { key, y } of labels) {
-            ctx.fillStyle = HARDWARE_COLORS[key];
+            ctx.fillStyle = hardwareColor(key);
             ctx.beginPath();
             ctx.arc(chartArea.right + 12, y, 4, 0, Math.PI * 2);
             ctx.fill();
@@ -269,6 +274,15 @@ const hardwareEndLabelPlugin = {
         ctx.restore();
     }
 };
+// <Jun Kai end>
+
+// <Jun Kai start> a part's four datasets (measured, forecast, band low, band high) in its colour for this mode
+function hardwarePaint(datasets, key) {
+    const color = hardwareColor(key);
+    datasets.forEach((d, i) => {
+        if (i < 2) { d.borderColor = color; d.pointHoverBackgroundColor = color; } else d.backgroundColor = `${color}1f`;
+    });
+}
 // <Jun Kai end>
 
 function hardwareChartConfig(key) {
@@ -391,6 +405,7 @@ function renderHardwareSeries(data) {
         if (!chart) continue;
         const history = points.flatMap((p) => (gapAfter.has(p.t) ? [{ x: p.t, y: p[key] }, { x: p.t + 1, y: null }] : [{ x: p.t, y: p[key] }]));
         const [measured, projected, low, high] = chart.data.datasets;
+        hardwarePaint(chart.data.datasets, key); // <Jun Kai/> the part's colour for the current light / dark mode
         measured.data = history;
         let horizonEnd = now;
         const fc = forecast[key];
@@ -437,6 +452,7 @@ function renderHardwareSeries(data) {
     if (together) {
         const parts = HARDWARE_METRICS.map((key) => hardwareCharts[key]).filter(Boolean);
         parts.forEach((chart, i) => chart.data.datasets.forEach((d, j) => { together.data.datasets[i * 4 + j].data = d.data; }));
+        HARDWARE_METRICS.forEach((key, i) => hardwarePaint(together.data.datasets.slice(i * 4, i * 4 + 4), key)); // <Jun Kai/>
         const xMax = Math.max(now, ...parts.map((chart) => chart.options.scales.x.max));
         const forecastFrom = parts.map((chart) => chart.$hardwareNow).find(Boolean) || null;
         const span = (xMax - xMin) / 1000;
@@ -987,4 +1003,11 @@ function startHardwarePolling() {
         if (page && page.classList.contains('active') && sessionStorage.getItem('loggedUser')) loadHardware();
     }, 60000);
 }
+// <Jun Kai end>
+
+// <Jun Kai start> Light / Dark mode: the graphs take the new colours at once (frontend/admin/js/colorScheme.js sends the event)
+window.addEventListener('admin-color-scheme', () => {
+    const page = document.getElementById('hardware-page');
+    if (page && page.classList.contains('active')) loadHardware();
+});
 // <Jun Kai end>

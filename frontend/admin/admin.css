@@ -8360,9 +8360,9 @@ input:checked + .slider:before {
 #login-page .form-group input[type="password"]:-webkit-autofill { -webkit-text-fill-color: var(--login-field-text); -webkit-box-shadow: 0 0 0 1000px var(--login-field) inset; box-shadow: 0 0 0 1000px var(--login-field) inset; }
 #login-page .form-group input[type="text"]:-webkit-autofill:focus,
 #login-page .form-group input[type="password"]:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 1000px var(--login-field) inset, 0 0 0 3px var(--login-ring); box-shadow: 0 0 0 1000px var(--login-field) inset, 0 0 0 3px var(--login-ring); }
-#login-page .login-card .login-btn { margin-top: 6px; padding: 12px; border: 1px solid var(--login-accent); border-radius: 10px; font-size: 15px; font-weight: 600; color: #ffffff !important; background: var(--login-accent) !important; background-image: none !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; transform: none; transition: background-color 0.15s ease, border-color 0.15s ease; }
-#login-page .login-card .login-btn:hover { color: #ffffff !important; background: var(--login-accent-hover) !important; border-color: var(--login-accent-hover); transform: none; box-shadow: none; }
-#login-page .login-card .login-btn:active { background: var(--login-accent-active) !important; transform: none; }
+#login-page .login-card .login-btn { margin-top: 6px; padding: 12px; border: 1px solid var(--login-accent); border-radius: 10px; font-size: 15px; font-weight: 600; color: #ffffff !important; background-color: var(--login-accent) !important; background-image: none !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; transform: none; transition: background-color 0.15s ease, border-color 0.15s ease; }
+#login-page .login-card .login-btn:hover { color: #ffffff !important; background-color: var(--login-accent-hover) !important; background-image: none !important; border-color: var(--login-accent-hover); transform: none; box-shadow: none; }
+#login-page .login-card .login-btn:active { background-color: var(--login-accent-active) !important; background-image: none !important; transform: none; }
 #login-page .login-card .login-btn:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 2px; }
 #login-page .login-card .login-btn:disabled { opacity: 0.7; cursor: wait; }
 #login-page .login-password { position: relative; }
@@ -8380,4 +8380,35 @@ input:checked + .slider:before {
 #login-page .login-note { margin: -6px 0 16px; font-size: 13px; line-height: 1.45; color: var(--login-muted) !important; text-align: left; }
 #login-page .login-note[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { #login-page .login-eye, #login-page .form-group input, #login-page .login-card .login-btn { transition: none; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Light / Dark mode (12 Nov 2026): the moon / sun button in the top bar, and the dark values of the theme variables.
+   frontend/admin/js/colorScheme.js adds a dark twin of every colour rule above, so only the variables are set here. */
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 38px; height: 38px; padding: 0; border: 1px solid rgba(148, 163, 184, 0.45); border-radius: 10px; background: transparent; color: var(--theme-text-color); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease; }
+.theme-toggle:hover { background: rgba(148, 163, 184, 0.16); border-color: rgba(148, 163, 184, 0.7); }
+.theme-toggle:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.theme-toggle svg { width: 18px; height: 18px; }
+.theme-toggle .icon-sun { display: none; }
+html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+html[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --theme-bg-color: #0b1120; --theme-text-color: #e5e7eb; --theme-card-bg: #111a2b; --theme-card-text: #cbd5e1;
+    --theme-border-color: #263244; --theme-header-color: #f1f5f9;
+    --theme-btn-primary-bg: #2563eb; --theme-btn-primary-text: #ffffff; --theme-btn-secondary-bg: #1e293b; --theme-btn-secondary-text: #e2e8f0;
+    --theme-navbar-bg: #0f172a; --theme-navbar-text: #cbd5e1; --theme-navbar-active-bg: #1e293b; --theme-navbar-active-text: #f8fafc;
+    --theme-header-bg: #0f172a; --theme-header-text: #e5e7eb;
+    --color-muted: #94a3b8; --color-light-gray: #334155; --color-dark-gray: #a7b4c4;
+}
+html[data-theme="dark"] body { background-color: var(--theme-bg-color); color: var(--theme-text-color); }
+/* the five Role 3 pages set darker greys for light mode (PR #13): their dark-mode greys */
+html[data-theme="dark"] :is(#health-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page) { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+html[data-theme="dark"] #login-page {
+    --login-card: #111a2b; --login-border: #263244; --login-title: #f1f5f9; --login-text: #cbd5e1; --login-muted: #94a3b8;
+    --login-field: #0b1120; --login-field-border: #4b5b73; --login-field-hover: #64748b; --login-field-text: #f1f5f9; --login-placeholder: #7a889c;
+    --login-accent: #3b82f6; --login-accent-hover: #2563eb; --login-accent-active: #1d4ed8; --login-ring: rgba(59, 130, 246, 0.35);
+    --login-eye-hover: #1e293b;
+}
+@media (prefers-reduced-motion: reduce) { .theme-toggle { transition: none; } }
 /* <Jun Kai end> */
