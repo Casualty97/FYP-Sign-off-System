@@ -386,7 +386,7 @@ function renderHardwareSeries(data) {
         const text = dailyOnShortRange ? `${shown}. The forecast looks ${hardwareSpell('horizon', forecast.horizonHours)} ahead: choose 7 days or longer to see it` : shown;
         const kept = `Samples are kept for ${hardwareSpell('retention', hardwareRetentionDays)}`;
         // <Jun Kai start>
-        const fromSummaries = `${text}. One point per day from the daily summaries, which are kept for good${clipped ? ` and start on ${hardwareTickLabel(firstT, 'date')}` : ''}.`;
+        const fromSummaries = `${text}. From the daily summaries, which are kept for good${clipped ? ` and start on ${hardwareTickLabel(firstT, 'date')}` : ''}.`;
         note.textContent = fromDaily ? fromSummaries : !beyondKept ? text : clipped ? `${text}. ${kept}, so the graphs start on ${hardwareTickLabel(firstT, 'date')}.` : `${text}. ${kept}.`;
         // <Jun Kai end>
     }
