@@ -312,6 +312,7 @@ GET    /api/feedback/languages/languages.json  (backend/features/feedback/routes
 GET    /api/admin/hardware/overview  (backend/features/hardware/routes.js)
 GET    /api/admin/hardware/series  (backend/features/hardware/routes.js)
 GET    /api/admin/hardware/settings  (backend/features/hardware/routes.js)
+GET    /api/admin/hardware/forecast-check  (backend/features/hardware/routes.js)
 PUT    /api/admin/hardware/settings  (backend/features/hardware/routes.js)
 POST   /api/health/heartbeat  (backend/features/health/publicRoutes.js)
 GET    /api/admin/health  (backend/features/health/routes.js)
