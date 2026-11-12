@@ -42,6 +42,9 @@ window.addEventListener('DOMContentLoaded', function() {
         
         document.getElementById('login-page').style.display = 'none';
         document.getElementById('admin-dashboard').style.display = 'block';
+        // <Jun Kai start> the count of incidents that need a look, next to Incidents in the sidebar
+        if (typeof refreshIncidentsBadge === 'function') refreshIncidentsBadge(true);
+        // <Jun Kai end>
     } else {
         console.log('No user logged in');
         // <Jun Kai start>

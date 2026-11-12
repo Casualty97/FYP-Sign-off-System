@@ -956,6 +956,8 @@ async function finishAdminSignIn(user, rememberUntil) {
     await loadDashboardData();
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
+    // the count of incidents that need a look, next to Incidents in the sidebar (incidents.js)
+    if (typeof refreshIncidentsBadge === 'function') refreshIncidentsBadge(true);
 }
 
 // the time "keep me signed in" ends in this tab, or null

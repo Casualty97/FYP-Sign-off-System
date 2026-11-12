@@ -315,13 +315,15 @@ function createRunner(overrides = {}) {
     // the numbers on the Incidents card; "today" is the Singapore date
     async function counts() {
         const rows = await all(
-            `SELECT SUM(status = 'open') AS open_count, SUM(status = 'acknowledged') AS acknowledged_count,
+            `SELECT SUM(status = 'open') AS open_count, SUM(status = 'open' AND severity = 'critical') AS critical_count,
+                    SUM(status = 'acknowledged') AS acknowledged_count,
                     SUM(status = 'resolved' AND DATE(CONVERT_TZ(resolved_at, '+00:00', '+08:00')) = DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'))) AS resolved_today
              FROM incidents`,
             []
         );
         const row = rows[0] || {};
-        return { open: Number(row.open_count) || 0, acknowledged: Number(row.acknowledged_count) || 0, resolvedToday: Number(row.resolved_today) || 0 };
+        // critical: how many of the open ones are critical (the sidebar count turns red)
+        return { open: Number(row.open_count) || 0, critical: Number(row.critical_count) || 0, acknowledged: Number(row.acknowledged_count) || 0, resolvedToday: Number(row.resolved_today) || 0 };
     }
 
     return {

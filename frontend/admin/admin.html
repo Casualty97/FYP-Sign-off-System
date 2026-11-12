@@ -232,6 +232,13 @@
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
                             System Health
                         </a>
+                        <!-- <Jun Kai start> the Incidents page; the badge counts the incidents that need a look -->
+                        <a href="#" class="nav-item" onclick="showPage('incidents')">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+                            Incidents
+                            <span class="inc-nav-badge" id="incidents-nav-badge" hidden></span>
+                        </a>
+                        <!-- <Jun Kai end> -->
                         <!-- <Jun Kai start> -->
                         <a href="#" class="nav-item" onclick="showPage('hardware')">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span>
@@ -3352,7 +3359,7 @@
                         <div>
                             <h2>System health</h2>
                             <!-- <Jun Kai start> -->
-                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation, with the incidents the anomaly detection found. Refreshes every 30 seconds while this page is open.</p>
+                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation, with the open incidents in short (the full list is on the Incidents page). Refreshes every 30 seconds while this page is open.</p>
                             <!-- <Jun Kai end> -->
                         </div>
                         <!-- <Jun Kai start> -->
@@ -3387,6 +3394,15 @@
                         <div class="health-status-counts" id="health-status-counts"></div>
                         <span class="health-status-time" id="health-checked-at"></span>
                     </div>
+                    <!-- the open incidents in short, right under the status line (which counts the checks only); the full list is on the Incidents page -->
+                    <div class="ui-card inc-sum" id="health-incidents-summary" hidden>
+                        <div class="inc-sum-head">
+                            <span class="inc-sum-title">Incidents</span>
+                            <span class="inc-chips" id="incidents-summary-chips"></span>
+                            <button type="button" class="health-card-link inc-sum-open" onclick="openIncidentsPage()">Open Incidents</button>
+                        </div>
+                        <div class="inc-sum-rows" id="incidents-summary-rows"></div>
+                    </div>
                     <div class="health-grid" id="health-cards"></div>
                     <div class="health-legend" id="health-history-legend" hidden>
                         <span class="health-legend-key"><i class="health-h-o"></i>Healthy</span>
@@ -3400,28 +3416,6 @@
                     <!-- <Jun Kai start> the Tablets list is the one panel under the cards: the Server PC card points to the Hardware page instead -->
                     <div id="health-panels">
                     <!-- <Jun Kai end> -->
-                        <!-- <Jun Kai start> -->
-                        <div class="ui-card" id="health-incidents-card" hidden>
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Incidents</h3>
-                                    <p>Unusual behaviour of the server PC, its services, the tablets and the server logs, found by comparing each with its own past.</p>
-                                </div>
-                                <div class="ui-row inc-header-actions">
-                                    <span class="inc-chips" id="incidents-chips"></span>
-                                    <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-btn" onclick="openIncidentSettings()" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Settings</button>
-                                </div>
-                            </div>
-                            <div class="inc-summary" id="incidents-summary"></div>
-                            <div class="ui-card-body inc-body">
-                                <div class="inc-note" id="incidents-note"></div>
-                                <div class="inc-layout" id="incidents-layout">
-                                    <div class="inc-list" id="incidents-list" aria-label="Incidents"></div>
-                                    <div class="inc-detail" id="incidents-detail"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- <Jun Kai end> -->
                         <div class="ui-card" id="health-tablets-card">
                             <div class="ui-card-header">
                                 <div>
@@ -3438,134 +3432,158 @@
                                 <!-- <Jun Kai end> -->
                             </div>
                         </div>
-                        <!-- <Jun Kai start> -->
-                        <!-- the incident settings: a drawer from the right (a modal dialog: Esc closes it and discards the changes) -->
-                        <dialog class="inc-drawer" id="incidents-drawer" aria-labelledby="incidents-drawer-title" aria-describedby="incidents-drawer-sub">
-                            <div class="inc-drawer-inner">
-                                <div class="inc-drawer-head">
-                                    <div>
-                                        <h3 id="incidents-drawer-title">Incident settings</h3>
-                                        <div class="inc-drawer-sub" id="incidents-drawer-sub">Higher sensitivity finds smaller problems sooner, with more false alarms.</div>
-                                    </div>
-                                    <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeIncidentSettings()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-                                </div>
-                                <div class="inc-drawer-body" id="incidents-drawer-body">
-                                    <div class="inc-drawer-loading" id="incidents-drawer-loading" role="status">Loading the saved settings</div>
-                                    <div class="inc-drawer-admin" id="incidents-drawer-admin" hidden>Only a System Admin can change these settings.</div>
-                                    <section class="inc-drawer-section">
-                                        <div class="inc-drawer-title">Detection</div>
-                                        <label class="inc-toggle-row">
-                                            <span class="ui-switch"><input type="checkbox" id="incidents-enabled"><span class="ui-switch-track"></span></span>
-                                            <span class="inc-toggle-text"><strong>Anomaly detection</strong><small>Compares this PC's own data with its past. Nothing is sent anywhere. Off: nothing is compared and no incident is opened; open ones stay as they are.</small></span>
-                                        </label>
-                                        <label class="inc-toggle-row">
-                                            <span class="ui-switch"><input type="checkbox" id="incidents-learn"><span class="ui-switch-track"></span></span>
-                                            <span class="inc-toggle-text"><strong>Learn from your answers</strong><small>3 false alarms in a row make a detector one step less sensitive (at most two steps); 3 correct in a row bring it back.</small></span>
-                                        </label>
-                                    </section>
-                                    <section class="inc-drawer-section">
-                                        <div class="inc-drawer-title">Fixes the app can do itself</div>
-                                        <label class="inc-toggle-row">
-                                            <span class="ui-switch"><input type="checkbox" id="incidents-offer-fixes"><span class="ui-switch-track"></span></span>
-                                            <span class="inc-toggle-text"><strong>Offer fixes on incidents</strong><small>A fix runs only after a System Admin approves it on the incident, or by itself where you choose below. Every fix is written to the incident's history and Audit Logs.</small></span>
-                                        </label>
-                                        <div class="inc-drawer-callout" id="incidents-fixes-note" hidden></div>
-                                        <div class="inc-fixes" id="incidents-fixes"></div>
-                                    </section>
-                                    <section class="inc-drawer-section">
-                                        <div class="inc-drawer-title">Detectors and sensitivity</div>
-                                        <div class="inc-dets" id="incidents-detectors"></div>
-                                    </section>
-                                    <section class="inc-drawer-section">
-                                        <div class="inc-drawer-title">Local AI advisor</div>
-                                        <label class="inc-toggle-row">
-                                            <span class="ui-switch"><input type="checkbox" id="incidents-advisor"><span class="ui-switch-track"></span></span>
-                                            <span class="inc-toggle-text"><strong>Advisor</strong><small>Explains each incident and says which help fits, using the model below on this PC (Ollama). It only suggests. When Ollama is not running it gives rule-based advice.</small></span>
-                                        </label>
-                                        <div class="ui-field inc-drawer-field">
-                                            <label class="ui-label" for="incidents-advisor-model">Model</label>
-                                            <select class="ui-select" id="incidents-advisor-model"></select>
-                                            <span class="ui-fact-hint" id="incidents-advisor-help"></span>
-                                        </div>
-                                    </section>
-                                    <section class="inc-drawer-section">
-                                        <div class="inc-drawer-title">Timing and keeping</div>
-                                        <label class="inc-toggle-row">
-                                            <span class="ui-switch"><input type="checkbox" id="incidents-quiet"><span class="ui-switch-track"></span></span>
-                                            <span class="inc-toggle-text"><strong>Quiet hours</strong><small>No tablet or kiosk alerts while the policies say the kiosk is off.</small></span>
-                                        </label>
-                                        <div class="inc-drawer-grid">
-                                            <div class="ui-field">
-                                                <label class="ui-label" for="incidents-interval">Check every</label>
-                                                <select class="ui-select" id="incidents-interval">
-                                                    <option value="30">30 s</option>
-                                                    <option value="60">1 min</option>
-                                                    <option value="120">2 min</option>
-                                                    <option value="300">5 min</option>
-                                                    <option value="600">10 min</option>
-                                                </select>
-                                            </div>
-                                            <div class="ui-field">
-                                                <label class="ui-label" for="incidents-retention">Keep health results</label>
-                                                <select class="ui-select" id="incidents-retention">
-                                                    <option value="7">7 days</option>
-                                                    <option value="30">30 days</option>
-                                                    <option value="90">90 days</option>
-                                                    <option value="365">365 days</option>
-                                                </select>
-                                            </div>
-                                            <div class="ui-field">
-                                                <label class="ui-label" for="incidents-keep">Keep resolved incidents</label>
-                                                <select class="ui-select" id="incidents-keep">
-                                                    <option value="30">30 days</option>
-                                                    <option value="90">90 days</option>
-                                                    <option value="365">365 days</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </section>
-                                    <section class="inc-drawer-section">
-                                        <div class="inc-drawer-title">Example incidents</div>
-                                        <div class="inc-examples">
-                                            <div class="inc-examples-text" id="incidents-examples-text">Seven made-up incidents that show every part of this panel: a chart, the advice, step-by-step help, a fix waiting for approval, an acknowledged one and two resolved ones. They are labelled Example, never run anything and never tune a detector.</div>
-                                            <button type="button" class="ui-btn ui-btn-secondary" id="incidents-examples-btn" onclick="toggleIncidentExamples()">Show example incidents</button>
-                                        </div>
-                                        <div class="inc-drawer-result" id="incidents-examples-result" role="status"></div>
-                                    </section>
-                                </div>
-                                <div class="inc-drawer-foot">
-                                    <button type="button" class="health-card-link" id="incidents-test-btn" onclick="raiseTestIncident()">Send a test incident</button>
-                                    <span class="inc-drawer-status" id="incidents-settings-help" role="status"></span>
-                                    <div class="ui-row">
-                                        <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-cancel" onclick="closeIncidentSettings()">Cancel</button>
-                                        <button type="button" class="ui-btn ui-btn-primary" id="incidents-settings-save" onclick="saveIncidentSettings()">Save</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </dialog>
-                        <!-- a fix asks once more before it runs -->
-                        <dialog class="va-dialog va-dialog-small inc-approve" id="incidents-approve-dialog" aria-labelledby="incidents-approve-title" aria-describedby="incidents-approve-sub">
-                            <div class="va-dialog-inner">
-                                <div class="va-dialog-head">
-                                    <div>
-                                        <h3 id="incidents-approve-title">Approve the fix?</h3>
-                                        <div class="va-dialog-sub" id="incidents-approve-sub"></div>
-                                    </div>
-                                    <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="closeIncidentApprove()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-                                </div>
-                                <div class="va-dialog-body">
-                                    <dl class="inc-approve-kv" id="incidents-approve-kv"></dl>
-                                    <div class="inc-approve-error" id="incidents-approve-error" role="alert" hidden></div>
-                                </div>
-                                <div class="va-dialog-foot">
-                                    <button type="button" class="ui-btn ui-btn-secondary" id="incidents-approve-cancel" onclick="closeIncidentApprove()">Cancel</button>
-                                    <button type="button" class="ui-btn ui-btn-primary" id="incidents-approve-go" onclick="confirmIncidentApprove()">Approve and start</button>
-                                </div>
-                            </div>
-                        </dialog>
-                        <!-- <Jun Kai end> -->
                     </div>
                 </div>
+
+                <!-- <Jun Kai start> -->
+                <!-- Incidents (Role 3): what the anomaly detection found, on a page of their own (they were a panel on System Health) -->
+                <div id="incidents-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Incidents</h2>
+                            <p>Unusual behaviour of the server PC, its services, the tablets and the server logs, found by comparing each with its own past. Refreshes every 30 seconds while this page is open.</p>
+                        </div>
+                        <div class="ui-row inc-header-actions">
+                            <span class="inc-chips" id="incidents-chips"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-btn" onclick="openIncidentSettings()" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Settings</button>
+                        </div>
+                    </div>
+                    <div class="ui-card" id="incidents-card">
+                        <div class="inc-summary" id="incidents-summary"></div>
+                        <div class="ui-card-body inc-body">
+                            <div class="inc-note" id="incidents-note"></div>
+                            <div class="inc-layout" id="incidents-layout">
+                                <div class="inc-list" id="incidents-list" aria-label="Incidents"></div>
+                                <div class="inc-detail" id="incidents-detail"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- the incident settings: a drawer from the right (a modal dialog: Esc closes it and discards the changes) -->
+                    <dialog class="inc-drawer" id="incidents-drawer" aria-labelledby="incidents-drawer-title" aria-describedby="incidents-drawer-sub">
+                        <div class="inc-drawer-inner">
+                            <div class="inc-drawer-head">
+                                <div>
+                                    <h3 id="incidents-drawer-title">Incident settings</h3>
+                                    <div class="inc-drawer-sub" id="incidents-drawer-sub">Higher sensitivity finds smaller problems sooner, with more false alarms.</div>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeIncidentSettings()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                            <div class="inc-drawer-body" id="incidents-drawer-body">
+                                <div class="inc-drawer-loading" id="incidents-drawer-loading" role="status">Loading the saved settings</div>
+                                <div class="inc-drawer-admin" id="incidents-drawer-admin" hidden>Only a System Admin can change these settings.</div>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Detection</div>
+                                    <label class="inc-toggle-row">
+                                        <span class="ui-switch"><input type="checkbox" id="incidents-enabled"><span class="ui-switch-track"></span></span>
+                                        <span class="inc-toggle-text"><strong>Anomaly detection</strong><small>Compares this PC's own data with its past. Nothing is sent anywhere. Off: nothing is compared and no incident is opened; open ones stay as they are.</small></span>
+                                    </label>
+                                    <label class="inc-toggle-row">
+                                        <span class="ui-switch"><input type="checkbox" id="incidents-learn"><span class="ui-switch-track"></span></span>
+                                        <span class="inc-toggle-text"><strong>Learn from your answers</strong><small>3 false alarms in a row make a detector one step less sensitive (at most two steps); 3 correct in a row bring it back.</small></span>
+                                    </label>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Fixes the app can do itself</div>
+                                    <label class="inc-toggle-row">
+                                        <span class="ui-switch"><input type="checkbox" id="incidents-offer-fixes"><span class="ui-switch-track"></span></span>
+                                        <span class="inc-toggle-text"><strong>Offer fixes on incidents</strong><small>A fix runs only after a System Admin approves it on the incident, or by itself where you choose below. Every fix is written to the incident's history and Audit Logs.</small></span>
+                                    </label>
+                                    <div class="inc-drawer-callout" id="incidents-fixes-note" hidden></div>
+                                    <div class="inc-fixes" id="incidents-fixes"></div>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Detectors and sensitivity</div>
+                                    <div class="inc-dets" id="incidents-detectors"></div>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Local AI advisor</div>
+                                    <label class="inc-toggle-row">
+                                        <span class="ui-switch"><input type="checkbox" id="incidents-advisor"><span class="ui-switch-track"></span></span>
+                                        <span class="inc-toggle-text"><strong>Advisor</strong><small>Explains each incident and says which help fits, using the model below on this PC (Ollama). It only suggests. When Ollama is not running it gives rule-based advice.</small></span>
+                                    </label>
+                                    <div class="ui-field inc-drawer-field">
+                                        <label class="ui-label" for="incidents-advisor-model">Model</label>
+                                        <select class="ui-select" id="incidents-advisor-model"></select>
+                                        <span class="ui-fact-hint" id="incidents-advisor-help"></span>
+                                    </div>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Timing and keeping</div>
+                                    <label class="inc-toggle-row">
+                                        <span class="ui-switch"><input type="checkbox" id="incidents-quiet"><span class="ui-switch-track"></span></span>
+                                        <span class="inc-toggle-text"><strong>Quiet hours</strong><small>No tablet or kiosk alerts while the policies say the kiosk is off.</small></span>
+                                    </label>
+                                    <div class="inc-drawer-grid">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="incidents-interval">Check every</label>
+                                            <select class="ui-select" id="incidents-interval">
+                                                <option value="30">30 s</option>
+                                                <option value="60">1 min</option>
+                                                <option value="120">2 min</option>
+                                                <option value="300">5 min</option>
+                                                <option value="600">10 min</option>
+                                            </select>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="incidents-retention">Keep health results</label>
+                                            <select class="ui-select" id="incidents-retention">
+                                                <option value="7">7 days</option>
+                                                <option value="30">30 days</option>
+                                                <option value="90">90 days</option>
+                                                <option value="365">365 days</option>
+                                            </select>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="incidents-keep">Keep resolved incidents</label>
+                                            <select class="ui-select" id="incidents-keep">
+                                                <option value="30">30 days</option>
+                                                <option value="90">90 days</option>
+                                                <option value="365">365 days</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Example incidents</div>
+                                    <div class="inc-examples">
+                                        <div class="inc-examples-text" id="incidents-examples-text">Seven made-up incidents that show every part of this panel: a chart, the advice, step-by-step help, a fix waiting for approval, an acknowledged one and two resolved ones. They are labelled Example, never run anything and never tune a detector.</div>
+                                        <button type="button" class="ui-btn ui-btn-secondary" id="incidents-examples-btn" onclick="toggleIncidentExamples()">Show example incidents</button>
+                                    </div>
+                                    <div class="inc-drawer-result" id="incidents-examples-result" role="status"></div>
+                                </section>
+                            </div>
+                            <div class="inc-drawer-foot">
+                                <button type="button" class="health-card-link" id="incidents-test-btn" onclick="raiseTestIncident()">Send a test incident</button>
+                                <span class="inc-drawer-status" id="incidents-settings-help" role="status"></span>
+                                <div class="ui-row">
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-cancel" onclick="closeIncidentSettings()">Cancel</button>
+                                    <button type="button" class="ui-btn ui-btn-primary" id="incidents-settings-save" onclick="saveIncidentSettings()">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    </dialog>
+                    <!-- a fix asks once more before it runs -->
+                    <dialog class="va-dialog va-dialog-small inc-approve" id="incidents-approve-dialog" aria-labelledby="incidents-approve-title" aria-describedby="incidents-approve-sub">
+                        <div class="va-dialog-inner">
+                            <div class="va-dialog-head">
+                                <div>
+                                    <h3 id="incidents-approve-title">Approve the fix?</h3>
+                                    <div class="va-dialog-sub" id="incidents-approve-sub"></div>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="closeIncidentApprove()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                            </div>
+                            <div class="va-dialog-body">
+                                <dl class="inc-approve-kv" id="incidents-approve-kv"></dl>
+                                <div class="inc-approve-error" id="incidents-approve-error" role="alert" hidden></div>
+                            </div>
+                            <div class="va-dialog-foot">
+                                <button type="button" class="ui-btn ui-btn-secondary" id="incidents-approve-cancel" onclick="closeIncidentApprove()">Cancel</button>
+                                <button type="button" class="ui-btn ui-btn-primary" id="incidents-approve-go" onclick="confirmIncidentApprove()">Approve and start</button>
+                            </div>
+                        </div>
+                    </dialog>
+                </div>
+                <!-- <Jun Kai end> -->
 
                 <!-- <Jun Kai start> -->
                 <!-- Hardware monitor (Role 3) -->
@@ -3580,6 +3598,8 @@
                             <button class="ui-btn ui-btn-secondary" id="hardware-refresh-btn" onclick="loadHardware()">Refresh</button>
                         </div>
                     </div>
+                    <!-- the open CPU, memory, GPU or disk incident, or a quiet link to the Incidents page (incidents.js) -->
+                    <div class="hw-inc" id="hardware-incidents-note" hidden></div>
                     <div class="hw-room">
                         <div class="hw-keys" role="group" aria-label="Part of the PC to show">
                             <button type="button" class="hw-key hw-key-all" data-part="all" aria-pressed="true" onclick="setHardwarePart('all')">
