@@ -28,7 +28,9 @@ const INCIDENT_DETECTOR_LABEL = {
     services: 'Services down or slow', tablets: 'Named tablets offline', logs: 'Server errors', test: 'Test'
 };
 // what the main reading of each kind of evidence is called
-const INCIDENT_VALUE_LABEL = { seconds_ago: 'Offline for', template: 'Times seen', errors: 'Errors', disk: 'Used', database_latency: 'Answer time' };
+const INCIDENT_VALUE_LABEL = { seconds_ago: 'Offline for', template: 'Times seen', errors: 'Errors', disk: 'Disk used', database_latency: 'Answer time' };
+// the part a hardware reading belongs to, so the evidence says which one (the test incident's numbers are a made-up sample)
+const INCIDENT_PART = { cpu: 'CPU', memory: 'Memory', gpu: 'GPU', disk: 'Disk', sample: 'Sample' };
 const INCIDENT_PROCESS_LABEL = { server: 'the admin server', kiosk: 'the kiosk server' };
 const INCIDENT_RANK = { critical: 0, warn: 1, info: 2 };
 const INCIDENT_SENSITIVITY = [[1, 'Very low'], [2, 'Low'], [3, 'Normal'], [4, 'High'], [5, 'Very high']];
@@ -246,10 +248,13 @@ function incidentEvidenceRows(evidence) {
     const two = (n) => String(n).padStart(2, '0');
     const rows = [];
     const add = (label, text) => { if (text !== null && text !== undefined && String(text) !== '') rows.push([label, String(text)]); };
-    if (incidentIsNumber(e.value)) add(INCIDENT_VALUE_LABEL[e.metric] || 'Reading', e.metric === 'seconds_ago' ? incidentDuration(e.value * 60) : incidentWithUnit(e.value, unit));
+    const part = INCIDENT_PART[e.metric] || '';
+    if (incidentIsNumber(e.value)) add(INCIDENT_VALUE_LABEL[e.metric] || (part ? `${part} now` : 'Reading'), e.metric === 'seconds_ago' ? incidentDuration(e.value * 60) : incidentWithUnit(e.value, unit));
     if (incidentIsNumber(e.baseline)) {
         const spread = incidentIsNumber(e.spread) && e.spread > 0 ? `, usually within ${incidentWithUnit(e.spread, unit)} of it` : '';
-        add('Usual', incidentWithUnit(e.baseline, unit) + spread);
+        // slow creep compares with the level before the climb started
+        const usual = incidentIsNumber(e.slopePerHour) ? `${part || 'Level'} before the climb` : part ? `${part} usually` : 'Usual';
+        add(usual, incidentWithUnit(e.baseline, unit) + spread);
     }
     if (incidentIsNumber(e.z)) add('Deviation', `${incidentNumber(Math.abs(e.z))} spreads ${e.z < 0 ? 'below' : 'above'} normal`);
     if (incidentIsNumber(e.windowSeconds) && e.windowSeconds > 0) add('Window', `the last ${incidentDuration(e.windowSeconds)}`);

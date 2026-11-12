@@ -423,7 +423,9 @@ test('openTest opens a sample incident that resolves itself after 10 minutes wha
     assert.equal(incident.severity, 'info');
     assert.equal(incident.status, 'open');
     assert.equal(incident.title, 'Test incident');
-    assert.equal(incident.explanation, 'Opened by systemadmin to show how an incident looks. It resolves itself after 10 minutes.');
+    assert.equal(incident.explanation, 'Opened by systemadmin to show how an incident looks; its numbers are made up. It resolves itself after 10 minutes.');
+    assert.equal(incident.evidence.metric, 'sample');
+    assert.ok(incident.evidence.value > incident.evidence.baseline, 'the sample reads above its usual level, like a real spike');
     assert.ok(incident.fingerprint.startsWith('test:sample:'));
     assert.equal(incident.evidence.unit, '%');
     assert.equal(incident.evidence.points.length, 30);

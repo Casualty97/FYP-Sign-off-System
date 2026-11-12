@@ -229,14 +229,15 @@ function createEngine({ store, detect, now = () => new Date(), settings, load, a
         const at = iso(now());
         const nowMs = ms(at);
         const points = [];
-        for (let i = 0; i < 30; i++) points.push({ t: nowMs - (29 - i) * 60 * 1000, v: Math.round(50 + 20 * Math.sin((i / 29) * 2 * Math.PI)) });
+        // made-up numbers shaped like a real spike: about 30 % for 24 minutes, then a climb to 78 %
+        for (let i = 0; i < 30; i++) points.push({ t: nowMs - (29 - i) * 60 * 1000, v: i < 24 ? 30 + (i % 3) : 30 + (i - 23) * 8 });
         const name = by === null || by === undefined || by === '' ? 'an admin' : String(by);
         const id = await store.insert({
             ...EMPTY_ROW,
             fingerprint: 'test:sample:' + nowMs.toString(36) + Math.random().toString(36).slice(2, 6),
             detector: 'test', kind: 'sample', subject: null, severity: 'info', status: 'open', title: 'Test incident',
-            explanation: `Opened by ${name} to show how an incident looks. It resolves itself after 10 minutes.`,
-            evidence: { metric: 'sample', value: points[points.length - 1].v, baseline: 50, unit: '%', points },
+            explanation: `Opened by ${name} to show how an incident looks; its numbers are made up. It resolves itself after 10 minutes.`,
+            evidence: { metric: 'sample', value: points[points.length - 1].v, baseline: 30, unit: '%', points },
             opened_at: at, last_seen_at: at, occurrences: 1
         });
         await store.addEvent(id, 'opened', { by, test: true }, at);
