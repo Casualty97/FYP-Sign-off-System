@@ -407,9 +407,14 @@ app.use(session({
         secure: sslOptions !== null,
         httpOnly: true,
         maxAge: 1800000,
-        sameSite: 'lax'  
+        sameSite: 'lax'
     }
 }));
+// <Jun Kai start> "Keep me signed in for 1 day": a valid token cookie signs the admin back in (backend/core/rememberMe.js)
+const { restore: rememberRestore, router: rememberRoutes } = require('./core/rememberMe');
+app.use('/api/admin', rememberRestore);
+app.use('/api/admin/remember', rememberRoutes);
+// <Jun Kai end>
 
 // Pulse screen is public so it can be shown without an admin session.
 
