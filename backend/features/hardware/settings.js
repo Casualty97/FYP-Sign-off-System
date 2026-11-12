@@ -1,5 +1,6 @@
 // Owner: Role 3, Jun Kai.
-// Settings of the Hardware page: how often to sample, how long to keep samples, how far to forecast.
+// Settings of the Hardware page: how often to sample, how long to keep samples, how far to forecast
+// (1 hour up to 1 year; routes.js tells the page when a forecast reaches further than the samples go back).
 // Kept in backend/data/hardware-settings.json (seeded from backend/config/defaults).
 // <Jun Kai start>
 const paths = require('../../core/paths');
@@ -7,7 +8,7 @@ const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
 
 const FILE_NAME = 'hardware-settings.json';
 const DEFAULTS = { intervalSeconds: 60, retentionDays: 30, forecastHours: 24 };
-const LIMITS = { intervalSeconds: [15, 600], retentionDays: [1, 365], forecastHours: [1, 168] };
+const LIMITS = { intervalSeconds: [15, 600], retentionDays: [1, 365], forecastHours: [1, 8760] };
 
 function clamp(key, value) {
     const [min, max] = LIMITS[key];
