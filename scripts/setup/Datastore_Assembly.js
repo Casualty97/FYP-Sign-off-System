@@ -190,6 +190,8 @@ async function setup() {
         // schema.sql has just emptied the visitor tables, so counts of earlier deletes no longer belong to anything
         await userConnection.query('DELETE FROM deleted_record_counts');
         await userConnection.query('DELETE FROM visitor_save_gate');
+        // leaves kept on the tree for archived visitors belong to the old feedback ids
+        await userConnection.query('DELETE FROM archived_leaves');
         // the anomaly detection's incidents and health history start over as well
         await userConnection.query('DELETE FROM incident_events');
         await userConnection.query('DELETE FROM incidents');

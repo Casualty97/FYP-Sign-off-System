@@ -3818,7 +3818,7 @@
                                             <div class="va-option">
                                                 <div class="va-option-text">
                                                     <label class="va-option-label" for="va-feedback-enabled">Feedback and pledges</label>
-                                                    <span class="va-option-desc" id="va-feedback-desc">Submissions with their pledges, answers, likes and photos, and the visitors who made them. Archived submissions also leave the digital tree and the pledgeboard; the visitor count, the all-time pledge totals and the tree's year book still count them.</span>
+                                                    <span class="va-option-desc" id="va-feedback-desc">Submissions with their pledges, answers, likes and photos, and the visitors who made them. Archived submissions also leave the pledgeboard; Leaves on the tree below sets what happens to their leaves. The visitor count and the all-time pledge totals still count them.</span>
                                                 </div>
                                                 <label class="ui-switch"><input type="checkbox" id="va-feedback-enabled" role="switch" aria-describedby="va-feedback-desc" checked><span class="ui-switch-track"></span></label>
                                             </div>
@@ -3893,6 +3893,24 @@
                                             <label class="ui-check"><input type="radio" name="va-after" id="va-after-delete" value="delete" checked><span>Delete the records from the database</span></label>
                                             <label class="ui-check"><input type="radio" name="va-after" id="va-after-keep" value="keep"><span>Keep them in the database (export only)</span></label>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="va-types">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="va-leaves">Leaves on the tree</label>
+                                            <select class="ui-select" id="va-leaves" aria-describedby="va-leaves-help va-leaves-choices">
+                                                <option value="keep" selected>Keep the leaf, without a name</option>
+                                                <option value="initials">Keep the leaf, with initials</option>
+                                                <option value="remove">Remove the leaf</option>
+                                            </select>
+                                            <p class="ui-help" id="va-leaves-help">What happens to a visitor's leaf on the digital tree when their feedback is archived and deleted. A change only affects later archives.</p>
+                                        </div>
+                                        <ul class="va-leaves-choices" id="va-leaves-choices">
+                                            <li><strong>Keep the leaf, without a name.</strong> The leaf stays and shows "Visitor". Only its date, its badge and whether it was a VIP leaf are kept. No name, email, pledge or photo.</li>
+                                            <li><strong>Keep the leaf, with initials.</strong> The same, and a visitor whose name was shown on the tree keeps their initials, such as J. T. Every other leaf shows "Visitor", and so does a name whose initials would give it away (Chinese, Japanese or Korean characters, or one-letter words).</li>
+                                            <li><strong>Remove the leaf.</strong> The leaf leaves the tree with the records. The tree's year book still counts it as archived.</li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -4052,6 +4070,7 @@
                                         <div class="va-summary-row" id="va-sum-feedback-row"><dt>Feedback</dt><dd id="va-sum-feedback"></dd></div>
                                         <div class="va-summary-row" id="va-sum-lostfound-row"><dt>Lost &amp; found</dt><dd id="va-sum-lostfound"></dd></div>
                                         <div class="va-summary-row" id="va-sum-photos-row"><dt>Photos</dt><dd id="va-sum-photos"></dd></div>
+                                        <div class="va-summary-row" id="va-sum-leaves-row" hidden><dt>Tree</dt><dd id="va-sum-leaves"></dd></div>
                                         <div class="va-summary-row"><dt>File</dt><dd><span id="va-sum-file"></span><span class="va-sum-folder va-fact-path" id="va-run-folder"></span></dd></div>
                                     </dl>
                                 </div>

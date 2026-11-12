@@ -8170,6 +8170,8 @@ input:checked + .slider:before {
 .va-folder-status { display: flex; align-items: flex-start; gap: 10px; min-height: 26px; margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
 .va-folder-status-text { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
 .va-field-gap { margin-top: 18px; }
+.va-leaves-choices { display: flex; flex-direction: column; gap: 6px; max-width: 62ch; margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+.va-leaves-choices strong { font-weight: 600; color: var(--theme-text-color); }
 .va-expiring { font-size: 12px; font-weight: 600; line-height: 1.45; color: #92400e; }
 .va-expiring:empty { display: block; margin: 0; }
 #va-settings-title:focus { outline: none; }

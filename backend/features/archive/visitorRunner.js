@@ -15,6 +15,7 @@ const schedule = require('./visitorSchedule');
 const files = require('./visitorFiles');
 const writer = require('./visitorWriter');
 const deletedCounts = require('./deletedCounts');
+const archivedLeaves = require('./archivedLeaves');
 const saveGate = require('./saveGate');
 
 const STATE_FILE = 'visitor-archive-state.json';
@@ -137,14 +138,17 @@ async function collect(criteria, encrypt, collectedAt = new Date()) {
 const isEmpty = (counts) => !counts.feedback && !counts.lostFound && !counts.visitors;
 
 // photos / photoBytes: the photo files of the selected records (all of them go with the records);
-// photosArchived: how many of those are written into the zip (none when photos are switched off)
+// photosArchived: how many of those are written into the zip (none when photos are switched off);
+// leaves / leavesNamed: the submissions the digital tree draws, and how many of those show a name there
 async function preview(criteria) {
     const s = await collect(criteria, false);
     const c = s.counts;
+    const drawn = archivedLeaves.countDrawn(s.records.feedback);
     return {
         counts: {
             feedback: c.feedback, visitors: c.visitors, visitorsKept: c.visitorsKept, visitorsDeleted: c.visitorsDeleted, answers: c.answers,
-            likes: c.likes, lostFound: c.lostFound, photos: s.photosOnDisk, photosArchived: c.photos, missingPhotos: c.missingPhotos
+            likes: c.likes, lostFound: c.lostFound, photos: s.photosOnDisk, photosArchived: c.photos, missingPhotos: c.missingPhotos,
+            leaves: drawn.leaves, leavesNamed: drawn.named
         },
         photoBytes: s.photoBytesOnDisk,
         estimatedBytes: s.estimatedBytes,
@@ -223,6 +227,8 @@ async function startRun({ trigger, startedBy = null, criteria, deleteAfter, fold
         const job = {
             runId, trigger, startedBy, criteria, deleteAfter: !!deleteAfter, folder: target, fileName, startedAt, selection, onFinish,
             collectedAt, guard: recentGuard(collectedAt),
+            // the "Leaves on the tree" setting as it is now; a later change only affects later archives
+            leaves: { mode: settingsStore.read().leaves, ...archivedLeaves.countDrawn(selection.records.feedback) },
             req: req ? { ip: req.ip, headers: { 'user-agent': req.headers['user-agent'] } } : null
         };
         started = true;
@@ -251,6 +257,7 @@ async function runJob(job) {
         // the transaction rolled back, so nothing was deleted
         if (error.recordsChanged) return finishRun(job, 'saved', CHANGED_MESSAGE);
         if (error.kioskBusy) return finishRun(job, 'saved', error.message);
+        if (error.code === 'ER_NO_SUCH_TABLE') return finishRun(job, 'saved', 'The archive was saved and checked, but the database needs an update before records can be deleted: run npm run db:migrate, then archive again.');
         return finishRun(job, 'saved', `The archive was saved and checked, but the records could not be deleted: ${error.message}`);
     }
     // the records are gone now, so the run ends as done whatever the clean-up finds
@@ -274,7 +281,8 @@ async function writeAndCheck(job) {
         const meta = {
             archiveId: job.runId, createdAt: job.startedAt, createdBy: job.trigger === 'automatic' ? 'automatic' : job.startedBy, trigger: job.trigger,
             criteria: job.criteria, photosIncluded: job.criteria.includePhotos !== false, deleteAfterArchive: job.deleteAfter,
-            encryption: { keyFingerprint: auth.keyFingerprint(), developmentKey: auth.usesDevelopmentKey() }
+            encryption: { keyFingerprint: auth.keyFingerprint(), developmentKey: auth.usesDevelopmentKey() },
+            leaves: job.leaves
         };
         const written = await writer.writeArchive(job.selection, meta, partial, (progress) => setProgress(job.runId, progress));
         await setStage(job.runId, 'verifying');
@@ -326,8 +334,13 @@ async function recordsChanged(all, job) {
 // Every deleted row is also added to deleted_record_counts in this transaction, so running totals keep counting it.
 // A kiosk save goes first: the transaction checks the save gate before every statement and is rolled back and run
 // again from the top when a save starts (error.kioskBusy after too many tries).
+// With "Leaves on the tree" on keep or initials, the leaf of every feedback row the tree was drawing is written to
+// archived_leaves in this transaction, just before the row is deleted, and is not counted as a deleted leaf.
 function deleteRecords(job) {
-    const { ids } = job.selection;
+    const { ids, records } = job.selection;
+    const leafOptions = archivedLeaves.keeps(job.leaves.mode)
+        ? { mode: job.leaves.mode, details: archivedLeaves.detailsOf(records), archiveId: job.runId }
+        : null;
     return saveGate.deleteStep((checkpoint) => new Promise((resolve, reject) => {
         db.withTransaction((tx, finish) => {
             const run = async (sql, params) => {
@@ -340,7 +353,7 @@ function deleteRecords(job) {
             };
             (async () => {
                 if (await recordsChanged(all, job)) throw Object.assign(new Error(CHANGED_MESSAGE), { recordsChanged: true });
-                await deletedCounts.deleteCounted({ all, run }, 'feedback', ids.feedback);
+                await deletedCounts.deleteCounted({ all, run }, 'feedback', ids.feedback, { keepLeaves: leafOptions ? archivedLeaves.keeper(leafOptions) : null });
                 let visitorsDeleted = 0;
                 for (const part of chunks(ids.visitorsDeleted)) {
                     const due = await all(
@@ -489,8 +502,8 @@ function archivePath(row) {
     return row.folder && row.file_name ? path.join(row.folder, row.file_name) : null;
 }
 
-// exists: whether the zip is on disk (describeRun checks it)
-function toRun(row, exists = false) {
+// exists: whether the zip is on disk (describeRun checks it); leaves: { kept, initials } left on the digital tree
+function toRun(row, exists = false, leaves = null) {
     return {
         id: row.id,
         startedAt: isoOf(row.started_at),
@@ -505,7 +518,8 @@ function toRun(row, exists = false) {
         lostFoundBefore: isoOf(row.lost_found_before),
         counts: {
             visitors: row.visitor_count, visitorsDeleted: row.visitors_deleted, feedback: row.feedback_count, answers: row.answer_count,
-            likes: row.like_count, lostFound: row.lost_found_count, photos: row.photo_count, missingPhotos: row.missing_photo_count
+            likes: row.like_count, lostFound: row.lost_found_count, photos: row.photo_count, missingPhotos: row.missing_photo_count,
+            leavesKept: leaves ? leaves.kept : 0, leavesWithInitials: leaves ? leaves.initials : 0
         },
         file: {
             name: row.file_name, folder: row.folder, size: row.file_size === null ? null : Number(row.file_size), sha256: row.file_sha256,
@@ -517,10 +531,15 @@ function toRun(row, exists = false) {
     };
 }
 
-// The run object with its file looked up on disk (fs.promises, so a missing drive never blocks the server)
-async function describeRun(row) {
+// Only a run that deleted its records can have left leaves on the tree
+const mayKeepLeaves = (row) => row.status === 'done' && !!row.delete_records;
+
+// The run object with its file looked up on disk (fs.promises, so a missing drive never blocks the server).
+// leavesByRun: the kept-leaf counts when the caller already read them for several runs.
+async function describeRun(row, leavesByRun = null) {
     const file = archivePath(row);
-    return toRun(row, row.file_state === 'present' && !!file && await files.pathExists(file));
+    const counts = leavesByRun || (mayKeepLeaves(row) ? await archivedLeaves.countsForRuns([row.id]) : null);
+    return toRun(row, row.file_state === 'present' && !!file && await files.pathExists(file), counts ? counts.get(row.id) || null : null);
 }
 
 async function getRunRow(id) {
@@ -529,7 +548,9 @@ async function getRunRow(id) {
 }
 
 async function listRuns(limit) {
-    return Promise.all((await query('SELECT * FROM visitor_archives ORDER BY id DESC LIMIT ?', [limit])).map(describeRun));
+    const rows = await query('SELECT * FROM visitor_archives ORDER BY id DESC LIMIT ?', [limit]);
+    const leavesByRun = await archivedLeaves.countsForRuns(rows.filter(mayKeepLeaves).map((row) => row.id));
+    return Promise.all(rows.map((row) => describeRun(row, leavesByRun)));
 }
 
 function progressFor(runId) {

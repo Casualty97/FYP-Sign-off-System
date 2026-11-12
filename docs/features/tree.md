@@ -13,7 +13,11 @@
 The wall display. /api/tree returns this year's visitors as leaves; tree.js places them around the trunk, animates falling leaves and VIP gold leaves, and polls for new feedback. The admin tab controls growth stage, backgrounds, leaf images and the title box. /3dtree is only served when the admin switches the display mode to 3D.
 
 <!-- <Jun Kai start> -->
-Role 3 hooks (Visitor Data Archive, marked in routes.js, tree.js and 3dTree.js): GET /api/tree/years adds each year's leaves that the archive deleted to leafCount and returns archivedLeafCount; the year book shows "N leaves · M archived". The tree drawn for a past year still shows only the leaves left in the database. See docs/features/archive.md.
+Role 3 hooks (Visitor Data Archive, marked in routes.js, tree.js and 3dTree.js). See docs/features/archive.md.
+
+- Leaves stay after an archive. When the Visitor Data Archive deletes a visitor's records, their leaf stays on the tree (the admin setting "Leaves on the tree": keep without a name, keep with initials, or remove). GET /api/tree, with or without `year`, returns the kept leaves of that year from the table archived_leaves together with the live rows, in the same order (created_at, then id). A kept leaf has the same fields as a live row plus `archived: true`: `id` is the old feedback id, `name` is the label ("Visitor" or initials such as "J. T."), `badgeKey`, `badgeName`, `badgeColor` and `isVip` are as they were, `pledgeSnippet` and `pledgeTopic` are empty, `visit_count` is 1, `user_created_at` is null and `privacyLabel` is "Details archived". The pages draw it like any other leaf; its detail card shows the label, the badge, the month and year of the visit and "This visitor's details were archived." (the one marked block in openLeafDetail of tree.js and 3dTree.js). The leaf keeps its key, so it never plays the landing animation again, but its spot changes once, because getVisitorSeed uses the name.
+- Year book. GET /api/tree/years counts kept leaves as leaves of their year (`keptLeafCount` says how many) and adds the leaves that are really gone to leafCount as before (`archivedLeafCount`); the book shows "N leaves · M archived", where M is only the leaves that are gone.
+- If archived_leaves cannot be read (the migration has not run yet), both routes answer with the database rows only and the server log says to run npm run db:migrate.
 <!-- <Jun Kai end> -->
 
 **Routes** (from tests/contracts/routes.snapshot.txt)
