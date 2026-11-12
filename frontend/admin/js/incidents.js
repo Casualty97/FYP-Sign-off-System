@@ -669,11 +669,11 @@ function incidentFixCard(tone, icon, title, text, button) {
             </div>`;
 }
 
-// The fix card at the top of "What to do": on offer, starting, started, failed; or why the app cannot run it here
+// The fix card at the top of "What to do": on offer, starting, started or failed. An approval always runs (like Start
+// kiosk on Server Schedule); KIOSK_AUTOMATION only decides what may run by itself.
 function incidentFixHtml(incident, data) {
     const fix = data && data.fix;
     if (!fix || incident.status === 'resolved') return '';
-    if (!fix.canRun) return `<div class="inc-fix-off">The app could ${escapeHtmlSafe(fix.label.charAt(0).toLowerCase() + fix.label.slice(1))} by itself, but this PC is set not to start programmes (KIOSK_AUTOMATION=off in backend/.env). Follow the steps below.</div>`;
     if (!data.help || !data.help.fix) return '';
     const status = fix.status || { state: 'offer' };
     const admin = incidentsIsAdmin();
@@ -688,7 +688,7 @@ function incidentFixHtml(incident, data) {
             break;
         case 'started':
             if (status.example) card = incidentFixCard('done', INCIDENT_CHECK, 'Example: nothing was started', 'On a real incident the kiosk server would start now, and this incident would close by itself once the next checks see it.', '');
-            else if (status.dryRun) card = incidentFixCard('done', INCIDENT_CHECK, 'Dry run: nothing was started', 'KIOSK_AUTOMATION=dry-run in backend/.env only records fixes.', '');
+            else if (status.dryRun) card = incidentFixCard('done', INCIDENT_CHECK, 'Dry run: nothing was started', 'KIOSK_AUTOMATION=dry-run in backend/.env only records what would run by itself. An approval on this card still runs.', '');
             else card = incidentFixCard('done', INCIDENT_CHECK, `Done at ${incidentClock(status.at)}: ${status.message || lower}`, `${who}. This incident closes by itself once the next health checks see it working, usually within ${fix.confirmMinutes || 15} minutes.`, '');
             break;
         case 'failed':
@@ -700,6 +700,7 @@ function incidentFixHtml(incident, data) {
             if (status.last) notes.push(`The start at ${incidentClock(status.last.at)} did not bring it back.`);
             notes.push(admin ? "Needs a System Admin's approval. Who approved it and what happened go into the incident's history and Audit Logs." : 'A System Admin can approve this fix. Who approved it and what happened go into the history and Audit Logs.');
             if (fix.example) notes.push('Example incident: approving only writes to its history. Nothing is started.');
+            else if (fix.mode !== 'ask' && fix.automation === 'off') notes.push('This PC does not start programmes by itself (KIOSK_AUTOMATION=off), so it waits for an approval.');
             else if (incident.status === 'acknowledged' && fix.mode !== 'ask') notes.push('Acknowledged: nothing runs by itself while someone is on it.');
             else if (fix.mode === 'delayed') notes.push('If nobody approves it, it runs by itself 5 minutes after the incident opened (set in Settings).');
             else if (fix.mode === 'auto') notes.push('Set to Automatic in Settings: it runs by itself within a minute.');
@@ -1343,8 +1344,8 @@ function incidentsApplyFixesState() {
     }
     if (note) {
         const text = automation === 'off'
-            ? 'This PC is set not to start programmes (KIOSK_AUTOMATION=off in backend/.env), so the fixes cannot run here whatever is chosen. Example incidents still show how they work.'
-            : automation === 'dry-run' ? 'KIOSK_AUTOMATION=dry-run in backend/.env: a fix is only recorded, nothing is started.' : '';
+            ? 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so a fix waits for an approval whatever is chosen here. An approval on the incident still runs, like Start kiosk on Server Schedule.'
+            : automation === 'dry-run' ? 'KIOSK_AUTOMATION=dry-run in backend/.env: what would run by itself is only recorded. An approval on the incident still runs.' : '';
         note.textContent = text;
         note.hidden = !text;
     }

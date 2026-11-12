@@ -8050,7 +8050,6 @@ input:checked + .slider:before {
 @keyframes incSpin { to { transform: rotate(360deg); } }
 .inc-fix-notes { margin-top: 10px; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
 .inc-fix-notes div + div { margin-top: 3px; }
-.inc-fix-off { margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: #f8fafc; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
 [data-zone="fix"]:not(:empty) + [data-zone="steps"]:not(:empty) { margin-top: 14px; }
 .inc-steps { display: grid; gap: 8px; margin: 0; padding-left: 22px; font-size: 13.5px; line-height: 1.6; color: var(--theme-text-color); }
 .inc-steps li { padding-left: 2px; }

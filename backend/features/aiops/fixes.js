@@ -2,8 +2,9 @@
 // Fixes the app can do itself on an incident, always with a System Admin's approval: on the incident (Approve), or once in
 // the settings ("Automatic", or "Ask, then automatic after 5 minutes" when nobody approved first). Only what is safe and
 // already exists elsewhere in the app: starting the kiosk server the way Start kiosk on Server Schedule does.
-// KIOSK_AUTOMATION governs them like the policies: off = nothing is started (the admin is told why), dry-run = only
-// recorded. An example incident's fix is only recorded, never run. Every run goes on the incident's timeline
+// KIOSK_AUTOMATION governs what runs by itself, like the policies: off = nothing runs by itself, dry-run = only
+// recorded. An approval by hand always runs, like the Start kiosk button on Server Schedule (that setting does not
+// stop the button either). An example incident's fix is only recorded, never run. Every run goes on the incident's timeline
 // ('fix' when it starts, 'fix-done' with the result) and into Audit Logs.
 // <Jun Kai start>
 const FIXES = {
@@ -74,8 +75,9 @@ function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAtte
         const example = isExample(incident);
         if (!example && (settings() || {}).offerFixes === false) throw fail(409, 'Fixes are switched off in the incident settings');
         if (running.has(incident.id)) throw fail(409, 'This fix is already running');
-        const mode = automation();
-        if (!example && mode === 'off') throw fail(409, 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so the fix cannot run here');
+        // only a run by itself asks KIOSK_AUTOMATION; an admin's approval is a press of Start kiosk
+        const mode = automatic ? automation() : 'on';
+        if (!example && mode === 'off') throw fail(409, 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so nothing runs without an approval');
         if (automatic) tried.set(incident.id, now().getTime());
         const dryRun = !example && mode === 'dry-run';
         await store.addEvent(incident.id, 'fix', { fix: fixKey, by, automatic, example, dryRun }, iso());

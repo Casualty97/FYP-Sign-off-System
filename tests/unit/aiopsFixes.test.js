@@ -141,19 +141,31 @@ test('a failed start is recorded as not ok, with the reason', async () => {
     assert.match(done.detail.message, /within 30 seconds/);
 });
 
-test('KIOSK_AUTOMATION=off refuses the fix and says why; dry-run only records it', async () => {
+test('an approval runs whatever KIOSK_AUTOMATION says, like Start kiosk; off and dry-run only hold what runs by itself', async () => {
+    for (const automation of ['off', 'dry-run']) {
+        const s = setup({ automation });
+        const id = await s.store.insert(kioskDown());
+        assert.deepEqual(await s.fixer.run(id, 'start-kiosk', 'systemadmin'), { started: true, done: false }, `approved with ${automation}`);
+        await flush();
+        assert.equal(s.calls.start, 1, `the kiosk is started with ${automation}`);
+        s.settle({ success: true, message: 'Server started successfully' });
+        await flush(); await flush();
+        assert.equal((await s.store.events(id)).find((e) => e.type === 'fix').detail.dryRun, false);
+    }
+
     const off = setup({ automation: 'off' });
     const id = await off.store.insert(kioskDown());
-    await assert.rejects(off.fixer.run(id, 'start-kiosk', 'systemadmin'), (error) => error.status === 409 && /KIOSK_AUTOMATION=off/.test(error.message));
-    assert.equal(off.calls.start, 0);
+    await assert.rejects(off.fixer.run(id, 'start-kiosk', 'automatic (approved in Settings)', { automatic: true }), (error) => error.status === 409 && /KIOSK_AUTOMATION=off/.test(error.message));
+    assert.equal(off.calls.start, 0, 'nothing runs by itself with off');
     assert.deepEqual(await off.types(id), [], 'nothing on the timeline');
 
-    const dry = setup({ automation: 'dry-run' });
+    const dry = setup({ automation: 'dry-run', conf: { fixes: { 'start-kiosk': 'auto' } } });
     const id2 = await dry.store.insert(kioskDown());
-    assert.deepEqual(await dry.fixer.run(id2, 'start-kiosk', 'systemadmin'), { started: true, done: true, example: false, dryRun: true });
+    assert.equal(await dry.fixer.sweep(), 1, 'a dry run still goes through the motions');
     assert.equal(dry.calls.start, 0);
     assert.deepEqual(dry.calls.noted, [], 'a dry run is not a start attempt');
     const done = (await dry.store.events(id2)).find((e) => e.type === 'fix-done');
+    assert.equal(done.detail.dryRun, true);
     assert.match(done.detail.message, /Dry run/);
 });
 
