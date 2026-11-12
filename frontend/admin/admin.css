@@ -8410,5 +8410,10 @@ html[data-theme="dark"] #login-page {
     --login-accent: #3b82f6; --login-accent-hover: #2563eb; --login-accent-active: #1d4ed8; --login-ring: rgba(59, 130, 246, 0.35);
     --login-eye-hover: #1e293b;
 }
+/* found with real rows: faint grey text, dark text on the two strong badge colours (as in light mode), and the Disk
+   key matching its line (hardwareColor gives Disk #cbd5e1 in dark mode; one class more than the generated twin) */
+html[data-theme="dark"] .text-light-gray { color: var(--color-muted) !important; }
+html[data-theme="dark"] :is(.badge-warning, .badge-permanent) { color: #0b1120; }
+html[data-theme="dark"] .hw-swatches .hw-c-disk { background-color: #cbd5e1; }
 @media (prefers-reduced-motion: reduce) { .theme-toggle { transition: none; } }
 /* <Jun Kai end> */
