@@ -1305,7 +1305,7 @@ function renderAutomationStatus(a) {
     setAutomationText('policy-mode', isAuto ? 'Automatic' : 'Manual');
     setAutomationText('policy-mode-hint', !a.enabled ? 'Automation is switched off on this machine, so nothing runs the policies.' : isAuto ? 'Policies are followed.' : 'Policies are paused. Switch back under Controls.');
     setAutomationText('policy-now-hint', !planned ? (!a.enabled ? 'Automation is off on this machine' : 'You start and stop it under Controls')
-        : a.currentWindow ? `By the policy "${a.currentWindow.schedule}"` : a.stoppedBy ? `Kept off by "${a.stoppedBy.schedule}"` : 'No policy covers this moment');
+        : a.currentWindow ? `By the policy "${a.currentWindow.schedule}"` : a.stoppedBy ? `Off hours: "${a.stoppedBy.schedule}"` : 'No policy covers this moment');
     // <Jun Kai end>
 
     setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting' : 'Off'));
