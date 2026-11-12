@@ -148,10 +148,11 @@ function dailyForecast(values, days, maxPoints = 200) {
 // rough: the history is shorter than the horizon. reason 'history': it gets there by waiting (waitHours);
 // reason 'retention': samples are deleted before it can (neededRetentionDays is the keep period that would do).
 const HISTORY_TOLERANCE = 0.95;
-function horizonCheck({ horizonHours, historyHours, retentionDays }) {
-    const keptHours = retentionDays * 24;
+// keptForGood: a forecast longer than a week reads the daily summaries, which are never deleted (no 'retention' reason)
+function horizonCheck({ horizonHours, historyHours, retentionDays, keptForGood = false }) {
+    const keptHours = keptForGood ? Infinity : retentionDays * 24;
     const history = Math.max(0, Math.min(Number(historyHours) || 0, keptHours));
-    const base = { horizonHours, historyHours: Math.round(history), retentionDays };
+    const base = { horizonHours, historyHours: Math.round(history), retentionDays, keptForGood };
     if (history >= horizonHours * HISTORY_TOLERANCE) return { ...base, rough: false, reason: null, waitHours: 0 };
     if (keptHours < horizonHours * HISTORY_TOLERANCE) return { ...base, rough: true, reason: 'retention', waitHours: null, neededRetentionDays: Math.ceil(horizonHours / 24) };
     return { ...base, rough: true, reason: 'history', waitHours: Math.ceil(horizonHours - history) };
