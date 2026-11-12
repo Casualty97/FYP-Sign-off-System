@@ -1,13 +1,13 @@
 # Owner: Role 3, Jun Kai.
 # ESG Kiosk uninstaller for Windows (task-sheet point 5). Double-click uninstall.cmd in the project folder; it runs this.
-#   uninstall.cmd                stops the kiosk and removes what install.cmd and the kiosk added to Windows: the logon
-#                                start, the desktop link, the wake-up task, the firewall rule, and puts hibernate and
-#                                wake timers back the way they were (Windows asks for administrator rights for those)
+#   uninstall.cmd                stops the kiosk and removes what install.cmd added to Windows: the logon start, the
+#                                desktop link and the firewall rule (Windows asks for administrator rights for the rule)
 #   uninstall.cmd -RemoveData    also drops the database (you type its name to confirm) and deletes backend\data (but
 #                                not the archive zips in backend\data\archives), backend\cache and logs. backend\.env
 #                                stays: its key is the only one that opens those archives.
 #   uninstall.cmd -DryRun        prints every step it would take, changes nothing
-# Also: -NonInteractive (no questions; with -RemoveData the name must come from -ConfirmDatabase), -KeepPowerSettings.
+# Also: -NonInteractive (no questions; with -RemoveData the name must come from -ConfirmDatabase).
+# Hibernate and wake timers belong to Role 4 (Ryan) and are not touched here.
 # The program folder stays; delete it by hand afterwards if it should go too.
 # <Jun Kai start>
 [CmdletBinding()]
@@ -16,7 +16,6 @@ param(
     [switch]$NonInteractive,
     [switch]$RemoveData,
     [string]$ConfirmDatabase,
-    [switch]$KeepPowerSettings,
     [switch]$AdminSteps
 )
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -41,38 +40,15 @@ function Test-OwnStartupLink {
     return ($link.WorkingDirectory.TrimEnd('\') -ieq $Root.TrimEnd('\'))
 }
 
-function Test-PowerToRestore([hashtable]$State) {
-    return ((-not $KeepPowerSettings) -and ($State.ContainsKey('wakeTimersBefore') -or $State.ContainsKey('hibernateBefore')))
-}
-
-# The administrator part: the firewall rule, and the power settings back to what install-state.json recorded
+# The administrator part: the firewall rule
 function Remove-AdminSteps {
     if (@(Get-FirewallRules).Count -gt 0) {
         Invoke-Change "remove the firewall rule `"$FirewallName`"" { Remove-NetFirewallRule -Group $FirewallGroup -ErrorAction Stop }
     } else { Write-Info 'no firewall rule to remove' }
-    $state = Read-InstallState
-    if ($KeepPowerSettings) { Write-Info 'power settings: kept (-KeepPowerSettings)'; return }
-    if (-not (Test-PowerToRestore $state)) { Write-Info 'power settings: the installer did not change them'; return }
-    if ($state.ContainsKey('wakeTimersBefore')) {
-        $before = $state['wakeTimersBefore']
-        Invoke-Change "put Allow wake timers back to what it was (plugged in $($before.ac), on battery $($before.dc))" {
-            & powercfg.exe /setacvalueindex SCHEME_CURRENT $WakeTimerSetting[0] $WakeTimerSetting[1] $before.ac
-            & powercfg.exe /setdcvalueindex SCHEME_CURRENT $WakeTimerSetting[0] $WakeTimerSetting[1] $before.dc
-            & powercfg.exe /setactive SCHEME_CURRENT
-        }
-        $state.Remove('wakeTimersBefore')
-    }
-    if ($state.ContainsKey('hibernateBefore')) {
-        if ($state['hibernateBefore'] -eq 0) {
-            Invoke-Change 'turn hibernate off again, as it was before the install' { & powercfg.exe /hibernate off | Out-Host }
-        }
-        $state.Remove('hibernateBefore')
-    }
-    if (-not $DryRun) { Save-InstallState $state }
 }
 
 if ($AdminSteps) {
-    Write-Step 'Firewall and power settings (administrator)'
+    Write-Step 'Firewall rule (administrator)'
     if (-not (Test-Admin)) { Write-Bad 'this part needs administrator rights'; exit 1 }
     Remove-AdminSteps
     Start-Sleep -Seconds 3
@@ -95,40 +71,31 @@ else {
         $running | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
         Write-Ok "stopped the kiosk (ids $ids)"
     } else {
-        Write-Bad 'the kiosk has to stop first, or it makes its wake-up task again; nothing was removed'
+        Write-Bad 'the kiosk has to stop first; nothing was removed'
         exit 1
     }
 }
 
-Write-Step 'Logon start, desktop link and the wake-up task'
+Write-Step 'Logon start and desktop link'
 if (Test-OwnStartupLink) { Invoke-Change 'remove the logon start (Startup folder shortcut)' { Remove-Item -LiteralPath $StartupLink -Force } }
 elseif (Test-Path $StartupLink) { Write-Note 'the Startup shortcut "ESG Kiosk" starts a copy in another folder: left alone' }
 else { Write-Info 'no logon start to remove' }
 if (Test-Path $DesktopLink) { Invoke-Change 'remove the desktop link to the admin page' { Remove-Item -LiteralPath $DesktopLink -Force } }
 else { Write-Info 'no desktop link to remove' }
-if (-not (Test-WakeTask)) { Write-Info "no `"$WakeTaskName`" task" }
-elseif ($DryRun) { Write-Host "   would remove the `"$WakeTaskName`" task (the wake timer of the kiosk schedule)" -ForegroundColor DarkGray }
-else {
-    & schtasks.exe /Delete /TN $WakeTaskName /F 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) { Write-Ok "remove the `"$WakeTaskName`" task (the wake timer of the kiosk schedule)" }
-    else { Write-Bad "schtasks could not delete `"$WakeTaskName`" (run uninstall.cmd as administrator)"; $failed = $true }
-}
 
-Write-Step 'Firewall and power settings'
-$needAdmin = (@(Get-FirewallRules).Count -gt 0) -or (Test-PowerToRestore (Read-InstallState))
-if (-not $needAdmin) { Write-Info 'nothing to undo: no firewall rule, and the installer did not change the power settings' }
+Write-Step 'Firewall rule'
+if (@(Get-FirewallRules).Count -eq 0) { Write-Info 'no firewall rule to remove' }
 elseif ($DryRun -or (Test-Admin)) { Remove-AdminSteps }
-elseif ($NonInteractive) { Write-Note 'not running as administrator: firewall rule and power settings left (run uninstall.cmd as administrator)' }
+elseif ($NonInteractive) { Write-Note 'not running as administrator: the firewall rule is left (run uninstall.cmd as administrator)' }
 else {
-    Write-Info 'Windows now asks for administrator rights for these steps.'
+    Write-Info 'Windows now asks for administrator rights for this step.'
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"", '-AdminSteps', '-NonInteractive')
-    if ($KeepPowerSettings) { $argList += '-KeepPowerSettings' }
     try {
         $elevated = Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Verb RunAs -Wait -PassThru -ErrorAction Stop
-        if ($elevated.ExitCode -ne 0) { Write-Bad "the administrator steps failed (exit code $($elevated.ExitCode))"; $failed = $true }
-        elseif (@(Get-FirewallRules).Count -eq 0) { Write-Ok 'firewall rule removed, power settings put back' }
+        if ($elevated.ExitCode -ne 0) { Write-Bad "the administrator step failed (exit code $($elevated.ExitCode))"; $failed = $true }
+        elseif (@(Get-FirewallRules).Count -eq 0) { Write-Ok 'firewall rule removed' }
     } catch {
-        Write-Note 'administrator rights were not given: firewall rule and power settings left (run uninstall.cmd again to retry)'
+        Write-Note 'administrator rights were not given: the firewall rule is left (run uninstall.cmd again to retry)'
     }
 }
 

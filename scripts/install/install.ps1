@@ -2,12 +2,12 @@
 # ESG Kiosk installer for Windows (task-sheet point 5). Double-click install.cmd in the project folder; it runs this.
 #   install.cmd                  asks Laptop or Wall PC, then sets everything up
 #   install.cmd -Role Laptop     a developer laptop: kiosk automation off, nothing changed in Windows
-#   install.cmd -Role WallPC     the kiosk PC: also starts the kiosk at logon, puts an admin page link on the desktop,
-#                                adds the firewall rule the tablets need and, if you agree, turns on hibernate and wake
-#                                timers (Windows asks for administrator rights for the last two)
+#   install.cmd -Role WallPC     the kiosk PC: also starts the kiosk at logon, puts an admin page link on the desktop and
+#                                adds the firewall rule the tablets need (Windows asks for administrator rights for it)
 #   install.cmd -Check           only reports what is set up, changes nothing
 #   install.cmd -DryRun          prints every step it would take, changes nothing
-# Also: -NonInteractive (no questions, the safe answer is taken), -SkipNpm, -PowerSettings (yes to the power question).
+# Also: -NonInteractive (no questions, the safe answer is taken), -SkipNpm.
+# Hibernate and wake timers are not set up here: they belong to Role 4 (Ryan, system-level hibernation scheduling).
 # Safe to run again: it never overwrites a filled-in setting and never drops a database table.
 # <Jun Kai start>
 [CmdletBinding()]
@@ -17,7 +17,6 @@ param(
     [switch]$DryRun,
     [switch]$NonInteractive,
     [switch]$SkipNpm,
-    [switch]$PowerSettings,
     [switch]$AdminSteps
 )
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -117,39 +116,11 @@ function Install-DesktopLink([string]$Port) {
     }
 }
 
-# The administrator part of the Wall PC: the firewall rule and, only when asked, hibernate and wake timers. What it
-# changes is written to backend\data\install-state.json first, so uninstall.cmd can put it back.
-function Install-AdminSteps([bool]$Power) {
-    $state = Read-InstallState
-    if (@(Get-FirewallRules).Count -gt 0) { Write-Ok "the firewall rule `"$FirewallName`" is already there" }
-    else {
-        Invoke-Change "let tablets on this network reach the kiosk (firewall rule, TCP $($KioskPorts -join ' and '), Private and Domain networks only)" {
-            New-NetFirewallRule -DisplayName $FirewallName -Group $FirewallGroup -Direction Inbound -Protocol TCP -LocalPort $KioskPorts -Action Allow -Profile Private, Domain -ErrorAction Stop | Out-Null
-        }
-    }
-    if (-not $Power) {
-        Write-Info 'hibernate and wake timers: left as they are (run again with -PowerSettings to set them)'
-        return
-    }
-    $hibernate = Get-HibernateEnabled
-    if ($hibernate -eq 1) { Write-Ok 'hibernate is already on' }
-    else {
-        if (-not $DryRun -and -not $state.ContainsKey('hibernateBefore')) { $state['hibernateBefore'] = $hibernate; Save-InstallState $state }
-        Invoke-Change 'turn on hibernate (powercfg /hibernate on)' {
-            & powercfg.exe /hibernate on | Out-Host
-            if ($LASTEXITCODE -ne 0) { Stop-Install 'powercfg /hibernate on failed' }
-        }
-    }
-    $wake = Get-WakeTimers
-    if ($wake -and $wake.ac -eq 1 -and $wake.dc -eq 1) { Write-Ok 'wake timers are already allowed' }
-    else {
-        if (-not $DryRun -and $wake -and -not $state.ContainsKey('wakeTimersBefore')) { $state['wakeTimersBefore'] = @{ ac = $wake.ac; dc = $wake.dc }; Save-InstallState $state }
-        Invoke-Change 'allow wake timers in the active power plan (plugged in and on battery)' {
-            & powercfg.exe /setacvalueindex SCHEME_CURRENT $WakeTimerSetting[0] $WakeTimerSetting[1] 1
-            & powercfg.exe /setdcvalueindex SCHEME_CURRENT $WakeTimerSetting[0] $WakeTimerSetting[1] 1
-            & powercfg.exe /setactive SCHEME_CURRENT
-            if ($LASTEXITCODE -ne 0) { Stop-Install 'powercfg could not change the wake timer setting' }
-        }
+# The administrator part of the Wall PC: the firewall rule the tablets need
+function Install-AdminSteps {
+    if (@(Get-FirewallRules).Count -gt 0) { Write-Ok "the firewall rule `"$FirewallName`" is already there"; return }
+    Invoke-Change "let tablets on this network reach the kiosk (firewall rule, TCP $($KioskPorts -join ' and '), Private and Domain networks only)" {
+        New-NetFirewallRule -DisplayName $FirewallName -Group $FirewallGroup -Direction Inbound -Protocol TCP -LocalPort $KioskPorts -Action Allow -Profile Private, Domain -ErrorAction Stop | Out-Null
     }
 }
 
@@ -159,21 +130,13 @@ function Show-WindowsStatus {
     if (Test-Path $StartupLink) { Write-Ok 'starts at logon (Startup folder shortcut)' }
     else { Write-Info 'does not start at logon (only the Wall PC does)' }
     if (Test-Path $DesktopLink) { Write-Ok 'desktop link to the admin page' }
-    $hibernate = Get-HibernateEnabled
-    if ($hibernate -eq 1) { Write-Ok 'hibernate is on' }
-    elseif ($hibernate -eq 0) { Write-Info 'hibernate is off (the Wall PC needs it on for the kiosk schedule)' }
-    else { Write-Info 'hibernate: Windows did not say whether it is on' }
-    $wake = Get-WakeTimers
-    if ($wake -and $wake.ac -eq 1) { Write-Ok "wake timers allowed (plugged in $($wake.ac), on battery $($wake.dc))" }
-    elseif ($wake) { Write-Info "wake timers not allowed when plugged in (setting $($wake.ac)); the Wall PC needs 1" }
-    if (Test-WakeTask) { Write-Ok "`"$WakeTaskName`" task is there (the kiosk schedule keeps it up to date)" }
 }
 
 # The elevated second run started below: only the administrator part
 if ($AdminSteps) {
-    Write-Step 'Wall PC: firewall and power settings (administrator)'
+    Write-Step 'Wall PC: firewall rule (administrator)'
     if (-not (Test-Admin)) { Stop-Install 'this part needs administrator rights' }
-    Install-AdminSteps $PowerSettings.IsPresent
+    Install-AdminSteps
     Start-Sleep -Seconds 3
     exit 0
 }
@@ -204,7 +167,7 @@ if (-not $Role) {
         Write-Host ''
         Write-Host 'Where will this copy run?'
         Write-Host '  1  Laptop   for development and testing (kiosk automation off, Windows left alone)'
-        Write-Host '  2  Wall PC  the kiosk server at the ESG Centre (starts at logon, firewall rule, power settings)'
+        Write-Host '  2  Wall PC  the kiosk server at the ESG Centre (starts at logon, desktop link, firewall rule)'
         $answer = Read-Host 'Type 1 or 2'
         if ($answer.Trim() -eq '2') { $Role = 'WallPC' } else { $Role = 'Laptop' }
     }
@@ -231,27 +194,21 @@ if ($Role -eq 'WallPC') {
     Install-StartupLink
     Install-DesktopLink $port
 
-    Write-Step 'Wall PC: firewall and power settings (administrator)'
-    $power = $PowerSettings.IsPresent
-    if (-not $power -and -not $NonInteractive -and -not $DryRun) {
-        Write-Info 'The kiosk schedule hibernates this PC at night and wakes it with a Windows wake timer.'
-        Write-Info 'That needs hibernate on and "Allow wake timers" on in the power plan.'
-        $power = Confirm-Choice 'Turn on hibernate and allow wake timers?' $false
-    }
-    if ($DryRun -or (Test-Admin)) { Install-AdminSteps $power }
-    elseif ($NonInteractive) { Write-Note 'not running as administrator: firewall and power steps skipped (run install.cmd -Role WallPC as administrator)' }
+    Write-Step 'Wall PC: firewall rule (administrator)'
+    if ($DryRun -or (Test-Admin)) { Install-AdminSteps }
+    elseif ($NonInteractive) { Write-Note 'not running as administrator: the firewall rule is skipped (run install.cmd -Role WallPC as administrator)' }
     else {
-        Write-Info 'Windows now asks for administrator rights for these steps.'
+        Write-Info 'Windows now asks for administrator rights for this step.'
         $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"", '-Role', 'WallPC', '-AdminSteps', '-NonInteractive')
-        if ($power) { $argList += '-PowerSettings' }
         try {
             $elevated = Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Verb RunAs -Wait -PassThru -ErrorAction Stop
-            if ($elevated.ExitCode -ne 0) { Write-Bad "the administrator steps failed (exit code $($elevated.ExitCode))" }
+            if ($elevated.ExitCode -ne 0) { Write-Bad "the administrator step failed (exit code $($elevated.ExitCode))" }
         } catch {
-            Write-Note 'administrator rights were not given: firewall and power steps skipped (run install.cmd again to retry)'
+            Write-Note 'administrator rights were not given: the firewall rule is skipped (run install.cmd again to retry)'
         }
         Show-WindowsStatus
     }
+    Write-Info 'Hibernate and wake timers are set up by the system-level part of Role 4 (Ryan), not by this installer.'
 }
 
 Write-Step 'Done'

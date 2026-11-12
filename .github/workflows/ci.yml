@@ -229,7 +229,7 @@ jobs:
         run: |
           .\scripts\install\install.ps1 -Check -NonInteractive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          .\scripts\install\install.ps1 -DryRun -Role WallPC -NonInteractive -PowerSettings
+          .\scripts\install\install.ps1 -DryRun -Role WallPC -NonInteractive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\scripts\install\uninstall.ps1 -DryRun -NonInteractive -RemoveData -ConfirmDatabase dp_kiosk_db
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -8,15 +8,18 @@ Owner: Role 3, Jun Kai. Task-sheet point 5, "installation and deletion scripts" 
 |---|---|
 | `install.cmd` (or double-click it) | asks Laptop or Wall PC, then sets the kiosk up |
 | `install.cmd -Role Laptop` | a development laptop: packages, `backend\.env`, database; Windows is left alone |
-| `install.cmd -Role WallPC` | the kiosk PC: the same, plus start at logon, a desktop link, the firewall rule and (if you agree) hibernate and wake timers |
+| `install.cmd -Role WallPC` | the kiosk PC: the same, plus start at logon, a desktop link and the firewall rule |
 | `install.cmd -Check` or `npm run doctor` | only reports what is set up |
 | `uninstall.cmd` | stops the kiosk and removes everything the install and the kiosk added to Windows |
 | `uninstall.cmd -RemoveData` | also drops the database (you type its name) and deletes `backend\data` (but not the archive zips in `backend\data\archives`), `backend\cache` and `logs` |
 | `-DryRun` on either | prints every step, changes nothing |
 
 Other switches: `-NonInteractive` (no questions; the safe answer is taken, so nothing risky happens without a switch
-that asks for it), `-SkipNpm`, `-PowerSettings` (yes to the power question), `-KeepPowerSettings` (uninstall),
-`-ConfirmDatabase <name>` (uninstall `-RemoveData` without the question).
+that asks for it), `-SkipNpm`, `-ConfirmDatabase <name>` (uninstall `-RemoveData` without the question).
+
+Not here on purpose: hibernate and wake timers. They are Role 4's (Ryan) task-sheet line "Set up server hibernation
+scheduling at the system level", so neither script touches the power plan. Once that part is on main, the installer
+gets the matching step (the user's rule of 12 Nov 2026: keep the installer in step with main).
 
 ## Files
 
@@ -48,19 +51,14 @@ that asks for it), `-SkipNpm`, `-PowerSettings` (yes to the power question), `-K
 5. **Wall PC, as the user:** a shortcut in the Startup folder starts `node startAll.js` at logon (minimised window), and
    an "ESG Kiosk Admin" link to `https://localhost:<PORT>/admin` goes on the desktop.
 6. **Wall PC, as administrator** (Windows asks; a second, elevated window does only this part): a firewall rule
-   "ESG Kiosk - tablets to the kiosk server" for TCP 3000 and 3003 on Private and Domain networks (never Public). Then,
-   only if you answer yes or pass `-PowerSettings`: hibernate on (`powercfg /hibernate on`) and "Allow wake timers" on in
-   the active power plan, which the kiosk schedule needs to wake the PC. The values from before are saved first in
-   `backend/data/install-state.json`, so uninstall can put them back.
+   "ESG Kiosk - tablets to the kiosk server" for TCP 3000 and 3003 on Private and Domain networks (never Public).
 
 ## What uninstall does, in order
 
 1. Stops the kiosk: only the `node.exe` processes whose command line names a file in this folder (and the
    `startAll.js` parent of those). Never "every node.exe", never "whatever listens on port 3000".
-2. Removes the Startup shortcut (only if it starts a copy in this folder), the desktop link, and the "ESG Kiosk Wake"
-   task that the kiosk schedule keeps.
-3. As administrator: removes the firewall rule and puts hibernate and wake timers back to the values in
-   `install-state.json` (nothing to undo if the installer did not change them; `-KeepPowerSettings` leaves them).
+2. Removes the Startup shortcut (only if it starts a copy in this folder) and the desktop link.
+3. As administrator: removes the firewall rule.
 4. With `-RemoveData` and the database name typed again: drops the database and deletes `backend\data` (except
    `backend\data\archives`, the default folder of the Visitor Data Archive zips),
    `backend\cache` and `logs`.
@@ -78,8 +76,6 @@ no archive; otherwise it leaves the key empty and says so, because a new key wou
 
 - `backend/.env` is still tracked in git (from the previous team). After the installer fills it, never commit it; the
   installer reminds you at the end.
-- The power settings sit on Role 4's task-sheet line "Set up server hibernation scheduling at the system level"
-  (the system-level hibernation built with point 1, told to the team on 5 Nov 2026). That is why they are opt-in.
 - `setup.js` exit codes: 0 done, 1 failed, 2 the root password is needed but there was no way to ask (set
   `ESG_MYSQL_ROOT_PASSWORD`, or `--root-password-empty` for a root without a password).
 - CI: the Windows smoke job runs `install.ps1 -Check`, a Wall PC dry run and an uninstall dry run under Windows
