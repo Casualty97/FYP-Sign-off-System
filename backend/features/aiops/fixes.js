@@ -40,9 +40,10 @@ function automationSetting(value = process.env.KIOSK_AUTOMATION) {
 }
 
 // Whether an automatic run is due now: "auto" at once, "delayed" once the incident is 5 minutes old; never twice within
-// RETRY_MS on one incident, never on an example or a resolved incident
+// RETRY_MS on one incident, never on an example, and only while the incident is open (Acknowledge = someone is on it,
+// so nothing runs by itself)
 function autoDue(incident, mode, nowMs, lastTriedMs) {
-    if (!incident || isExample(incident) || incident.status === 'resolved') return false;
+    if (!incident || isExample(incident) || incident.status !== 'open') return false;
     if (mode !== 'auto' && mode !== 'delayed') return false;
     if (lastTriedMs && nowMs - lastTriedMs < RETRY_MS) return false;
     if (mode === 'delayed') return nowMs - Date.parse(incident.opened_at) >= DELAY_MS;
@@ -52,8 +53,9 @@ function autoDue(incident, mode, nowMs, lastTriedMs) {
 // store: the incident store; settings(): the aiops settings; actions: { fixKey: async () => ({ success, message|error }) };
 // lastAttempt() / noteAttempt(): the kiosk start record shared with the policies (serverControl/control.js); gapMs (a
 // number or a function): no automatic start sooner than this after any start; automation(): 'on' | 'off' | 'dry-run';
-// audit(action, by, id).
-function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAttempt = () => {}, gapMs = 5 * 60 * 1000, automation = automationSetting, audit = () => {}, now = () => new Date() }) {
+// stillNeeded: { fixKey: async () => boolean }, asked before an automatic run (the kiosk may be up again before its
+// incident closes); allowAuto(): false while automatic runs must wait (the policies keep the kiosk off); audit(action, by, id).
+function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAttempt = () => {}, gapMs = 5 * 60 * 1000, automation = automationSetting, stillNeeded = {}, allowAuto = () => true, audit = () => {}, now = () => new Date() }) {
     const running = new Map(); // incident id -> fix key while its start is being checked (up to 30 s)
     const tried = new Map();   // incident id -> ms of the last automatic run
     const iso = () => now().toISOString();
@@ -97,7 +99,7 @@ function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAtte
     // two never start the kiosk within gapMs of each other.
     async function sweep() {
         const conf = settings() || {};
-        if (conf.offerFixes === false || automation() === 'off') return 0;
+        if (conf.offerFixes === false || automation() === 'off' || !allowAuto()) return 0;
         const nowMs = now().getTime();
         let started = 0;
         for (const incident of await store.listOpen()) {
@@ -105,6 +107,8 @@ function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAtte
             if (!fixKey || running.has(incident.id)) continue;
             if (!autoDue(incident, modeOf(conf, fixKey), nowMs, tried.get(incident.id))) continue;
             if (nowMs - lastAttempt() < gap()) continue;
+            // already better (the incident closes at the next checks): nothing to run, nothing to record
+            if (stillNeeded[fixKey] && !(await Promise.resolve().then(stillNeeded[fixKey]).catch(() => false))) continue;
             try {
                 await run(incident.id, fixKey, 'automatic (approved in Settings)', { automatic: true });
                 started++;
@@ -116,6 +120,27 @@ function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAtte
     }
 
     return { run, sweep, isRunning: (id) => running.has(Number(id)) };
+}
+
+// Where the fix of one incident stands, from its newest 'fix' and 'fix-done' events ({ at, detail }):
+// offer   nothing ran yet (or a start long enough ago that did not close the incident: `last` says when)
+// running started, the answer is not in yet (up to 30 s; a start with no answer after 2 minutes counts as failed)
+// started it worked; the incident closes by itself once the next health checks see the kiosk (confirmMs)
+// failed  it did not work, with the reason
+const NO_ANSWER_MS = 2 * 60 * 1000;
+function fixStatus({ running = false, lastFix = null, lastDone = null, nowMs = Date.now(), confirmMs = 15 * 60 * 1000 } = {}) {
+    const ms = (event) => (event ? Date.parse(event.at) || 0 : 0);
+    const fixDetail = (lastFix && lastFix.detail) || {};
+    const who = { by: fixDetail.by || null, automatic: !!fixDetail.automatic };
+    const pending = lastFix && ms(lastFix) > ms(lastDone);
+    if (running || (pending && nowMs - ms(lastFix) < NO_ANSWER_MS)) return { state: 'running', at: lastFix ? lastFix.at : null, ...who };
+    if (pending) return { state: 'failed', at: lastFix.at, ...who, message: 'No answer was recorded: the server may have restarted during the start', example: false, dryRun: false };
+    if (!lastDone) return { state: 'offer' };
+    const done = lastDone.detail || {};
+    const result = { at: lastDone.at, ...who, message: String(done.message || ''), example: !!done.example, dryRun: !!done.dryRun };
+    if (!done.ok) return { state: 'failed', ...result };
+    if (nowMs - ms(lastDone) < confirmMs) return { state: 'started', ...result };
+    return { state: 'offer', last: result };
 }
 
 // What the page needs to show a fix on one incident
@@ -131,5 +156,5 @@ function describeFix(incident, settings, fixer) {
     };
 }
 
-module.exports = { FIXES, MODE_LABELS, DELAY_MS, RETRY_MS, EXAMPLE_PREFIX, isExample, fixFor, modeOf, automationSetting, autoDue, createFixer, describeFix };
+module.exports = { FIXES, MODE_LABELS, DELAY_MS, RETRY_MS, EXAMPLE_PREFIX, isExample, fixFor, modeOf, automationSetting, autoDue, createFixer, fixStatus, describeFix };
 // <Jun Kai end>

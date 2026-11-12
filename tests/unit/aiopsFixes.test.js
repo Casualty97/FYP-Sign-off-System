@@ -15,17 +15,21 @@ const kioskDown = (over = {}) => ({
     title: 'Kiosk server down (2 checks in a row)', opened_at: new Date(START).toISOString(), last_seen_at: new Date(START).toISOString(), ...over
 });
 
-// a fixer over the memory store; the kiosk start is a promise the test settles by hand
+// a fixer over the memory store; the kiosk start is a promise the test settles by hand; world.kioskUp and
+// world.wanted are what the kiosk probe and the policies answer
 function setup({ automation = 'on', conf = {}, lastAttempt = 0 } = {}) {
     let t = START;
     const store = incidents.memoryStore();
-    const calls = { start: 0, noted: [], audits: [] };
+    const calls = { start: 0, noted: [], audits: [], probes: 0 };
     let settle = null;
     const shared = { last: lastAttempt };
+    const world = { kioskUp: false, wanted: true };
     const fixer = fixes.createFixer({
         store,
         settings: () => ({ offerFixes: true, fixes: { 'start-kiosk': 'ask' }, ...conf }),
         actions: { 'start-kiosk': () => { calls.start++; return new Promise((resolve) => { settle = resolve; }); } },
+        stillNeeded: { 'start-kiosk': async () => { calls.probes++; return !world.kioskUp; } },
+        allowAuto: () => world.wanted,
         lastAttempt: () => shared.last,
         noteAttempt: (at) => { calls.noted.push(at); shared.last = at; },
         gapMs: () => 5 * MINUTE,
@@ -34,7 +38,7 @@ function setup({ automation = 'on', conf = {}, lastAttempt = 0 } = {}) {
         now: () => new Date(t)
     });
     return {
-        store, fixer, calls, shared,
+        store, fixer, calls, shared, world,
         advance: (ms) => { t += ms; },
         settle: (result) => settle(result),
         types: async (id) => (await store.events(id)).map((e) => e.type)
@@ -71,6 +75,34 @@ test('an automatic run is due at once in Automatic, after 5 minutes in "Ask, the
     assert.equal(fixes.autoDue(open, 'auto', START + 26 * MINUTE, START + 15 * MINUTE), true);
     assert.equal(fixes.autoDue(kioskDown({ fingerprint: 'example:kiosk:abc' }), 'auto', START, null), false);
     assert.equal(fixes.autoDue(kioskDown({ status: 'resolved' }), 'auto', START, null), false);
+    assert.equal(fixes.autoDue(kioskDown({ status: 'acknowledged' }), 'delayed', START + 30 * MINUTE, null), false, 'Acknowledge holds the countdown');
+    assert.equal(fixes.autoDue(kioskDown({ status: 'acknowledged' }), 'auto', START, null), false);
+});
+
+test('fixStatus: on offer, starting, started (until the incident can close), failed, and a start with no answer', () => {
+    const fixAt = (minutes, detail = { by: 'systemadmin', automatic: false }) => ({ at: new Date(START + minutes * MINUTE).toISOString(), detail });
+    const doneAt = (minutes, detail) => ({ at: new Date(START + minutes * MINUTE).toISOString(), detail });
+    const now = (minutes) => START + minutes * MINUTE;
+    assert.deepEqual(fixes.fixStatus({ nowMs: now(0) }), { state: 'offer' });
+    assert.equal(fixes.fixStatus({ running: true, lastFix: fixAt(0), nowMs: now(0) }).state, 'running');
+    assert.equal(fixes.fixStatus({ lastFix: fixAt(0), nowMs: now(1) }).state, 'running', 'the answer is not in yet');
+    const lost = fixes.fixStatus({ lastFix: fixAt(0), nowMs: now(3) });
+    assert.equal(lost.state, 'failed');
+    assert.match(lost.message, /restarted/);
+
+    const ok = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0.5, { ok: true, message: 'Server started successfully' }), nowMs: now(5), confirmMs: 15 * MINUTE });
+    assert.deepEqual(ok, { state: 'started', at: new Date(START + 0.5 * MINUTE).toISOString(), by: 'systemadmin', automatic: false, message: 'Server started successfully', example: false, dryRun: false });
+    const later = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0.5, { ok: true }), nowMs: now(20), confirmMs: 15 * MINUTE });
+    assert.equal(later.state, 'offer', 'still open long after a good start: offered again');
+    assert.equal(later.last.by, 'systemadmin');
+
+    const bad = fixes.fixStatus({ lastFix: fixAt(0, { by: 'automatic (approved in Settings)', automatic: true }), lastDone: doneAt(0.5, { ok: false, message: 'did not come up' }), nowMs: now(1) });
+    assert.equal(bad.state, 'failed');
+    assert.equal(bad.automatic, true);
+    assert.equal(bad.message, 'did not come up');
+    const example = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, example: true, message: 'Example incident: nothing was run' }), nowMs: now(0) });
+    assert.equal(example.state, 'started');
+    assert.equal(example.example, true);
 });
 
 test('an approved fix answers at once, starts the kiosk once and records the result on the timeline', async () => {
@@ -188,6 +220,24 @@ test('"Ask, then automatic" waits 5 minutes from the opening; Ask first and exam
     await off.store.insert(kioskDown());
     assert.equal(await off.fixer.sweep(), 0, 'KIOSK_AUTOMATION=off: nothing runs by itself');
     assert.equal(ask.calls.start + off.calls.start, 0);
+});
+
+test('an automatic start first checks the kiosk is still down, and waits while the policies keep the kiosk off', async () => {
+    const s = setup({ conf: { fixes: { 'start-kiosk': 'auto' } } });
+    const id = await s.store.insert(kioskDown());
+    s.world.kioskUp = true; // started by hand, the incident closes at the next checks
+    assert.equal(await s.fixer.sweep(), 0);
+    assert.equal(s.calls.probes, 1);
+    assert.deepEqual(await s.types(id), [], 'nothing run, nothing recorded');
+
+    s.world.kioskUp = false;
+    s.world.wanted = false; // automatic server mode, and no policy keeps the kiosk on now
+    assert.equal(await s.fixer.sweep(), 0);
+    assert.equal(s.calls.probes, 1, 'not even probed');
+    s.world.wanted = true;
+    assert.equal(await s.fixer.sweep(), 1);
+    await flush();
+    assert.equal(s.calls.start, 1);
 });
 
 test('describeFix tells the page what is on offer', async () => {

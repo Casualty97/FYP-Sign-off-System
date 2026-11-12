@@ -68,12 +68,26 @@ function createRunner(overrides = {}) {
     // AIOps part 2: explains each open incident in the background (local LLM, or rules when it is not there)
     const advisor = d.advisor ? d.advisor(store, current) : createAdvisor({ store, settings: current });
 
+    // whether the kiosk is meant to run now: always in manual mode, in automatic mode only while a policy keeps it on
+    // (when this cannot be read, nothing is started by itself)
+    function kioskWanted(now) {
+        try {
+            if (d.control().readModeConfig().mode !== 'auto') return true;
+            return !!d.policies().status(d.control().readSchedulesConfig().schedules, now).on;
+        } catch {
+            return false;
+        }
+    }
+
     // the fixes the app can do itself, behind an admin's approval (fixes.js); the start is the one Server Schedule uses,
-    // and the last start attempt is shared with the policies so the two never start the kiosk twice in a row
+    // and the last start attempt is shared with the policies so the two never start the kiosk twice in a row. An
+    // automatic start first checks the kiosk is still down, and waits while the policies keep the kiosk off.
     const fixer = d.fixer ? d.fixer(store, current) : fixes.createFixer({
         store,
         settings: current,
         actions: { 'start-kiosk': () => new Promise((resolve) => d.control().startKiosk(resolve)) },
+        stillNeeded: { 'start-kiosk': () => new Promise((resolve) => d.control().resolveKioskStatus((status) => resolve(!(status && status.running)))) },
+        allowAuto: () => kioskWanted(d.now()),
         lastAttempt: () => d.control().lastStartAttempt(),
         noteAttempt: (at) => d.control().noteStartAttempt(at),
         gapMs: () => d.control().START_GAP_MS,

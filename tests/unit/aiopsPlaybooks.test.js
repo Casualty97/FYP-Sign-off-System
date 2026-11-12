@@ -29,8 +29,9 @@ test('a CPU spike says how to open Task Manager and leaves room for the busiest 
     const live = help.steps.find((s) => s.live);
     assert.equal(live.live, 'cpu');
     assert.match(live.text, /\{busiest\}/);
-    assert.match(texts(help.steps), /Leave \*\*Node\.js\*\* running/, 'nobody is told to close the kiosk');
-    assert.match(texts(help.steps), /End task/);
+    const endTask = help.steps.find((s) => /End task/.test(s.text));
+    assert.match(endTask.text, /Leave \*\*Node\.js\*\*, \*\*MySQL\*\* and \*\*Ollama\*\* running/, 'the warning sits in the End task step, so it stays when the live step is left out');
+    assert.equal(endTask.live, undefined);
 });
 
 test('memory and GPU get their own column; the GPU has no live list', () => {
@@ -94,7 +95,7 @@ test('every step of every help is well formed: text, even bold marks, closed key
     }
 });
 
-test('the busiest programmes: grouped, named plainly, Node.js and the idle counters never listed', () => {
+test('the busiest programmes: grouped, named plainly, the kiosk\'s own marked keep, the idle counters never listed', () => {
     const rows = [
         { name: '_Total', cpu: 800, memoryBytes: 0 }, { name: 'Idle', cpu: 500, memoryBytes: 0 },
         { name: 'node', cpu: 300, memoryBytes: 900 * 1024 * 1024 }, { name: 'node#1', cpu: 100, memoryBytes: 0 },
@@ -103,11 +104,16 @@ test('the busiest programmes: grouped, named plainly, Node.js and the idle count
         { name: 'notepad', cpu: 2, memoryBytes: 20 * 1024 * 1024 }, { name: 'svchost#3', cpu: 1, memoryBytes: 30 * 1024 * 1024 }
     ];
     const cpu = processes.summarise(rows, 'cpu', 8);
-    assert.deepEqual(cpu.map((p) => p.name), ['Google Chrome', 'Microsoft Teams', 'MySQL'], 'percent of the whole PC, busiest first, at most 3');
-    assert.equal(cpu[0].cpu, 40, '(200 + 120) / 8 cores');
+    assert.deepEqual(cpu.map((p) => p.name), ['Node.js', 'Google Chrome', 'Microsoft Teams'], 'percent of the whole PC, busiest first, at most 3');
+    assert.equal(cpu[0].cpu, 50, '(300 + 100) / 8 cores');
+    assert.equal(cpu[0].keep, 'the kiosk', 'listed, so the page can say to leave it running');
+    assert.equal(cpu[1].cpu, 40);
+    assert.equal(cpu[1].keep, undefined);
     const memory = processes.summarise(rows, 'memory', 8);
-    assert.deepEqual(memory.map((p) => p.name), ['Google Chrome', 'Microsoft Teams', 'MySQL']);
+    assert.deepEqual(memory.map((p) => p.name), ['Google Chrome', 'Node.js', 'Microsoft Teams']);
     assert.equal(memory[0].memoryMb, 1000);
+    const ollama = processes.summarise([{ name: 'ollama', cpu: 0, memoryBytes: 200 * 1024 * 1024 }, { name: 'ollama_llama_server', cpu: 0, memoryBytes: 1800 * 1024 * 1024 }, { name: 'mysqld', cpu: 0, memoryBytes: 400 * 1024 * 1024 }], 'memory', 8);
+    assert.deepEqual(ollama, [{ name: 'Ollama', cpu: 0, memoryMb: 2000, keep: 'the local AI advisor' }, { name: 'MySQL', cpu: 0, memoryMb: 400, keep: "the kiosk's database" }], 'Ollama and its runner are one programme');
     assert.deepEqual(processes.summarise([{ name: 'notepad', cpu: 4, memoryBytes: 10 }], 'cpu', 8), [], 'under 1 % is left out');
     assert.deepEqual(processes.summarise(null, 'cpu', 8), []);
     assert.equal(processes.friendly('msedge.exe'), 'Microsoft Edge');
@@ -115,8 +121,8 @@ test('the busiest programmes: grouped, named plainly, Node.js and the idle count
 });
 
 test('top() reads through the given reader and never throws on an empty answer', async () => {
-    const list = await processes.top('memory', { reader: async () => [{ name: 'Ollama', cpu: 0, memoryBytes: 2048 * 1024 * 1024 }] });
-    assert.deepEqual(list, [{ name: 'Ollama', cpu: 0, memoryMb: 2048 }]);
+    const list = await processes.top('memory', { reader: async () => [{ name: 'Code', cpu: 0, memoryBytes: 2048 * 1024 * 1024 }] });
+    assert.deepEqual(list, [{ name: 'Visual Studio Code', cpu: 0, memoryMb: 2048 }]);
     assert.deepEqual(await processes.top('cpu', { reader: async () => [] }), []);
 });
 // <Jun Kai end>

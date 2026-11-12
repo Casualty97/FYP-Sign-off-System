@@ -8,6 +8,8 @@ const key = (name) => `[[${name}]]`;
 const step = (text, live = null) => (live ? { text, live } : { text });
 const OPEN_TASK_MANAGER = `Press ${key('Ctrl')} + ${key('Shift')} + ${key('Esc')} to open Task Manager.`;
 const RESTART_APP = 'restart the app at a quiet time: **Server Schedule** in the sidebar, switch to **Manual**, press **Restart application**, then switch back to **Automatic**';
+// in the End task step itself, so the warning stays when the busiest list cannot be read and its step is left out
+const END_TASK = 'Right-click the programme you do not need and choose **End task**. Leave **Node.js**, **MySQL** and **Ollama** running: they are the kiosk, its database and the advisor.';
 
 // the help each detector may show, its default first: an advisor answer outside this list falls back to the default
 function allowedFor(incident) {
@@ -39,13 +41,13 @@ function chooseAction(incident, advice) {
 function busySteps(part) {
     const column = part === 'memory' ? 'Memory' : part === 'gpu' ? 'GPU' : 'CPU';
     const third = part === 'gpu'
-        ? step('Look for video calls, games or a browser playing video. Leave **Node.js** running: that is the kiosk.')
-        : step(`Right now the busiest are {busiest}. Leave **Node.js** running: that is the kiosk.`, part === 'memory' ? 'memory' : 'cpu');
+        ? step('Look for video calls, games or a browser playing video.')
+        : step('Right now the busiest are {busiest}.', part === 'memory' ? 'memory' : 'cpu');
     return [
         step(OPEN_TASK_MANAGER),
         step(`On the **Processes** tab, click the **${column}** column so the busiest programme is at the top.`),
         third,
-        step('Right-click the programme you do not need and choose **End task**.'),
+        step(END_TASK),
         step(`Nothing else to do: this incident closes by itself once ${part === 'memory' ? 'memory use' : column} is back to normal.`)
     ];
 }
@@ -64,7 +66,7 @@ const STEPS = {
                 step(`${OPEN_TASK_MANAGER} Click the **Memory** column.`),
                 step('Right now the most memory is used by {busiest}.', 'memory'),
                 step(`If **Node.js** is at the top and keeps growing, ${RESTART_APP}.`),
-                step('If another programme keeps growing, right-click it and choose **End task**.'),
+                step('If another programme keeps growing, right-click it and choose **End task** (leave **MySQL** and **Ollama** running).'),
                 step('If memory climbs again day after day, tell the team: the app may be holding on to memory.')
             ];
         }

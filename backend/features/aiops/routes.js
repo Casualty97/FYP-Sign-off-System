@@ -32,13 +32,33 @@ function fail(res, error, what) {
     return res.status(500).json({ success: false, error: `Could not ${what}` });
 }
 
-// The fix the app can run on this incident right now, or null: not on a resolved one, not while fixes are switched off,
-// and not on a PC that starts nothing by itself (an example's fix is only recorded, so it is always offered)
-function fixOn(incident, conf) {
+// After a good start the incident closes once a health check sees the kiosk and it has stayed clear for clearAfterMinutes
+const confirmMs = (conf) => (Number(conf.healthEverySeconds) || 300) * 1000 + (Number(conf.clearAfterMinutes) || 10) * 60 * 1000;
+
+// The fix on offer for this incident and where it stands (fixes.fixStatus), or null: not on a resolved one and not while
+// fixes are switched off. canRun is false on a PC that starts nothing by itself (an example's fix is only recorded).
+// runs: its newest 'fix' and 'fix-done' events.
+function fixOn(incident, conf, runs = {}) {
     if (!incident || incident.status === 'resolved') return null;
     const fix = fixes.describeFix(incident, conf, engine.fixer);
     if (!fix || !fix.offered) return null;
-    return { ...fix, canRun: fix.example || fix.automation !== 'off' };
+    const status = fixes.fixStatus({ running: fix.running, lastFix: runs.fix || null, lastDone: runs.done || null, nowMs: Date.now(), confirmMs: confirmMs(conf) });
+    return { ...fix, canRun: fix.example || fix.automation !== 'off', status, confirmMinutes: Math.round(confirmMs(conf) / 60000) };
+}
+
+// How a fix that ran turned out, for the list ("Fixed by an approved start"), or null
+function fixRun(fixEvent, doneEvent) {
+    if (!doneEvent) return null;
+    const done = doneEvent.detail || {};
+    const fix = (fixEvent && fixEvent.detail) || {};
+    return { at: doneEvent.at, ok: !!done.ok, by: fix.by || null, automatic: !!fix.automatic, example: !!done.example };
+}
+
+// The limit line on the chart of a CPU, memory, GPU or disk incident: below it that detector never alarms
+function chartFloor(incident) {
+    const e = incident && incident.evidence && typeof incident.evidence === 'object' ? incident.evidence : {};
+    const table = incident.detector === 'spike' || incident.detector === 'timeOfDay' ? detectors.FLOORS : incident.detector === 'drift' ? detectors.DRIFT_FLOORS : null;
+    return table && typeof table[e.metric] === 'number' ? table[e.metric] : null;
 }
 
 // GET /api/admin/aiops/status  engine state, detectors, data window, the incident counts (zero when the counts cannot
@@ -57,17 +77,20 @@ router.get('/incidents', auth.requireAuth, async (req, res) => {
     if (!STATUSES.includes(status)) return res.status(400).json({ success: false, error: 'status must be open, resolved or all' });
     try {
         const incidents = await engine.store.list({ status, limit: req.query.limit });
-        // the newest advice of each incident rides along, so the page sees it arrive (the incident row itself does not change)
-        const advice = await engine.store.latestEvents(incidents.map((i) => i.id), 'advice');
+        // the newest advice and fix of each incident ride along, so the page sees them arrive (the incident row itself
+        // does not change)
+        const ids = incidents.map((i) => i.id);
+        const [advice, fixEvents, doneEvents] = await Promise.all(['advice', 'fix', 'fix-done'].map((type) => engine.store.latestEvents(ids, type)));
         const conf = settings.read();
         res.json({
             success: true,
             incidents: incidents.map((i) => {
-                const fix = fixOn(i, conf);
+                const fix = fixOn(i, conf, { fix: fixEvents[i.id], done: doneEvents[i.id] });
                 return {
                     ...i,
                     example: fixes.isExample(i),
-                    fix: fix && fix.canRun ? { key: fix.key, label: fix.label, running: fix.running } : null,
+                    fix: fix && fix.canRun ? { key: fix.key, label: fix.label, state: fix.status.state, at: fix.status.at || null } : null,
+                    fixRun: fixRun(fixEvents[i.id], doneEvents[i.id]),
                     advice: advice[i.id] ? { at: advice[i.id].at, ...advice[i.id].detail } : null,
                     adviceBusy: engine.advisor.isBusy(i.id)
                 };
@@ -85,10 +108,11 @@ router.get('/incidents/:id', auth.requireAuth, async (req, res) => {
         if (!incident) return notFound(res);
         const events = await engine.store.events(id);
         const conf = settings.read();
-        const lastAdvice = events.filter((e) => e.type === 'advice').pop();
-        const fix = fixOn(incident, conf);
+        const last = (type) => events.filter((e) => e.type === type).pop() || null;
+        const lastAdvice = last('advice');
+        const fix = fixOn(incident, conf, { fix: last('fix'), done: last('fix-done') });
         const help = playbooks.helpFor(incident, lastAdvice ? lastAdvice.detail : null, { fixKey: fix && fix.canRun ? fix.key : null });
-        res.json({ success: true, incident: { ...incident, example: fixes.isExample(incident) }, events, help, fix });
+        res.json({ success: true, incident: { ...incident, example: fixes.isExample(incident) }, events, help, fix, floor: chartFloor(incident) });
     } catch (error) { fail(res, error, 'load the incident'); }
 });
 
