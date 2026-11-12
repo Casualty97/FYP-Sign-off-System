@@ -220,6 +220,57 @@ const hardwareGuidePlugin = {
     }
 };
 
+// <Jun Kai start>
+// The graph with every part: each line's name at its right end (where its forecast or its last reading ends), so
+// the lines can be told apart at a glance. The name is in the text colour with a dot in the part's colour; names
+// that would overlap are spread apart.
+const HARDWARE_END_LABEL_GAP = 16;
+const hardwareEndLabelPlugin = {
+    id: 'hardwareEndLabels',
+    afterDatasetsDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        if (!chartArea || !scales.x || !scales.y) return;
+        const theme = chart.$hardwareTheme || hardwareTheme();
+        const lastPoint = (dataset) => {
+            const data = (dataset && dataset.data) || [];
+            for (let i = data.length - 1; i >= 0; i--) if (data[i] && Number.isFinite(data[i].y)) return data[i];
+            return null;
+        };
+        const top = chartArea.top + 6;
+        const bottom = chartArea.bottom - 6;
+        const labels = [];
+        HARDWARE_METRICS.forEach((key, i) => {
+            const [measured, projected] = chart.data.datasets.slice(i * 4, i * 4 + 2);
+            const end = lastPoint(projected) || lastPoint(measured);
+            if (!end) return;
+            const y = Math.min(bottom, Math.max(top, scales.y.getPixelForValue(end.y)));
+            labels.push({ key, y });
+        });
+        if (!labels.length) return;
+        labels.sort((a, b) => a.y - b.y);
+        for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + HARDWARE_END_LABEL_GAP);
+        const overflow = labels[labels.length - 1].y - bottom;
+        if (overflow > 0) {
+            labels[labels.length - 1].y -= overflow;
+            for (let i = labels.length - 2; i >= 0; i--) labels[i].y = Math.min(labels[i].y, labels[i + 1].y - HARDWARE_END_LABEL_GAP);
+        }
+        ctx.save();
+        ctx.font = '600 12px system-ui, -apple-system, "Segoe UI", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        for (const { key, y } of labels) {
+            ctx.fillStyle = HARDWARE_COLORS[key];
+            ctx.beginPath();
+            ctx.arc(chartArea.right + 12, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = theme.text;
+            ctx.fillText(HARDWARE_NAMES[key], chartArea.right + 21, y);
+        }
+        ctx.restore();
+    }
+};
+// <Jun Kai end>
+
 function hardwareChartConfig(key) {
     const theme = hardwareTheme();
     const color = HARDWARE_COLORS[key] || HARDWARE_ACCENT;
@@ -283,6 +334,10 @@ function ensureHardwareCharts() {
     if (canvas && !hardwareCharts.all) {
         const config = hardwareChartConfig('cpu');
         config.data.datasets = HARDWARE_METRICS.flatMap((key) => hardwareChartConfig(key).data.datasets.map((d) => ({ ...d, label: d.isBand ? 'band' : `${HARDWARE_NAMES[key]} ${d.label.toLowerCase()}` })));
+        // <Jun Kai start> room on the right for each line's name at its end
+        config.options.layout.padding.right = 82;
+        config.plugins = [hardwareGuidePlugin, hardwareEndLabelPlugin];
+        // <Jun Kai end>
         hardwareCharts.all = new Chart(canvas, config);
     } else if (hardwareCharts.all) hardwareCharts.all.resize();
     return true;

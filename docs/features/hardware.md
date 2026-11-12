@@ -19,6 +19,8 @@ Look (9 Nov 2026): the time range is a segmented control with the chosen range r
 
 Look (12 Nov 2026, picked by the user from mock-ups): the four part cards sit on the left and decide what the graph shows. "All parts" draws every part on one graph; a part card shows that part alone with its numbers for the range shown (now, average, peak, lowest, forecast). Each part keeps one colour on its card and its line (CPU blue, memory green, GPU purple, disk dark grey; checked for colour-blind readers), the card pill says Normal, High (from 85 %) or Critical (from 95 %), and the graphs draw the 85 % and 95 % lines and hatch the stretches with no samples. Table view replaces the graph inside the same card.
 
+On "All parts" each line carries its name at its right end (where its forecast or its last reading ends), with a dot in its colour, so the lines can be told apart at a glance; names that would overlap are spread apart (hardwareEndLabelPlugin in frontend/admin/js/hardware.js, 12 Nov 2026).
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |
