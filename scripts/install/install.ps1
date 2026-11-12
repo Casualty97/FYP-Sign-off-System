@@ -208,7 +208,7 @@ if ($Role -eq 'WallPC') {
         }
         Show-WindowsStatus
     }
-    Write-Info 'Hibernate and wake timers are set up by the system-level part of Role 4 (Ryan), not by this installer.'
+    Write-Info 'Hibernate and wake timers are not set up by this installer; they belong to the system-level setup of the PC.'
 }
 
 Write-Step 'Done'
