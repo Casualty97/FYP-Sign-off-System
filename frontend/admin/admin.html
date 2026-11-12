@@ -3417,9 +3417,13 @@
                                 <div class="ui-section-title">AI features</div>
                                 <label class="inc-master">
                                     <span class="ui-switch"><input type="checkbox" id="incidents-enabled" aria-label="Anomaly detection"><span class="ui-switch-track"></span></span>
-                                    <span class="inc-master-text"><strong>Anomaly detection</strong><small>Statistics on this PC's own data: nothing is sent anywhere. Off means nothing is compared and no incident is opened; open ones stay as they are.</small></span>
+                                    <span class="inc-master-text"><strong>Anomaly detection</strong><small>Statistics on this PC's own data: nothing is sent anywhere. Off means nothing is compared and no incident is opened; open ones stay as they are. The health checks keep running for the 24-hour history on this page.</small></span>
                                 </label>
-                                <!-- <Jun Kai start> AIOps part 2: the advisor -->
+                                <!-- <Jun Kai start> AIOps part 2: learning from the verdicts, and the advisor -->
+                                <label class="inc-master inc-advisor-switch">
+                                    <span class="ui-switch"><input type="checkbox" id="incidents-learn" aria-label="Learn from verdicts"><span class="ui-switch-track"></span></span>
+                                    <span class="inc-master-text"><strong>Learn from verdicts</strong><small>A detector whose incidents are marked False alarm or Not useful three times in a row turns itself one step less sensitive (at most two steps); three Correct in a row bring it back towards your level. Saving a level below resets it.</small></span>
+                                </label>
                                 <label class="inc-master inc-advisor-switch">
                                     <span class="ui-switch"><input type="checkbox" id="incidents-advisor" aria-label="Advisor"><span class="ui-switch-track"></span></span>
                                     <span class="inc-master-text"><strong>Advisor (local AI)</strong><small>Explains each incident and suggests one next step, using the model below on this PC (Ollama). It only suggests: nothing is changed by itself. When Ollama is not running it gives rule-based advice.</small></span>

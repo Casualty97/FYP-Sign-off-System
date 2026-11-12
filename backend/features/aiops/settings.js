@@ -23,6 +23,8 @@ const DEFAULTS = {
     retentionDays: 30,
     keepIncidentsDays: 90,
     quietHours: true,
+    // AIOps part 2: a detector whose incidents keep being marked False alarm turns itself less sensitive (learning.js)
+    learnFromVerdicts: true,
     cooldownMinutes: 30,
     clearAfterMinutes: 10,
     detectors: Object.fromEntries(DETECTORS.map((d) => [d.key, { enabled: true, sensitivity: 3 }])),

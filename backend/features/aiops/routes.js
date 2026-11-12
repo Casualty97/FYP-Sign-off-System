@@ -9,6 +9,7 @@ const { logAudit } = require('../../core/audit');
 const settings = require('./settings');
 const engine = require('./engine');
 const { ACTIONS } = require('./advisor');
+const learning = require('./learning');
 
 const router = express.Router();
 const STATUSES = ['open', 'resolved', 'all'];
@@ -111,7 +112,7 @@ router.get('/advisor', auth.requireAuth, async (req, res) => {
 
 // GET /api/admin/aiops/settings  the settings, their limits and the detector list
 router.get('/settings', auth.requireAuth, (req, res) => {
-    res.json({ success: true, settings: settings.read(), limits: settings.LIMITS, detectors: settings.DETECTORS });
+    res.json({ success: true, settings: settings.read(), limits: settings.LIMITS, detectors: settings.DETECTORS, learned: learning.read() });
 });
 
 // PUT /api/admin/aiops/settings  (system_admin) the whole settings object, or only the keys that change
@@ -119,6 +120,10 @@ router.put('/settings', auth.requireAdmin, (req, res) => {
     const result = settings.validate(req.body);
     if (result.error) return res.status(400).json({ success: false, error: result.error, field: result.field });
     try {
+        // a level the admin saves wins over what the verdicts taught that detector
+        const before = settings.read();
+        const changed = settings.DETECTORS.map((x) => x.key).filter((key) => before.detectors[key].sensitivity !== result.settings.detectors[key].sensitivity);
+        if (changed.length) learning.resetFor(changed);
         settings.write(result.settings);
         engine.applySettings(result.settings);
         logAudit('AIOPS_SETTINGS_UPDATE', who(req), 'aiops', null, req);

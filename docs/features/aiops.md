@@ -98,3 +98,18 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
   newest one (`advice`, `adviceBusy`). `GET /api/admin/aiops/advisor`: its state, the step list and Ollama's models.
 - Settings: `advisor.enabled` (off with the master switch too) and `advisor.model`, in the Settings panel.
 - Also: the log reader now works out each line's template once (review of part 1).
+
+## Learning from the verdicts, 12 Nov 2026
+- `backend/features/aiops/learning.js`. A detector whose incidents are marked False alarm or Not useful three times in
+  a row (verdicts given after its last step, within 30 days) turns itself one step less sensitive; three Correct in a
+  row bring it one step back. Never above the level the admin chose, at most two steps below it, never below Very low.
+- The detectors run with the learned levels (`learning.apply` in engine.js); the saved settings keep the admin's levels.
+  The steps are kept in `backend/data/aiops-learning.json`. Saving a new level for a detector in Settings forgets what
+  was learned for it. Switch: "Learn from verdicts" (`learnFromVerdicts`, on by default).
+- The page shows it: "Tuned to Low by your verdicts: 3 incidents in a row were marked False alarm or Not useful" under
+  the detector in Settings, and "1 tuned by your verdicts" in the summary line (`tuned` on each detector in
+  `GET /api/admin/aiops/status`, `learned` in `GET /api/admin/aiops/settings`).
+- Together with the advisor's use of the Correct incidents as examples, this is the "training" of task-sheet point 3:
+  it adapts to the admins' feedback without fine-tuning a model on the kiosk PC.
+- Health recorder: switching Anomaly detection off stops the comparisons and new incidents; the background health
+  checks keep running, because the 24-hour history strips of System Health are built from them.

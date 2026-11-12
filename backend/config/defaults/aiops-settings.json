@@ -5,6 +5,7 @@
   "retentionDays": 30,
   "keepIncidentsDays": 90,
   "quietHours": true,
+  "learnFromVerdicts": true,
   "cooldownMinutes": 30,
   "clearAfterMinutes": 10,
   "detectors": {

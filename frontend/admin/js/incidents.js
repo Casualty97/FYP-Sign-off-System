@@ -181,6 +181,8 @@ function incidentsSummaryText(status) {
     if (count('no-data')) parts.push(`${count('no-data')} waiting for data`);
     if (count('muted')) parts.push(`${count('muted')} paused`);
     if (count('error')) parts.push(`${count('error')} failed`);
+    const tuned = detectors.filter((d) => d.tuned).length; // <Jun Kai/> learned from the verdicts
+    if (tuned) parts.push(`${tuned} tuned by your verdicts`);
     const data = status.data || status.dataWindow || {};
     const spans = [];
     if (incidentIsNumber(data.sampleHours)) spans.push(`${incidentSpan(data.sampleHours)} of samples`);
@@ -799,7 +801,7 @@ function incidentsSelectValue(id, value, label) {
     select.value = text;
 }
 
-function renderIncidentDetectors(chosen) {
+function renderIncidentDetectors(chosen, learned = {}) {
     const box = document.getElementById('incidents-detectors');
     if (!box) return;
     box.innerHTML = incidentsDetectors.map((d) => {
@@ -811,7 +813,7 @@ function renderIncidentDetectors(chosen) {
         return `<div class="inc-detector${on ? '' : ' is-off'}" data-key="${key}">
                     <label class="inc-detector-main">
                         <span class="ui-switch"><input type="checkbox" data-detector="${key}" data-field="enabled"${on ? ' checked' : ''} aria-label="${label}"><span class="ui-switch-track"></span></span>
-                        <span class="inc-detector-text"><strong>${label}</strong><small>${escapeHtmlSafe(d.description || '')}</small></span>
+                        <span class="inc-detector-text"><strong>${label}</strong><small>${escapeHtmlSafe(d.description || '')}</small>${incidentTunedHint(conf, learned[d.key])}</span>
                     </label>
                     <select class="ui-select" data-detector="${key}" data-field="sensitivity" aria-label="Sensitivity of ${label}">${options}</select>
                 </div>`;
@@ -829,7 +831,9 @@ async function fillIncidentSettings() {
         incidentsDetectors = Array.isArray(data.detectors) && data.detectors.length
             ? data.detectors
             : Object.keys(INCIDENT_DETECTOR_LABEL).filter((key) => key !== 'test').map((key) => ({ key, label: INCIDENT_DETECTOR_LABEL[key], description: '' }));
-        renderIncidentDetectors(settings.detectors || {});
+        renderIncidentDetectors(settings.detectors || {}, settings.learnFromVerdicts === false ? {} : data.learned || {});
+        const learn = document.getElementById('incidents-learn'); // <Jun Kai/>
+        if (learn) learn.checked = settings.learnFromVerdicts !== false; // <Jun Kai/>
         const enabled = document.getElementById('incidents-enabled');
         if (enabled) enabled.checked = settings.enabled !== false;
         const quiet = document.getElementById('incidents-quiet');
@@ -874,6 +878,16 @@ async function fillIncidentAdvisorModels(saved) {
 }
 // <Jun Kai end>
 
+// <Jun Kai start>
+// "Tuned to Low by your verdicts": what learning from the verdicts did to this detector, under its description
+function incidentTunedHint(conf, entry) {
+    if (!entry || !entry.offset) return '';
+    const level = Math.max(1, Math.min(5, (Number(conf.sensitivity) || 3) + Number(entry.offset)));
+    const name = (INCIDENT_SENSITIVITY.find(([value]) => value === level) || [0, 'a lower level'])[1];
+    return `<small class="inc-tuned">Tuned to ${escapeHtmlSafe(name)} by your verdicts${entry.reason ? `: ${escapeHtmlSafe(entry.reason)}` : ''}.</small>`;
+}
+// <Jun Kai end>
+
 function readIncidentSettings() {
     const checked = (id) => { const el = document.getElementById(id); return !!(el && el.checked); };
     const number = (id) => { const el = document.getElementById(id); return el ? Number(el.value) : null; };
@@ -891,6 +905,7 @@ function readIncidentSettings() {
         keepIncidentsDays: number('incidents-keep'),
         detectors,
         // <Jun Kai start>
+        learnFromVerdicts: checked('incidents-learn'),
         advisor: { enabled: checked('incidents-advisor'), model: (document.getElementById('incidents-advisor-model') || {}).value || 'qwen2.5:3b' }
         // <Jun Kai end>
     };
