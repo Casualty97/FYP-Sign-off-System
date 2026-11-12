@@ -374,15 +374,21 @@ function renderHardwareSeries(data) {
     // a range longer than the samples are kept can never fill, so the graphs start at the oldest sample instead
     const rangeStart = now - range.seconds * 1000;
     const firstT = points.length ? points[0].t : null;
-    const beyondKept = range.seconds > hardwareRetentionDays * 86400;
-    const clipped = beyondKept && firstT !== null && firstT > rangeStart;
+    // <Jun Kai start> a range longer than the samples are kept comes from the daily summaries (one point per day or more)
+    const fromDaily = data.source === 'daily';
+    const beyondKept = !fromDaily && range.seconds > hardwareRetentionDays * 86400;
+    const clipped = (beyondKept || fromDaily) && firstT !== null && firstT > rangeStart;
+    // <Jun Kai end>
     const xMin = clipped ? firstT : rangeStart;
     const note = document.getElementById('hardware-series-note');
     if (note) {
         const shown = points.length ? range.text : `${range.text} (no samples yet)`;
         const text = dailyOnShortRange ? `${shown}. The forecast looks ${hardwareSpell('horizon', forecast.horizonHours)} ahead: choose 7 days or longer to see it` : shown;
         const kept = `Samples are kept for ${hardwareSpell('retention', hardwareRetentionDays)}`;
-        note.textContent = !beyondKept ? text : clipped ? `${text}. ${kept}, so the graphs start on ${hardwareTickLabel(firstT, 'date')}.` : `${text}. ${kept}.`;
+        // <Jun Kai start>
+        const fromSummaries = `${text}. From the daily summaries, which are kept for good${clipped ? ` and start on ${hardwareTickLabel(firstT, 'date')}` : ''}.`;
+        note.textContent = fromDaily ? fromSummaries : !beyondKept ? text : clipped ? `${text}. ${kept}, so the graphs start on ${hardwareTickLabel(firstT, 'date')}.` : `${text}. ${kept}.`;
+        // <Jun Kai end>
     }
     if (typeof Chart === 'undefined') {
         for (const key of HARDWARE_METRICS) {
@@ -626,7 +632,10 @@ function hardwareDateWords(iso) {
 // the reminder before saving shows all of them. check comes from the server (forecast.horizonCheck).
 function hardwareRoughLines(check) {
     const horizon = hardwareSpell('horizon', check.horizonHours);
-    const lines = [`The samples on this PC go back ${hardwareHistoryWords(check.historyHours)} and the forecast looks ${horizon} ahead. A forecast is dependable for about as far ahead as the samples go back.`];
+    // <Jun Kai start> a long forecast also counts the daily summaries, which are kept for good
+    const history = check.keptForGood ? 'The hardware history on this PC (the samples and the daily summaries)' : 'The samples on this PC';
+    const lines = [`${history} go${check.keptForGood ? 'es' : ''} back ${hardwareHistoryWords(check.historyHours)} and the forecast looks ${horizon} ahead. A forecast is dependable for about as far ahead as the history goes back.`];
+    // <Jun Kai end>
     if (check.reason === 'retention') lines.push(`Samples are kept for ${hardwareSpell('retention', check.retentionDays)}, so the history can never reach ${horizon}. Set "Keep samples for" to at least ${hardwareSpell('retention', check.neededRetentionDays)} to let it get there.`);
     else if (check.dependableAt) lines.push(`While the sampler keeps running it becomes dependable around ${hardwareDateWords(check.dependableAt)}.`);
     lines.push('Until then CPU, memory and GPU show their usual level and range, and the disk line continues the growth measured so far.');
@@ -655,6 +664,9 @@ function renderHardwareSettings(overview) {
     const rows = [
         ['GPU reading', `${HARDWARE_GPU_SOURCE[sampler.gpu && sampler.gpu.source] || '–'}${sampler.gpu && sampler.gpu.name ? ` (${sampler.gpu.name})` : ''}`],
         ['Samples stored', `${(stored.total || 0).toLocaleString('en-SG')} in total, ${(stored.last24h || 0).toLocaleString('en-SG')} in the last 24 hours`],
+        // <Jun Kai start>
+        ['Daily summaries', stored.daily && stored.daily.days ? `${stored.daily.days.toLocaleString('en-SG')} day(s) since ${hardwareDateWords(`${stored.daily.oldest}T00:00:00Z`)}, kept for good` : stored.daily && stored.daily.missing ? 'table missing: run npm run db:migrate' : 'none yet (one is added for each finished day)'],
+        // <Jun Kai end>
         ['Oldest sample', stored.oldestAt ? `${hardwareDateWords(stored.oldestAt)} (${hardwareHistoryWords((Date.now() - new Date(stored.oldestAt).getTime()) / 3600000)} ago)` : 'none yet'],
         ['Last sample', sampler.lastSampledAt ? `${hardwareTimeLabel(new Date(sampler.lastSampledAt).getTime(), true)} (${hardwareAgo(sampler.lastSampledAt)})` : 'none yet'],
         ['Last error', sampler.lastError || 'none']

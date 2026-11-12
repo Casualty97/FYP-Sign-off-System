@@ -44,3 +44,17 @@ On "All parts" each line carries its name at its right end (where its forecast o
 
 ---
 Hand-written on 2026-11-03. Update this page when you change the feature.
+
+## Daily summaries, kept for good (12 Nov 2026)
+- Table `hardware_daily` (migration 009): one row per UTC day with the averages and peaks of CPU, memory, disk and GPU,
+  the disk and memory sizes and the number of samples. About 365 rows a year, never deleted.
+- `backend/features/hardware/daily.js` sums up every finished day; the sampler runs it at its first sample after each
+  UTC midnight (8 am in Singapore), before the hourly clean-up deletes old samples. After a long sleep it catches up
+  every day whose samples are still there. A day is summed up once.
+- A graph range longer than "Keep samples for" (or one that needs buckets of a day or more) comes from the summaries,
+  one point per day or more, with today taken from the samples (`source: "daily"` in `GET /series`).
+- A forecast longer than a week reads the summaries too, so "Keep samples for" no longer limits it: the forecast check
+  says only "wait" (`keptForGood: true`, reason `history`) until the summaries reach back as far as the forecast looks
+  ahead. Forecasts up to a week still use the samples and still get the `retention` reason.
+- Before `npm run db:migrate` adds the table the page keeps working on the samples alone, and Sampling shows
+  "table missing".
