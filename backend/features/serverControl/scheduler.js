@@ -10,7 +10,7 @@ const control = require('./control');
 // <Jun Kai start>
 const policies = require('./policies');
 
-const state = { started: false, enabled: true, dryRun: false, lastTick: null, lastStartAttempt: 0, timer: null, lastOn: null };
+const state = { started: false, enabled: true, dryRun: false, lastTick: null, timer: null, lastOn: null };
 
 function automationSetting() {
     const value = String(process.env.KIOSK_AUTOMATION || 'on').toLowerCase();
@@ -32,10 +32,11 @@ function tick(now = new Date()) {
         return;
     }
 
-    if (decision.on && Date.now() - state.lastStartAttempt > 5 * 60 * 1000) {
+    // the last start attempt is shared with the incident fix (control.lastStartAttempt), so they never both start it
+    if (decision.on && Date.now() - control.lastStartAttempt() > control.START_GAP_MS) {
         control.resolveKioskStatus((status) => {
             if (status.running) return;
-            state.lastStartAttempt = Date.now();
+            control.noteStartAttempt();
             control.recordEvent('start', `"${decision.winner.policy.schedule_name}" is in force and the kiosk server is not reachable`, state.dryRun);
             if (state.dryRun) return;
             control.startKiosk((result) => {

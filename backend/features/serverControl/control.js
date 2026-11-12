@@ -222,10 +222,17 @@ function hibernateNow(reason, { dryRun = false } = {}) {
 
 // <Jun Kai start>
 // The schedule maths (which policy decides when) lives in policies.js.
+// One record of the last kiosk start attempt, shared by the policies (scheduler.js) and the incident fix (aiops/fixes.js),
+// so the two never start the kiosk server twice within the same few minutes
+const START_GAP_MS = 5 * 60 * 1000; // at most one automatic kiosk start in this time
+let lastStartAttemptMs = 0;
+const noteStartAttempt = (at = Date.now()) => { lastStartAttemptMs = at; };
+const lastStartAttempt = () => lastStartAttemptMs;
+
 module.exports = {
     SCHEDULE_CONFIG_PATH, MODE_FILE, AUTOMATION_FILE, kioskControlConfig,
     readSchedulesConfig, writeSchedulesConfig, onSchedulesChanged, readModeConfig, writeModeConfig,
     readAutomation, recordEvent, setLastHibernateKey,
-    resolveKioskStatus, logKioskStatusIfNeeded, startKiosk, hibernateNow
+    resolveKioskStatus, logKioskStatusIfNeeded, startKiosk, hibernateNow, noteStartAttempt, lastStartAttempt, START_GAP_MS
 };
 // <Jun Kai end>

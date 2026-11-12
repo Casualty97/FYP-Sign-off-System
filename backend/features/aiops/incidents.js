@@ -6,6 +6,8 @@
 // Incident = { id, fingerprint, detector, kind, subject, severity info|warn|critical, status open|acknowledged|resolved,
 //   title, explanation, evidence (object), opened_at, last_seen_at, acknowledged_at, acknowledged_by, resolved_at,
 //   resolved_by ('auto' when it cleared by itself), resolve_note, verdict, verdict_by, verdict_at, occurrences }; dates are ISO strings.
+const { EXAMPLE_PREFIX, isExample } = require('./fixes');
+
 const SEVERITIES = ['info', 'warn', 'critical'];
 const VERDICTS = ['correct', 'not-useful', 'false-alarm'];
 const SEEN_EVERY_MS = 10 * 60 * 1000;      // a "seen" line every 10 minutes in the first hour of an incident
@@ -170,6 +172,7 @@ function createEngine({ store, detect, now = () => new Date(), settings, load, a
         const closed = Array.isArray(detected.closed) ? detected.closed : [];
         for (const incident of open) {
             if (wanted.has(incident.fingerprint)) continue;
+            if (isExample(incident)) continue; // examples stay as they were made until they are removed
             const isTest = incident.detector === 'test';
             if (!isTest && startsWithAny(closed, incident.fingerprint)) {
                 await autoResolve(incident, at, 'detector-off');
@@ -252,8 +255,9 @@ function createEngine({ store, detect, now = () => new Date(), settings, load, a
 // Both stores: insert(incident) -> id, update(id, fields) -> boolean, get(id), list({ status: 'open' | 'resolved' | 'all',
 // limit }), listOpen(), findResolvedSince(fingerprint, sinceMs), addEvent(id, type, detail, at) -> id, events(id),
 // examples(detector, limit, exceptId) (resolved, marked correct, newest first), latestEvents(ids, type) -> { id: event },
-// verdicts(detector, sinceMs) -> [{ verdict, verdict_at }] newest first,
-// prune(beforeMs) -> count. Dates in can be Dates or ISO strings; dates out are ISO strings; evidence and detail are objects.
+// verdicts(detector, sinceMs) -> [{ verdict, verdict_at }] newest first, deleteByFingerprintPrefix(prefix) -> count,
+// countByFingerprintPrefix(prefix) -> count, prune(beforeMs) -> count. Example incidents (fingerprint "example:...")
+// never count for examples() and verdicts(), so they never teach the advisor or tune a detector. Dates in can be Dates or ISO strings; dates out are ISO strings; evidence and detail are objects.
 function memoryStore() {
     const incidents = [];
     const events = [];
@@ -311,12 +315,22 @@ function memoryStore() {
             return events.filter((event) => event.incident_id === idOf(id)).sort((a, b) => ms(a.at) - ms(b.at) || a.id - b.id).map(copy);
         },
         async examples(detector, limit = 3, exceptId = null) {
-            return incidents.filter((row) => row.detector === detector && row.verdict === 'correct' && row.status === 'resolved' && row.id !== idOf(exceptId))
+            return incidents.filter((row) => row.detector === detector && row.verdict === 'correct' && row.status === 'resolved' && row.id !== idOf(exceptId) && !isExample(row))
                 .sort(byResolved).slice(0, limit).map(copy);
         },
         async verdicts(detector, sinceMs) {
-            return incidents.filter((row) => row.detector === detector && row.verdict && ms(row.verdict_at) >= sinceMs)
+            return incidents.filter((row) => row.detector === detector && row.verdict && ms(row.verdict_at) >= sinceMs && !isExample(row))
                 .sort((a, b) => ms(b.verdict_at) - ms(a.verdict_at)).slice(0, 20).map((row) => ({ verdict: row.verdict, verdict_at: row.verdict_at }));
+        },
+        async deleteByFingerprintPrefix(prefix) {
+            if (!prefix) return 0;
+            const gone = new Set(incidents.filter((row) => String(row.fingerprint).startsWith(prefix)).map((row) => row.id));
+            for (let i = incidents.length - 1; i >= 0; i--) if (gone.has(incidents[i].id)) incidents.splice(i, 1);
+            for (let i = events.length - 1; i >= 0; i--) if (gone.has(events[i].incident_id)) events.splice(i, 1);
+            return gone.size;
+        },
+        async countByFingerprintPrefix(prefix) {
+            return prefix ? incidents.filter((row) => String(row.fingerprint).startsWith(prefix)).length : 0;
         },
         async latestEvents(ids, type) {
             const wanted = new Set((Array.isArray(ids) ? ids : []).map(idOf).filter(Boolean));
@@ -414,14 +428,26 @@ function sqlStore(db) {
             return (await all('SELECT id, incident_id, at, type, detail FROM incident_events WHERE incident_id = ? ORDER BY at ASC, id ASC', [incidentId])).map(fromEvent);
         },
         async examples(detector, limit = 3, exceptId = null) {
-            const rows = await all("SELECT * FROM incidents WHERE detector = ? AND verdict = 'correct' AND status = 'resolved' AND id <> ? ORDER BY resolved_at DESC, id DESC LIMIT ?",
-                [String(detector || ''), idOf(exceptId) || 0, Math.max(1, Math.min(10, Number(limit) || 3))]);
+            const rows = await all("SELECT * FROM incidents WHERE detector = ? AND verdict = 'correct' AND status = 'resolved' AND id <> ? AND fingerprint NOT LIKE ? ORDER BY resolved_at DESC, id DESC LIMIT ?",
+                [String(detector || ''), idOf(exceptId) || 0, `${EXAMPLE_PREFIX}%`, Math.max(1, Math.min(10, Number(limit) || 3))]);
             return rows.map(fromRow);
         },
         async verdicts(detector, sinceMs) {
-            const rows = await all('SELECT verdict, verdict_at FROM incidents WHERE detector = ? AND verdict IS NOT NULL AND verdict_at >= ? ORDER BY verdict_at DESC LIMIT 20',
-                [String(detector || ''), new Date(sinceMs)]);
+            const rows = await all('SELECT verdict, verdict_at FROM incidents WHERE detector = ? AND verdict IS NOT NULL AND verdict_at >= ? AND fingerprint NOT LIKE ? ORDER BY verdict_at DESC LIMIT 20',
+                [String(detector || ''), new Date(sinceMs), `${EXAMPLE_PREFIX}%`]);
             return rows.map((row) => ({ verdict: row.verdict, verdict_at: iso(row.verdict_at) }));
+        },
+        // only by an exact prefix (the examples' "example:"), never a pattern a caller builds
+        async deleteByFingerprintPrefix(prefix) {
+            if (!prefix || /[%_\\]/.test(prefix)) return 0;
+            await run('DELETE FROM incident_events WHERE incident_id IN (SELECT id FROM incidents WHERE fingerprint LIKE ?)', [`${prefix}%`]);
+            const result = await run('DELETE FROM incidents WHERE fingerprint LIKE ?', [`${prefix}%`]);
+            return result.changes;
+        },
+        async countByFingerprintPrefix(prefix) {
+            if (!prefix || /[%_\\]/.test(prefix)) return 0;
+            const row = await get('SELECT COUNT(*) AS n FROM incidents WHERE fingerprint LIKE ?', [`${prefix}%`]);
+            return row ? Number(row.n) || 0 : 0;
         },
         async latestEvents(ids, type) {
             const list = (Array.isArray(ids) ? ids : []).map(idOf).filter(Boolean);

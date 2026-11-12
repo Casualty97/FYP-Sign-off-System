@@ -179,10 +179,11 @@ function anomaly(detector, kind, subject, severity, title, explanation, evidence
     };
 }
 
-// "(spread 4 %), so this is 19 spreads above normal" for the explanations
+// "(usual swing ± 4 %), so this is 19 times its usual swing above normal" for the explanations; the Incidents panel and
+// its settings say "usual swing" for the same number (the median absolute deviation)
 function spreadText(stats, unit = '%') {
-    if (!stats.mad) return '(almost no spread), so this is far above normal';
-    return `(spread ${round1(stats.mad)} ${unit}), so this is ${Math.round(stats.z)} spreads above normal`;
+    if (!stats.mad) return '(it almost never moves), so this is far above normal';
+    return `(usual swing ± ${round1(stats.mad)} ${unit}), so this is ${Math.round(stats.z)} times its usual swing above normal`;
 }
 
 // Shared by the spike and time-of-day detectors: the window mean must be over the floor and K spreads over the
@@ -587,8 +588,27 @@ function runAll(input, settings) {
     return { anomalies, states, notes, held, closed };
 }
 
+// What each sensitivity level means for each detector, in numbers, for the settings drawer of the Incidents panel. Built
+// from the tables above, so the page can never show other numbers than the detectors use. short: under each step of
+// the 5-step bar; long: the same value in the sentence (short when missing); sentence: the chosen level in words, where
+// {v} is that level's value.
+function levels() {
+    const steps = [1, 2, 3, 4, 5];
+    const times = (table) => steps.map((s) => `${table[s]}×`);
+    const floors = `CPU or GPU over ${FLOORS.cpu} %, memory over ${FLOORS.memory} %`;
+    return {
+        spike: { short: times(K), sentence: `Alarms when a reading is {v} its usual swing above normal (${floors}).` },
+        timeOfDay: { short: times(K), sentence: `Alarms when this hour is {v} its usual swing above the same hour on earlier days (${floors}).` },
+        drift: { short: times(H), sentence: `Alarms after a steady climb of {v} the usual swing (memory over ${DRIFT_FLOORS.memory} %, disk over ${DRIFT_FLOORS.disk} %).` },
+        disk: { short: steps.map((s) => `${D[s]} d`), long: steps.map((s) => `${D[s]} days`), sentence: 'Alarms when the disk will be full within {v} at the current growth, and always at 90 % full.' },
+        services: { short: times(K), sentence: `Down after 2 failed checks in a row at any level. Slow when the database answers {v} its usual swing slower than normal and takes at least ${LATENCY_FLOOR_MS} ms.` },
+        tablets: { short: steps.map((s) => `${M[s]} min`), long: steps.map((s) => `${M[s]} minutes`), sentence: 'Alarms when a named tablet has not reported for {v}.' },
+        logs: { short: steps.map((s) => String(B[s])), long: steps.map((s) => `${B[s]} errors`), sentence: 'Alarms at {v} in 5 minutes (and 3 times the usual), and at any kind of error never seen before.' }
+    };
+}
+
 module.exports = {
-    K, H, D, M, B, FLOORS, DRIFT_FLOORS, SEVERITY_ORDER, DETECTOR_KEYS, SETTLE_SECONDS,
+    levels, K, H, D, M, B, FLOORS, DRIFT_FLOORS, SEVERITY_ORDER, DETECTOR_KEYS, SETTLE_SECONDS,
     median, mad, robustZ, windowMean, sgtHour, sgtWeekday, sgtDayKey, templateOf, templateHash, thin, namedTablets,
     detectSpike, detectTimeOfDay, detectDrift, detectDisk, detectServices, detectTablets, detectLogs, runAll
 };
