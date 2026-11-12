@@ -24,6 +24,8 @@ const FILES = {
 };
 const FOLDERS = ['uploads/photos', 'uploads/processed', 'logs', 'backend/cache', 'backend/data'];
 const DATA_FOLDERS = ['backend/data', 'backend/cache', 'logs'];
+// backend/data/archives is the default folder of the Visitor Data Archive zips: -RemoveData never deletes it
+const KEEP_IN_DATA = ['archives'];
 const AUTOMATION = { laptop: 'off', wallpc: 'on' };
 const NEED_ROOT = 2;
 
@@ -339,8 +341,15 @@ async function check() {
     return problems ? 1 : 0;
 }
 
-// Uninstall -RemoveData: the database (its name typed again) and the runtime folders. backend/.env stays: its
-// ENCRYPTION_KEY is what opens archive files saved elsewhere.
+// What -RemoveData deletes: whole folders, except that backend/data loses everything but its archives folder
+function dataRemoval(existing) {
+    return DATA_FOLDERS.filter((folder) => existing.includes(folder)).map((folder) => (folder === 'backend/data'
+        ? { folder, keep: KEEP_IN_DATA, text: 'delete the files in backend/data, keeping backend/data/archives (the archive zips)' }
+        : { folder, keep: [], text: `delete the folder ${folder}` }));
+}
+
+// Uninstall -RemoveData: the database (its name typed again) and the runtime folders. backend/.env and the archive
+// zips stay: an archive can only be opened with the ENCRYPTION_KEY that wrote it.
 async function removeData(opts) {
     const mysql = require('mysql2/promise');
     const cfg = dbConfig(parseEnv(readEnvFile() || ''));
@@ -350,7 +359,7 @@ async function removeData(opts) {
     }
     if (opts.dryRun) {
         say.would(`drop the database ${cfg.database}`);
-        for (const folder of DATA_FOLDERS) say.would(`delete the folder ${folder}`);
+        for (const step of dataRemoval(DATA_FOLDERS.filter((f) => fs.existsSync(path.join(ROOT, f))))) say.would(step.text);
         return 0;
     }
     try {
@@ -363,11 +372,15 @@ async function removeData(opts) {
         await asRoot(cfg, mysql, password, (conn) => conn.query('DROP DATABASE IF EXISTS ??', [cfg.database]));
     }
     say.ok(`dropped the database ${cfg.database}`);
-    for (const folder of DATA_FOLDERS) {
-        const target = path.join(ROOT, folder);
-        if (!target.startsWith(ROOT + path.sep) || !fs.existsSync(target)) continue;
-        fs.rmSync(target, { recursive: true, force: true });
-        say.ok(`deleted the folder ${folder}`);
+    for (const step of dataRemoval(DATA_FOLDERS.filter((f) => fs.existsSync(path.join(ROOT, f))))) {
+        const target = path.join(ROOT, step.folder);
+        if (!target.startsWith(ROOT + path.sep)) continue;
+        if (step.keep.length) {
+            for (const name of fs.readdirSync(target)) if (!step.keep.includes(name)) fs.rmSync(path.join(target, name), { recursive: true, force: true });
+        } else {
+            fs.rmSync(target, { recursive: true, force: true });
+        }
+        say.ok(step.text);
     }
     return 0;
 }
@@ -391,5 +404,5 @@ if (require.main === module) {
     run(opts).then((code) => process.exit(code), (e) => { say.bad(e.message); process.exit(1); });
 }
 
-module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, AUTOMATION, FOLDERS, DATA_FOLDERS };
+module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
 // <Jun Kai end>

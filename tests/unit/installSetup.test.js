@@ -84,6 +84,14 @@ test('the command line options are read', () => {
     assert.equal(setup.parseArgs(['remove-data', '--database', 'dp_kiosk_db', '--non-interactive']).database, 'dp_kiosk_db');
 });
 
+test('removing the data never deletes the archive zips in backend/data/archives', () => {
+    const steps = setup.dataRemoval(['backend/data', 'logs']);
+    assert.deepEqual(steps.map((x) => x.folder), ['backend/data', 'logs'], 'only folders that exist');
+    assert.deepEqual(steps[0].keep, ['archives']);
+    assert.deepEqual(steps[1].keep, []);
+    assert.deepEqual(setup.dataRemoval([]), []);
+});
+
 test('the Windows files are plain ASCII, and the .cmd files keep CRLF endings', () => {
     const files = ['scripts/install/install.ps1', 'scripts/install/uninstall.ps1', 'scripts/install/common.ps1', 'install.cmd', 'uninstall.cmd'];
     for (const file of files) {

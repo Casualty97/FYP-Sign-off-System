@@ -3,8 +3,9 @@
 #   uninstall.cmd                stops the kiosk and removes what install.cmd and the kiosk added to Windows: the logon
 #                                start, the desktop link, the wake-up task, the firewall rule, and puts hibernate and
 #                                wake timers back the way they were (Windows asks for administrator rights for those)
-#   uninstall.cmd -RemoveData    also drops the database (you type its name to confirm) and deletes backend\data,
-#                                backend\cache and logs. backend\.env stays: its key opens archives saved elsewhere.
+#   uninstall.cmd -RemoveData    also drops the database (you type its name to confirm) and deletes backend\data (but
+#                                not the archive zips in backend\data\archives), backend\cache and logs. backend\.env
+#                                stays: its key is the only one that opens those archives.
 #   uninstall.cmd -DryRun        prints every step it would take, changes nothing
 # Also: -NonInteractive (no questions; with -RemoveData the name must come from -ConfirmDatabase), -KeepPowerSettings.
 # The program folder stays; delete it by hand afterwards if it should go too.
@@ -135,8 +136,8 @@ if ($RemoveData) {
     Write-Step 'Data: the database and the runtime folders'
     $database = Get-DatabaseName
     Write-Note "this drops the database $database (every visitor, feedback, pledge and setting in it) and deletes"
-    Write-Info 'backend\data, backend\cache and logs. It cannot be undone: save an archive first (admin page, Visitor Data'
-    Write-Info 'Archive) if the records may be needed again.'
+    Write-Info 'backend\data (keeping the archive zips in backend\data\archives), backend\cache and logs. It cannot be'
+    Write-Info 'undone: save an archive first (admin page, Visitor Data Archive) if the records may be needed again.'
     $typed = $ConfirmDatabase
     if (-not $typed -and $DryRun) { $typed = $database }
     if (-not $typed -and -not $NonInteractive) { $typed = Read-Host "         Type the database name ($database) to drop it, or press Enter to keep it" }
@@ -155,7 +156,8 @@ if ($DryRun) { Write-Host '   Dry run finished: nothing was changed.' }
 elseif ($failed) { Write-Bad 'some steps did not finish (see above)' }
 else { Write-Ok 'uninstalled' }
 Write-Info 'Still here, on purpose:'
-Write-Info "- this folder $Root (program files, uploads\photos, and backend\.env with the key that opens saved archives)"
+Write-Info "- this folder $Root (program files, uploads\photos, the archive zips in backend\data\archives, and backend\.env"
+Write-Info '  with the key that opens them)'
 if (-not $RemoveData) { Write-Info '- the database and backend\data (uninstall.cmd -RemoveData removes them)' }
 Write-Info '- the MySQL user of the kiosk, and Node.js, MySQL and Ollama themselves (Settings > Apps, if nothing else uses them)'
 Write-Info 'To remove the program as well: close this window and delete the folder.'

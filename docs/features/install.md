@@ -11,7 +11,7 @@ Owner: Role 3, Jun Kai. Task-sheet point 5, "installation and deletion scripts" 
 | `install.cmd -Role WallPC` | the kiosk PC: the same, plus start at logon, a desktop link, the firewall rule and (if you agree) hibernate and wake timers |
 | `install.cmd -Check` or `npm run doctor` | only reports what is set up |
 | `uninstall.cmd` | stops the kiosk and removes everything the install and the kiosk added to Windows |
-| `uninstall.cmd -RemoveData` | also drops the database (you type its name) and deletes `backend\data`, `backend\cache` and `logs` |
+| `uninstall.cmd -RemoveData` | also drops the database (you type its name) and deletes `backend\data` (but not the archive zips in `backend\data\archives`), `backend\cache` and `logs` |
 | `-DryRun` on either | prints every step, changes nothing |
 
 Other switches: `-NonInteractive` (no questions; the safe answer is taken, so nothing risky happens without a switch
@@ -61,10 +61,11 @@ that asks for it), `-SkipNpm`, `-PowerSettings` (yes to the power question), `-K
    task that the kiosk schedule keeps.
 3. As administrator: removes the firewall rule and puts hibernate and wake timers back to the values in
    `install-state.json` (nothing to undo if the installer did not change them; `-KeepPowerSettings` leaves them).
-4. With `-RemoveData` and the database name typed again: drops the database and deletes `backend\data`,
+4. With `-RemoveData` and the database name typed again: drops the database and deletes `backend\data` (except
+   `backend\data\archives`, the default folder of the Visitor Data Archive zips),
    `backend\cache` and `logs`.
-5. Stays on purpose: the program folder (delete it by hand), `uploads\photos`, `backend\.env` (its key opens archives
-   saved elsewhere), the MySQL user, and Node.js, MySQL and Ollama themselves.
+5. Stays on purpose: the program folder (delete it by hand), `uploads\photos`, the archive zips, `backend\.env` (its key
+   is the only one that opens them), the MySQL user, and Node.js, MySQL and Ollama themselves.
 
 ## Encryption key
 
