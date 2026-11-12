@@ -7130,11 +7130,18 @@ router.post('/email-config/test', auth.requireAuth, async (req, res) => {
     if (!to) return res.status(400).json({ success: false, error: 'Missing "to" email.' });
 
     const result = await emailService.testEmailService(to);
-    if (!result || result.success === false) {
+    // <Jun Kai start> the Email page's status line shows when the last test ran and how it went
+    const sent = !!result && result.success !== false;
+    require('../email/adminRoutes').recordTest(sent, result && result.error);
+    // <Jun Kai end>
+    if (!sent) {
       return res.status(500).json({ success: false, error: (result && result.error) || 'Test email failed' });
     }
     res.json({ success: true, message: 'Test email sent successfully' });
   } catch (err) {
+    // <Jun Kai start>
+    require('../email/adminRoutes').recordTest(false, err.message);
+    // <Jun Kai end>
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -7395,11 +7402,12 @@ router.post('/server-schedules/reorder', auth.requireAuth, (req, res) => {
   }
 });
 
-// GET /api/admin/server-schedules/preview?days=7[&from=2026-11-10]  which policy decides each part of those days;
+// GET /api/admin/server-schedules/preview?days=7[&from=2026-11-10]  which policy decides each part of those days (up to
+// 42 days: the month calendar asks for a whole month);
 // manual: true in manual mode, where the policies are paused and the page shows the days empty
 router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
   try {
-    const days = Math.min(14, Math.max(1, parseInt(req.query.days, 10) || 7));
+    const days = Math.min(42, Math.max(1, parseInt(req.query.days, 10) || 7));
     const now = new Date();
     let start = now;
     if (req.query.from !== undefined) {

@@ -6,6 +6,7 @@ const checks = require('./checks');
 // <Jun Kai start>
 const layout = require('./layout');
 const tabletNames = require('./tabletNames');
+const history = require('./history');
 const db = require('../../core/db');
 // <Jun Kai end>
 
@@ -24,6 +25,17 @@ router.get('/', auth.requireAuth, async (req, res) => {
     } catch (error) {
         console.error('❌ Health checks failed:', error);
         res.status(500).json({ success: false, error: 'Health checks failed: ' + error.message });
+    }
+});
+
+// GET /api/admin/health/history  the last 24 hours of the background checks, per check, in half-hour blocks
+router.get('/history', auth.requireAuth, async (req, res) => {
+    try {
+        res.json({ success: true, history: await history.lastDay() });
+    } catch (error) {
+        if (error.code === 'ER_NO_SUCH_TABLE') return res.json({ success: true, history: null, missing: 'Run npm run db:migrate to keep a 24-hour history of the checks.' });
+        console.error('❌ Health history failed:', error);
+        res.status(500).json({ success: false, error: 'Health history failed: ' + error.message });
     }
 });
 

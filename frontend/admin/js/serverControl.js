@@ -19,6 +19,29 @@ let policyPreviewShown = null;
 
 const POLICY_DAYS = [[2, 'Mon'], [3, 'Tue'], [4, 'Wed'], [5, 'Thu'], [6, 'Fri'], [7, 'Sat'], [1, 'Sun']];
 const POLICY_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// <Jun Kai start>
+// A colour per policy (12 Nov 2026 design): [name, solid for bars and dots, tint and text for calendar chips]. The same
+// keys as COLORS in backend/features/serverControl/policies.js. Stop policies are always grey.
+const POLICY_COLORS = {
+    blue: ['Blue', '#1f6fd0', '#dbe9fd', '#1857a8'],
+    green: ['Green', '#15803d', '#d6f1df', '#166534'],
+    purple: ['Purple', '#8a3c8f', '#f2ddf2', '#7a2f7f'],
+    orange: ['Orange', '#b45309', '#fde7d3', '#9a4a12'],
+    teal: ['Teal', '#0f766e', '#d3f0ec', '#115e59'],
+    rose: ['Rose', '#be3a5f', '#fbdde6', '#9f1d47'],
+    indigo: ['Indigo', '#4f46e5', '#e2e1fc', '#3730a3'],
+    amber: ['Amber', '#a16207', '#fbedc4', '#854d0e'],
+    cyan: ['Cyan', '#0e7490', '#d2eef6', '#155e75'],
+    brown: ['Brown', '#7c5a3c', '#efe6dd', '#5b4030']
+};
+const POLICY_COLOR_KEYS = Object.keys(POLICY_COLORS);
+// a policy (or a preview segment, which carries id and color) without a saved colour gets one from its id
+const policyColorKey = (p) => (POLICY_COLORS[p.color] ? p.color : POLICY_COLOR_KEYS[Math.abs(Number(p.id) || 0) % POLICY_COLOR_KEYS.length]);
+const policyColor = (p) => POLICY_COLORS[policyColorKey(p)];
+let policyView = policyStoredView(); // 'month' or 'week', remembered in this browser only
+let policyMonth = null;              // 'YYYY-MM' when the month shown is not this month
+let policyMonthKey = null;
+// <Jun Kai end>
 
 function startServerStatusPolling() {
     if (window.statusCheckInterval) clearInterval(window.statusCheckInterval);
@@ -121,7 +144,7 @@ function policyRowHtml(p, index, total) {
     return `<li class="policy-row${enabled ? '' : ' is-disabled'}" data-id="${id}">
             <button type="button" class="policy-handle" aria-label="Move ${name}, priority ${index + 1} of ${total}. Use the up and down arrow keys." title="Drag to change the priority">${uiIcon('grip', 16)}</button>
             <span class="policy-rank">${index + 1}</span>
-            <div><div class="policy-name">${name}</div><div class="policy-meta">${escapeHtmlSafe(policyRepeatText(p))}</div></div>
+            <div><div class="policy-name"><span class="policy-dot" style="background:${policyIsStop(p) ? '#94a3b8' : policyColor(p)[1]}" aria-hidden="true"></span>${name}</div><div class="policy-meta">${escapeHtmlSafe(policyRepeatText(p))}</div></div>
             <div>${policyIsStop(p) ? uiPill('down', 'Stop') : uiPill('ok', 'Active')}</div>
             <div class="policy-hours">${escapeHtmlSafe(policyHoursText(p))}</div>
             <label class="ui-switch" title="${enabled ? 'Enabled' : 'Disabled'}"><input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleScheduleStatus(${id}, this.checked)" aria-label="${name} enabled"><span class="ui-switch-track"></span></label>
@@ -159,7 +182,7 @@ function renumberPolicies(ol) {
 // ---------------------------------------------------------------- form
 function showAddScheduleModal() {
     currentScheduleId = null;
-    fillPolicyForm({ schedule_name: '', action: 'active', schedule_type: 'daily', start_time: '08:00', end_time: '18:00', is_active: true });
+    fillPolicyForm({ schedule_name: '', action: 'active', schedule_type: 'daily', start_time: '08:00', end_time: '18:00', is_active: true, color: policyFreeColor() });
     openPolicyModal('New policy', 'Create policy');
 }
 
@@ -204,7 +227,27 @@ function fillPolicyForm(p) {
     policyFormTimes = { start: start.value, end: end.value };
     document.getElementById('policy-all-day').checked = allDay;
     document.getElementById('is-active').checked = p.is_active !== false;
+    renderPolicyColorPicker();
+    const color = policyColorKey(p);
+    document.querySelectorAll('#schedule-form input[name="policy-color"]').forEach((radio) => { radio.checked = radio.value === color; });
 }
+
+// <Jun Kai start>
+function renderPolicyColorPicker() {
+    const box = document.getElementById('policy-colors');
+    if (!box || box.children.length) return;
+    box.innerHTML = POLICY_COLOR_KEYS.map((key) => {
+        const [name, solid] = POLICY_COLORS[key];
+        return `<label class="policy-color" title="${name}"><input type="radio" name="policy-color" value="${key}"><span style="background:${solid}"></span><span class="ui-sr-only">${name}</span></label>`;
+    }).join('');
+}
+
+// a new policy takes the first colour no other Active policy has
+function policyFreeColor() {
+    const used = new Set(schedulesData.filter((s) => !policyIsStop(s)).map(policyColorKey));
+    return POLICY_COLOR_KEYS.find((key) => !used.has(key)) || POLICY_COLOR_KEYS[schedulesData.length % POLICY_COLOR_KEYS.length];
+}
+// <Jun Kai end>
 
 function readPolicyForm() {
     const type = document.getElementById('schedule-type').value;
@@ -220,7 +263,8 @@ function readPolicyForm() {
         all_day: document.getElementById('policy-all-day').checked,
         start_time: document.getElementById('start-time').value,
         end_time: document.getElementById('end-time').value,
-        is_active: document.getElementById('is-active').checked
+        is_active: document.getElementById('is-active').checked,
+        color: (document.querySelector('#schedule-form input[name="policy-color"]:checked') || {}).value || null
     };
 }
 
@@ -241,6 +285,8 @@ function updateFormFields() {
     document.getElementById('weekly-days-section').hidden = type.value !== 'weekly';
     document.getElementById('monthly-section').hidden = type.value !== 'monthly';
     document.getElementById('specific-date-section').hidden = type.value !== 'specific_date';
+    const colorSection = document.getElementById('policy-color-section');
+    if (colorSection) colorSection.hidden = (document.querySelector('#schedule-form input[name="policy-action"]:checked') || {}).value === 'stop';
     const allDay = document.getElementById('policy-all-day').checked;
     const start = document.getElementById('start-time');
     const end = document.getElementById('end-time');
@@ -546,7 +592,151 @@ function savePolicyOrder(ids, previous, movedRow) {
 }
 
 // ---------------------------------------------------------------- next 7 days
+// <Jun Kai start>
+function policyStoredView() {
+    try { return localStorage.getItem('policyView') === 'week' ? 'week' : 'month'; } catch { return 'month'; }
+}
+
+function setPolicyView(view) {
+    policyView = view === 'week' ? 'week' : 'month';
+    try { localStorage.setItem('policyView', policyView); } catch { /* private window: fine */ }
+    loadPolicyPreview();
+}
+
+// a day clicked on the month calendar opens its week
+function openPolicyWeek(ymd) {
+    policyView = 'week';
+    policyPreviewStart = ymd === policyYmd(new Date()) ? null : ymd;
+    loadPolicyPreview();
+}
+
+function shiftPolicyView(step) {
+    if (policyView === 'week') {
+        shiftPolicyPreview(step * 7);
+        return;
+    }
+    const first = policyMonthStart();
+    setPolicyPreviewStart(policyYmd(new Date(first.getFullYear(), first.getMonth() + step, 1)));
+}
+
+function policyMonthStart() {
+    const now = new Date();
+    if (!policyMonth) return new Date(now.getFullYear(), now.getMonth(), 1);
+    const [y, m] = policyMonth.split('-').map(Number);
+    return new Date(y, m - 1, 1);
+}
+
+function renderPolicyViewButtons() {
+    const month = policyView === 'month';
+    for (const [id, on] of [['policy-view-month', month], ['policy-view-week', !month]]) {
+        const btn = document.getElementById(id);
+        if (btn) { btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', String(on)); }
+    }
+    const calendar = document.getElementById('policy-calendar');
+    const week = document.getElementById('policy-preview');
+    if (calendar) calendar.hidden = !month;
+    if (week) week.hidden = month;
+    const unit = month ? 'month' : '7 days';
+    for (const [id, word] of [['policy-prev', 'Previous'], ['policy-next', 'Next']]) {
+        const btn = document.getElementById(id);
+        if (btn) { btn.setAttribute('aria-label', `${word} ${unit}`); btn.title = `${word} ${unit}`; }
+    }
+    const text = document.getElementById('policy-preview-text');
+    if (text) text.textContent = month ? 'The policy that decides each day. Click a day to see its hours.' : 'What the policies add up to. Point at a bar to see which policy decides it.';
+}
+
 function loadPolicyPreview() {
+    renderPolicyViewButtons();
+    return policyView === 'month' ? loadPolicyMonth() : loadPolicyWeek();
+}
+
+function loadPolicyMonth() {
+    const box = document.getElementById('policy-calendar');
+    if (!box) return Promise.resolve();
+    const first = policyMonthStart();
+    const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    return policyRequest(`/api/admin/server-schedules/preview?days=${days}&from=${policyYmd(first)}`, { method: 'GET', cache: 'no-store' }, 'The calendar is not available')
+        .then((data) => renderPolicyMonth(data.preview, first))
+        .catch((error) => {
+            console.error('❌ Error loading the policy calendar:', error);
+            if (policyMonth) showNotification(error.message, 'error');
+            if (!box.children.length) box.innerHTML = `<p class="policy-empty">${escapeHtmlSafe(error.message)}</p>`;
+        });
+}
+
+// Each policy that decides part of a day, in the order it first does, as a chip; the hours the kiosk runs under them
+function policyCalendarDay(day, preview) {
+    const [y, m, d] = day.date.split('-').map(Number);
+    const isToday = day.date === preview.today;
+    const segments = preview.manual ? [] : day.segments;
+    const deciding = [...new Map(segments.map((s) => [s.id, s])).values()].reverse();
+    const firstSeen = [...new Map(segments.map((s) => [s.id, s])).keys()];
+    deciding.sort((a, b) => firstSeen.indexOf(a.id) - firstSeen.indexOf(b.id));
+    const chip = (s) => (s.on
+        ? `<span class="policy-chip" style="background:${policyColor(s)[2]};color:${policyColor(s)[3]}">${escapeHtmlSafe(s.name)}</span>`
+        : `<span class="policy-chip policy-chip-stop">${escapeHtmlSafe(s.name)}</span>`);
+    const periods = [];
+    for (const s of segments.filter((x) => x.on)) {
+        const last = periods[periods.length - 1];
+        if (last && last.endMin === s.startMin) { last.endMin = s.endMin; last.to = s.to; } else periods.push({ ...s });
+    }
+    let hours = '';
+    if (periods.length === 1) hours = `${periods[0].from} to ${periods[0].to}`;
+    else if (periods.length === 2) hours = `${periods[0].from} to ${periods[0].to}, ${periods[1].from} to ${periods[1].to}`;
+    else if (periods.length > 2) hours = `${periods.length} periods from ${periods[0].from}`;
+    else if (segments.length) hours = segments.reduce((sum, s) => sum + s.endMin - s.startMin, 0) >= 1440 ? 'Off hours all day' : 'Off hours'; // <Jun Kai/> a Stop time is only recorded for now
+    const long = new Date(y, m - 1, d).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long' });
+    const words = deciding.length ? `${deciding.map((s) => s.name).join(', ')}. ${hours}.` : 'No policy decides this day.';
+    const more = deciding.length > 2 ? `<span class="policy-cal-more">+${deciding.length - 2} more</span>` : '';
+    return `<button type="button" class="policy-cal-day${isToday ? ' is-today' : ''}${day.date < preview.today ? ' is-past' : ''}" onclick="openPolicyWeek('${day.date}')" aria-label="${escapeHtmlSafe(`${long}: ${words} Open this week.`)}">
+            <span class="policy-cal-n">${d}</span>${deciding.slice(0, 2).map(chip).join('')}${more}${hours ? `<span class="policy-cal-hours">${escapeHtmlSafe(hours)}</span>` : ''}
+        </button>`;
+}
+
+function renderPolicyMonth(preview, first) {
+    const box = document.getElementById('policy-calendar');
+    if (!box || !preview) return;
+    const title = document.getElementById('policy-preview-title');
+    if (title) title.textContent = first.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
+    const input = document.getElementById('policy-preview-date');
+    if (input) {
+        [input.min, input.max] = policyPreviewLimits();
+        if (document.activeElement !== input) input.value = preview.today.slice(0, 7) === preview.start.slice(0, 7) ? preview.today : preview.start;
+    }
+    const today = document.getElementById('policy-preview-today');
+    if (today) today.disabled = !policyMonth;
+    renderPolicyLegend(preview);
+    // the 60 s refresh redraws only when a day changed
+    const key = JSON.stringify([preview.start, preview.today, preview.manual, preview.days]);
+    if (key === policyMonthKey && box.children.length) return;
+    policyMonthKey = key;
+    const blank = '<div class="policy-cal-day is-out" aria-hidden="true"></div>';
+    const cells = [...Array(first.getDay()).fill(blank), ...preview.days.map((day) => policyCalendarDay(day, preview))];
+    while (cells.length % 7) cells.push(blank);
+    const head = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((name) => `<span>${name}</span>`).join('');
+    const note = preview.manual ? '<p class="policy-preview-note">Manual mode is on, so the policies are paused and nothing runs on its own. Switch back to automatic mode under Controls to see their plan.</p>' : '';
+    box.innerHTML = `${note}<div class="policy-cal-head" aria-hidden="true">${head}</div><div class="policy-cal-grid">${cells.join('')}</div>`;
+}
+
+// Month: the policies on the calendar with their colours. 7 days: what the bars mean.
+function renderPolicyLegend(preview) {
+    const legend = document.getElementById('policy-legend');
+    if (!legend) return;
+    if (policyView === 'week') {
+        legend.hidden = false;
+        legend.innerHTML = '<span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs, in the colour of its policy</span><span><i class="policy-swatch policy-swatch-stop"></i>Off hours (Stop policy)</span>';
+        return;
+    }
+    const seen = new Map();
+    if (!preview.manual) for (const day of preview.days) for (const s of day.segments) if (!seen.has(s.id)) seen.set(s.id, s);
+    legend.innerHTML = [...seen.values()].map((s) => (s.on
+        ? `<span><i class="policy-swatch" style="background:${policyColor(s)[1]}"></i>${escapeHtmlSafe(s.name)}</span>`
+        : `<span><i class="policy-swatch policy-swatch-grey"></i>${escapeHtmlSafe(s.name)} (off hours)</span>`)).join('');
+    legend.hidden = !seen.size;
+}
+// <Jun Kai end>
+
+function loadPolicyWeek() {
     const box = document.getElementById('policy-preview');
     if (!box) return Promise.resolve();
     const from = policyPreviewStart ? `&from=${policyPreviewStart}` : '';
@@ -577,7 +767,10 @@ function setPolicyPreviewStart(value) {
         if (input) input.value = policyPreviewShown || today;
         return;
     }
-    policyPreviewStart = value && value !== today ? value : null;
+    // <Jun Kai start>
+    if (policyView === 'month') policyMonth = value && value.slice(0, 7) !== today.slice(0, 7) ? value.slice(0, 7) : null;
+    else policyPreviewStart = value && value !== today ? value : null;
+    // <Jun Kai end>
     loadPolicyPreview();
 }
 
@@ -613,6 +806,7 @@ function renderPolicyPreview(preview) {
         return;
     }
     policyPreviewKey = key;
+    renderPolicyLegend(preview);
     const focused = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.slot : null;
     const axis = ['00:00', '06:00', '12:00', '18:00', '24:00'].map((t, i) => `<span style="left:${i * 25}%">${t}</span>`).join('');
     const rows = preview.days.map((day) => {
@@ -624,7 +818,7 @@ function renderPolicyPreview(preview) {
             const what = s.on ? 'Active: the kiosk runs' : 'Stop: off hours'; // <Jun Kai/> a Stop time is only recorded for now
             const when = `${s.from} to ${s.to}, priority ${s.position}`;
             const words = `${label}, ${s.from} to ${s.to}: ${s.name}, ${s.on ? 'kiosk runs' : 'off hours'}, priority ${s.position}`;
-            return `<span class="policy-seg policy-seg-${s.on ? 'on' : 'stop'}" role="img" style="left:${(s.startMin / 14.4).toFixed(3)}%;width:${((s.endMin - s.startMin) / 14.4).toFixed(3)}%" tabindex="0" data-slot="${day.date}-${s.startMin}" data-name="${escapeHtmlSafe(s.name)}" data-what="${escapeHtmlSafe(what)}" data-when="${escapeHtmlSafe(when)}" aria-label="${escapeHtmlSafe(words)}"><span class="policy-seg-label">${escapeHtmlSafe(s.name)}</span></span>`;
+            return `<span class="policy-seg policy-seg-${s.on ? 'on' : 'stop'}" role="img" style="left:${(s.startMin / 14.4).toFixed(3)}%;width:${((s.endMin - s.startMin) / 14.4).toFixed(3)}%${s.on ? `;background:${policyColor(s)[1]}` : ''}" tabindex="0" data-slot="${day.date}-${s.startMin}" data-name="${escapeHtmlSafe(s.name)}" data-what="${escapeHtmlSafe(what)}" data-when="${escapeHtmlSafe(when)}" aria-label="${escapeHtmlSafe(words)}"><span class="policy-seg-label">${escapeHtmlSafe(s.name)}</span></span>`;
         }).join('');
         const now = isToday ? `<span class="policy-now" style="left:${(preview.nowMin / 14.4).toFixed(3)}%"></span>` : '';
         return `<div class="policy-day"><span class="policy-day-label${isToday ? ' is-today' : ''}">${escapeHtmlSafe(label)}</span><div class="policy-track">${segments}${now}</div></div>`;
@@ -793,6 +987,9 @@ async function checkServerStatus() {
             } else {
                 statusIndicator.innerHTML = uiPill('down', 'Kiosk stopped');
             }
+            // <Jun Kai start>
+            setAutomationText('policy-now', data.kiosk_running ? 'Kiosk running' : 'Kiosk stopped');
+            // <Jun Kai end>
             // <Jun Kai start>
             // in manual mode Start kiosk only works while the kiosk is stopped
             const toggle = document.getElementById('auto-mode-toggle');
@@ -1015,6 +1212,17 @@ function formatPlannedTime(iso) {
     return `${date.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })} ${time}`;
 }
 
+// <Jun Kai start>
+// "In 5 h 12 min", "In 3 days"
+function policyIn(iso) {
+    const minutes = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+    if (!Number.isFinite(minutes) || minutes < 1) return 'Now';
+    if (minutes < 60) return `In ${minutes} min`;
+    if (minutes < 48 * 60) return `In ${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`;
+    return `In ${Math.round(minutes / 1440)} days`;
+}
+// <Jun Kai end>
+
 function setAutomationText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
@@ -1089,6 +1297,16 @@ function renderAutomationStatus(a) {
 
     setAutomationText('automation-next-stop', isAuto && a.enabled ? formatPlannedTime(a.nextStop) : '–');
     setAutomationText('automation-next-start', isAuto && a.enabled ? formatPlannedTime(a.nextStart) : '–');
+    // <Jun Kai start>
+    const planned = isAuto && a.enabled;
+    const off = !a.enabled ? 'Automation is off on this machine' : !isAuto ? 'Manual mode: the policies are paused' : null;
+    setAutomationText('automation-next-stop-hint', off || (a.nextStop ? `Off hours begin. ${policyIn(a.nextStop)}.` : 'No policy stops the kiosk soon'));
+    setAutomationText('automation-next-start-hint', off || (a.nextStart ? 'The kiosk server starts if needed.' : 'No policy starts the kiosk soon'));
+    setAutomationText('policy-mode', isAuto ? 'Automatic' : 'Manual');
+    setAutomationText('policy-mode-hint', !a.enabled ? 'Automation is switched off on this machine, so nothing runs the policies.' : isAuto ? 'Policies are followed.' : 'Policies are paused. Switch back under Controls.');
+    setAutomationText('policy-now-hint', !planned ? (!a.enabled ? 'Automation is off on this machine' : 'You start and stop it under Controls')
+        : a.currentWindow ? `By the policy "${a.currentWindow.schedule}"` : a.stoppedBy ? `Off hours: "${a.stoppedBy.schedule}"` : 'No policy covers this moment');
+    // <Jun Kai end>
 
     setAutomationText('automation-last-tick', a.lastTick ? `Checked ${formatPlannedTime(a.lastTick)}` : (a.enabled ? 'Starting' : 'Off'));
     // <Jun Kai start>

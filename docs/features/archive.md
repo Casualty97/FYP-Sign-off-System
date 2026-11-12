@@ -4,6 +4,8 @@
 
 **Where the code is**
 
+Look (12 Nov 2026, picked by the user from mock-ups): Ready to archive, Automatic archiving, Last archive and Archive folder are four plain tiles with big numbers (no colour on top, at the user's request); a long folder path is cut with an ellipsis. The history shows the 5 newest archives, with Show all, Show fewer and, past the first 50, Show more. Feedback and pledges, Lost and found reports and Include photos sit side by side at the bottom as coloured cards (blue, green, pink).
+
 - backend/features/archive/exportRoutes.js (mounted at /api/admin/data-export) and retention.js (scheduled clean-up)
 - archive, decrypt and download routes still inside backend/features/admin/routes.js
 - frontend/admin/js/archive.js, archiveDeletion.js, dataExport.js, encryption.js, feedbackDeletion.js, photos.js, emailPopup.js

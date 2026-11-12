@@ -158,6 +158,9 @@ const healthRoutes = require('./features/health/routes');
 const healthPublicRoutes = require('./features/health/publicRoutes');
 // <Jun Kai start>
 const hardwareRoutes = require('./features/hardware/routes');
+// <Jun Kai start>
+const emailAdminRoutes = require('./features/email/adminRoutes');
+// <Jun Kai end>
 const hardwareSampler = require('./features/hardware/sampler');
 const visitorArchiveRoutes = require('./features/archive/visitorRoutes');
 const visitorArchiveScheduler = require('./features/archive/visitorScheduler');
@@ -442,6 +445,9 @@ app.use('/api/admin/health', healthRoutes);
 app.use('/api/health', healthPublicRoutes);
 // <Jun Kai start>
 app.use('/api/admin/hardware', hardwareRoutes);
+// <Jun Kai start>
+app.use('/api/admin/email', emailAdminRoutes);
+// <Jun Kai end>
 app.use('/api/admin/visitor-archive', visitorArchiveRoutes);
 app.use('/api/admin/aiops', aiopsRoutes);
 // <Jun Kai end>

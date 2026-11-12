@@ -2441,49 +2441,77 @@
                             <button class="ui-btn ui-btn-primary" type="button" onclick="saveEmailConfig()">Save</button>
                         </div>
                     </div>
-                    <div class="ui-grid-2">
-                        <div class="ui-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Mail account</h3>
-                                    <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
+                    <div class="ui-card health-status" id="email-health" role="status" aria-live="polite">
+                        <div class="health-status-mark" id="email-health-mark"></div>
+                        <div>
+                            <div class="health-status-line" id="email-health-line">Checking the mail account</div>
+                            <div class="health-status-sub" id="email-health-sub">The status of the account the kiosk sends from.</div>
+                        </div>
+                        <div class="health-status-counts" id="email-health-counts"></div>
+                        <div class="email-health-side">
+                            <span class="health-status-time" id="email-health-time"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="email-health-check" onclick="loadEmailHealth(true)">Check again</button>
+                        </div>
+                    </div>
+                    <div class="ui-grid-2 email-grid">
+                        <div class="email-column">
+                            <div class="ui-card">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3>Mail account</h3>
+                                        <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="ui-form-grid">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="email-provider">Provider</label>
+                                            <select class="ui-select" id="email-provider" onchange="renderEmailFields()">
+                                                <option value="gmail">Gmail</option>
+                                                <option value="outlook">Outlook (Office 365)</option>
+                                                <option value="custom">Custom SMTP</option>
+                                            </select>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="sender-email">Sender address (From)</label>
+                                            <input class="ui-input" id="sender-email" type="email" placeholder="noreply@yourdomain.com" autocomplete="off">
+                                            <span class="ui-help">Gmail shows its own address as the sender unless this one is a verified alias.</span>
+                                        </div>
+                                        <div class="ui-field-wide" id="email-fields"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="ui-card-body">
-                                <div class="ui-form-grid">
-                                    <div class="ui-field">
-                                        <label class="ui-label" for="email-provider">Provider</label>
-                                        <select class="ui-select" id="email-provider" onchange="renderEmailFields()">
-                                            <option value="gmail">Gmail</option>
-                                            <option value="outlook">Outlook (Office 365)</option>
-                                            <option value="custom">Custom SMTP</option>
-                                        </select>
+                            <div class="ui-card">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3>Test message</h3>
+                                        <p>Sends a short email with the saved settings. Save first, then test.</p>
                                     </div>
+                                </div>
+                                <div class="ui-card-body">
                                     <div class="ui-field">
-                                        <label class="ui-label" for="sender-email">Sender address (From)</label>
-                                        <input class="ui-input" id="sender-email" type="email" placeholder="noreply@yourdomain.com" autocomplete="off">
-                                        <span class="ui-help">Gmail shows its own address as the sender unless this one is a verified alias.</span>
+                                        <label class="ui-label" for="email-test-to">Send a test to</label>
+                                        <div class="ui-input-row">
+                                            <input class="ui-input" id="email-test-to" type="email" placeholder="you@example.com" autocomplete="off">
+                                            <button class="ui-btn ui-btn-secondary" type="button" onclick="sendTestEmail()">Send test</button>
+                                        </div>
                                     </div>
-                                    <div class="ui-field-wide" id="email-fields"></div>
+                                    <div id="email-status" class="ui-status-slot"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="ui-card">
+                        <div class="ui-card email-preview-card">
                             <div class="ui-card-header">
                                 <div>
-                                    <h3>Test message</h3>
-                                    <p>Sends a short email with the saved settings. Save first, then test.</p>
+                                    <h3>Preview</h3>
+                                    <p>The thank-you email a visitor gets, with a sample visitor. The wording is set under Parameter Adjustment; the visitor's photo is attached in the real email.</p>
                                 </div>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="loadEmailPreview()">Refresh</button>
                             </div>
-                            <div class="ui-card-body">
-                                <div class="ui-field">
-                                    <label class="ui-label" for="email-test-to">Send a test to</label>
-                                    <div class="ui-input-row">
-                                        <input class="ui-input" id="email-test-to" type="email" placeholder="you@example.com" autocomplete="off">
-                                        <button class="ui-btn ui-btn-secondary" type="button" onclick="sendTestEmail()">Send test</button>
-                                    </div>
-                                </div>
-                                <div id="email-status" class="ui-status-slot"></div>
+                            <dl class="email-preview-meta" id="email-preview-meta"></dl>
+                            <div class="email-preview-body">
+                                <iframe class="email-preview-frame" id="email-preview-frame" title="Preview of the thank-you email" sandbox="" referrerpolicy="no-referrer"></iframe>
+                                <p class="email-preview-empty" id="email-preview-empty">Building the preview</p>
                             </div>
                         </div>
                     </div>
@@ -3349,16 +3377,26 @@
                         </div>
                     </div>
                     <!-- <Jun Kai end> -->
-                    <div class="ui-card">
-                        <div class="ui-card-body ui-row ui-row-between">
-                            <div class="ui-row">
-                                <span id="health-overall" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
-                                <span id="health-summary-text" class="ui-mode-desc">Running the checks</span>
-                            </div>
-                            <span id="health-checked-at" class="ui-fact-hint"></span>
+                    <!-- <Jun Kai start> -->
+                    <div class="ui-card health-status" id="health-status" role="status" aria-live="polite">
+                        <div class="health-status-mark" id="health-status-mark"></div>
+                        <div>
+                            <div class="health-status-line" id="health-status-line">Running the checks</div>
+                            <div class="health-status-sub" id="health-summary-text">The page shows each result as it comes in.</div>
                         </div>
+                        <div class="health-status-counts" id="health-status-counts"></div>
+                        <span class="health-status-time" id="health-checked-at"></span>
                     </div>
                     <div class="health-grid" id="health-cards"></div>
+                    <div class="health-legend" id="health-history-legend" hidden>
+                        <span class="health-legend-key"><i class="health-h-o"></i>Healthy</span>
+                        <span class="health-legend-key"><i class="health-h-w"></i>Attention</span>
+                        <span class="health-legend-key"><i class="health-h-d"></i>Down</span>
+                        <span class="health-legend-key"><i class="health-h-u"></i>Unknown</span>
+                        <span class="health-legend-key"><i class="health-h-n"></i>Not checked</span>
+                        <span id="health-history-note">One block is half an hour of the background checks.</span>
+                    </div>
+                    <!-- <Jun Kai end> -->
                     <!-- <Jun Kai start> the Tablets list is the one panel under the cards: the Server PC card points to the Hardware page instead -->
                     <div id="health-panels">
                     <!-- <Jun Kai end> -->
@@ -3729,52 +3767,36 @@
                         <button type="button" class="ui-btn ui-btn-secondary" onclick="vaLoad(true)">Try again</button>
                     </div>
 
-                    <div class="ui-card" id="va-summary">
-                        <div class="ui-card-body">
-                            <div class="ui-facts va-facts">
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Ready to archive</span>
-                                    <span class="ui-fact-value" id="va-due-value"><span class="va-skel" style="width: 58%"></span></span>
-                                    <span class="ui-fact-hint" id="va-due-hint"><span class="va-skel" style="width: 82%"></span></span>
-                                </div>
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Automatic archiving<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-auto-enabled')" aria-label="Change automatic archiving">Change</button></span>
-                                    <span class="ui-fact-value" id="va-auto-value"><span class="va-skel" style="width: 46%"></span></span>
-                                    <span class="ui-fact-hint" id="va-auto-hint"><span class="va-skel" style="width: 70%"></span></span>
-                                </div>
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Last archive</span>
-                                    <span class="ui-fact-value" id="va-last-value"><span class="va-skel" style="width: 66%"></span></span>
-                                    <span class="ui-fact-hint" id="va-last-hint"><span class="va-skel" style="width: 76%"></span></span>
-                                </div>
-                                <div class="ui-fact" id="va-folder-fact">
-                                    <span class="ui-fact-label">Archive folder<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-folder')" aria-label="Change the archive folder">Change</button></span>
-                                    <span class="ui-fact-value" id="va-folder-value"><span class="va-skel" style="width: 50%"></span></span>
-                                    <span class="ui-fact-hint va-fact-path" id="va-folder-hint"><span class="va-skel" style="width: 88%"></span></span>
-                                </div>
+                    <div class="va-top" id="va-summary">
+                        <div class="va-facts va-tiles">
+                            <div class="ui-card ui-fact va-tile">
+                                <span class="ui-fact-label">Ready to archive</span>
+                                <span class="ui-fact-value" id="va-due-value"><span class="va-skel" style="width: 58%"></span></span>
+                                <span class="ui-fact-hint" id="va-due-hint"><span class="va-skel" style="width: 82%"></span></span>
+                            </div>
+                            <div class="ui-card ui-fact va-tile">
+                                <span class="ui-fact-label">Automatic archiving<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-auto-enabled')" aria-label="Change automatic archiving">Change</button></span>
+                                <span class="ui-fact-value" id="va-auto-value"><span class="va-skel" style="width: 46%"></span></span>
+                                <span class="ui-fact-hint" id="va-auto-hint"><span class="va-skel" style="width: 70%"></span></span>
+                            </div>
+                            <div class="ui-card ui-fact va-tile">
+                                <span class="ui-fact-label">Last archive</span>
+                                <span class="ui-fact-value" id="va-last-value"><span class="va-skel" style="width: 66%"></span></span>
+                                <span class="ui-fact-hint" id="va-last-hint"><span class="va-skel" style="width: 76%"></span></span>
+                            </div>
+                            <div class="ui-card ui-fact va-tile" id="va-folder-fact">
+                                <span class="ui-fact-label">Archive folder<button type="button" class="va-link va-fact-change" onclick="vaGoToSetting('va-folder')" aria-label="Change the archive folder">Change</button></span>
+                                <span class="ui-fact-value" id="va-folder-value"><span class="va-skel" style="width: 50%"></span></span>
+                                <span class="ui-fact-hint va-fact-path" id="va-folder-hint"><span class="va-skel" style="width: 88%"></span></span>
                             </div>
                         </div>
-                        <div class="ui-card-body va-run-strip" id="va-run-strip" hidden>
-                            <div class="va-run-strip-top">
-                                <span><strong>Archive running</strong><span class="ui-sr-only">: </span><span id="va-run-strip-text">Collecting the records</span></span>
+                        <div class="ui-card va-run-card" id="va-run-strip" hidden>
+                            <div class="ui-card-body va-run-strip">
+                                <div class="va-run-strip-top">
+                                    <span><strong>Archive running</strong><span class="ui-sr-only">: </span><span id="va-run-strip-text">Collecting the records</span></span>
+                                </div>
+                                <div class="va-bar va-bar-thin" role="progressbar" aria-label="Archive progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="va-bar-fill" id="va-run-strip-bar"></div></div>
                             </div>
-                            <div class="va-bar va-bar-thin" role="progressbar" aria-label="Archive progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="va-bar-fill" id="va-run-strip-bar"></div></div>
-                        </div>
-                        <div class="ui-card-body va-lifecycle-body">
-                            <ol class="va-lifecycle" aria-label="What happens to visitor feedback over time">
-                                <li>
-                                    <button type="button" class="va-link va-step-name" onclick="showPage('feedback-data')">Feedback Data</button>
-                                    <span class="va-step-when">New submissions</span>
-                                </li>
-                                <li>
-                                    <button type="button" class="va-link va-step-name" onclick="showPage('archive')">Archived Feedback</button>
-                                    <span class="va-step-when" id="va-life-soft">After 90 days</span>
-                                </li>
-                                <li class="is-here">
-                                    <span class="va-step-name">Visitor Data Archive</span>
-                                    <span class="va-step-when" id="va-life-archive">After 12 months, when you archive</span>
-                                </li>
-                            </ol>
                         </div>
                     </div>
 
@@ -3798,7 +3820,7 @@
                         </div>
                         <div class="ui-card-body va-history-foot" id="va-history-foot" hidden>
                             <span class="ui-fact-hint" id="va-history-more-text"></span>
-                            <button type="button" class="ui-btn ui-btn-secondary" id="va-history-more" onclick="vaShowMoreHistory()">Show more</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" id="va-history-more" onclick="vaHistoryMoreClick()">Show more</button>
                         </div>
                     </div>
 
@@ -3813,7 +3835,7 @@
                                     </div>
                                 </div>
                                 <div class="ui-card-body">
-                                    <div class="va-types">
+                                    <div class="va-types va-types-3">
                                         <div class="va-type" id="va-feedback-type">
                                             <div class="va-option">
                                                 <div class="va-option-text">
@@ -3877,17 +3899,19 @@
                                             </div>
                                             <label class="ui-check"><input type="checkbox" id="va-lostfound-resolved"><span>Only resolved reports</span></label>
                                         </div>
+                                        <div class="va-type" id="va-photos-type">
+                                            <div class="va-option">
+                                                <div class="va-option-text">
+                                                    <label class="va-option-label" for="va-include-photos">Include photos</label>
+                                                    <span class="va-option-desc" id="va-photos-desc">When off, photos are deleted with the records and not kept.</span>
+                                                </div>
+                                                <label class="ui-switch"><input type="checkbox" id="va-include-photos" role="switch" aria-describedby="va-photos-desc" checked><span class="ui-switch-track"></span></label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="ui-card-body">
                                     <div class="va-types">
-                                        <div class="va-option">
-                                            <div class="va-option-text">
-                                                <label class="va-option-label" for="va-include-photos">Include photos</label>
-                                                <span class="va-option-desc" id="va-photos-desc">When off, photos are deleted with the records and not kept.</span>
-                                            </div>
-                                            <label class="ui-switch"><input type="checkbox" id="va-include-photos" role="switch" aria-describedby="va-photos-desc" checked><span class="ui-switch-track"></span></label>
-                                        </div>
                                         <div class="va-radios" role="radiogroup" aria-labelledby="va-after-label">
                                             <span class="ui-label" id="va-after-label">After a checked archive</span>
                                             <label class="ui-check"><input type="radio" name="va-after" id="va-after-delete" value="delete" checked><span>Delete the records from the database</span></label>
@@ -4245,40 +4269,84 @@
                         <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New policy</button>
                     </div>
 
-                    <div class="ui-card" id="automation-card">
-                        <div class="ui-card-header">
-                            <div>
-                                <h3>Automation</h3>
-                                <p id="automation-summary">Checking</p>
-                            </div>
-                            <span id="automation-state" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
+                    <!-- <Jun Kai start> -->
+                    <div class="policy-tiles">
+                        <div class="ui-card policy-tile policy-tile-stop">
+                            <span class="policy-tile-label">Next stop</span>
+                            <span class="policy-tile-value" id="automation-next-stop">–</span>
+                            <span class="policy-tile-hint" id="automation-next-stop-hint">Off hours begin</span>
                         </div>
-                        <div class="ui-card-body">
-                            <div class="ui-facts">
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Next stop</span>
-                                    <span class="ui-fact-value" id="automation-next-stop">–</span>
-                                    <span class="ui-fact-hint">The kiosk switches off</span>
-                                </div>
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Next start</span>
-                                    <span class="ui-fact-value" id="automation-next-start">–</span>
-                                    <span class="ui-fact-hint" id="automation-next-start-hint">The kiosk server starts if needed</span>
-                                </div>
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Scheduler</span>
-                                    <span class="ui-fact-value" id="automation-last-tick">–</span>
-                                    <span class="ui-fact-hint" id="automation-mode-hint">Checks once a minute</span>
-                                </div>
-                            </div>
+                        <div class="ui-card policy-tile policy-tile-start">
+                            <span class="policy-tile-label">Next start</span>
+                            <span class="policy-tile-value" id="automation-next-start">–</span>
+                            <span class="policy-tile-hint" id="automation-next-start-hint">The kiosk server starts if needed</span>
                         </div>
-                        <div class="ui-card-body">
-                            <p class="ui-section-title">Recent automatic actions</p>
-                            <ul class="ui-events" id="automation-events">
-                                <li class="ui-empty">No automatic actions recorded yet</li>
-                            </ul>
+                        <div class="ui-card policy-tile policy-tile-now">
+                            <span class="policy-tile-label">Right now</span>
+                            <span class="policy-tile-value" id="policy-now">–</span>
+                            <span class="policy-tile-hint" id="policy-now-hint">Checking the kiosk</span>
+                        </div>
+                        <div class="ui-card policy-tile policy-tile-mode">
+                            <span class="policy-tile-label">Mode</span>
+                            <span class="policy-tile-value" id="policy-mode">–</span>
+                            <span class="policy-tile-hint" id="policy-mode-hint">Checking</span>
                         </div>
                     </div>
+                    <!-- <Jun Kai end> -->
+
+                    <!-- <Jun Kai start> -->
+                    <div class="ui-card" id="policy-preview-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3 id="policy-preview-title">This month</h3>
+                                <p id="policy-preview-text">The policy that decides each day. Click a day to see its hours.</p>
+                            </div>
+                            <div class="policy-preview-nav" role="group" aria-label="Days shown">
+                                <div class="hw-segment" role="group" aria-label="View">
+                                    <button type="button" class="hw-seg-btn active" id="policy-view-month" aria-pressed="true" onclick="setPolicyView('month')">Month</button>
+                                    <button type="button" class="hw-seg-btn" id="policy-view-week" aria-pressed="false" onclick="setPolicyView('week')">7 days</button>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon" id="policy-prev" onclick="shiftPolicyView(-1)" aria-label="Previous month" title="Previous month"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                                <input type="date" class="ui-input policy-preview-date" id="policy-preview-date" aria-label="Go to a date" onchange="setPolicyPreviewStart(this.value)">
+                                <button type="button" class="ui-btn ui-btn-icon" id="policy-next" onclick="shiftPolicyView(1)" aria-label="Next month" title="Next month"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                                <button type="button" class="ui-btn ui-btn-secondary" id="policy-preview-today" onclick="setPolicyPreviewStart('')" disabled>Today</button>
+                            </div>
+                        </div>
+                        <div class="ui-card-body">
+                            <div class="policy-calendar" id="policy-calendar"></div>
+                            <div class="policy-preview" id="policy-preview" hidden></div>
+                            <div class="policy-tip" id="policy-tip" role="tooltip" hidden></div>
+                            <div class="policy-legend" id="policy-legend" aria-hidden="true"></div>
+                        </div>
+                    </div>
+
+                    <div class="ui-card" id="policies-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Policies</h3>
+                                <p>The first policy in the list that covers a moment decides it. Drag the handle to change the order.</p>
+                            </div>
+                            <div class="ui-row">
+                                <button class="ui-btn ui-btn-secondary" onclick="resetPolicyOrder()">Default order</button>
+                                <button class="ui-btn ui-btn-secondary" onclick="enableAllSchedules()">Enable all</button>
+                                <button class="ui-btn ui-btn-secondary" onclick="disableAllSchedules()">Disable all</button>
+                            </div>
+                        </div>
+                        <div class="policy-head" aria-hidden="true">
+                            <span></span><span>#</span><span>Policy</span><span>Does</span><span>Hours</span><span>Enabled</span><span></span>
+                        </div>
+                        <ol class="policy-list" id="policy-list" aria-label="Policies, highest priority first">
+                            <li class="policy-empty">Loading policies</li>
+                        </ol>
+                        <div class="ui-card-body policy-rules">
+                            <details class="policy-rules-more">
+                                <summary>How new policies are placed</summary>
+                                <p class="ui-help">A single date goes above days of the week, days of the week above months, and months above every day. At the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
+                            </details>
+                        </div>
+                        <div class="ui-sr-only" id="policy-live" aria-live="polite"></div>
+                    </div>
+                    <!-- <Jun Kai end> -->
 
                     <div class="ui-card">
                         <div class="ui-card-header">
@@ -4316,57 +4384,30 @@
                         </div>
                     </div>
 
-                    <!-- <Jun Kai start> -->
-                    <div class="ui-card" id="policies-card">
+                    <div class="ui-card" id="automation-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Policies</h3>
-                                <p>The first policy in the list that covers a moment decides it. Drag the handle to change the order.</p>
+                                <h3>Automation</h3>
+                                <p id="automation-summary">Checking</p>
                             </div>
-                            <div class="ui-row">
-                                <button class="ui-btn ui-btn-secondary" onclick="resetPolicyOrder()">Default order</button>
-                                <button class="ui-btn ui-btn-secondary" onclick="enableAllSchedules()">Enable all</button>
-                                <button class="ui-btn ui-btn-secondary" onclick="disableAllSchedules()">Disable all</button>
-                            </div>
+                            <span id="automation-state" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
                         </div>
-                        <div class="policy-head" aria-hidden="true">
-                            <span></span><span>#</span><span>Policy</span><span>Does</span><span>Hours</span><span>Enabled</span><span></span>
-                        </div>
-                        <ol class="policy-list" id="policy-list" aria-label="Policies, highest priority first">
-                            <li class="policy-empty">Loading policies</li>
-                        </ol>
-                        <div class="ui-card-body policy-rules">
-                            <details class="policy-rules-more">
-                                <summary>How new policies are placed</summary>
-                                <p class="ui-help">A single date goes above days of the week, days of the week above months, and months above every day. At the same level a Stop policy goes above an Active one. You can still drag any policy, for example an Active policy above a Stop policy so that it wins.</p>
-                            </details>
-                        </div>
-                        <div class="ui-sr-only" id="policy-live" aria-live="polite"></div>
-                    </div>
-
-                    <div class="ui-card" id="policy-preview-card">
-                        <div class="ui-card-header">
-                            <div>
-                                <h3 id="policy-preview-title">Next 7 days</h3>
-                                <p>What the policies add up to. Pick a date to see another week, and point at a bar to see which policy decides it.</p>
-                            </div>
-                            <div class="policy-preview-nav" role="group" aria-label="Days shown">
-                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(-7)" aria-label="Previous 7 days" title="Previous 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                                <input type="date" class="ui-input policy-preview-date" id="policy-preview-date" aria-label="First day shown" onchange="setPolicyPreviewStart(this.value)">
-                                <button type="button" class="ui-btn ui-btn-icon" onclick="shiftPolicyPreview(7)" aria-label="Next 7 days" title="Next 7 days"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-                                <button type="button" class="ui-btn ui-btn-secondary" id="policy-preview-today" onclick="setPolicyPreviewStart('')" disabled>Today</button>
+                        <div class="ui-card-body">
+                            <div class="ui-facts">
+                                <div class="ui-fact">
+                                    <span class="ui-fact-label">Scheduler</span>
+                                    <span class="ui-fact-value" id="automation-last-tick">–</span>
+                                    <span class="ui-fact-hint" id="automation-mode-hint">Checks once a minute</span>
+                                </div>
                             </div>
                         </div>
                         <div class="ui-card-body">
-                            <div class="policy-preview" id="policy-preview"></div>
-                            <div class="policy-tip" id="policy-tip" role="tooltip" hidden></div>
-                            <div class="policy-legend" aria-hidden="true">
-                                <span><i class="policy-swatch policy-swatch-on"></i>Kiosk runs</span>
-                                <span><i class="policy-swatch policy-swatch-stop"></i>Off hours (Stop policy)</span>
-                            </div>
+                            <p class="ui-section-title">Recent automatic actions</p>
+                            <ul class="ui-events" id="automation-events">
+                                <li class="ui-empty">No automatic actions recorded yet</li>
+                            </ul>
                         </div>
                     </div>
-                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- <Jun Kai start> -->
@@ -4392,6 +4433,10 @@
                                         <label><input type="radio" name="policy-action" value="active" checked onchange="updateFormFields()"><span><strong>Active</strong><small>runs</small></span></label>
                                         <label><input type="radio" name="policy-action" value="stop" onchange="updateFormFields()"><span><strong>Stop</strong><small>is off</small></span></label>
                                     </div>
+                                </div>
+                                <div class="ui-field ui-field-wide" id="policy-color-section">
+                                    <span class="ui-label" id="policy-color-label">Colour on the calendar</span>
+                                    <div class="policy-colors" id="policy-colors" role="radiogroup" aria-labelledby="policy-color-label"></div>
                                 </div>
                                 <div class="ui-field">
                                     <label class="ui-label" for="schedule-type">Repeats</label>

@@ -115,9 +115,87 @@ async function loadEmailConfig() {
     }
 
     setEmailStatus('success', 'Settings loaded');
+    loadEmailHealth();
+    loadEmailPreview();
   } catch (err) {
     console.error(err);
     setEmailStatus('error', 'Failed to load email config.');
+  }
+}
+
+// The status line at the top (12 Nov 2026 design): can the kiosk send email, how many went out, the last test
+function emailAgo(iso) {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (!Number.isFinite(minutes)) return '';
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 48 * 60) return `${Math.round(minutes / 60)} h ago`;
+  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+}
+
+function setEmailHealth(tone, line, sub, counts, time) {
+  const card = document.getElementById('email-health');
+  if (!card) return;
+  card.className = `ui-card health-status health-status-${tone}`;
+  const mark = document.getElementById('email-health-mark');
+  if (mark) mark.innerHTML = uiIcon({ ok: 'check', warn: 'alert', down: 'cross', muted: 'mail' }[tone] || 'mail', 22);
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  set('email-health-line', line);
+  set('email-health-sub', sub);
+  set('email-health-time', time || '');
+  const box = document.getElementById('email-health-counts');
+  if (box) box.innerHTML = (counts || []).map(([n, word]) => `<span><b>${escapeHtmlSafe(String(n))}</b>${escapeHtmlSafe(word)}</span>`).join('');
+}
+
+async function loadEmailHealth(refresh) {
+  const button = document.getElementById('email-health-check');
+  if (button) button.disabled = true;
+  if (refresh) setEmailHealth('muted', 'Checking the mail account', 'Logging in to the mail server, this can take a few seconds.');
+  try {
+    const res = await fetch(`/api/admin/email/status${refresh ? '?refresh=1' : ''}`, { credentials: 'include', cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'Status failed');
+    const s = data.status;
+    const counts = [];
+    if (s.sent7d !== null && s.sent7d !== undefined) counts.push([s.sent7d, 'sent in 7 days']);
+    if (s.lastSentAt) counts.push([emailAgo(s.lastSentAt), 'last sent']);
+    const time = s.lastTest ? `Last test ${emailAgo(s.lastTest.at)}: ${s.lastTest.ok ? 'sent' : 'failed'}` : 'No test sent yet';
+    if (!s.configured) {
+      setEmailHealth('warn', 'No mail account set up', 'Pick a provider, enter the account and save, then send yourself a test.', counts, time);
+    } else if (!s.login || s.login.status === 'unknown') {
+      setEmailHealth('muted', 'Mail account not checked', (s.login && s.login.summary) || 'Click Check again to log in to the mail server.', counts, time);
+    } else if (s.login.status === 'ok') {
+      const checked = s.login.cached ? 'Login checked in the last 5 minutes' : `Login checked just now (${Number(s.login.latencyMs || 0).toLocaleString('en-SG')} ms)`;
+      setEmailHealth('ok', 'Connected: the kiosk can send email', `Sending as ${s.sender} through ${s.providerName}. ${checked}.`, counts, time);
+    } else {
+      setEmailHealth('down', 'The kiosk cannot send email', `${s.login.summary || 'The mail server refused the login.'} Check the account below, save, then Check again.`, counts, time);
+    }
+  } catch (err) {
+    console.error(err);
+    setEmailHealth('down', 'Status not available', `Could not check the mail account: ${err.message}`);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function loadEmailPreview() {
+  const frame = document.getElementById('email-preview-frame');
+  const empty = document.getElementById('email-preview-empty');
+  const meta = document.getElementById('email-preview-meta');
+  if (!frame) return;
+  try {
+    const res = await fetch('/api/admin/email/preview', { credentials: 'include', cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'Preview failed');
+    const p = data.preview;
+    if (meta) meta.innerHTML = [['From', p.from], ['To', p.to], ['Subject', p.subject]].map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHtmlSafe(v || '')}</dd></div>`).join('');
+    frame.srcdoc = p.html || '';
+    frame.hidden = false;
+    if (empty) empty.hidden = true;
+  } catch (err) {
+    console.error(err);
+    frame.hidden = true;
+    if (empty) { empty.hidden = false; empty.textContent = `The preview could not be built: ${err.message}`; }
   }
 }
 
@@ -158,6 +236,8 @@ async function saveEmailConfig() {
     }
 
     setEmailStatus('success', data.message || 'Saved successfully.');
+    loadEmailHealth(true);
+    loadEmailPreview();
   } catch (err) {
     console.error(err);
     setEmailStatus('error', 'Save failed.');
@@ -184,13 +264,16 @@ async function sendTestEmail() {
     const data = await res.json();
     if (!res.ok || !data.success) {
       setEmailStatus('error', data.error || 'Test email failed.');
+      loadEmailHealth();
       return;
     }
 
     setEmailStatus('success', 'Test email sent successfully.');
+    loadEmailHealth();
   } catch (err) {
     console.error(err);
     setEmailStatus('error', 'Test email failed.');
+    loadEmailHealth();
   }
 }
 
