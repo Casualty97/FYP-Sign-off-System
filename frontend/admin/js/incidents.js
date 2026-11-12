@@ -471,7 +471,8 @@ function incidentFacts(incident) {
             if (incidentIsNumber(e.value)) add(now, incidentWithUnit(e.value, unit));
             if (incidentIsNumber(e.slopePerHour)) add('Rising', `${incidentWithUnit(e.slopePerHour, unit)} an hour`);
             if (incidentIsNumber(e.hours)) add('For', incidentShort(e.hours * 3600));
-            if (incidentIsNumber(e.baseline)) add('Started at', `about ${incidentWithUnit(e.baseline, unit)}`);
+            // the detector's baseline is the level of the first third of the window, before the climb began
+            if (incidentIsNumber(e.baseline)) add('Before the climb', `about ${incidentWithUnit(e.baseline, unit)}`);
             break;
         case 'disk':
             if (incidentIsNumber(e.value) && unit === 'GB') add('Used', `${incidentNumber(e.value)} GB`, incidentIsNumber(e.percent) && incidentIsNumber(e.totalGb) ? `${incidentNumber(e.percent)} % of ${incidentNumber(e.totalGb)} GB` : '');
@@ -485,6 +486,7 @@ function incidentFacts(incident) {
             if (down) add(INCIDENT_SERVICE_LABEL[incident.subject] || incidentWords(incident.subject || 'service'), 'Down', '', 'bad');
             else if (incidentIsNumber(e.value)) add('Answer time', incidentWithUnit(e.value, unit || 'ms'));
             if (!down && incidentIsNumber(e.baseline)) add('Usually', incidentWithUnit(e.baseline, unit || 'ms'), spread);
+            if (!down && incidentIsNumber(e.z)) add('How far off', `${Math.abs(e.z) >= 10 ? Math.round(Math.abs(e.z)) : incidentNumber(Math.abs(e.z))}×`, 'its usual swing');
             if (incidentIsNumber(e.runs)) add(down ? 'Failed checks' : 'Slow checks', `${e.runs} in a row`);
             if (e.since) add('Since', incidentClock(e.since));
             // the page itself comes from the admin server, so it is running (said only while it matters)
@@ -581,8 +583,11 @@ function incidentHappenedHtml(incident, floor, nowMs) {
         const rows = incidentEvidenceRows(e);
         if (rows.length) numbers = `<dl class="ui-kv inc-kv">${rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(incidentText(v))}</dd>`).join('')}</dl>`;
     }
-    const quote = typeof e.template === 'string' && e.template
-        ? `<div class="inc-quote"><span>The error</span><code>${escapeHtmlSafe(incidentText(e.template))}</code></div>` : '';
+    // a new kind of error carries its own text; a burst carries the most common ones (top)
+    const top = Array.isArray(e.top) && e.top[0] && typeof e.top[0].template === 'string' ? e.top[0] : null;
+    let quote = '';
+    if (typeof e.template === 'string' && e.template) quote = `<div class="inc-quote"><span>The error</span><code>${escapeHtmlSafe(incidentText(e.template))}</code></div>`;
+    else if (top) quote = `<div class="inc-quote"><span>The most common error${incidentIsNumber(top.count) ? ` (${top.count} times)` : ''}</span><code>${escapeHtmlSafe(incidentText(top.template))}</code></div>`;
     return story + chart + numbers + quote || '<div class="inc-loading">No numbers were stored for this incident.</div>';
 }
 
