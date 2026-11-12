@@ -8,6 +8,7 @@ const auth = require('../../core/auth');
 const { logAudit } = require('../../core/audit');
 const settings = require('./settings');
 const engine = require('./engine');
+const { ACTIONS } = require('./advisor');
 
 const router = express.Router();
 const STATUSES = ['open', 'resolved', 'all'];
@@ -40,7 +41,13 @@ router.get('/incidents', auth.requireAuth, async (req, res) => {
     const status = req.query.status === undefined ? 'open' : String(req.query.status);
     if (!STATUSES.includes(status)) return res.status(400).json({ success: false, error: 'status must be open, resolved or all' });
     try {
-        res.json({ success: true, incidents: await engine.store.list({ status, limit: req.query.limit }) });
+        const incidents = await engine.store.list({ status, limit: req.query.limit });
+        // the newest advice of each incident rides along, so the page sees it arrive (the incident row itself does not change)
+        const advice = await engine.store.latestEvents(incidents.map((i) => i.id), 'advice');
+        res.json({
+            success: true,
+            incidents: incidents.map((i) => ({ ...i, advice: advice[i.id] ? { at: advice[i.id].at, ...advice[i.id].detail } : null, adviceBusy: engine.advisor.isBusy(i.id) }))
+        });
     } catch (error) { fail(res, error, 'list the incidents'); }
 });
 
@@ -74,6 +81,33 @@ router.post('/incidents/:id/acknowledge', auth.requireAuth, action('acknowledge 
 router.post('/incidents/:id/resolve', auth.requireAuth, action('resolve the incident', (id, req) => engine.resolve(id, who(req), (req.body || {}).note)));
 // POST /api/admin/aiops/incidents/:id/verdict  { verdict: 'correct' | 'not-useful' | 'false-alarm' }
 router.post('/incidents/:id/verdict', auth.requireAuth, action('save the verdict', (id, req) => engine.setVerdict(id, (req.body || {}).verdict, who(req))));
+
+// POST /api/admin/aiops/incidents/:id/advice  ask the advisor again (at most every 30 s per incident); it answers in
+// the background and the advice shows on the next list
+router.post('/incidents/:id/advice', auth.requireAuth, async (req, res) => {
+    const id = idOf(req.params.id);
+    if (!id) return notFound(res);
+    try {
+        const incident = await engine.store.get(id);
+        if (!incident) return notFound(res);
+        if (incident.status === 'resolved') return res.status(400).json({ success: false, error: 'This incident is resolved: there is nothing to advise on' });
+        const result = engine.advisor.request(id, { force: true });
+        if (!result.queued && result.reason === 'off') return res.status(409).json({ success: false, error: 'The advisor is switched off in the settings' });
+        if (!result.queued && result.reason === 'soon') return res.status(429).json({ success: false, error: 'The advisor was asked a moment ago: wait half a minute' });
+        res.json({ success: true, queued: true });
+    } catch (error) { fail(res, error, 'ask the advisor'); }
+});
+
+// GET /api/admin/aiops/advisor  the advisor's state, its step list and the models Ollama has (empty when it is not running)
+router.get('/advisor', auth.requireAuth, async (req, res) => {
+    const status = engine.advisor.getStatus();
+    let models = [];
+    try {
+        const response = await fetch(`${status.url}/api/tags`, { signal: AbortSignal.timeout(3000) });
+        if (response.ok) models = ((await response.json()).models || []).map((m) => m && m.name).filter((name) => typeof name === 'string');
+    } catch { /* Ollama not running: the page offers the saved model only */ }
+    res.json({ success: true, advisor: status, actions: ACTIONS, models });
+});
 
 // GET /api/admin/aiops/settings  the settings, their limits and the detector list
 router.get('/settings', auth.requireAuth, (req, res) => {

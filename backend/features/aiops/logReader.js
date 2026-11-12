@@ -159,7 +159,8 @@ function createLogReader(files, { now = () => Date.now() } = {}) {
     function known(beforeMs) {
         const before = beforeMs instanceof Date ? beforeMs.getTime() : Number(beforeMs);
         const templates = new Set();
-        for (const e of events) if (e.ms < before) templates.add(templateOf(e.message));
+        // each line is turned into its template once (an error flood keeps up to 50,000 lines, checked every minute)
+        for (const e of events) if (e.ms < before) templates.add(e.template || (e.template = templateOf(e.message)));
         return templates;
     }
 

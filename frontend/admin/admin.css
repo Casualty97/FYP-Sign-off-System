@@ -7966,6 +7966,20 @@ input:checked + .slider:before {
 .inc-detail .ui-kv { grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; }
 .inc-detail .ui-kv dd { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .inc-detail p.ui-help { margin: 0; }
+/* <Jun Kai start> AIOps part 2: the advice block across the top of an incident's details */
+.inc-advice { grid-column: 1 / -1; padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 10px; background: #fafbfc; }
+.inc-advice-summary { margin: 4px 0 10px; font-size: 13px; line-height: 1.5; color: var(--theme-text-color); }
+.inc-advice-label { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: #5b6573; }
+.inc-causes { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.inc-causes li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; font-size: 13px; line-height: 1.45; color: var(--theme-text-color); }
+.inc-likely { font-size: 12px; color: #5b6573; }
+.inc-advice-step { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.45; color: var(--theme-text-color); }
+.inc-advice-step .ui-fact-hint { display: block; margin-top: 2px; font-weight: 400; }
+.inc-advice-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 12px; }
+.inc-advice > .ui-row { margin-top: 8px; }
+.inc-advisor-switch { margin-top: 10px; }
+.inc-advisor-model { margin-top: 10px; max-width: 320px; }
+/* <Jun Kai end> */
 .inc-spark { display: block; width: 100%; height: 36px; margin-top: 14px; color: var(--color-dark-gray); overflow: visible; }
 .inc-detail .ui-events li { grid-template-columns: 96px 150px minmax(0, 1fr); gap: 10px; padding: 8px 0; }
 .inc-detail .ui-events li.ui-empty { padding: 8px 0; }

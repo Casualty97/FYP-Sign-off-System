@@ -78,3 +78,23 @@ All of them need a login; PUT /settings and POST /run-now need a system admin. G
 
 ---
 Hand-written on 2026-11-11. Update this page when you change the feature.
+
+## Part 2: the advisor (local AI), 12 Nov 2026
+- `backend/features/aiops/advisor.js`. For an open incident it asks the local model (Ollama `/api/chat`, JSON mode,
+  default `qwen2.5:3b`, `OLLAMA_URL`) for a short summary, at most three likely causes and ONE next step from a fixed
+  list (`ACTIONS`: nothing yet, close heavy programs, restart the kiosk server, check MySQL, free disk space, run an
+  archive, check the mail account, check the tablet, read the server log).
+- Evidence only: the incident's numbers (the last 12 values of its line, not the whole list), its timeline, and up to
+  three earlier incidents of the same detector that an admin marked Correct, with their resolve notes. That is how the
+  verdicts teach it ("LLM/AI training" of task-sheet point 3, without fine-tuning on a kiosk PC). No visitor records go
+  in, and nothing leaves the PC.
+- It never runs anything: the step is a suggestion on the page. The answer is checked (an unknown step becomes "none",
+  steps copied into the causes are dropped, texts cut to size); a test incident always gets "nothing to do".
+- When Ollama is off, slow (120 s) or answers in the wrong shape, rule-based advice per detector is given instead and
+  marked as such.
+- When: after every check, an open incident whose newest open, reopen or severity step has no advice after it is
+  queued; one incident at a time. "Ask again" in the incident's details: `POST /api/admin/aiops/incidents/:id/advice`
+  (at most every 30 s per incident). Each answer is an `advice` event on the timeline; `GET /incidents` carries the
+  newest one (`advice`, `adviceBusy`). `GET /api/admin/aiops/advisor`: its state, the step list and Ollama's models.
+- Settings: `advisor.enabled` (off with the master switch too) and `advisor.model`, in the Settings panel.
+- Also: the log reader now works out each line's template once (review of part 1).

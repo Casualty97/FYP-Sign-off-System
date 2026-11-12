@@ -3419,6 +3419,17 @@
                                     <span class="ui-switch"><input type="checkbox" id="incidents-enabled" aria-label="Anomaly detection"><span class="ui-switch-track"></span></span>
                                     <span class="inc-master-text"><strong>Anomaly detection</strong><small>Statistics on this PC's own data: nothing is sent anywhere. Off means nothing is compared and no incident is opened; open ones stay as they are.</small></span>
                                 </label>
+                                <!-- <Jun Kai start> AIOps part 2: the advisor -->
+                                <label class="inc-master inc-advisor-switch">
+                                    <span class="ui-switch"><input type="checkbox" id="incidents-advisor" aria-label="Advisor"><span class="ui-switch-track"></span></span>
+                                    <span class="inc-master-text"><strong>Advisor (local AI)</strong><small>Explains each incident and suggests one next step, using the model below on this PC (Ollama). It only suggests: nothing is changed by itself. When Ollama is not running it gives rule-based advice.</small></span>
+                                </label>
+                                <div class="ui-field inc-advisor-model">
+                                    <label class="ui-label" for="incidents-advisor-model">Advisor model</label>
+                                    <select class="ui-select" id="incidents-advisor-model"></select>
+                                    <span class="ui-fact-hint" id="incidents-advisor-help"></span>
+                                </div>
+                                <!-- <Jun Kai end> -->
                                 <div class="ui-section-title inc-section">Detectors</div>
                                 <div class="inc-detectors" id="incidents-detectors"></div>
                                 <div class="ui-section-title inc-section">Behaviour</div>

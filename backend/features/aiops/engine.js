@@ -10,6 +10,7 @@ const incidents = require('./incidents');
 const input = require('./input');
 const log = require('../../core/log');
 const { createLogReader } = require('./logReader');
+const { createAdvisor } = require('./advisor');
 
 const FIRST_TICK_DELAY_MS = 90 * 1000;
 const SOON_MS = 5 * 1000;
@@ -60,6 +61,9 @@ function createRunner(overrides = {}) {
         all: (...args) => d.db().all(...args),
         run: (...args) => d.db().run(...args)
     });
+
+    // AIOps part 2: explains each open incident in the background (local LLM, or rules when it is not there)
+    const advisor = d.advisor ? d.advisor(store, current) : createAdvisor({ store, settings: current });
 
     // In AUTO mode while the policies say the kiosk is off, the kiosk and tablet detectors are muted
     function quietNow(now, conf) {
@@ -161,6 +165,8 @@ function createRunner(overrides = {}) {
                 state.notes = result.notes || {};
             }
             state.lastResult = { at: result.at, skipped: result.skipped, anomalies: result.anomalies, opened: result.opened, merged: result.merged, resolved: result.resolved };
+            // new or changed incidents get advice; it runs in the background so the check does not wait for the model
+            if (!result.skipped) advisor.sweep().catch((error) => logOnce(`advisor: ${error.message}`));
             await prune(now.getTime(), current());
             state.lastError = null;
             return result;
@@ -232,7 +238,8 @@ function createRunner(overrides = {}) {
                 namedTablets: state.namedTablets
             },
             quietNow: quietNow(d.now(), conf),
-            recorder: d.recorder().getStatus()
+            recorder: d.recorder().getStatus(),
+            advisor: advisor.getStatus()
         };
     }
 
@@ -249,7 +256,7 @@ function createRunner(overrides = {}) {
     }
 
     return {
-        start, getStatus, runNow: runTick, applySettings, counts, store,
+        start, getStatus, runNow: runTick, applySettings, counts, store, advisor,
         acknowledge: engine.acknowledge, resolve: engine.resolve, setVerdict: engine.setVerdict, openTest: engine.openTest
     };
 }
