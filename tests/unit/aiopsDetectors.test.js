@@ -123,7 +123,7 @@ test('spike reports warn when the rise is between K and 2K spreads', () => {
     const a = d.detectSpike({ series, metric: 'memory', now: NOW, sensitivity: 3, intervalSeconds: 60 });
     checkShape(a);
     assert.equal(a.severity, 'warn');
-    assert.match(a.explanation, /\(spread 3 %\), so this is 4 spreads above normal/);
+    assert.match(a.explanation, /\(usual swing ± 3 %\), so this is 4 times its usual swing above normal/);
     assert.equal(d.detectSpike({ series, metric: 'memory', now: NOW, sensitivity: 1, intervalSeconds: 60 }), null, 'very low sensitivity needs 6 spreads');
 });
 
@@ -554,5 +554,21 @@ test('tablets: only the time the kiosk has been watched counts, so a night in hi
     const later = d.runAll({ now: NOW, tablets: { devices }, watchSeconds: 11 * 60 }, { detectors: all });
     assert.ok(!later.held.includes('tablets:'));
     assert.equal(later.anomalies.length, 1);
+});
+
+test('levels() gives the settings page the real number behind each of the 5 sensitivity steps of all 7 detectors', () => {
+    const levels = d.levels();
+    assert.deepEqual(Object.keys(levels), d.DETECTOR_KEYS);
+    for (const [key, level] of Object.entries(levels)) {
+        assert.equal(level.short.length, 5, `${key} has 5 steps`);
+        if (level.long) assert.equal(level.long.length, 5);
+        assert.match(level.sentence, /\{v\}/, `${key} has a sentence to put the number in`);
+    }
+    assert.deepEqual(levels.spike.short, [1, 2, 3, 4, 5].map((s) => `${d.K[s]}×`), 'straight from the tables the detectors use');
+    assert.equal(levels.drift.short[4], `${d.H[5]}×`);
+    assert.equal(levels.disk.long[0], `${d.D[1]} days`);
+    assert.equal(levels.tablets.long[2], `${d.M[3]} minutes`);
+    assert.equal(levels.logs.long[4], `${d.B[5]} errors`);
+    assert.match(levels.spike.sentence, new RegExp(`CPU or GPU over ${d.FLOORS.cpu} %`));
 });
 // <Jun Kai end>

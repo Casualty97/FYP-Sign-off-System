@@ -8,6 +8,7 @@
   "learnFromVerdicts": true,
   "cooldownMinutes": 30,
   "clearAfterMinutes": 10,
+  "offerFixes": true,
   "detectors": {
     "spike": { "enabled": true, "sensitivity": 3 },
     "timeOfDay": { "enabled": true, "sensitivity": 3 },
@@ -17,5 +18,6 @@
     "tablets": { "enabled": true, "sensitivity": 3 },
     "logs": { "enabled": true, "sensitivity": 3 }
   },
-  "advisor": { "enabled": true, "model": "qwen2.5:3b" }
+  "advisor": { "enabled": true, "model": "qwen2.5:3b" },
+  "fixes": { "start-kiosk": "ask" }
 }

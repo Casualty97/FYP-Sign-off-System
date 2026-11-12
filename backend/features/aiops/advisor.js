@@ -6,6 +6,8 @@
 // rule-based advice is given instead. Each answer is kept as an 'advice' event on the incident's timeline.
 // Switched on and off in the anomaly detection settings (advisor.enabled), together with the master switch.
 // <Jun Kai start>
+const { isExample } = require('./fixes');
+
 const ACTIONS = {
     none: 'Nothing to do yet: keep an eye on it',
     'close-heavy-apps': 'Close programs that use a lot of CPU or memory on the server PC',
@@ -165,7 +167,8 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
 
     async function adviseOne(id) {
         const incident = await store.get(id);
-        if (!incident || incident.status === 'resolved') return null;
+        // an example incident keeps the advice it came with
+        if (!incident || incident.status === 'resolved' || isExample(incident)) return null;
         const events = await store.events(id);
         const examples = await store.examples(incident.detector, MAX.examples, incident.id);
         const { model } = conf();
@@ -220,6 +223,7 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
         if (!conf().on) return 0;
         let added = 0;
         for (const incident of await store.listOpen()) {
+            if (isExample(incident)) continue;
             const events = await store.events(incident.id);
             const lastStep = events.reduce((at, e) => (ADVISED.has(e.type) ? Math.max(at, Date.parse(e.at) || 0) : at), 0);
             const lastAdvice = events.reduce((at, e) => (e.type === 'advice' ? Math.max(at, Date.parse(e.at) || 0) : at), 0);

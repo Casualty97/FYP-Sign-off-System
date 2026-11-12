@@ -1,0 +1,89 @@
+// Owner: Role 3, Jun Kai.
+// The programmes using the most CPU or memory on this PC right now, for the "What to do" steps of a CPU or memory
+// incident. Windows: one PowerShell call to the performance counters (read twice, the first read only primes them);
+// Linux: ps. Cached for 15 s and never throws: an empty list just leaves that step out. Node.js (the kiosk itself) and
+// the idle counters are never listed, so nobody is told to close the kiosk.
+// <Jun Kai start>
+const { execFile } = require('child_process');
+const os = require('os');
+
+const CACHE_MS = 15 * 1000;
+const TIMEOUT_MS = 10 * 1000;
+const FRIENDLY = {
+    chrome: 'Google Chrome', msedge: 'Microsoft Edge', firefox: 'Firefox', teams: 'Microsoft Teams', 'ms-teams': 'Microsoft Teams',
+    code: 'Visual Studio Code', mysqld: 'MySQL', ollama: 'Ollama', 'ollama app': 'Ollama', explorer: 'File Explorer', onedrive: 'OneDrive',
+    msmpeng: 'Microsoft Defender', searchhost: 'Windows Search', zoom: 'Zoom', discord: 'Discord', spotify: 'Spotify', excel: 'Microsoft Excel',
+    winword: 'Microsoft Word', powerpnt: 'Microsoft PowerPoint', outlook: 'Microsoft Outlook', olk: 'Microsoft Outlook', steam: 'Steam',
+    obs64: 'OBS Studio', vlc: 'VLC', blender: 'Blender', powershell: 'PowerShell', pwsh: 'PowerShell'
+};
+const HIDDEN = new Set(['_total', 'idle', 'system idle process', 'system', 'node', 'memory compression', 'registry', 'secure system']);
+const cache = { cpu: { at: 0, list: [] }, memory: { at: 0, list: [] } };
+
+const baseName = (name) => String(name || '').replace(/#\d+$/, '').replace(/\.exe$/i, '').trim();
+function friendly(name) {
+    const base = baseName(name);
+    return FRIENDLY[base.toLowerCase()] || base;
+}
+
+// rows: [{ name, cpu (percent of one core), memoryBytes }] -> one entry per programme, cpu as a percent of the whole PC,
+// the busiest first, at most `limit`
+function summarise(rows, by = 'cpu', cores = (os.cpus() || []).length || 1, limit = 3) {
+    const groups = new Map();
+    for (const row of Array.isArray(rows) ? rows : []) {
+        const base = baseName(row && row.name);
+        if (!base || HIDDEN.has(base.toLowerCase())) continue;
+        const entry = groups.get(base.toLowerCase()) || { name: friendly(base), cpu: 0, memoryMb: 0 };
+        entry.cpu += Math.max(0, Number(row.cpu) || 0) / Math.max(1, cores);
+        entry.memoryMb += Math.max(0, Number(row.memoryBytes) || 0) / (1024 * 1024);
+        groups.set(base.toLowerCase(), entry);
+    }
+    const key = by === 'memory' ? 'memoryMb' : 'cpu';
+    return [...groups.values()]
+        .filter((e) => (by === 'memory' ? e.memoryMb >= 50 : e.cpu >= 1))
+        .sort((a, b) => b[key] - a[key])
+        .slice(0, limit)
+        .map((e) => ({ name: e.name, cpu: Math.round(e.cpu), memoryMb: Math.round(e.memoryMb) }));
+}
+
+const WINDOWS_SCRIPT = "$null = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process; Start-Sleep -Milliseconds 900; "
+    + 'Get-CimInstance Win32_PerfFormattedData_PerfProc_Process | Select-Object Name, PercentProcessorTime, WorkingSetPrivate | ConvertTo-Json -Compress';
+
+function readWindows() {
+    return new Promise((resolve) => {
+        execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', WINDOWS_SCRIPT], { windowsHide: true, timeout: TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 }, (error, stdout) => {
+            if (error) return resolve([]);
+            try {
+                const parsed = JSON.parse(String(stdout || '').trim() || '[]');
+                const list = Array.isArray(parsed) ? parsed : [parsed];
+                resolve(list.map((p) => ({ name: p.Name, cpu: p.PercentProcessorTime, memoryBytes: p.WorkingSetPrivate })));
+            } catch {
+                resolve([]);
+            }
+        });
+    });
+}
+
+// ps gives each process's average since it started (percent of one core, like the Windows counter), close enough for
+// "what is busy"
+function readPs() {
+    return new Promise((resolve) => {
+        execFile('ps', ['-eo', 'comm=,pcpu=,rss='], { timeout: TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 }, (error, stdout) => {
+            if (error) return resolve([]);
+            resolve(String(stdout || '').split('\n').map((line) => line.trim().match(/^(.*?)\s+([\d.]+)\s+(\d+)$/)).filter(Boolean)
+                .map((m) => ({ name: m[1], cpu: Number(m[2]), memoryBytes: Number(m[3]) * 1024 })));
+        });
+    });
+}
+
+async function top(by = 'cpu', { reader } = {}) {
+    const kind = by === 'memory' ? 'memory' : 'cpu';
+    const cached = cache[kind];
+    if (!reader && Date.now() - cached.at < CACHE_MS) return cached.list;
+    const rows = await (reader ? reader() : process.platform === 'win32' ? readWindows() : readPs());
+    const list = summarise(rows, kind);
+    if (!reader) Object.assign(cache[kind], { at: Date.now(), list });
+    return list;
+}
+
+module.exports = { top, summarise, friendly };
+// <Jun Kai end>

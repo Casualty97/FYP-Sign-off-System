@@ -111,4 +111,17 @@ test('a partial body keeps the previous values and unknown keys are ignored', ()
     assert.deepEqual(check({}, previous).settings, previous, 'an empty body changes nothing');
     assert.deepEqual(check({}, { intervalSeconds: 5 }).settings, { ...settings.DEFAULTS, intervalSeconds: 30 }, 'a broken previous value is repaired first');
 });
+
+test('every fix starts at "Ask first"; a mode outside its list is refused, and a hand-edited one is repaired', () => {
+    assert.deepEqual(settings.DEFAULTS.fixes, { 'start-kiosk': 'ask' });
+    assert.equal(settings.DEFAULTS.offerFixes, true);
+    assert.equal(check({ fixes: { 'start-kiosk': 'auto' } }).settings.fixes['start-kiosk'], 'auto');
+    assert.equal(check({ fixes: { 'start-kiosk': 'delayed' } }).settings.fixes['start-kiosk'], 'delayed');
+    assert.deepEqual(check({ fixes: { 'start-kiosk': 'sometimes' } }), { field: 'fixes.start-kiosk', error: 'Choose ask, delayed, auto.' });
+    assert.equal(check({ fixes: { 'unknown-fix': 'auto' } }).settings.fixes['unknown-fix'], undefined, 'a fix the app does not have is ignored');
+    assert.deepEqual(check({ offerFixes: 'yes' }), { field: 'offerFixes', error: 'Choose on or off.' });
+    assert.equal(check({ offerFixes: false }).settings.offerFixes, false);
+    assert.deepEqual(settings.repair({ fixes: { 'start-kiosk': 'always' } }).fixes, { 'start-kiosk': 'ask' });
+    assert.equal(settings.repair({ offerFixes: 'no' }).offerFixes, true, 'a switch is on unless exactly false');
+});
 // <Jun Kai end>

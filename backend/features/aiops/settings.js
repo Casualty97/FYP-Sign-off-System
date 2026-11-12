@@ -5,6 +5,7 @@
 // <Jun Kai start>
 const paths = require('../../core/paths');
 const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
+const { FIXES } = require('./fixes');
 
 const FILE_NAME = 'aiops-settings.json';
 const DETECTORS = [
@@ -27,10 +28,15 @@ const DEFAULTS = {
     learnFromVerdicts: true,
     cooldownMinutes: 30,
     clearAfterMinutes: 10,
+    // fixes the app can do itself (fixes.js): offered on the incident for a System Admin to approve, or approved below
+    // once per fix (ask | delayed | auto)
+    offerFixes: true,
     detectors: Object.fromEntries(DETECTORS.map((d) => [d.key, { enabled: true, sensitivity: 3 }])),
     // AIOps part 2: the local LLM that explains each incident and suggests one step (advisor.js)
-    advisor: { enabled: true, model: 'qwen2.5:3b' }
+    advisor: { enabled: true, model: 'qwen2.5:3b' },
+    fixes: Object.fromEntries(Object.keys(FIXES).map((key) => [key, 'ask']))
 };
+const NESTED = ['detectors', 'advisor', 'fixes'];
 // an Ollama model name such as qwen2.5:3b or gemma2:2b
 const MODEL = /^[A-Za-z0-9._:/-]{1,80}$/;
 // [min, max] like the Hardware settings; sensitivity applies to every detector
@@ -60,7 +66,7 @@ function repair(stored) {
     const saved = isObject(s.detectors) ? s.detectors : {};
     const settings = {};
     for (const key of Object.keys(DEFAULTS)) {
-        if (key === 'detectors' || key === 'advisor') continue;
+        if (NESTED.includes(key)) continue;
         settings[key] = isSwitch(key) ? s[key] !== false : clampInt(s[key], LIMITS[key], DEFAULTS[key]);
     }
     settings.detectors = {};
@@ -76,6 +82,8 @@ function repair(stored) {
         enabled: advisor.enabled !== false,
         model: typeof advisor.model === 'string' && MODEL.test(advisor.model.trim()) ? advisor.model.trim() : DEFAULTS.advisor.model
     };
+    const fixes = isObject(s.fixes) ? s.fixes : {};
+    settings.fixes = Object.fromEntries(Object.entries(FIXES).map(([key, fix]) => [key, fix.modes.includes(fixes[key]) ? fixes[key] : DEFAULTS.fixes[key]]));
     return settings;
 }
 
@@ -103,7 +111,7 @@ function validate(body, previous = read()) {
     const prev = repair(previous);
     const settings = {};
     for (const key of Object.keys(DEFAULTS)) {
-        if (key === 'detectors' || key === 'advisor') continue;
+        if (NESTED.includes(key)) continue;
         const value = has(body, key) ? body[key] : prev[key];
         const check = isSwitch(key) ? boolField(value, key) : intField(value, LIMITS[key], key);
         if (check.error) return check;
@@ -124,6 +132,13 @@ function validate(body, previous = read()) {
     if (advisorOn.error) return advisorOn;
     if (typeof advisor.model !== 'string' || !MODEL.test(advisor.model.trim())) return fail('advisor.model', 'Choose a model name such as qwen2.5:3b.');
     settings.advisor = { enabled: advisorOn.value, model: advisor.model.trim() };
+    const sentFixes = isObject(body.fixes) ? body.fixes : {};
+    settings.fixes = {};
+    for (const [key, fix] of Object.entries(FIXES)) {
+        const mode = has(sentFixes, key) ? sentFixes[key] : prev.fixes[key];
+        if (!fix.modes.includes(mode)) return fail(`fixes.${key}`, `Choose ${fix.modes.join(', ')}.`);
+        settings.fixes[key] = mode;
+    }
     return { settings };
 }
 

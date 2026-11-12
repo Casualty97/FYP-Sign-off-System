@@ -1,7 +1,8 @@
 // Owner: Role 3, Jun Kai.
-// Admin anomaly detection API, mounted at /api/admin/aiops (session required; the settings and run-now need a
-// system_admin): the engine status with the incident counts, the incidents and their timeline, acknowledge /
-// resolve / verdict, the settings, one check now and a test incident.
+// Admin anomaly detection API, mounted at /api/admin/aiops (session required; the settings, run-now, the fixes and the
+// example incidents need a system_admin): the engine status with the incident counts, the incidents with their
+// timeline and step-by-step help, acknowledge / resolve / verdict, a fix approved on an incident, the busiest
+// programmes, the settings with what each sensitivity level means, one check now, a test incident and the examples.
 // <Jun Kai start>
 const express = require('express');
 const auth = require('../../core/auth');
@@ -10,6 +11,10 @@ const settings = require('./settings');
 const engine = require('./engine');
 const { ACTIONS } = require('./advisor');
 const learning = require('./learning');
+const detectors = require('./detectors');
+const playbooks = require('./playbooks');
+const fixes = require('./fixes');
+const processes = require('./processes');
 
 const router = express.Router();
 const STATUSES = ['open', 'resolved', 'all'];
@@ -27,13 +32,22 @@ function fail(res, error, what) {
     return res.status(500).json({ success: false, error: `Could not ${what}` });
 }
 
-// GET /api/admin/aiops/status  engine state, detectors, data window and the incident counts (zero when the counts
-// cannot be read: the status still shows lastError)
+// The fix the app can run on this incident right now, or null: not on a resolved one, not while fixes are switched off,
+// and not on a PC that starts nothing by itself (an example's fix is only recorded, so it is always offered)
+function fixOn(incident, conf) {
+    if (!incident || incident.status === 'resolved') return null;
+    const fix = fixes.describeFix(incident, conf, engine.fixer);
+    if (!fix || !fix.offered) return null;
+    return { ...fix, canRun: fix.example || fix.automation !== 'off' };
+}
+
+// GET /api/admin/aiops/status  engine state, detectors, data window, the incident counts (zero when the counts cannot
+// be read: the status still shows lastError) and how many example incidents are shown
 router.get('/status', auth.requireAuth, async (req, res) => {
     try {
         const status = engine.getStatus();
-        const counts = await engine.counts().catch(() => NO_COUNTS);
-        res.json({ success: true, status: { ...status, counts } });
+        const [counts, examples] = await Promise.all([engine.counts().catch(() => NO_COUNTS), engine.countExamples().catch(() => 0)]);
+        res.json({ success: true, status: { ...status, counts, examples } });
     } catch (error) { fail(res, error, 'load the status'); }
 });
 
@@ -45,21 +59,36 @@ router.get('/incidents', auth.requireAuth, async (req, res) => {
         const incidents = await engine.store.list({ status, limit: req.query.limit });
         // the newest advice of each incident rides along, so the page sees it arrive (the incident row itself does not change)
         const advice = await engine.store.latestEvents(incidents.map((i) => i.id), 'advice');
+        const conf = settings.read();
         res.json({
             success: true,
-            incidents: incidents.map((i) => ({ ...i, advice: advice[i.id] ? { at: advice[i.id].at, ...advice[i.id].detail } : null, adviceBusy: engine.advisor.isBusy(i.id) }))
+            incidents: incidents.map((i) => {
+                const fix = fixOn(i, conf);
+                return {
+                    ...i,
+                    example: fixes.isExample(i),
+                    fix: fix && fix.canRun ? { key: fix.key, label: fix.label, running: fix.running } : null,
+                    advice: advice[i.id] ? { at: advice[i.id].at, ...advice[i.id].detail } : null,
+                    adviceBusy: engine.advisor.isBusy(i.id)
+                };
+            })
         });
     } catch (error) { fail(res, error, 'list the incidents'); }
 });
 
-// GET /api/admin/aiops/incidents/:id  one incident with its timeline
+// GET /api/admin/aiops/incidents/:id  one incident with its timeline, the step-by-step help and the fix on offer
 router.get('/incidents/:id', auth.requireAuth, async (req, res) => {
     const id = idOf(req.params.id);
     if (!id) return notFound(res);
     try {
         const incident = await engine.store.get(id);
         if (!incident) return notFound(res);
-        res.json({ success: true, incident, events: await engine.store.events(id) });
+        const events = await engine.store.events(id);
+        const conf = settings.read();
+        const lastAdvice = events.filter((e) => e.type === 'advice').pop();
+        const fix = fixOn(incident, conf);
+        const help = playbooks.helpFor(incident, lastAdvice ? lastAdvice.detail : null, { fixKey: fix && fix.canRun ? fix.key : null });
+        res.json({ success: true, incident: { ...incident, example: fixes.isExample(incident) }, events, help, fix });
     } catch (error) { fail(res, error, 'load the incident'); }
 });
 
@@ -83,6 +112,18 @@ router.post('/incidents/:id/resolve', auth.requireAuth, action('resolve the inci
 // POST /api/admin/aiops/incidents/:id/verdict  { verdict: 'correct' | 'not-useful' | 'false-alarm' }
 router.post('/incidents/:id/verdict', auth.requireAuth, action('save the verdict', (id, req) => engine.setVerdict(id, (req.body || {}).verdict, who(req))));
 
+// POST /api/admin/aiops/incidents/:id/fix  (system_admin) { fix }  starts the fix and answers at once; the result shows
+// on the timeline ('fix-done') within about 30 seconds
+router.post('/incidents/:id/fix', auth.requireAdmin, async (req, res) => {
+    const id = idOf(req.params.id);
+    if (!id) return notFound(res);
+    try {
+        const result = await engine.runFix(id, String((req.body || {}).fix || ''), who(req));
+        if (!result) return notFound(res);
+        res.json({ success: true, ...result });
+    } catch (error) { fail(res, error, 'run the fix'); }
+});
+
 // POST /api/admin/aiops/incidents/:id/advice  ask the advisor again (at most every 30 s per incident); it answers in
 // the background and the advice shows on the next list
 router.post('/incidents/:id/advice', auth.requireAuth, async (req, res) => {
@@ -92,11 +133,20 @@ router.post('/incidents/:id/advice', auth.requireAuth, async (req, res) => {
         const incident = await engine.store.get(id);
         if (!incident) return notFound(res);
         if (incident.status === 'resolved') return res.status(400).json({ success: false, error: 'This incident is resolved: there is nothing to advise on' });
+        if (fixes.isExample(incident)) return res.status(400).json({ success: false, error: 'An example incident keeps the advice it came with' });
         const result = engine.advisor.request(id, { force: true });
         if (!result.queued && result.reason === 'off') return res.status(409).json({ success: false, error: 'The advisor is switched off in the settings' });
         if (!result.queued && result.reason === 'soon') return res.status(429).json({ success: false, error: 'The advisor was asked a moment ago: wait half a minute' });
         res.json({ success: true, queued: true });
     } catch (error) { fail(res, error, 'ask the advisor'); }
+});
+
+// GET /api/admin/aiops/processes?by=cpu|memory  the busiest programmes on this PC right now (empty when they cannot be read)
+router.get('/processes', auth.requireAuth, async (req, res) => {
+    const by = req.query.by === 'memory' ? 'memory' : 'cpu';
+    try {
+        res.json({ success: true, by, programmes: await processes.top(by) });
+    } catch (error) { fail(res, error, 'read the busiest programmes'); }
 });
 
 // GET /api/admin/aiops/advisor  the advisor's state, its step list and the models Ollama has (empty when it is not running)
@@ -110,9 +160,15 @@ router.get('/advisor', auth.requireAuth, async (req, res) => {
     res.json({ success: true, advisor: status, actions: ACTIONS, models });
 });
 
-// GET /api/admin/aiops/settings  the settings, their limits and the detector list
+// GET /api/admin/aiops/settings  the settings, their limits, the detector list, what each sensitivity level means, the
+// fixes with their modes and how this PC runs programmes (KIOSK_AUTOMATION)
 router.get('/settings', auth.requireAuth, (req, res) => {
-    res.json({ success: true, settings: settings.read(), limits: settings.LIMITS, detectors: settings.DETECTORS, learned: learning.read() });
+    res.json({
+        success: true, settings: settings.read(), limits: settings.LIMITS, detectors: settings.DETECTORS, learned: learning.read(),
+        levels: detectors.levels(),
+        fixes: Object.entries(fixes.FIXES).map(([key, fix]) => ({ key, label: fix.label, describe: fix.describe, modes: fix.modes.map((mode) => ({ key: mode, label: fixes.MODE_LABELS[mode] })) })),
+        automation: fixes.automationSetting()
+    });
 });
 
 // PUT /api/admin/aiops/settings  (system_admin) the whole settings object, or only the keys that change
@@ -127,6 +183,11 @@ router.put('/settings', auth.requireAdmin, (req, res) => {
         settings.write(result.settings);
         engine.applySettings(result.settings);
         logAudit('AIOPS_SETTINGS_UPDATE', who(req), 'aiops', null, req);
+        // approving a fix ahead (or taking that back) gets its own Audit Logs line
+        for (const [key, mode] of Object.entries(result.settings.fixes)) {
+            if (before.fixes[key] !== mode) logAudit(`AIOPS_FIX_MODE_${mode.toUpperCase()}`, who(req), 'aiops', key, req);
+        }
+        if (before.offerFixes !== result.settings.offerFixes) logAudit(result.settings.offerFixes ? 'AIOPS_FIXES_ON' : 'AIOPS_FIXES_OFF', who(req), 'aiops', null, req);
         res.json({ success: true, settings: result.settings });
     } catch (error) { fail(res, error, 'save the settings'); }
 });
@@ -143,6 +204,23 @@ router.post('/test-incident', auth.requireAuth, async (req, res) => {
     try {
         res.json({ success: true, incident: await engine.openTest(who(req)) });
     } catch (error) { fail(res, error, 'open the test incident'); }
+});
+
+// POST /api/admin/aiops/examples  (system_admin) seven example incidents that show every part of the panel (any earlier
+// examples are replaced); DELETE removes them. Examples never tune a detector or run a fix.
+router.post('/examples', auth.requireAdmin, async (req, res) => {
+    try {
+        const made = await engine.createExamples(who(req));
+        logAudit('AIOPS_EXAMPLES_SHOW', who(req), 'aiops', null, req);
+        res.json({ success: true, made });
+    } catch (error) { fail(res, error, 'add the example incidents'); }
+});
+router.delete('/examples', auth.requireAdmin, async (req, res) => {
+    try {
+        const removed = await engine.removeExamples();
+        logAudit('AIOPS_EXAMPLES_REMOVE', who(req), 'aiops', null, req);
+        res.json({ success: true, removed });
+    } catch (error) { fail(res, error, 'remove the example incidents'); }
 });
 
 module.exports = router;

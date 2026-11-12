@@ -12,6 +12,8 @@ const log = require('../../core/log');
 const { createLogReader } = require('./logReader');
 const { createAdvisor } = require('./advisor');
 const learning = require('./learning');
+const fixes = require('./fixes');
+const examples = require('./examples');
 
 const FIRST_TICK_DELAY_MS = 90 * 1000;
 const SOON_MS = 5 * 1000;
@@ -65,6 +67,19 @@ function createRunner(overrides = {}) {
 
     // AIOps part 2: explains each open incident in the background (local LLM, or rules when it is not there)
     const advisor = d.advisor ? d.advisor(store, current) : createAdvisor({ store, settings: current });
+
+    // the fixes the app can do itself, behind an admin's approval (fixes.js); the start is the one Server Schedule uses,
+    // and the last start attempt is shared with the policies so the two never start the kiosk twice in a row
+    const fixer = d.fixer ? d.fixer(store, current) : fixes.createFixer({
+        store,
+        settings: current,
+        actions: { 'start-kiosk': () => new Promise((resolve) => d.control().startKiosk(resolve)) },
+        lastAttempt: () => d.control().lastStartAttempt(),
+        noteAttempt: (at) => d.control().noteStartAttempt(at),
+        gapMs: () => d.control().START_GAP_MS,
+        audit: d.audit,
+        now: d.now
+    });
 
     // In AUTO mode while the policies say the kiosk is off, the kiosk and tablet detectors are muted
     function quietNow(now, conf) {
@@ -160,9 +175,15 @@ function createRunner(overrides = {}) {
 
     async function setVerdict(id, verdict, by) {
         const incident = await engine.setVerdict(id, verdict, by);
-        if (incident) await learnFrom(incident.detector).catch((error) => logOnce(`learning: ${error.message}`));
+        // an example's verdict is only recorded on it: it never tunes a detector
+        if (incident && !fixes.isExample(incident)) await learnFrom(incident.detector).catch((error) => logOnce(`learning: ${error.message}`));
         return incident;
     }
+
+    const createExamples = (by) => examples.createExamples(store, by, d.now());
+    const removeExamples = () => examples.removeExamples(store);
+    const countExamples = () => store.countByFingerprintPrefix(fixes.EXAMPLE_PREFIX);
+    const runFix = (id, fixKey, by) => fixer.run(id, fixKey, by);
 
     function logOnce(message) {
         if (state.logged.has(message)) return;
@@ -194,6 +215,8 @@ function createRunner(overrides = {}) {
             state.lastResult = { at: result.at, skipped: result.skipped, anomalies: result.anomalies, opened: result.opened, merged: result.merged, resolved: result.resolved };
             // new or changed incidents get advice; it runs in the background so the check does not wait for the model
             if (!result.skipped) advisor.sweep().catch((error) => logOnce(`advisor: ${error.message}`));
+            // fixes an admin made automatic in the settings (the kiosk start itself runs in the background)
+            if (!result.skipped) await fixer.sweep().catch((error) => logOnce(`fixes: ${error.message}`));
             await prune(now.getTime(), current());
             state.lastError = null;
             return result;
@@ -286,8 +309,9 @@ function createRunner(overrides = {}) {
     }
 
     return {
-        start, getStatus, runNow: runTick, applySettings, counts, store, advisor,
-        acknowledge: engine.acknowledge, resolve: engine.resolve, setVerdict, openTest: engine.openTest, learnFrom
+        start, getStatus, runNow: runTick, applySettings, counts, store, advisor, fixer,
+        acknowledge: engine.acknowledge, resolve: engine.resolve, setVerdict, openTest: engine.openTest, learnFrom,
+        runFix, createExamples, removeExamples, countExamples
     };
 }
 
