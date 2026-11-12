@@ -44,6 +44,9 @@ window.addEventListener('DOMContentLoaded', function() {
         document.getElementById('admin-dashboard').style.display = 'block';
     } else {
         console.log('No user logged in');
+        // <Jun Kai start>
+        tryRememberedSignIn();
+        // <Jun Kai end>
     }
 });
 

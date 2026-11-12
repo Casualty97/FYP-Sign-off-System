@@ -251,6 +251,9 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const auth = require('../../core/auth');
+// <Jun Kai start>
+const rememberMe = require('../../core/rememberMe');
+// <Jun Kai end>
 const bcrypt = require('bcrypt');
 const lostFoundStore = require('../lostFound/store'); // changes made by nick
 const db = require('../../core/db');
@@ -916,11 +919,13 @@ router.post('/login', (req, res) => {
         };
         
         logAudit('LOGIN', username, null, null, req);
-        res.json({ 
-            success: true, 
-            user: user,
-            message: 'Login successful'
+        // <Jun Kai start> "Keep me signed in for 1 day": a token cookie for this browser (backend/core/rememberMe.js)
+        if (req.body.remember !== true) return res.json({ success: true, user: user, message: 'Login successful' });
+        rememberMe.issue(req, res, user, (rememberErr, rememberUntil) => {
+            if (rememberErr) console.warn(`Could not keep ${user.username} signed in: ${rememberErr.message}`);
+            res.json({ success: true, user: user, message: 'Login successful', rememberUntil: rememberUntil || null });
         });
+        // <Jun Kai end>
     });
 });
 
@@ -930,6 +935,9 @@ router.post('/logout-audit', (req, res) => {
     if (username) {
         logAudit('LOGOUT', username, null, null, req);
     }
+    // <Jun Kai start> Logout also ends "keep me signed in" on this browser
+    rememberMe.revoke(req, res);
+    // <Jun Kai end>
     
     // Destroy the session
     req.session.destroy((err) => {

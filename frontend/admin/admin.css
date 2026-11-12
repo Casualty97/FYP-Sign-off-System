@@ -8325,3 +8325,59 @@ input:checked + .slider:before {
 }
 @media (prefers-reduced-motion: reduce) { .hw-key, .hw-plots { transition: none; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Login (supervisor meeting 04): the show-password button inside the field, "keep me signed in", the sign-in note */
+/* the campus photo (a wide panorama) fills any screen instead of repeating under a tall window; the crop keeps the
+   Republic Polytechnic sign to the right of the card, as before */
+.login-container { background-size: cover; background-position: 20% center; background-repeat: no-repeat; }
+/* A solid card with plain white fields and one blue button (12 Nov 2026): the old see-through look made the fields
+   look switched off, and the button turned white when the pointer was over it. Colours are variables, so a dark
+   theme can swap them. */
+#login-page {
+    --login-card: #ffffff; --login-border: #e2e8f0; --login-title: #0f172a; --login-text: #334155; --login-muted: #64748b;
+    --login-field: #ffffff; --login-field-border: #cbd5e1; --login-field-hover: #94a3b8; --login-field-text: #0f172a; --login-placeholder: #94a3b8;
+    --login-accent: #2563eb; --login-accent-hover: #1d4ed8; --login-accent-active: #1e40af; --login-ring: rgba(37, 99, 235, 0.28);
+    --login-eye-hover: #f1f5f9;
+}
+#login-page.login-container::before, #login-page.login-container::after { display: none; }
+#login-page .login-card { background: var(--login-card) !important; border: 1px solid var(--login-border); border-radius: 18px; padding: 40px 36px 36px; max-width: 420px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35); backdrop-filter: none; -webkit-backdrop-filter: none; }
+#login-page .login-card::before { display: none; }
+#login-page .login-icon { margin-bottom: 16px; }
+#login-page .login-icon > * { padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+#login-page .login-card h1 { margin-bottom: 6px; font-size: 24px; color: var(--login-title) !important; }
+#login-page .login-subtitle { margin-bottom: 28px; font-size: 14px; color: var(--login-muted) !important; }
+#login-page .form-group { margin-bottom: 18px; }
+#login-page .form-group label { margin-bottom: 6px; font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--login-text) !important; }
+#login-page .form-group input[type="text"],
+#login-page .form-group input[type="password"] { padding: 11px 14px; border: 1px solid var(--login-field-border); border-radius: 10px; font-size: 15px; color: var(--login-field-text); background: var(--login-field) !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; caret-color: var(--login-accent); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+#login-page .form-group input::placeholder { color: var(--login-placeholder); }
+#login-page .form-group input[type="text"]:hover,
+#login-page .form-group input[type="password"]:hover { border-color: var(--login-field-hover); }
+#login-page .form-group input[type="text"]:focus,
+#login-page .form-group input[type="password"]:focus { outline: none; border-color: var(--login-accent); box-shadow: 0 0 0 3px var(--login-ring); }
+#login-page .form-group input[type="text"]:-webkit-autofill,
+#login-page .form-group input[type="password"]:-webkit-autofill { -webkit-text-fill-color: var(--login-field-text); -webkit-box-shadow: 0 0 0 1000px var(--login-field) inset; box-shadow: 0 0 0 1000px var(--login-field) inset; }
+#login-page .form-group input[type="text"]:-webkit-autofill:focus,
+#login-page .form-group input[type="password"]:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 1000px var(--login-field) inset, 0 0 0 3px var(--login-ring); box-shadow: 0 0 0 1000px var(--login-field) inset, 0 0 0 3px var(--login-ring); }
+#login-page .login-card .login-btn { margin-top: 6px; padding: 12px; border: 1px solid var(--login-accent); border-radius: 10px; font-size: 15px; font-weight: 600; color: #ffffff !important; background: var(--login-accent) !important; background-image: none !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; transform: none; transition: background-color 0.15s ease, border-color 0.15s ease; }
+#login-page .login-card .login-btn:hover { color: #ffffff !important; background: var(--login-accent-hover) !important; border-color: var(--login-accent-hover); transform: none; box-shadow: none; }
+#login-page .login-card .login-btn:active { background: var(--login-accent-active) !important; transform: none; }
+#login-page .login-card .login-btn:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 2px; }
+#login-page .login-card .login-btn:disabled { opacity: 0.7; cursor: wait; }
+#login-page .login-password { position: relative; }
+#login-page .login-password input { padding-right: 50px; }
+#login-page .login-eye { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--login-muted); cursor: pointer; transition: color 0.15s ease, background 0.15s ease; }
+#login-page .login-eye:hover { color: var(--login-title); background: var(--login-eye-hover); }
+#login-page .login-eye:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 1px; }
+#login-page .login-eye svg { width: 18px; height: 18px; }
+#login-page .login-eye .icon-hide { display: none; }
+#login-page .login-eye[aria-pressed="true"] .icon-show { display: none; }
+#login-page .login-eye[aria-pressed="true"] .icon-hide { display: block; }
+#login-page .login-remember { display: flex; align-items: center; gap: 10px; margin: -2px 0 20px; font-size: 13px; line-height: 1.4; color: var(--login-text); text-align: left; cursor: pointer; }
+#login-page .login-remember input { flex-shrink: 0; width: 16px; height: 16px; margin: 0; accent-color: var(--login-accent); cursor: pointer; }
+#login-page .login-remember input:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 2px; }
+#login-page .login-note { margin: -6px 0 16px; font-size: 13px; line-height: 1.45; color: var(--login-muted) !important; text-align: left; }
+#login-page .login-note[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { #login-page .login-eye, #login-page .form-group input, #login-page .login-card .login-btn { transition: none; } }
+/* <Jun Kai end> */
