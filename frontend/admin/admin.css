@@ -7764,7 +7764,7 @@ input:checked + .slider:before {
 
 /* Role 3 pages share the schedule page's content padding (the other pages pad themselves) */
 /* <Jun Kai start> */
-#health-page, #hardware-page, #visitor-archive-page { min-height: 100%; padding: 30px; }
+#health-page, #incidents-page, #hardware-page, #visitor-archive-page { min-height: 100%; padding: 30px; }
 /* <Jun Kai end> */
 #server-schedule-page .ui-table td { font-weight: 400; }
 
@@ -7815,7 +7815,7 @@ input:checked + .slider:before {
 /* <Jun Kai start> */
 /* schedule policies and the customisable health page (supervisor meeting 03) */
 /* the kit sets display on fields and grids, which would beat the hidden attribute */
-#health-page [hidden], #server-schedule-page [hidden], #schedule-modal [hidden], #visitor-archive-page [hidden] { display: none !important; }
+#health-page [hidden], #incidents-page [hidden], #server-schedule-page [hidden], #schedule-modal [hidden], #visitor-archive-page [hidden] { display: none !important; }
 /* keyboard only: a solid ring that clears 3:1 (the soft glow it replaces was 1.67:1); mouse clicks show nothing */
 .ui-switch input:focus-visible + .ui-switch-track { outline: 2px solid #2563eb; outline-offset: 2px; }
 .ui-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -7942,8 +7942,42 @@ input:checked + .slider:before {
 /* <Jun Kai start> */
 /* Incidents panel on the System Health page (incidents.js): the numbered list beside the chosen incident's story, the
    settings drawer and the approve dialog */
-#health-incidents-card[hidden] + .ui-card { margin-top: 0; }
-#health-incidents-card > .ui-card-header > .ui-row { flex-wrap: nowrap; flex-shrink: 0; }
+#incidents-page .ui-page-header .inc-header-actions { flex-wrap: nowrap; flex-shrink: 0; }
+/* the count next to Incidents in the sidebar: amber, red while a critical incident is open */
+.inc-nav-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; margin-left: auto; padding: 0 6px; border-radius: 999px; background-color: #d97706; font-size: 11px; font-weight: 700; line-height: 1; color: #ffffff; font-variant-numeric: tabular-nums; }
+.inc-nav-badge.is-critical { background-color: #dc2626; }
+.inc-nav-badge[hidden] { display: none; }
+/* System Health: the open incidents in short, under the status line */
+.inc-sum { display: grid; gap: 8px; margin-top: 16px; padding: 14px 18px; }
+.inc-sum[hidden] { display: none; }
+.inc-sum-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.inc-sum-title { margin-right: 4px; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.inc-sum-open { margin-left: auto; font-size: 13px; }
+.inc-sum-rows { display: grid; gap: 2px; }
+.inc-sum-row { display: grid; grid-template-columns: 12px auto minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; margin: 0; padding: 7px 8px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 13px; text-align: left; color: inherit; cursor: pointer; transition: background-color 0.15s ease; }
+.inc-sum-row:hover { background: #f8fafc; }
+.inc-sum-row:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 1px; }
+.inc-sum-row .inc-dot { margin-top: 0; }
+.inc-sum-row.is-critical .inc-dot { background-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18); }
+.inc-sum-row.is-info .inc-dot { background-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16); }
+.inc-sum-row .inc-num { margin-right: 0; }
+.inc-sum-text { min-width: 0; overflow: hidden; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; color: var(--theme-text-color); }
+.inc-sum-meta { font-size: 12px; white-space: nowrap; color: var(--color-dark-gray); }
+.inc-sum-empty, .inc-sum-more { padding: 2px 8px; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.inc-sum-more { font-size: 12px; }
+/* Hardware: the open CPU, memory, GPU or disk incident, or a quiet line in the same place */
+.hw-inc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 16px; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.hw-inc[hidden] { display: none; }
+.hw-inc.is-quiet { display: block; margin-top: -4px; font-size: 12.5px; }
+.hw-inc.is-warn, .hw-inc.is-critical, .hw-inc.is-info { padding: 11px 16px; border: 1px solid #fcd34d; border-radius: 10px; background: #fffbeb; color: #78350f; }
+.hw-inc.is-critical { border-color: #fecaca; background: #fef2f2; color: #7f1d1d; }
+.hw-inc.is-info { border-color: #bfdbfe; background: #eff6ff; color: #1e3a8a; }
+.hw-inc.is-critical .inc-dot { background-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18); }
+.hw-inc.is-info .inc-dot { background-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16); }
+.hw-inc .inc-dot { margin-top: 0; }
+.hw-inc strong { font-weight: 600; }
+.hw-inc .health-card-link { font-size: inherit; }
+.hw-inc-open { margin-left: auto; }
 .inc-header-actions { gap: 10px; align-items: center; }
 .inc-chips { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .inc-chip { display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -8085,7 +8119,7 @@ input:checked + .slider:before {
 .inc-clear-title { font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
 .inc-clear-text { max-width: 56ch; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
 .inc-clear .ui-btn { margin-top: 8px; }
-#health-incidents-card .ui-btn:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+#incidents-page .ui-btn:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
 
 /* the settings drawer: a modal dialog from the right */
 html:has(#incidents-drawer[open]) { overflow: hidden; }
@@ -8169,19 +8203,21 @@ html:has(#incidents-drawer[open]) { overflow: hidden; }
 .inc-approve-error { margin-top: 14px; padding: 10px 12px; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; font-size: 13px; line-height: 1.45; color: #991b1b; }
 
 /* dark mode: the chart keeps clear fills on the dark surface */
-html[data-theme="dark"] #health-incidents-card .inc-chart-band { fill: rgba(74, 222, 128, 0.14); }
-html[data-theme="dark"] #health-incidents-card .inc-chart-line { stroke: #60a5fa; }
-html[data-theme="dark"] #health-incidents-card .inc-chart-dot { background-color: #60a5fa; }
-html[data-theme="dark"] #health-incidents-card .inc-chart-floor { stroke: #64748b; }
-html[data-theme="dark"] #health-incidents-card .inc-chart-tag.is-band { color: #4ade80; }
+html[data-theme="dark"] #incidents-card .inc-chart-band { fill: rgba(74, 222, 128, 0.14); }
+html[data-theme="dark"] #incidents-card .inc-chart-line { stroke: #60a5fa; }
+html[data-theme="dark"] #incidents-card .inc-chart-dot { background-color: #60a5fa; }
+html[data-theme="dark"] #incidents-card .inc-chart-floor { stroke: #64748b; }
+html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80; }
 
 @media (max-width: 960px) {
     .inc-layout { grid-template-columns: minmax(0, 1fr); }
     .inc-layout > .inc-detail { margin-top: 4px; }
 }
 @media (max-width: 640px) {
-    #health-incidents-card .ui-card-header { flex-direction: column; align-items: flex-start; }
-    #health-incidents-card > .ui-card-header > .ui-row { flex-wrap: wrap; }
+    #incidents-page .ui-page-header .inc-header-actions { flex-wrap: wrap; }
+    .inc-sum-row { grid-template-columns: 12px auto minmax(0, 1fr); }
+    .inc-sum-meta { grid-column: 3; white-space: normal; }
+    .hw-inc-open { margin-left: 0; }
     .inc-chips { justify-content: flex-start; }
     .inc-summary { padding: 10px 16px 0; }
     .inc-detail { padding: 16px; }
@@ -8251,18 +8287,18 @@ html[data-theme="dark"] #health-incidents-card .inc-chart-tag.is-band { color: #
 /* <Jun Kai start> */
 /* Health, Hardware and Server Schedule polish. The theme paints every paragraph #959595 (2.9:1 on white), so these
    pages use darker greys and re-assert their paragraph colours. */
-#health-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page { --color-dark-gray: #475569; --color-muted: #64748b; }
-#health-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
+#health-page, #incidents-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+#health-page .ui-page-header p, #incidents-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
 #health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p, #visitor-archive-page .ui-card-header p,
 #server-schedule-page .ui-section-title, #server-schedule-page .policy-preview-note { color: var(--color-dark-gray) !important; }
-#health-page p.ui-help, #hardware-page p.ui-help, #server-schedule-page p.ui-help, #schedule-modal p.ui-help, #visitor-archive-page p.ui-help { color: var(--color-muted) !important; }
+#health-page p.ui-help, #incidents-page p.ui-help, #hardware-page p.ui-help, #server-schedule-page p.ui-help, #schedule-modal p.ui-help, #visitor-archive-page p.ui-help { color: var(--color-muted) !important; }
 #hardware-page p.ui-help.is-error, #schedule-modal p.ui-help.is-error, #visitor-archive-page p.ui-help.is-error { color: #b91c1c !important; }
 #server-schedule-page p.ui-note, #visitor-archive-page p.ui-note { color: var(--theme-card-text) !important; }
 #server-schedule-page p.ui-note-warn, #visitor-archive-page p.ui-note-warn { color: #78350f !important; }
 #schedule-modal p.policy-summary { color: var(--theme-text-color) !important; }
 #schedule-modal p.policy-summary.is-error { color: #b91c1c !important; }
 #server-schedule-page .policy-empty p { margin: 0 0 12px; color: var(--color-dark-gray) !important; }
-#health-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
+#health-page .ui-page-header p, #incidents-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
 #health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p, #visitor-archive-page .ui-card-header p { text-wrap: pretty; }
 
 #health-page .health-card-summary, #health-page .health-card-detail { overflow-wrap: anywhere; }
@@ -8286,9 +8322,9 @@ html[data-theme="dark"] #health-incidents-card .inc-chart-tag.is-band { color: #
 
 /* the page settles in once when it opens; the 30 and 60 second refreshes never animate */
 @keyframes uiPageIn { from { opacity: 0; transform: translateY(4px); } }
-#health-page.active, #hardware-page.active, #server-schedule-page.active, #visitor-archive-page.active { animation: uiPageIn 0.24s cubic-bezier(0.16, 1, 0.3, 1); }
+#health-page.active, #incidents-page.active, #hardware-page.active, #server-schedule-page.active, #visitor-archive-page.active { animation: uiPageIn 0.24s cubic-bezier(0.16, 1, 0.3, 1); }
 @media (prefers-reduced-motion: reduce) {
-    #health-page.active, #hardware-page.active, #server-schedule-page.active, #visitor-archive-page.active { animation: none; }
+    #health-page.active, #incidents-page.active, #hardware-page.active, #server-schedule-page.active, #visitor-archive-page.active { animation: none; }
     .health-card, .policy-rules-more summary::before { transition: none; }
 }
 /* <Jun Kai end> */
@@ -8676,7 +8712,7 @@ html[data-theme="dark"] {
 }
 html[data-theme="dark"] body { background-color: var(--theme-bg-color); color: var(--theme-text-color); }
 /* the five Role 3 pages set darker greys for light mode (PR #13): their dark-mode greys */
-html[data-theme="dark"] :is(#health-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page) { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+html[data-theme="dark"] :is(#health-page, #incidents-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page) { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
 html[data-theme="dark"] #login-page {
     --login-card: rgba(11, 17, 32, 0.55); --login-border: rgba(255, 255, 255, 0.12);
     --login-field: #0b1120; --login-field-border: #4b5b73; --login-field-hover: #64748b; --login-field-text: #f1f5f9; --login-placeholder: #7a889c;

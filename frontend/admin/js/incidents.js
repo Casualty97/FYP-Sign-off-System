@@ -1,10 +1,11 @@
 // Owner: Role 3, Jun Kai.
-// Incidents panel on the System Health page: the incidents the anomaly detection opened, as a numbered list (needs a
-// look, being handled, resolved this week) beside the chosen incident's story: what happened, why it might be and what
-// to do, with the fix the app can run once a System Admin approves it, then "Was this right?" and its history. The
-// settings open in a drawer; a fix asks once more in a dialog. Loaded after health.js: loadHealth() and
-// renderHealthPanels() call loadIncidents(), so it refreshes with the 30-second cycle. Every part is patched in place,
-// so the selection, the focus, an open history and the scroll position survive the refresh.
+// The Incidents page: the incidents the anomaly detection opened, as a numbered list (needs a look, being handled,
+// resolved this week) beside the chosen incident's story: what happened, why it might be and what to do, with the fix
+// the app can run once a System Admin approves it, then "Was this right?" and its history. The settings open in a
+// drawer; a fix asks once more in a dialog. The page refreshes every 30 seconds while it is open, and every part is
+// patched in place, so the selection, the focus, an open history and the scroll position survive the refresh.
+// Elsewhere: the count in the sidebar (every page), a short summary under System Health's status line, and a notice
+// on Hardware while a CPU, memory, GPU or disk incident is open; each opens the page at that incident.
 // <Jun Kai start>
 let incidentsStatus = null;          // the last answer of GET /status
 let incidentsList = [];              // the last answer of GET /incidents?status=all
@@ -69,6 +70,7 @@ const incidentIsOpen = (incident) => incident.status === 'open' || incident.stat
 const incidentMs = (iso) => { const t = new Date(iso || '').getTime(); return Number.isNaN(t) ? null : t; };
 const incidentDetectorOn = (d) => d.enabled !== false && d.state !== 'off';
 const incidentFind = (id) => incidentsList.find((i) => String(i.id) === String(id)) || null;
+const incidentsPageOpen = () => { const page = document.getElementById('incidents-page'); return !!(page && page.classList.contains('active')); };
 const incidentsNarrow = window.matchMedia ? window.matchMedia(INCIDENT_NARROW) : null;
 
 // ---- words and numbers ----
@@ -313,9 +315,9 @@ function incidentsGroups(nowMs) {
     const resolvedAll = incidentsList.filter((i) => i.status === 'resolved' && (incidentMs(i.resolved_at) || 0) >= nowMs - INCIDENT_WEEK_MS)
         .sort((a, b) => (incidentMs(b.resolved_at) || 0) - (incidentMs(a.resolved_at) || 0) || Number(b.id) - Number(a.id));
     const resolved = incidentsShowAllResolved ? resolvedAll : resolvedAll.slice(0, INCIDENT_RESOLVED_CAP);
-    // the chosen incident stays in the list even past the first five
+    // the chosen incident stays in the list even past the first five, or older than a week (opened from a link)
     if (incidentsSelected && !resolved.some((i) => String(i.id) === incidentsSelected)) {
-        const chosen = resolvedAll.find((i) => String(i.id) === incidentsSelected);
+        const chosen = incidentsList.find((i) => String(i.id) === incidentsSelected && i.status === 'resolved');
         if (chosen) resolved.push(chosen);
     }
     return { open, handled, resolved, resolvedTotal: resolvedAll.length };
@@ -992,10 +994,9 @@ function incidentsForgetGone() {
     for (const set of [incidentsHistoryOpen, incidentsTimelineFull, incidentsDetailStale]) for (const id of [...set]) if (!ids.has(id)) set.delete(id);
 }
 
-// Status and list in parallel; called by health.js on its 30-second cycle and after every action (force)
+// Status and list in parallel; called when the Incidents page opens, on its 30-second cycle and after every action (force)
 async function loadIncidents(force) {
-    const card = document.getElementById('health-incidents-card');
-    if (!card || card.hidden) return;
+    if (!incidentsPageOpen()) return;
     if (incidentsLoading) {
         incidentsReloadQueued = incidentsReloadQueued || force === true;
         return;
@@ -1027,6 +1028,7 @@ async function loadIncidents(force) {
         incidentsLoadedAt = Date.now();
         incidentsLoading = false;
         renderIncidents();
+        if (!incidentsError) renderIncidentsBadge(incidentsStatus);
         if (incidentsSelected && (!incidentsDetail.has(incidentsSelected) || incidentsDetailStale.has(incidentsSelected))) loadIncidentDetail(incidentsSelected);
         if (incidentsList.some((i) => i.adviceBusy)) incidentsWatchAdvice();
         if (incidentsReloadQueued) {
@@ -1041,8 +1043,7 @@ function incidentsWatchAdvice() {
     if (incidentsAdviceTimer) return;
     const until = Date.now() + 3 * 60 * 1000;
     incidentsAdviceTimer = setInterval(() => {
-        const card = document.getElementById('health-incidents-card');
-        if (Date.now() > until || !card || card.hidden || !incidentsList.some((i) => i.adviceBusy)) {
+        if (Date.now() > until || !incidentsPageOpen() || !incidentsList.some((i) => i.adviceBusy)) {
             clearInterval(incidentsAdviceTimer);
             incidentsAdviceTimer = null;
             return;
@@ -1058,8 +1059,7 @@ function incidentsWatchFix(key) {
     incidentsFixTimer = setInterval(() => {
         const entry = incidentsDetail.get(key);
         const state = entry && entry.data && entry.data.fix && entry.data.fix.status ? entry.data.fix.status.state : null;
-        const card = document.getElementById('health-incidents-card');
-        if (Date.now() > until || state !== 'running' || incidentsSelected !== key || !card || card.hidden) {
+        if (Date.now() > until || state !== 'running' || incidentsSelected !== key || !incidentsPageOpen()) {
             clearInterval(incidentsFixTimer);
             incidentsFixTimer = null;
             loadIncidents(true);
@@ -1068,6 +1068,169 @@ function incidentsWatchFix(key) {
         loadIncidentDetail(key);
     }, 4000);
 }
+
+// ---- the page, the sidebar count, the System Health summary and the Hardware notice ----
+
+let incidentsPageTimer = null;
+let incidentsBadgeTimer = null;
+let incidentsBadgeAt = 0;
+let incidentsQuickData = null;      // { at, status, open, error }: what the summary and the Hardware notice show
+let incidentsQuickLoading = null;
+const INCIDENT_BADGE_MS = 60 * 1000;
+const incidentIsHardware = (i) => i.detector === 'disk' || (['spike', 'timeOfDay', 'drift'].includes(i.detector) && ['cpu', 'memory', 'gpu', 'disk'].includes(String(i.subject)));
+
+// showPage('incidents') loads the page at once; then every 30 seconds while it stays open
+function loadIncidentsPage() {
+    loadIncidents(true);
+}
+
+function startIncidentsPolling() {
+    if (incidentsPageTimer) clearInterval(incidentsPageTimer);
+    incidentsPageTimer = setInterval(() => {
+        if (incidentsPageOpen() && sessionStorage.getItem('loggedUser')) loadIncidents();
+    }, 30000);
+}
+
+// From the System Health summary, the Hardware notice or a button: the Incidents page, at that incident when one is given
+function openIncidentsPage(id) {
+    if (id !== undefined && id !== null && id !== '') {
+        incidentsSelected = String(id);
+        incidentsBusiestFor.clear();
+    }
+    showPage('incidents');
+    window.scrollTo(0, 0);
+}
+
+// The count in the sidebar: the incidents that need a look (the same number as the chip on the page), red while one of
+// them is critical. Hidden while anomaly detection is off: nothing resolves itself then, so it would never go away.
+function renderIncidentsBadge(status) {
+    const badge = document.getElementById('incidents-nav-badge');
+    if (!badge || !status) return;
+    const counts = status.counts || {};
+    const open = Number(counts.open) || 0;
+    const show = status.enabled !== false && open > 0;
+    badge.hidden = !show;
+    if (!show) return;
+    const text = open > 99 ? '99+' : String(open);
+    if (badge.textContent !== text) badge.textContent = text;
+    badge.classList.toggle('is-critical', Number(counts.critical) > 0);
+    badge.setAttribute('aria-label', `${open} incident${open === 1 ? ' needs' : 's need'} a look`);
+}
+
+// On every page change (navigation.js) and every minute after the first: one GET /status
+async function refreshIncidentsBadge(force) {
+    if (!sessionStorage.getItem('loggedUser')) return;
+    if (!incidentsBadgeTimer) incidentsBadgeTimer = setInterval(() => refreshIncidentsBadge(true), INCIDENT_BADGE_MS);
+    if (force !== true && Date.now() - incidentsBadgeAt < 15000) return;
+    incidentsBadgeAt = Date.now();
+    try {
+        const data = await incidentsFetch('/api/admin/aiops/status');
+        renderIncidentsBadge(data.status);
+    } catch { /* the count stays as it was; the Incidents page shows the error */ }
+}
+
+// The status and the open incidents, asked once for the System Health summary and the Hardware notice together
+async function incidentsQuick() {
+    if (incidentsQuickData && Date.now() - incidentsQuickData.at < INCIDENT_FRESH_MS) return incidentsQuickData;
+    if (incidentsQuickLoading) return incidentsQuickLoading;
+    incidentsQuickLoading = (async () => {
+        try {
+            const [status, list] = await Promise.all([
+                incidentsFetch('/api/admin/aiops/status'),
+                incidentsFetch('/api/admin/aiops/incidents?status=open&limit=100')
+            ]);
+            incidentsQuickData = { at: Date.now(), status: status.status || {}, open: Array.isArray(list.incidents) ? list.incidents : [], error: null };
+            renderIncidentsBadge(incidentsQuickData.status);
+        } catch (error) {
+            incidentsQuickData = { at: Date.now(), status: null, open: [], error: error.message };
+        }
+        incidentsQuickLoading = null;
+        return incidentsQuickData;
+    })();
+    return incidentsQuickLoading;
+}
+
+// One line per incident in the System Health summary; a click opens it on the Incidents page
+function incidentSummaryRow(incident, nowMs) {
+    const tone = INCIDENT_SEVERITY[incident.severity] ? incident.severity : 'warn';
+    const meta = [escapeHtmlSafe(incidentDetectorLabel(incident.detector)), escapeHtmlSafe(incidentAge(incident.opened_at, nowMs))];
+    if (incident.status === 'acknowledged') meta.push('being handled');
+    else if (incident.fix && incident.fix.state === 'offer') meta.push('<span class="inc-tag-fix">Fix available</span>');
+    const example = incident.example ? '<span class="inc-tag-example">Example</span>' : '';
+    return `<button type="button" class="inc-sum-row is-${tone}" data-open-incident="${incident.id}"><span class="inc-dot" aria-hidden="true"></span><span class="inc-num">#${incident.id}</span><span class="inc-sum-text">${escapeHtmlSafe(incidentText(incident.title || 'Incident'))}</span><span class="inc-sum-meta">${example}${meta.join(' · ')}</span></button>`;
+}
+
+// System Health: the open incidents in short under the status line, those that need a look first; health.js calls it
+// on its own 30-second cycle. The Customise option "Incidents summary" shows or hides it.
+async function loadIncidentsSummary() {
+    const card = document.getElementById('health-incidents-summary');
+    if (!card || card.hidden) return;
+    renderHealthIncidentsSummary(await incidentsQuick());
+}
+
+function renderHealthIncidentsSummary(data) {
+    const chips = document.getElementById('incidents-summary-chips');
+    const rows = document.getElementById('incidents-summary-rows');
+    if (!chips || !rows || !data) return;
+    let chipsHtml = '';
+    let rowsHtml;
+    if (data.error) rowsHtml = `<div class="inc-sum-empty">Could not reach the anomaly detection: ${escapeHtmlSafe(data.error)}</div>`;
+    else if (data.status && data.status.enabled === false) rowsHtml = '<div class="inc-sum-empty">Anomaly detection is off: nothing is compared and no incident is opened.</div>';
+    else {
+        const open = data.open.filter((i) => i.status === 'open').sort(incidentOrder);
+        const handled = data.open.filter((i) => i.status === 'acknowledged').sort(incidentOrder);
+        if (open.length) chipsHtml += `<span class="inc-chip is-${open.some((i) => i.severity === 'critical') ? 'down' : 'warn'}">${open.length} need${open.length === 1 ? 's' : ''} a look</span>`;
+        if (handled.length) chipsHtml += `<span class="inc-chip is-muted">${handled.length} being handled</span>`;
+        const all = open.concat(handled);
+        const nowMs = Date.now();
+        rowsHtml = all.length
+            ? all.slice(0, 3).map((i) => incidentSummaryRow(i, nowMs)).join('') + (all.length > 3 ? `<div class="inc-sum-more">and ${all.length - 3} more on the Incidents page</div>` : '')
+            : `<div class="inc-sum-empty">No open incidents. ${escapeHtmlSafe(incidentsWatchingText(data.status || {}, incidentsNamedTablets(data.status || {})))}</div>`;
+    }
+    incidentsPut(chips, chipsHtml);
+    incidentsPut(rows, rowsHtml);
+}
+
+// Hardware: the most urgent open CPU, memory, GPU or disk incident with a link to it, or a quiet line in the same
+// place, so the page does not jump when one opens; hardware.js calls it with every refresh of the graphs
+async function loadHardwareIncidentNote() {
+    if (!document.getElementById('hardware-incidents-note')) return;
+    renderHardwareIncidentNote(await incidentsQuick());
+}
+
+function renderHardwareIncidentNote(data) {
+    const box = document.getElementById('hardware-incidents-note');
+    if (!box || !data) return;
+    let html = '';
+    let tone = 'quiet';
+    if (data.error) html = '';
+    else if (data.status && data.status.enabled === false) html = '<span>Anomaly detection is off</span> · <button type="button" class="health-card-link" data-open-incident="">Incidents</button>';
+    else {
+        const hardware = data.open.filter(incidentIsHardware).sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || incidentOrder(a, b));
+        if (hardware.length) {
+            const i = hardware[0];
+            const age = incidentAge(i.opened_at, Date.now());
+            tone = INCIDENT_SEVERITY[i.severity] ? i.severity : 'warn';
+            const when = i.status === 'acknowledged' ? 'being handled' : age === 'just now' ? 'started just now' : `started ${age} ago`;
+            html = `<span class="inc-dot" aria-hidden="true"></span><strong>Incident #${i.id}</strong><span class="hw-inc-title">${escapeHtmlSafe(incidentText(i.title || 'Incident'))}</span>`
+                + `${i.example ? '<span class="inc-tag-example">Example</span>' : ''}<span class="hw-inc-meta">${escapeHtmlSafe(when)}${hardware.length > 1 ? ` · and ${hardware.length - 1} more` : ''}</span>`
+                + `<button type="button" class="health-card-link hw-inc-open" data-open-incident="${i.id}">View incident</button>`;
+        } else {
+            html = '<span>No open CPU, memory, GPU or disk incidents</span> · <button type="button" class="health-card-link" data-open-incident="">Open Incidents</button>';
+        }
+    }
+    const cls = `hw-inc is-${tone}`;
+    if (box.className !== cls) box.className = cls;
+    box.hidden = !html;
+    incidentsPut(box, html);
+}
+
+// a click on a summary row or on the Hardware notice opens the Incidents page (at that incident)
+document.addEventListener('click', (event) => {
+    const el = event.target && event.target.closest ? event.target.closest('[data-open-incident]') : null;
+    if (!el || !el.closest('#health-incidents-summary, #hardware-incidents-note')) return;
+    openIncidentsPage(el.dataset.openIncident || null);
+});
 
 // ---- actions ----
 
@@ -1115,7 +1278,7 @@ async function askIncidentAdvice(id, button) {
 }
 
 function bindIncidentsPanel() {
-    const card = document.getElementById('health-incidents-card');
+    const card = document.getElementById('incidents-card');
     if (!card || card.dataset.bound) return;
     card.dataset.bound = '1';
     card.addEventListener('click', (event) => {

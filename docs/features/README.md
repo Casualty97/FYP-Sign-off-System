@@ -23,7 +23,7 @@ Owners keep their page current (CI does not check this, the reviewer does).
 - [VIP visitors](vips.md) — owner: shared, 3 route(s)
 - [Admin themes](themes.md) — owner: Role 3, Jun Kai, 7 route(s)
 - [System and LLM health](health.md) — owner: Role 3, Jun Kai, 6 route(s)
-- [Anomaly detection and incidents (AIOps)](aiops.md) — owner: Role 3, Jun Kai, 10 route(s)
+- [Anomaly detection and incidents (AIOps)](aiops.md) — owner: Role 3, Jun Kai, 16 route(s)
 - [Hardware usage graphs with forecasting](hardware.md) — owner: Role 3, Jun Kai, 4 route(s)
 
 Routes not yet on any page: `GET /api/generate-qr`, `GET /`, `GET /api/feedback`

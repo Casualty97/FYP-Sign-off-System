@@ -17,7 +17,7 @@ const OPTIONS = [
     { key: 'server', label: 'Server PC', description: 'CPU and memory load, uptime, app memory' },
     { key: 'automation', label: 'Schedules', description: 'Policies and the next stop and start' },
     { key: 'tablets', label: 'Tablets', description: 'Which kiosk screens report in, and the tablets panel' },
-    { key: 'incidents', label: 'Anomaly detection', description: 'Incidents the detectors found, with their evidence' }
+    { key: 'incidents', label: 'Incidents summary', description: 'The open incidents in short, under the status line; the full list is on the Incidents page' }
 ];
 const KEYS = OPTIONS.map((o) => o.key);
 

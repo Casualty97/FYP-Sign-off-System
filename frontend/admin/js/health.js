@@ -1,6 +1,7 @@
 // Owner: Role 3, Jun Kai.
-// System health page: GET /api/admin/health, a status line, one card per check (the ones that need a look first, each
-// with its last 24 hours from GET /api/admin/health/history), the tablets table and the incidents panel.
+// System health page: GET /api/admin/health, a status line, the open incidents in short under it (incidents.js; the
+// full list is the Incidents page), one card per check (the ones that need a look first, each with its last 24 hours
+// from GET /api/admin/health/history) and the tablets table.
 // <Jun Kai start>
 // Since supervisor meeting 03 (4 Nov 2026) each admin chooses which checks the page shows and runs
 // (GET/PUT /api/admin/health/layout). Placeholder cards hold the layout while the checks run, so nothing jumps.
@@ -21,9 +22,9 @@ const HEALTH_ICON_NAME = { database: 'database', kiosk: 'monitor', disk: 'disk',
 const HEALTH_ORDER = ['database', 'kiosk', 'ollama', 'email', 'disk', 'server', 'automation', 'tablets', 'incidents'];
 const HEALTH_LABEL = {
     database: 'MySQL database', kiosk: 'Kiosk server (:3003)', ollama: 'Ollama (local LLM)', email: 'Email (SMTP)',
-    disk: 'Disk space', server: 'Server PC', automation: 'Schedules', tablets: 'Tablets', incidents: 'Anomaly detection'
+    disk: 'Disk space', server: 'Server PC', automation: 'Schedules', tablets: 'Tablets', incidents: 'Incidents summary'
 };
-// 'incidents' is the anomaly detection panel under the cards (incidents.js), never a card
+// 'incidents' is the incidents summary under the status line (incidents.js), never a card
 const HEALTH_PANEL_KEYS = ['incidents'];
 const HEALTH_BLOCK_WORD = { o: 'Healthy', w: 'Attention', d: 'Down', u: 'Unknown', '-': 'Not checked' };
 // <Jun Kai end>
@@ -180,7 +181,7 @@ function renderHealthCards() {
     bindHealthControls();
     const visible = healthCardKeys();
     if (!visible.length) {
-        const text = healthVisibleKeys().length ? 'No checks are shown on this page. The incidents panel below still runs.' : 'Nothing is monitored on this page.';
+        const text = healthVisibleKeys().length ? 'No checks are shown on this page. The incidents summary above still runs.' : 'Nothing is monitored on this page.';
         cards.innerHTML = `<div class="health-empty">${text}<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>`;
         healthCardMarkup = [];
     } else {
@@ -213,11 +214,11 @@ function renderHealthPanels() {
     if (tablets) tablets.hidden = !showTablets;
     const tabletCheck = ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets');
     if (showTablets && tabletCheck) renderHealthTablets(tabletCheck);
-    // the Incidents panel (incidents.js) follows the Anomaly detection option and refreshes with every health cycle
-    const incidents = document.getElementById('health-incidents-card');
+    // the incidents summary (incidents.js) follows the Incidents summary option and refreshes with every health cycle
+    const incidents = document.getElementById('health-incidents-summary');
     const showIncidents = healthVisibleKeys().includes('incidents');
     if (incidents) incidents.hidden = !showIncidents;
-    if (showIncidents && typeof loadIncidents === 'function') loadIncidents();
+    if (showIncidents && typeof loadIncidentsSummary === 'function') loadIncidentsSummary();
 }
 
 // The status line at the top: one sentence, the counts, and a tint for the worst state. It counts only the checks
@@ -457,8 +458,8 @@ async function loadHealth(refresh) {
                 renderHealthPanels();
             }
         }
-        // the incidents panel answers at once, so it is asked before the slow checks
-        if (healthVisibleKeys().includes('incidents') && typeof loadIncidents === 'function') loadIncidents();
+        // the incidents summary answers at once, so it is asked before the slow checks
+        if (healthVisibleKeys().includes('incidents') && typeof loadIncidentsSummary === 'function') loadIncidentsSummary();
         if (!healthCardKeys().length) {
             renderHealthSummary();
             return;

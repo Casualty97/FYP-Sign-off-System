@@ -281,7 +281,10 @@ function showPage(pageName) {
     const clickedNav = event && event.target && event.target.closest ? event.target.closest('.nav-item') : null;
     const navItem = clickedNav || document.querySelector(`.nav-item[onclick*="showPage('${pageName}')"]`);
     if (navItem) navItem.classList.add('active');
-    
+    // <Jun Kai start> the count of incidents that need a look, next to Incidents in the sidebar, stays current on every page
+    if (typeof refreshIncidentsBadge === 'function') refreshIncidentsBadge();
+    // <Jun Kai end>
+
     // Load data for specific pages
     if (pageName === 'dashboard') {
         loadDashboardData();
@@ -297,6 +300,9 @@ function showPage(pageName) {
         loadHealth();
         startHealthPolling();
     // <Jun Kai start>
+    } else if (pageName === 'incidents') {
+        loadIncidentsPage();
+        startIncidentsPolling();
     } else if (pageName === 'hardware') {
         loadHardware();
         startHardwarePolling();

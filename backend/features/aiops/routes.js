@@ -18,7 +18,7 @@ const processes = require('./processes');
 
 const router = express.Router();
 const STATUSES = ['open', 'resolved', 'all'];
-const NO_COUNTS = { open: 0, acknowledged: 0, resolvedToday: 0 };
+const NO_COUNTS = { open: 0, critical: 0, acknowledged: 0, resolvedToday: 0 };
 
 const who = (req) => req.session.user.username;
 const idOf = (value) => (/^\d{1,9}$/.test(String(value)) ? Number(value) : null);

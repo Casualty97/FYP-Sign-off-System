@@ -692,6 +692,9 @@ function hardwareShowError(message) {
 async function loadHardware() {
     const page = document.getElementById('hardware-page');
     if (!page) return;
+    // <Jun Kai start> the open CPU, memory, GPU or disk incident above the graphs (incidents.js), with every refresh
+    if (typeof loadHardwareIncidentNote === 'function') loadHardwareIncidentNote();
+    // <Jun Kai end>
     if (hardwareLoading) { hardwarePendingReload = true; return; }
     hardwareLoading = true;
     ensureHardwareCharts();
