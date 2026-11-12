@@ -15,11 +15,18 @@ const FRIENDLY = {
     node: 'Node.js', ollama_llama_server: 'Ollama',
     chrome: 'Google Chrome', msedge: 'Microsoft Edge', firefox: 'Firefox', teams: 'Microsoft Teams', 'ms-teams': 'Microsoft Teams',
     code: 'Visual Studio Code', mysqld: 'MySQL', ollama: 'Ollama', 'ollama app': 'Ollama', explorer: 'File Explorer', onedrive: 'OneDrive',
-    msmpeng: 'Microsoft Defender', searchhost: 'Windows Search', zoom: 'Zoom', discord: 'Discord', spotify: 'Spotify', excel: 'Microsoft Excel',
+    searchhost: 'Windows Search', zoom: 'Zoom', discord: 'Discord', spotify: 'Spotify', excel: 'Microsoft Excel',
     winword: 'Microsoft Word', powerpnt: 'Microsoft PowerPoint', outlook: 'Microsoft Outlook', olk: 'Microsoft Outlook', steam: 'Steam',
-    obs64: 'OBS Studio', vlc: 'VLC', blender: 'Blender', powershell: 'PowerShell', pwsh: 'PowerShell'
+    obs64: 'OBS Studio', vlc: 'VLC', blender: 'Blender'
 };
-const HIDDEN = new Set(['_total', 'idle', 'system idle process', 'system', 'memory compression', 'registry', 'secure system']);
+// the idle counters, Windows' own processes (ending them breaks Windows or is refused), the antivirus, and the
+// PowerShell and WMI processes that this very reading starts
+const HIDDEN = new Set([
+    '_total', 'idle', 'system idle process', 'system', 'memory compression', 'registry', 'secure system',
+    'svchost', 'csrss', 'lsass', 'lsaiso', 'services', 'smss', 'wininit', 'winlogon', 'dwm', 'fontdrvhost', 'sihost', 'ctfmon',
+    'taskhostw', 'runtimebroker', 'audiodg', 'spoolsv', 'conhost', 'wmiprvse', 'powershell', 'pwsh',
+    'msmpeng', 'mssense', 'nissrv', 'securityhealthservice', 'sgrmbroker', 'smartscreen'
+]);
 const cache = { cpu: { at: 0, list: [] }, memory: { at: 0, list: [] } };
 
 const baseName = (name) => String(name || '').replace(/#\d+$/, '').replace(/\.exe$/i, '').trim();

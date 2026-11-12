@@ -103,6 +103,8 @@ test('fixStatus: on offer, starting, started (until the incident can close), fai
     const example = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, example: true, message: 'Example incident: nothing was run' }), nowMs: now(0) });
     assert.equal(example.state, 'started');
     assert.equal(example.example, true);
+    assert.deepEqual(fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, example: true }), nowMs: now(20), confirmMs: 15 * MINUTE }), { state: 'offer' }, 'an example started nothing, so it never "did not bring it back"');
+    assert.deepEqual(fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, dryRun: true }), nowMs: now(20), confirmMs: 15 * MINUTE }), { state: 'offer' });
 });
 
 test('an approved fix answers at once, starts the kiosk once and records the result on the timeline', async () => {

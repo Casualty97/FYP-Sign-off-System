@@ -9,6 +9,7 @@
 const FIXES = {
     'start-kiosk': {
         label: 'Start the kiosk server',
+        forIncident: 'Kiosk server down',
         describe: 'Runs the same start as Start kiosk on Server Schedule. The tablets come back in about 30 seconds.',
         modes: ['ask', 'delayed', 'auto'],
         appliesTo: (incident) => incident.detector === 'services' && incident.kind === 'down' && incident.subject === 'kiosk'
@@ -140,7 +141,8 @@ function fixStatus({ running = false, lastFix = null, lastDone = null, nowMs = D
     const result = { at: lastDone.at, ...who, message: String(done.message || ''), example: !!done.example, dryRun: !!done.dryRun };
     if (!done.ok) return { state: 'failed', ...result };
     if (nowMs - ms(lastDone) < confirmMs) return { state: 'started', ...result };
-    return { state: 'offer', last: result };
+    // an example or a dry run started nothing, so there is no start that "did not bring it back"
+    return result.example || result.dryRun ? { state: 'offer' } : { state: 'offer', last: result };
 }
 
 // What the page needs to show a fix on one incident

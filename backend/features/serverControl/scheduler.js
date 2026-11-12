@@ -10,7 +10,7 @@ const control = require('./control');
 // <Jun Kai start>
 const policies = require('./policies');
 
-const state ={ started: false, enabled: true, dryRun: false, lastTick: null, timer: null, lastOn: null };
+const state = { started: false, enabled: true, dryRun: false, lastTick: null, timer: null, lastOn: null };
 
 function automationSetting() {
     const value = String(process.env.KIOSK_AUTOMATION || 'on').toLowerCase();

@@ -116,6 +116,8 @@ test('the busiest programmes: grouped, named plainly, the kiosk\'s own marked ke
     assert.deepEqual(ollama, [{ name: 'Ollama', cpu: 0, memoryMb: 2000, keep: 'the local AI advisor' }, { name: 'MySQL', cpu: 0, memoryMb: 400, keep: "the kiosk's database" }], 'Ollama and its runner are one programme');
     assert.deepEqual(processes.summarise([{ name: 'notepad', cpu: 4, memoryBytes: 10 }], 'cpu', 8), [], 'under 1 % is left out');
     assert.deepEqual(processes.summarise(null, 'cpu', 8), []);
+    const windows = processes.summarise([{ name: 'svchost#4', cpu: 300, memoryBytes: 0 }, { name: 'WmiPrvSE', cpu: 200, memoryBytes: 0 }, { name: 'powershell', cpu: 150, memoryBytes: 0 }, { name: 'MsMpEng', cpu: 120, memoryBytes: 0 }, { name: 'zoom', cpu: 80, memoryBytes: 0 }], 'cpu', 8);
+    assert.deepEqual(windows.map((p) => p.name), ['Zoom'], "Windows' own processes, the antivirus and this reading's own PowerShell are never listed");
     assert.equal(processes.friendly('msedge.exe'), 'Microsoft Edge');
     assert.equal(processes.friendly('SomeTool#2'), 'SomeTool');
 });

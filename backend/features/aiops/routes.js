@@ -89,7 +89,7 @@ router.get('/incidents', auth.requireAuth, async (req, res) => {
                 return {
                     ...i,
                     example: fixes.isExample(i),
-                    fix: fix && fix.canRun ? { key: fix.key, label: fix.label, state: fix.status.state, at: fix.status.at || null } : null,
+                    fix: fix && fix.canRun ? { key: fix.key, label: fix.label, state: fix.status.state, at: fix.status.at || null, dryRun: !!fix.status.dryRun } : null,
                     fixRun: fixRun(fixEvents[i.id], doneEvents[i.id]),
                     advice: advice[i.id] ? { at: advice[i.id].at, ...advice[i.id].detail } : null,
                     adviceBusy: engine.advisor.isBusy(i.id)
@@ -112,7 +112,8 @@ router.get('/incidents/:id', auth.requireAuth, async (req, res) => {
         const lastAdvice = last('advice');
         const fix = fixOn(incident, conf, { fix: last('fix'), done: last('fix-done') });
         const help = playbooks.helpFor(incident, lastAdvice ? lastAdvice.detail : null, { fixKey: fix && fix.canRun ? fix.key : null });
-        res.json({ success: true, incident: { ...incident, example: fixes.isExample(incident) }, events, help, fix, floor: chartFloor(incident) });
+        // fixKind: a fix exists for this kind of incident even when it is not on offer (switched off, or resolved)
+        res.json({ success: true, incident: { ...incident, example: fixes.isExample(incident) }, events, help, fix, fixKind: fixes.fixFor(incident), floor: chartFloor(incident) });
     } catch (error) { fail(res, error, 'load the incident'); }
 });
 
@@ -190,7 +191,7 @@ router.get('/settings', auth.requireAuth, (req, res) => {
     res.json({
         success: true, settings: settings.read(), limits: settings.LIMITS, detectors: settings.DETECTORS, learned: learning.read(),
         levels: detectors.levels(),
-        fixes: Object.entries(fixes.FIXES).map(([key, fix]) => ({ key, label: fix.label, describe: fix.describe, modes: fix.modes.map((mode) => ({ key: mode, label: fixes.MODE_LABELS[mode] })) })),
+        fixes: Object.entries(fixes.FIXES).map(([key, fix]) => ({ key, label: fix.label, forIncident: fix.forIncident, describe: fix.describe, modes: fix.modes.map((mode) => ({ key: mode, label: fixes.MODE_LABELS[mode] })) })),
         automation: fixes.automationSetting()
     });
 });

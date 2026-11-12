@@ -293,6 +293,8 @@ function createRunner(overrides = {}) {
         });
         return {
             enabled: conf.enabled,
+            intervalSeconds: state.intervalSeconds,
+            learnFromVerdicts: conf.learnFromVerdicts !== false,
             lastTickAt: state.lastTickAt,
             nextTickAt: state.nextTickAt,
             lastResult: state.lastResult,

@@ -42,7 +42,7 @@ function busySteps(part) {
     const column = part === 'memory' ? 'Memory' : part === 'gpu' ? 'GPU' : 'CPU';
     const third = part === 'gpu'
         ? step('Look for video calls, games or a browser playing video.')
-        : step('Right now the busiest are {busiest}.', part === 'memory' ? 'memory' : 'cpu');
+        : part === 'memory' ? step('Right now the most memory is used by {busiest}.', 'memory') : step('The busiest right now: {busiest}.', 'cpu');
     return [
         step(OPEN_TASK_MANAGER),
         step(`On the **Processes** tab, click the **${column}** column so the busiest programme is at the top.`),
