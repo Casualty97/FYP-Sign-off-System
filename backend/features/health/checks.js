@@ -210,7 +210,7 @@ async function checkTablets() {
 // <Jun Kai end>
 
 function checkAutomation() {
-    const base = { key: 'automation', label: 'Schedules & hibernation' };
+    const base = { key: 'automation', label: 'Schedules' };
     return new Promise((resolve) => {
         scheduler.getStatus((a) => {
             let status = 'ok';
@@ -220,20 +220,17 @@ function checkAutomation() {
             else if (a.mode !== 'auto') { status = 'warn'; summary = 'Manual mode: policies are paused'; }
             else if (!a.activeSchedules) { status = 'warn'; summary = 'AUTO mode but no enabled policy'; }
             else if (!a.activePolicies) { status = 'warn'; summary = 'AUTO mode but no Active policy, so the kiosk never runs'; }
-            else if (a.wakeNeeded && a.wake && a.wake.supported && a.wake.task && !a.wake.task.exists) { status = 'warn'; summary += ', wake timer missing'; }
             // <Jun Kai end>
-            else if (a.wake && a.wake.wakeTimersAllowed === false) { status = 'warn'; summary += ', wake timers blocked by Windows'; }
             resolve({
                 ...base,
                 status,
                 summary,
                 // <Jun Kai start>
-                // manual mode pauses the policies: no planned stop or start, and no wake-ups
+                // manual mode pauses the policies: no planned stop or start
                 detail: {
                     mode: a.mode,
                     nextStop: a.mode === 'auto' ? a.nextStop : null,
                     nextStart: a.mode === 'auto' ? a.nextStart : null,
-                    wakeTask: a.mode !== 'auto' ? 'paused in manual mode' : a.wake && a.wake.task ? (a.wake.task.exists ? 'set' : 'missing') : 'not available',
                     // <Jun Kai end>
                     lastEvent: a.events && a.events[0] ? a.events[0] : null
                 },
