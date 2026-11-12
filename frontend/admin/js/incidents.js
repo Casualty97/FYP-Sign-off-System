@@ -505,6 +505,11 @@ function incidentFacts(incident) {
             if (e.process) add('Logged by', INCIDENT_PROCESS_LABEL[e.process] || e.process);
             if (e.firstSeen) add('First seen', incidentStamp(e.firstSeen));
             break;
+        case 'test':
+            // a test incident's numbers are made up, and the tiles say so
+            if (incidentIsNumber(e.value)) add('Reading (made up)', incidentWithUnit(e.value, unit));
+            if (incidentIsNumber(e.baseline)) add('Usual (made up)', incidentWithUnit(e.baseline, unit));
+            break;
         default: break;
     }
     return tiles.slice(0, 4);
