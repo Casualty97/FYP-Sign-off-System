@@ -13,6 +13,7 @@
     "smoke:full": "node tests/smoke.js",
     "test": "npm run check",
     "test:pulse": "node tests/pulse-backend-check.js",
+    "aiops:replay": "node scripts/aiops-replay.js",
     "hooks:install": "node scripts/hooks-install.js",
     "db:migrate": "node database/migrate.js up",
     "db:status": "node database/migrate.js status",

@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "intervalSeconds": 60,
+  "healthEverySeconds": 300,
+  "retentionDays": 30,
+  "keepIncidentsDays": 90,
+  "quietHours": true,
+  "cooldownMinutes": 30,
+  "clearAfterMinutes": 10,
+  "detectors": {
+    "spike": { "enabled": true, "sensitivity": 3 },
+    "timeOfDay": { "enabled": true, "sensitivity": 3 },
+    "drift": { "enabled": true, "sensitivity": 3 },
+    "disk": { "enabled": true, "sensitivity": 3 },
+    "services": { "enabled": true, "sensitivity": 3 },
+    "tablets": { "enabled": true, "sensitivity": 3 },
+    "logs": { "enabled": true, "sensitivity": 3 }
+  }
+}

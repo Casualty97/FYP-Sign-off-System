@@ -97,6 +97,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env'), quiet: true }); // backend/.env regardless of the working directory
 // <Jun Kai start>
 require('./core/log').setupLogging(); // request chatter only with LOG_LEVEL=debug
+require('./core/log').captureEvents('kiosk'); // warnings and errors also go to logs/app-events-kiosk.jsonl for the anomaly detection
 // <Jun Kai end>
 const express = require('express');
 const http = require('http');

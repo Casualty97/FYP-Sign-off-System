@@ -281,6 +281,7 @@ async function archiveStep(cookie) {
     await expect('GET /api/admin/server-schedules without a session is refused', `${BASE}/api/admin/server-schedules`, (r) => r.status === 401);
     // <Jun Kai start>
     await expect('POST /api/admin/archive/update-status without a session is refused', `${BASE}/api/admin/archive/update-status`, (r) => r.status === 401, { method: 'POST' });
+    await expect('GET /api/admin/aiops/status without a session is refused', `${BASE}/api/admin/aiops/status`, (r) => r.status === 401);
     // <Jun Kai end>
     let cookie = '';
     try {
@@ -320,8 +321,12 @@ async function archiveStep(cookie) {
       await expect('GET /api/admin/server-schedules/preview with the session', `${BASE}/api/admin/server-schedules/preview?days=7`, (r) => r.body && r.body.success === true && !!r.body.preview && Array.isArray(r.body.preview.days) && r.body.preview.days.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/server-schedules/preview from a picked date', `${BASE}/api/admin/server-schedules/preview?days=7&from=2027-01-04`, (r) => r.body && r.body.success === true && r.body.preview.start === '2027-01-04' && r.body.preview.days.length === 7 && typeof r.body.preview.manual === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/server-schedules/preview refuses a date that does not exist', `${BASE}/api/admin/server-schedules/preview?from=2026-02-30`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
-      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 8 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 9 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
       await expect('PUT /api/admin/health/tablets/x/name refuses a bad device id', `${BASE}/api/admin/health/tablets/x/name`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ name: 'Tablet 1' }) });
+      // anomaly detection, read-only: the engine status, the settings and the incident list
+      await expect('GET /api/admin/aiops/status with the session', `${BASE}/api/admin/aiops/status`, (r) => r.body && r.body.success === true && !!r.body.status && Array.isArray(r.body.status.detectors) && r.body.status.detectors.length === 7 && typeof r.body.status.enabled === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/aiops/settings with the session', `${BASE}/api/admin/aiops/settings`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.settings.detectors && !!r.body.settings.detectors.spike && typeof r.body.settings.detectors.spike.sensitivity === 'number' && Array.isArray(r.body.detectors) && r.body.detectors.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/aiops/incidents?status=all with the session', `${BASE}/api/admin/aiops/incidents?status=all`, (r) => r.body && r.body.success === true && Array.isArray(r.body.incidents) || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai end>
       await expect('GET /api/admin/server/automation with the session', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.success === true && r.body.automation && r.body.automation.enabled === false || `automation=${JSON.stringify(r.body && r.body.automation).slice(0, 120)}`, { headers: { cookie } });
     }
@@ -345,6 +350,29 @@ async function archiveStep(cookie) {
           return device && device.name === 'Smoke tablet 1' || `device: ${JSON.stringify(device || null).slice(0, 160)}`;
         }, { headers: { cookie } });
         await expect('PUT an empty name gives the smoke tablet its device name back', `${BASE}/api/admin/health/tablets/smoke-tablet-01/name`, (r) => r.body && r.body.success === true && r.body.name === null || r.text.slice(0, 160), put({ name: '' }));
+        // anomaly detection: the settings round trip, then one test incident through acknowledge, verdict and resolve
+        const AIOPS = `${BASE}/api/admin/aiops`;
+        const post = (b) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(b || {}) });
+        const saved = (await get(`${AIOPS}/settings`, { headers: { cookie } })).body;
+        const original = saved && saved.settings && saved.settings.detectors && saved.settings.detectors.spike ? saved.settings : null;
+        if (original) {
+          await expect('PUT /api/admin/aiops/settings sets the spike sensitivity to 4', `${AIOPS}/settings`, (r) => r.status === 200 && r.body && r.body.settings && r.body.settings.detectors.spike.sensitivity === 4 || r.text.slice(0, 160), put({ ...original, detectors: { ...original.detectors, spike: { ...original.detectors.spike, sensitivity: 4 } } }));
+          await expect('PUT /api/admin/aiops/settings puts the saved settings back', `${AIOPS}/settings`, (r) => r.status === 200 && r.body && r.body.settings && r.body.settings.detectors.spike.sensitivity === original.detectors.spike.sensitivity || r.text.slice(0, 160), put(original));
+        } else fail('PUT /api/admin/aiops/settings round trip skipped: GET /api/admin/aiops/settings gave no settings');
+        await expect('PUT /api/admin/aiops/settings refuses a 5 second interval', `${AIOPS}/settings`, (r) => r.status === 400 && r.body && r.body.field === 'intervalSeconds' || `${r.status}: ${r.text.slice(0, 120)}`, put({ intervalSeconds: 5 }));
+        const made = await get(`${AIOPS}/test-incident`, post({}));
+        const incidentId = made.body && made.body.incident && made.body.incident.id;
+        (incidentId ? pass : fail)(`POST /api/admin/aiops/test-incident opens a test incident (${made.status})${incidentId ? '' : ': ' + made.text.slice(0, 120)}`);
+        if (incidentId) {
+          await expect('GET /api/admin/aiops/incidents?status=open lists the test incident', `${AIOPS}/incidents?status=open`, (r) => r.body && Array.isArray(r.body.incidents) && r.body.incidents.some((i) => i.id === incidentId) || r.text.slice(0, 160), { headers: { cookie } });
+          await expect('POST acknowledge marks the test incident acknowledged', `${AIOPS}/incidents/${incidentId}/acknowledge`, (r) => r.body && r.body.incident && r.body.incident.status === 'acknowledged' || r.text.slice(0, 160), post({}));
+          await expect('POST verdict correct is saved on the test incident', `${AIOPS}/incidents/${incidentId}/verdict`, (r) => r.body && r.body.incident && r.body.incident.verdict === 'correct' || r.text.slice(0, 160), post({ verdict: 'correct' }));
+          await expect('POST verdict maybe is refused', `${AIOPS}/incidents/${incidentId}/verdict`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({ verdict: 'maybe' }));
+          await expect('POST resolve closes the test incident as the admin', `${AIOPS}/incidents/${incidentId}/resolve`, (r) => r.body && r.body.incident && r.body.incident.status === 'resolved' && r.body.incident.resolved_by === ADMIN_USER || r.text.slice(0, 160), post({ note: 'Smoke test' }));
+          await expect('GET /api/admin/aiops/incidents/:id has the whole timeline', `${AIOPS}/incidents/${incidentId}`, (r) => ['opened', 'acknowledged', 'verdict', 'resolved'].every((t) => ((r.body && r.body.events) || []).some((e) => e.type === t)) || r.text.slice(0, 160), { headers: { cookie } });
+        }
+        await expect('POST /api/admin/aiops/run-now runs one check', `${AIOPS}/run-now`, (r) => r.body && r.body.success === true && !!r.body.result && (r.body.result.skipped === null || r.body.result.skipped === 'disabled') || r.text.slice(0, 160), post({}));
+        await expect('POST acknowledge on an unknown incident is 404', `${AIOPS}/incidents/999999999/acknowledge`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
       }
       // <Jun Kai end>
       const stamp = Date.now();

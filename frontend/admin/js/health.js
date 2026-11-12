@@ -13,12 +13,14 @@ let healthCardMarkup = []; // the HTML of each card as last drawn, in page order
 
 const HEALTH_STATUS_LABEL = { ok: 'Healthy', warn: 'Attention', down: 'Down', unknown: 'Unknown' };
 const HEALTH_STATUS_TONE = { ok: 'ok', warn: 'warn', down: 'down', unknown: 'muted' };
-const HEALTH_ICON_NAME = { database: 'database', kiosk: 'monitor', disk: 'disk', server: 'server', ollama: 'brain', email: 'mail', tablets: 'tablet', automation: 'clock' };
-const HEALTH_ORDER = ['database', 'kiosk', 'ollama', 'email', 'disk', 'server', 'automation', 'tablets'];
+const HEALTH_ICON_NAME = { database: 'database', kiosk: 'monitor', disk: 'disk', server: 'server', ollama: 'brain', email: 'mail', tablets: 'tablet', automation: 'clock', incidents: 'alert' };
+const HEALTH_ORDER = ['database', 'kiosk', 'ollama', 'email', 'disk', 'server', 'automation', 'tablets', 'incidents'];
 const HEALTH_LABEL = {
     database: 'MySQL database', kiosk: 'Kiosk server (:3003)', ollama: 'Ollama (local LLM)', email: 'Email (SMTP)',
-    disk: 'Disk space', server: 'Server PC', automation: 'Schedules', tablets: 'Tablets'
+    disk: 'Disk space', server: 'Server PC', automation: 'Schedules', tablets: 'Tablets', incidents: 'Anomaly detection'
 };
+// 'incidents' is the anomaly detection panel under the cards (incidents.js), never a card
+const HEALTH_PANEL_KEYS = ['incidents'];
 // <Jun Kai end>
 
 function healthRelativeTime(secondsAgo) {
@@ -79,6 +81,7 @@ function healthRememberHidden(hidden) {
 
 const healthHidden = () => (healthLayout ? healthLayout.hidden : healthCachedHidden());
 const healthVisibleKeys = () => HEALTH_ORDER.filter((key) => !healthHidden().includes(key));
+const healthCardKeys = () => healthVisibleKeys().filter((key) => !HEALTH_PANEL_KEYS.includes(key));
 
 function renderHealthCard(check) {
     const tone = HEALTH_STATUS_TONE[check.status] || 'muted';
@@ -123,9 +126,10 @@ function renderHealthCards() {
     const cards = document.getElementById('health-cards');
     if (!cards) return;
     bindHealthControls();
-    const visible = healthVisibleKeys();
+    const visible = healthCardKeys();
     if (!visible.length) {
-        cards.innerHTML = '<div class="health-empty">Nothing is monitored on this page.<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>';
+        const text = healthVisibleKeys().length ? 'No checks are shown on this page. The incidents panel below still runs.' : 'Nothing is monitored on this page.';
+        cards.innerHTML = `<div class="health-empty">${text}<br><button type="button" class="ui-btn ui-btn-secondary" onclick="showAllHealthOptions()">Show all</button></div>`;
     } else {
         const byKey = new Map(((healthLast && healthLast.checks) || []).map((check) => [check.key, check]));
         const markup = visible.map((key) => (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key)).trim());
@@ -147,6 +151,11 @@ function renderHealthPanels() {
     if (tablets) tablets.hidden = !showTablets;
     const tabletCheck = ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets');
     if (showTablets && tabletCheck) renderHealthTablets(tabletCheck);
+    // the Incidents panel (incidents.js) follows the Anomaly detection option and refreshes with every health cycle
+    const incidents = document.getElementById('health-incidents-card');
+    const showIncidents = healthVisibleKeys().includes('incidents');
+    if (incidents) incidents.hidden = !showIncidents;
+    if (showIncidents && typeof loadIncidents === 'function') loadIncidents();
 }
 
 // The top pill counts only the checks on the page
@@ -155,7 +164,7 @@ function renderHealthSummary() {
     const text = document.getElementById('health-summary-text');
     const at = document.getElementById('health-checked-at');
     if (!overall) return;
-    const visible = healthVisibleKeys();
+    const visible = healthCardKeys();
     if (!visible.length) {
         overall.className = 'ui-pill ui-pill-muted';
         overall.innerHTML = '<span class="ui-dot"></span>Nothing selected';
@@ -372,7 +381,9 @@ async function loadHealth(refresh) {
                 renderHealthPanels();
             }
         }
-        if (!healthVisibleKeys().length) {
+        // the incidents panel answers at once, so it is asked before the slow checks
+        if (healthVisibleKeys().includes('incidents') && typeof loadIncidents === 'function') loadIncidents();
+        if (!healthCardKeys().length) {
             renderHealthSummary();
             return;
         }
