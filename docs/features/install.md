@@ -40,8 +40,8 @@ gets the matching step (the user's rule of 12 Nov 2026: keep the installer in st
    files in use).
 3. **Settings.** `backend/.env` is made from `backend/.env.example` if it is missing. Only empty keys are filled:
    `SESSION_SECRET` (random) and `ENCRYPTION_KEY` (random, see below). `KIOSK_AUTOMATION` follows the role: `off` on a
-   laptop (a schedule must never hibernate it), `on` on the Wall PC. A value that is filled in is never replaced, and no
-   value is ever printed.
+   laptop (nothing starts by itself there: no scheduled kiosk start, no automatic fix), `on` on the Wall PC. A value
+   that is filled in is never replaced, and no value is ever printed.
 4. **Database.** It logs in as `DB_USER`. If that user cannot log in, or may not create the database, it asks once for
    the MySQL root password (typing is hidden; it is never put on a command line) and creates the database, creates the
    user and gives it its rights. `database/schema.sql` starts with `DROP TABLE`, so it is only loaded into an **empty**

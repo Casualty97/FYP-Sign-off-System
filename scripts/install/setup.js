@@ -68,8 +68,8 @@ function keySafe(stats) {
 }
 
 // The keys install fills in, judged on the file (it is what every later start reads). A value that is already there
-// is never replaced, except KIOSK_AUTOMATION, which follows the role: off on a laptop (a schedule must never
-// hibernate it), on for the Wall PC.
+// is never replaced, except KIOSK_AUTOMATION, which follows the role: off on a laptop (nothing starts by itself
+// there, no scheduled kiosk start and no automatic fix), on for the Wall PC.
 function planEnv(values, { role, safeKey, random = randomHex }) {
     const changes = [];
     const kept = [];
