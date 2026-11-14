@@ -47,14 +47,25 @@ const INCIDENT_SERVICE_LABEL = { kiosk: 'Kiosk server', database: 'Database', em
 const INCIDENT_PROCESS_LABEL = { server: 'the admin server', kiosk: 'the kiosk server' };
 const INCIDENT_VALUE_LABEL = { seconds_ago: 'Offline for', template: 'Times seen', errors: 'Errors', disk: 'Used', database_latency: 'Answer time' };
 const INCIDENT_FIX_DONE = { 'start-kiosk': 'start the kiosk server' };
-const INCIDENT_MODE_SHORT = { ask: 'Ask first', delayed: 'Auto after 5 min', auto: 'Automatic' };
+// {wait} is the "Ask, then automatic" wait from the settings
+const INCIDENT_MODE_SHORT = { ask: 'Ask first', delayed: 'Auto after {wait}', auto: 'Automatic' };
 const INCIDENT_MODE_SENTENCE = {
     ask: 'Waits for a System Admin to press Approve on the incident.',
-    delayed: 'Waits for an approval. If nobody approves within 5 minutes of the incident opening, it runs by itself. Acknowledge stops the countdown.',
+    delayed: 'Waits for an approval. If nobody approves within {wait} of the incident opening or opening again, it runs by itself. Acknowledge stops the countdown.',
     auto: 'Runs by itself as soon as the incident opens, at most once every 10 minutes, and never while the policies keep the kiosk off.'
 };
 const INCIDENT_RANK = { critical: 0, warn: 1, info: 2 };
-const INCIDENT_FIELD_ID = { enabled: 'incidents-enabled', learnFromVerdicts: 'incidents-learn', offerFixes: 'incidents-offer-fixes', quietHours: 'incidents-quiet', intervalSeconds: 'incidents-interval', retentionDays: 'incidents-retention', keepIncidentsDays: 'incidents-keep' };
+const INCIDENT_FIELD_ID = { enabled: 'incidents-enabled', learnFromVerdicts: 'incidents-learn', offerFixes: 'incidents-offer-fixes', quietHours: 'incidents-quiet', intervalSeconds: 'incidents-interval', retentionDays: 'incidents-retention', keepIncidentsDays: 'incidents-keep', clearAfterMinutes: 'incidents-clear-after', cooldownMinutes: 'incidents-cooldown', healthEverySeconds: 'incidents-health-every', fixDelayMinutes: 'incidents-fix-delay', learnStreak: 'incidents-learn-streak', learnMaxSteps: 'incidents-learn-steps', learnWindowDays: 'incidents-learn-window' };
+// the Advanced fold: [settings key, its list, how a value reads when it is not one of the list's choices]
+const INCIDENT_ADVANCED = [
+    ['clearAfterMinutes', 'incidents-clear-after', (v) => incidentWait(v)],
+    ['cooldownMinutes', 'incidents-cooldown', (v) => (Number(v) === 0 ? 'Never' : incidentWait(v))],
+    ['healthEverySeconds', 'incidents-health-every', (v) => (v % 60 ? `${v} s` : incidentWait(v / 60))],
+    ['fixDelayMinutes', 'incidents-fix-delay', (v) => incidentWait(v)],
+    ['learnStreak', 'incidents-learn-streak', (v) => `${v} answers`],
+    ['learnMaxSteps', 'incidents-learn-steps', (v) => `${v} step${Number(v) === 1 ? '' : 's'}`],
+    ['learnWindowDays', 'incidents-learn-window', (v) => `${v} days`]
+];
 const INCIDENT_FRESH_MS = 5000;      // a load this recent is not repeated (health.js asks more than once per cycle)
 const INCIDENT_WEEK_MS = 7 * 24 * 3600 * 1000;
 const INCIDENT_RESOLVED_CAP = 5;
@@ -109,6 +120,20 @@ function incidentDuration(seconds) {
     if (s < 5400) return unit(Math.round(s / 60), 'minute');
     if (s < 172800) return unit(Math.round(s / 3600), 'hour');
     return unit(Math.round(s / 86400), 'day');
+}
+
+// a wait set in minutes: "5 min" / "5 minutes", "1 h" / "1 hour"
+function incidentWait(minutes, long = false) {
+    const m = Math.max(0, Number(minutes) || 0);
+    if (m >= 60 && m % 60 === 0) {
+        const h = m / 60;
+        return long ? `${h} hour${h === 1 ? '' : 's'}` : `${h} h`;
+    }
+    return long ? `${m} minute${m === 1 ? '' : 's'}` : `${m} min`;
+}
+
+function incidentModeText(table, mode, minutes) {
+    return String(table[mode] || '').replace('{wait}', incidentWait(Number(minutes) || 5, table === INCIDENT_MODE_SENTENCE));
 }
 
 // "45 s", "5 min", "9 h", "6 days"
@@ -705,7 +730,7 @@ function incidentFixHtml(incident, data) {
             if (fix.example) notes.push('Example incident: approving only writes to its history. Nothing is started.');
             else if (fix.mode !== 'ask' && fix.automation === 'off') notes.push('This PC does not start programmes by itself (KIOSK_AUTOMATION=off), so it waits for an approval.');
             else if (incident.status === 'acknowledged' && fix.mode !== 'ask') notes.push('Acknowledged: nothing runs by itself while someone is on it.');
-            else if (fix.mode === 'delayed') notes.push('If nobody approves it, it runs by itself 5 minutes after the incident opened (set in Settings).');
+            else if (fix.mode === 'delayed') notes.push(`If nobody approves it, it runs by itself ${incidentWait(fix.delayMinutes || 5, true)} after the incident opened or opened again (set in Settings).`);
             else if (fix.mode === 'auto') notes.push('Set to Automatic in Settings: it runs by itself within a minute.');
     }
     return card + (notes.length ? `<div class="inc-fix-notes">${notes.map((n) => `<div>${escapeHtmlSafe(n)}</div>`).join('')}</div>` : '');
@@ -1430,17 +1455,62 @@ function renderIncidentFixes(data, settings) {
     const box = document.getElementById('incidents-fixes');
     if (!box) return;
     const modes = settings.fixes || {};
+    const wait = settings.fixDelayMinutes;
     box.innerHTML = (Array.isArray(data.fixes) ? data.fixes : []).map((fix) => {
         const key = escapeHtmlSafe(fix.key);
         const mode = modes[fix.key] || 'ask';
-        const options = (fix.modes || []).map((m) => `<label class="inc-mode"><input type="radio" name="inc-fix-${key}" value="${escapeHtmlSafe(m.key)}" data-fix="${key}"${m.key === mode ? ' checked' : ''}><span title="${escapeHtmlSafe(m.label)}">${escapeHtmlSafe(INCIDENT_MODE_SHORT[m.key] || m.label)}</span></label>`).join('');
+        const options = (fix.modes || []).map((m) => `<label class="inc-mode"><input type="radio" name="inc-fix-${key}" value="${escapeHtmlSafe(m.key)}" data-fix="${key}"${m.key === mode ? ' checked' : ''}><span title="${escapeHtmlSafe(m.label)}">${escapeHtmlSafe(INCIDENT_MODE_SHORT[m.key] ? incidentModeText(INCIDENT_MODE_SHORT, m.key, wait) : m.label)}</span></label>`).join('');
         return `<div class="inc-fixrow" data-fix="${key}">
                     <div class="inc-fixrow-name">${escapeHtmlSafe(fix.label)}</div>
                     <div class="inc-fixrow-for">For: ${escapeHtmlSafe(fix.forIncident || 'its incident')}</div>
                     <div class="inc-modes" role="radiogroup" aria-label="${escapeHtmlSafe(fix.label)}: when it runs">${options}</div>
-                    <div class="inc-fixrow-note" data-note="${key}">${escapeHtmlSafe(INCIDENT_MODE_SENTENCE[mode] || '')}</div>
+                    <div class="inc-fixrow-note" data-note="${key}">${escapeHtmlSafe(incidentModeText(INCIDENT_MODE_SENTENCE, mode, wait))}</div>
                 </div>`;
     }).join('');
+}
+
+// the texts that follow the Advanced values on screen: the Learn sentence, the "Ask, then automatic" labels and the
+// fold's summary (how many values differ from the defaults)
+function incidentsAdvancedTexts() {
+    const value = (id, fallback) => { const el = document.getElementById(id); const n = el ? Number(el.value) : NaN; return Number.isFinite(n) && n > 0 ? n : fallback; };
+    const streak = value('incidents-learn-streak', 3);
+    const steps = value('incidents-learn-steps', 2);
+    const learn = document.getElementById('incidents-learn-text');
+    if (learn) learn.textContent = `${streak} false alarms in a row make a detector one step less sensitive (at most ${steps} step${steps === 1 ? '' : 's'}); ${streak} correct in a row bring it back.`;
+    const wait = value('incidents-fix-delay', 5);
+    document.querySelectorAll('#incidents-fixes input[value="delayed"]').forEach((input) => {
+        const label = input.nextElementSibling;
+        if (label) {
+            label.textContent = incidentModeText(INCIDENT_MODE_SHORT, 'delayed', wait);
+            label.title = `Ask, then automatic after ${incidentWait(wait)}`;
+        }
+        const note = input.checked ? document.querySelector(`#incidents-fixes [data-note="${input.dataset.fix}"]`) : null;
+        if (note) note.textContent = incidentModeText(INCIDENT_MODE_SENTENCE, 'delayed', wait);
+    });
+    const defaults = (incidentsSettingsData && incidentsSettingsData.defaults) || {};
+    const differ = INCIDENT_ADVANCED.filter(([key, id]) => {
+        const el = document.getElementById(id);
+        return el && defaults[key] !== undefined && Number(el.value) !== Number(defaults[key]);
+    }).length;
+    const state = document.getElementById('incidents-advanced-state');
+    if (state) {
+        state.textContent = differ ? `${differ} differ${differ === 1 ? 's' : ''} from the defaults` : 'Defaults';
+        state.classList.toggle('is-changed', differ > 0);
+    }
+    const reset = document.getElementById('incidents-advanced-defaults');
+    if (reset) reset.disabled = !incidentsIsAdmin() || !differ;
+}
+
+// "Use the defaults" in the fold: only the lists change, nothing is saved until Save
+function useIncidentAdvancedDefaults() {
+    const defaults = (incidentsSettingsData && incidentsSettingsData.defaults) || {};
+    if (!incidentsIsAdmin() || !incidentsSettingsData) return;
+    INCIDENT_ADVANCED.forEach(([key, id, show]) => { if (defaults[key] !== undefined) incidentsSelectValue(id, defaults[key], show(defaults[key])); });
+    incidentsAdvancedTexts();
+    incidentsUpdateDirty();
+    // the button greys out now, so the focus goes back to the fold's title
+    const summary = document.querySelector('#incidents-advanced > summary');
+    if (summary) summary.focus();
 }
 
 function renderIncidentDetectors(data, settings) {
@@ -1458,7 +1528,9 @@ function renderIncidentDetectors(data, settings) {
         const key = escapeHtmlSafe(d.key);
         const label = escapeHtmlSafe(d.label || incidentWords(d.key));
         const level = levels[d.key] || null;
-        const tuned = learned[d.key] && learned[d.key].offset ? Math.min(5, Math.max(1, sensitivity + Number(learned[d.key].offset))) : null;
+        // never more steps down than "At most" allows (the server caps it the same way)
+        const offset = learned[d.key] ? Math.max(-(Number(settings.learnMaxSteps) || 2), Math.min(0, Number(learned[d.key].offset) || 0)) : 0;
+        const tuned = offset ? Math.min(5, Math.max(1, sensitivity + offset)) : null;
         const steps = INCIDENT_SENSITIVITY.map((name, i) => {
             const value = i + 1;
             const number = level && Array.isArray(level.short) ? level.short[i] : '';
@@ -1548,6 +1620,14 @@ async function fillIncidentSettings() {
         incidentsSelectValue('incidents-interval', interval, `${incidentDuration(interval)} (current)`);
         incidentsSelectValue('incidents-retention', retention, `${retention} days (current)`);
         incidentsSelectValue('incidents-keep', keep, `${keep} days (current)`);
+        const defaults = data.defaults || {};
+        INCIDENT_ADVANCED.forEach(([key, id, show]) => {
+            const saved = Number(settings[key]);
+            const v = Number.isFinite(saved) ? saved : Number(defaults[key]);
+            if (Number.isFinite(v)) incidentsSelectValue(id, v, `${show(v)} (current)`);
+        });
+        const advanced = document.getElementById('incidents-advanced');
+        if (advanced) advanced.open = false;
         // only the saved model until Ollama lists the rest, so the snapshot holds the saved values
         const model = (settings.advisor && settings.advisor.model) || 'qwen2.5:3b';
         const modelSelect = document.getElementById('incidents-advisor-model');
@@ -1559,6 +1639,7 @@ async function fillIncidentSettings() {
             body.querySelectorAll('input, select').forEach((el) => { el.disabled = !admin; el.removeAttribute('aria-invalid'); });
         }
         incidentsApplyFixesState();
+        incidentsAdvancedTexts();
         renderIncidentExamplesBox();
         document.getElementById('incidents-settings-save').disabled = !admin;
         if (loading) loading.hidden = true;
@@ -1608,9 +1689,12 @@ function bindIncidentsDrawer(drawer) {
         } else if (input.dataset.fix) {
             const row = input.closest('.inc-fixrow');
             const note = row && row.querySelector('.inc-fixrow-note');
-            if (note) note.textContent = INCIDENT_MODE_SENTENCE[input.value] || '';
+            const wait = document.getElementById('incidents-fix-delay');
+            if (note) note.textContent = incidentModeText(INCIDENT_MODE_SENTENCE, input.value, wait ? wait.value : 5);
         } else if (input.id === 'incidents-offer-fixes') {
             incidentsApplyFixesState();
+        } else if (INCIDENT_ADVANCED.some(([, id]) => id === input.id)) {
+            incidentsAdvancedTexts();
         }
         if (input.closest('.inc-drawer-body') && !input.closest('.inc-examples')) incidentsUpdateDirty();
     });
@@ -1651,7 +1735,14 @@ function readIncidentSettings() {
         const mode = row.querySelector('input[data-fix]:checked');
         if (mode) fixes[row.dataset.fix] = mode.value;
     });
+    // a page without the fold (an old copy in the browser cache) sends none of its keys, so they keep their values
+    const advanced = {};
+    INCIDENT_ADVANCED.forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (el) advanced[key] = Number(el.value);
+    });
     return {
+        ...advanced,
         enabled: checked('incidents-enabled'),
         learnFromVerdicts: checked('incidents-learn'),
         offerFixes: checked('incidents-offer-fixes'),
@@ -1696,6 +1787,9 @@ async function saveIncidentSettings() {
         incidentsSettingsStatus(error.message, 'error');
         const control = incidentsFieldControl(error.field);
         if (control) {
+            // a field in the folded Advanced part is shown first
+            const fold = control.closest('details');
+            if (fold) fold.open = true;
             control.setAttribute('aria-invalid', 'true');
             control.focus();
         }

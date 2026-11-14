@@ -267,4 +267,32 @@ test('describeFix tells the page what is on offer', async () => {
     assert.equal(fixes.describeFix({ ...incident, fingerprint: 'example:kiosk:x' }, { offerFixes: false }, s.fixer).offered, true);
     assert.equal(fixes.describeFix({ ...incident, subject: 'email' }, {}, s.fixer), null);
 });
+
+test('the "Ask, then automatic" wait comes from the settings, and its label says it', async () => {
+    const s = setup({ conf: { fixes: { 'start-kiosk': 'delayed' }, fixDelayMinutes: 15 } });
+    await s.store.insert(kioskDown());
+    s.advance(14 * MINUTE);
+    assert.equal(await s.fixer.sweep(), 0, 'not before the 15 minutes from the settings');
+    s.advance(MINUTE);
+    assert.equal(await s.fixer.sweep(), 1);
+    assert.equal(fixes.modeLabel('delayed', { fixDelayMinutes: 15 }), 'Ask, then automatic after 15 min');
+    assert.equal(fixes.modeLabel('delayed', {}), 'Ask, then automatic after 5 min', 'no setting: the old 5 minutes');
+    assert.equal(fixes.modeLabel('auto', { fixDelayMinutes: 15 }), 'Automatic');
+    assert.equal(fixes.describeFix(kioskDown(), { fixDelayMinutes: 15 }, s.fixer).delayMinutes, 15);
+    assert.equal(fixes.autoDue(kioskDown(), 'delayed', START + 2 * MINUTE, null, { delayMs: 2 * MINUTE }), true);
+});
+
+test('a reopened incident waits again: the wait counts from its newest reopening, not the first opening', async () => {
+    const s = setup({ conf: { fixes: { 'start-kiosk': 'delayed' } } });
+    const id = await s.store.insert(kioskDown());
+    s.advance(40 * MINUTE);
+    // it was resolved in between and came back now (incidents.js keeps opened_at, adds a 'reopened' event)
+    await s.store.addEvent(id, 'reopened', { severity: 'critical' }, new Date(START + 40 * MINUTE).toISOString());
+    assert.equal(await s.fixer.sweep(), 0, 'opened 40 minutes ago, but reopened just now');
+    s.advance(4 * MINUTE);
+    assert.equal(await s.fixer.sweep(), 0);
+    s.advance(MINUTE);
+    assert.equal(await s.fixer.sweep(), 1, '5 minutes after the reopening');
+    assert.equal(fixes.autoDue(kioskDown(), 'delayed', START + 41 * MINUTE, null, { sinceMs: START + 40 * MINUTE }), false);
+});
 // <Jun Kai end>

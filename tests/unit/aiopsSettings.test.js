@@ -31,6 +31,20 @@ test('DEFAULTS is complete and the committed defaults file is DEFAULTS', () => {
     assert.deepEqual(settings.repair(file), file, 'the defaults need no repair');
 });
 
+test('every number setting has limits, so read and validate can check it', () => {
+    for (const [key, value] of Object.entries(settings.DEFAULTS)) {
+        if (typeof value !== 'number') continue;
+        assert.ok(Array.isArray(settings.LIMITS[key]), `${key} has limits`);
+        const [min, max] = settings.LIMITS[key];
+        assert.ok(min <= value && value <= max, `${key}'s default is inside its limits`);
+    }
+    // a file from before the Advanced settings repairs to their defaults
+    const old = settings.repair({ enabled: true, intervalSeconds: 60 });
+    for (const key of ['fixDelayMinutes', 'learnStreak', 'learnMaxSteps', 'learnWindowDays', 'cooldownMinutes', 'clearAfterMinutes', 'healthEverySeconds']) {
+        assert.equal(old[key], settings.DEFAULTS[key], `${key} falls back to its default`);
+    }
+});
+
 test('read repairs a hand-edited file: numbers are clamped, odd switches default to on, unknown keys go', () => {
     const repaired = settings.repair({
         enabled: false, quietHours: 'no', intervalSeconds: 5, healthEverySeconds: 99999, retentionDays: 'soon',

@@ -26,11 +26,18 @@ const DEFAULTS = {
     quietHours: true,
     // AIOps part 2: a detector whose incidents keep being marked False alarm turns itself less sensitive (learning.js)
     learnFromVerdicts: true,
+    // how it learns: this many answers in a row make one step, at most learnMaxSteps below the admin's level, only
+    // answers from the last learnWindowDays count
+    learnStreak: 3,
+    learnMaxSteps: 2,
+    learnWindowDays: 30,
     cooldownMinutes: 30,
     clearAfterMinutes: 10,
     // fixes the app can do itself (fixes.js): offered on the incident for a System Admin to approve, or approved below
     // once per fix (ask | delayed | auto)
     offerFixes: true,
+    // "Ask, then automatic": how long a fix waits for an approval after its incident opens or opens again
+    fixDelayMinutes: 5,
     detectors: Object.fromEntries(DETECTORS.map((d) => [d.key, { enabled: true, sensitivity: 3 }])),
     // AIOps part 2: the local LLM that explains each incident and suggests one step (advisor.js)
     advisor: { enabled: true, model: 'qwen2.5:3b' },
@@ -45,8 +52,12 @@ const LIMITS = {
     healthEverySeconds: [60, 3600],
     retentionDays: [1, 365],
     keepIncidentsDays: [7, 730],
+    learnStreak: [2, 10],
+    learnMaxSteps: [1, 4],
+    learnWindowDays: [7, 365],
     cooldownMinutes: [0, 1440],
     clearAfterMinutes: [1, 120],
+    fixDelayMinutes: [1, 60],
     sensitivity: [1, 5]
 };
 

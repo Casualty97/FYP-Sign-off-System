@@ -174,10 +174,11 @@ function createRunner(overrides = {}) {
     async function learnFrom(detector) {
         if (!detector || !settings.DETECTORS.some((x) => x.key === detector) || current().learnFromVerdicts === false) return null;
         const nowMs = d.now().getTime();
-        const rows = await store.verdicts(detector, nowMs - learning.WINDOW_DAYS * DAY);
+        const rule = learning.ruleOf(current());
+        const rows = await store.verdicts(detector, nowMs - rule.windowDays * DAY);
         const state = learned.read();
         const before = state[detector];
-        const step = learning.learnStep(rows.map((r) => ({ verdict: r.verdict, at: Date.parse(r.verdict_at) })), before, nowMs);
+        const step = learning.learnStep(rows.map((r) => ({ verdict: r.verdict, at: Date.parse(r.verdict_at) })), before, nowMs, rule);
         if (!step.changed) return null;
         if (step.offset === 0) delete state[detector];
         else state[detector] = { offset: step.offset, countedAt: step.countedAt, reason: step.reason, at: new Date(nowMs).toISOString() };
@@ -254,12 +255,14 @@ function createRunner(overrides = {}) {
         runTick().then(next, next);
     }
 
-    // a new interval takes effect at once (a check within 5 s, then the new rhythm)
+    // a new interval takes effect at once (a check within 5 s, then the new rhythm); the health checks' too
     function applySettings(next) {
         const interval = Number(next && next.intervalSeconds) || settings.DEFAULTS.intervalSeconds;
         const changed = interval !== state.intervalSeconds;
         state.intervalSeconds = interval;
         if (state.started && changed) schedule(Math.min(interval * 1000, SOON_MS));
+        const recorder = state.started && d.recorder ? d.recorder() : null;
+        if (recorder && typeof recorder.applySettings === 'function') recorder.applySettings(next);
     }
 
     function start() {
@@ -288,7 +291,8 @@ function createRunner(overrides = {}) {
             else if (!own.enabled) note = 'Switched off';
             else if (detectorState === 'waiting') note = 'Waiting for the first check';
             const learnedStep = learnedState[key];
-            const tuned = learnedStep && learnedStep.offset ? { offset: learnedStep.offset, sensitivity: learning.effectiveSensitivity(own.sensitivity, learnedStep.offset), reason: learnedStep.reason, at: learnedStep.at } : null;
+            const offset = learnedStep ? learning.clampOffset(learnedStep.offset, learning.ruleOf(conf)) : 0;
+            const tuned = offset ? { offset, sensitivity: learning.effectiveSensitivity(own.sensitivity, offset), reason: learnedStep.reason, at: learnedStep.at } : null;
             return { key, label, description, enabled: own.enabled, sensitivity: own.sensitivity, state: detectorState, note, tuned };
         });
         return {

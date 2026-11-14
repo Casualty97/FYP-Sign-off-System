@@ -37,6 +37,24 @@ test('three Correct in a row bring it back one step, never above the admin level
     assert.equal(learning.learnStep([v('false-alarm', 1), v('false-alarm', 2)], {}, NOW).changed, false, 'two are not enough');
 });
 
+test('the learning rule comes from the settings: answers in a row, the most steps and how far back answers count', () => {
+    const rule = learning.ruleOf({ learnStreak: 2, learnMaxSteps: 1, learnWindowDays: 7 });
+    assert.deepEqual(rule, { streak: 2, maxDown: 1, windowDays: 7 });
+    assert.deepEqual(learning.ruleOf({}), { streak: 3, maxDown: 2, windowDays: 30 }, 'no setting: the old numbers');
+    const two = learning.learnStep([v('false-alarm', 20), v('not-useful', 10)], {}, NOW, rule);
+    assert.deepEqual([two.changed, two.offset], [true, -1]);
+    assert.match(two.reason, /^2 incidents in a row/);
+    assert.equal(learning.learnStep([v('false-alarm', 9), v('false-alarm', 8)], two, NOW, rule).changed, false, 'at most 1 step');
+    const old = [v('false-alarm', 8 * 24 * 60), v('false-alarm', 9 * 24 * 60)];
+    assert.equal(learning.learnStep(old, {}, NOW, rule).changed, false, 'older than the 7 days');
+    // lowering "at most" caps a step learned before: -2 counts as -1, and two Correct bring it back to the admin level
+    assert.equal(learning.clampOffset(-2, rule), -1);
+    const saved = settings.repair({ learnMaxSteps: 1 });
+    assert.equal(learning.apply(saved, { spike: { offset: -2 } }).detectors.spike.sensitivity, 2);
+    const back = learning.learnStep([v('correct', 2), v('correct', 1)], { offset: -2, countedAt: NOW - DAY }, NOW, rule);
+    assert.deepEqual([back.changed, back.offset], [true, 0]);
+});
+
 test('the detectors run with the learned levels; the saved settings and a switched-off learning stay untouched', () => {
     const saved = settings.repair({});
     const state = { spike: { offset: -2 }, logs: { offset: -1 } };

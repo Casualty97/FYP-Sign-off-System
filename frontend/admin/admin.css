@@ -8195,6 +8195,29 @@ html:has(#incidents-drawer[open]) { overflow: hidden; }
 .inc-drawer-status.is-error { color: #b91c1c; }
 .inc-drawer-status.is-dirty { color: #b45309; }
 
+/* the Advanced fold of the drawer: folded on every opening, its summary says how many values are not the default */
+.inc-advanced > summary { display: flex; align-items: center; gap: 8px; list-style: none; cursor: pointer; border-radius: 6px; }
+.inc-advanced > summary::-webkit-details-marker { display: none; }
+.inc-advanced > summary::before { content: ""; flex-shrink: 0; width: 5px; height: 5px; margin: 0 2px 0 1px; border-right: 1.5px solid var(--color-dark-gray); border-bottom: 1.5px solid var(--color-dark-gray); transform: rotate(-45deg); transition: transform 0.15s ease; }
+.inc-advanced[open] > summary::before { transform: rotate(45deg); }
+.inc-advanced > summary:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 3px; }
+.inc-advanced-name { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-dark-gray); }
+.inc-advanced > summary:hover .inc-advanced-name { color: var(--theme-text-color); }
+.inc-advanced-state { margin-left: auto; font-size: 12px; color: var(--color-muted); }
+.inc-advanced-state.is-changed { font-weight: 600; color: var(--theme-text-color); }
+.inc-advanced-intro { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
+.inc-adv-group { margin-top: 16px; }
+.inc-adv-head { margin-bottom: 2px; font-size: 12.5px; font-weight: 600; color: var(--theme-text-color); }
+.inc-adv-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 2px 16px; align-items: center; padding: 9px 0; }
+.inc-adv-row + .inc-adv-row { border-top: 1px solid var(--theme-border-color); }
+.inc-adv-row .ui-label { grid-column: 1; font-size: 13px; font-weight: 500; letter-spacing: 0; line-height: 1.4; color: var(--theme-text-color); }
+.inc-adv-row .ui-select { grid-column: 2; grid-row: 1 / span 2; }
+.inc-adv-row .ui-fact-hint { grid-column: 1; margin-top: 0; }
+.inc-adv-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 14px; }
+.inc-adv-foot .health-card-link { font-size: 13px; }
+.inc-adv-foot .health-card-link:disabled { color: var(--color-muted); text-decoration: none; cursor: default; }
+.inc-adv-foot .ui-fact-hint { margin-top: 0; }
+
 /* the approve dialog */
 .inc-approve .va-dialog-sub strong { color: var(--theme-text-color); }
 .inc-approve-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; margin: 0; font-size: 13.5px; line-height: 1.45; }
@@ -8230,6 +8253,8 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
     .inc-cause { grid-template-columns: 1fr; gap: 4px; }
     .inc-history .ui-events li { grid-template-columns: 1fr; gap: 2px; }
     .inc-drawer-grid { grid-template-columns: 1fr; }
+    .inc-adv-row { grid-template-columns: 1fr; gap: 6px; }
+    .inc-adv-row .ui-select { grid-column: 1; grid-row: auto; }
     .inc-examples { grid-template-columns: 1fr; justify-items: start; }
     .inc-level b { font-size: 11px; }
     .inc-drawer-head, .inc-drawer-foot { padding-left: 16px; padding-right: 16px; }
@@ -8237,7 +8262,7 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
     .inc-drawer-foot { flex-wrap: wrap; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .inc-item, .inc-history-btn svg, .inc-mode span, .inc-level span { transition: none; }
+    .inc-item, .inc-history-btn svg, .inc-mode span, .inc-level span, .inc-advanced > summary::before { transition: none; }
     .inc-drawer[open], .inc-drawer[open]::backdrop, .inc-drawer.is-closing, .inc-drawer.is-closing::backdrop { animation: none; }
     .inc-spinner { animation-duration: 2.4s; }
 }

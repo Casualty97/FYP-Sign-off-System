@@ -3479,7 +3479,7 @@
                                     </label>
                                     <label class="inc-toggle-row">
                                         <span class="ui-switch"><input type="checkbox" id="incidents-learn"><span class="ui-switch-track"></span></span>
-                                        <span class="inc-toggle-text"><strong>Learn from your answers</strong><small>3 false alarms in a row make a detector one step less sensitive (at most two steps); 3 correct in a row bring it back.</small></span>
+                                        <span class="inc-toggle-text"><strong>Learn from your answers</strong><small id="incidents-learn-text">3 false alarms in a row make a detector one step less sensitive (at most 2 steps); 3 correct in a row bring it back.</small></span>
                                     </label>
                                 </section>
                                 <section class="inc-drawer-section">
@@ -3542,6 +3542,108 @@
                                             </select>
                                         </div>
                                     </div>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <details class="inc-advanced" id="incidents-advanced">
+                                        <summary><span class="inc-advanced-name">Advanced</span><span class="inc-advanced-state" id="incidents-advanced-state"></span></summary>
+                                        <p class="inc-advanced-intro">The timings behind the incidents. The defaults suit most PCs.</p>
+                                        <div class="inc-adv-group">
+                                            <div class="inc-adv-head">Incidents</div>
+                                            <div class="inc-adv-row">
+                                                <label class="ui-label" for="incidents-clear-after">Close an incident once it has been normal for</label>
+                                                <select class="ui-select" id="incidents-clear-after" aria-describedby="incidents-clear-after-hint">
+                                                    <option value="5">5 min</option>
+                                                    <option value="10">10 min</option>
+                                                    <option value="15">15 min</option>
+                                                    <option value="30">30 min</option>
+                                                    <option value="60">1 h</option>
+                                                    <option value="120">2 h</option>
+                                                </select>
+                                                <span class="ui-fact-hint" id="incidents-clear-after-hint">Also how long a started kiosk must keep running before its fix counts as done.</span>
+                                            </div>
+                                            <div class="inc-adv-row">
+                                                <label class="ui-label" for="incidents-cooldown">Open the old incident again if it comes back within</label>
+                                                <select class="ui-select" id="incidents-cooldown" aria-describedby="incidents-cooldown-hint">
+                                                    <option value="0">Never</option>
+                                                    <option value="10">10 min</option>
+                                                    <option value="30">30 min</option>
+                                                    <option value="60">1 h</option>
+                                                    <option value="120">2 h</option>
+                                                    <option value="360">6 h</option>
+                                                    <option value="1440">24 h</option>
+                                                </select>
+                                                <span class="ui-fact-hint" id="incidents-cooldown-hint">Instead of a new number. Never: every return gets a new incident.</span>
+                                            </div>
+                                        </div>
+                                        <div class="inc-adv-group">
+                                            <div class="inc-adv-head">Health checks</div>
+                                            <div class="inc-adv-row">
+                                                <label class="ui-label" for="incidents-health-every">Run the health checks every</label>
+                                                <select class="ui-select" id="incidents-health-every" aria-describedby="incidents-health-every-hint">
+                                                    <option value="60">1 min</option>
+                                                    <option value="120">2 min</option>
+                                                    <option value="300">5 min</option>
+                                                    <option value="600">10 min</option>
+                                                    <option value="900">15 min</option>
+                                                </select>
+                                                <span class="ui-fact-hint" id="incidents-health-every-hint">A service counts as down after 2 failed checks in a row, so a longer gap means a later alarm. They also fill the 24-hour strips on System Health.</span>
+                                            </div>
+                                        </div>
+                                        <div class="inc-adv-group">
+                                            <div class="inc-adv-head">Fixes</div>
+                                            <div class="inc-adv-row">
+                                                <label class="ui-label" for="incidents-fix-delay">"Ask, then automatic" waits for an approval for</label>
+                                                <select class="ui-select" id="incidents-fix-delay" aria-describedby="incidents-fix-delay-hint">
+                                                    <option value="1">1 min</option>
+                                                    <option value="2">2 min</option>
+                                                    <option value="5">5 min</option>
+                                                    <option value="10">10 min</option>
+                                                    <option value="15">15 min</option>
+                                                    <option value="30">30 min</option>
+                                                    <option value="60">1 h</option>
+                                                </select>
+                                                <span class="ui-fact-hint" id="incidents-fix-delay-hint">Counted from when the incident opens or opens again. Acknowledge stops the wait.</span>
+                                            </div>
+                                        </div>
+                                        <div class="inc-adv-group">
+                                            <div class="inc-adv-head">Learning from your answers</div>
+                                            <div class="inc-adv-row">
+                                                <label class="ui-label" for="incidents-learn-streak">Answers in a row for one step</label>
+                                                <select class="ui-select" id="incidents-learn-streak" aria-describedby="incidents-learn-streak-hint">
+                                                    <option value="2">2 answers</option>
+                                                    <option value="3">3 answers</option>
+                                                    <option value="4">4 answers</option>
+                                                    <option value="5">5 answers</option>
+                                                </select>
+                                                <span class="ui-fact-hint" id="incidents-learn-streak-hint">False alarm or Not useful make a detector less sensitive; Correct brings it back.</span>
+                                            </div>
+                                            <div class="inc-adv-row">
+                                                <label class="ui-label" for="incidents-learn-steps">At most, below your level</label>
+                                                <select class="ui-select" id="incidents-learn-steps" aria-describedby="incidents-learn-steps-hint">
+                                                    <option value="1">1 step</option>
+                                                    <option value="2">2 steps</option>
+                                                    <option value="3">3 steps</option>
+                                                    <option value="4">4 steps</option>
+                                                </select>
+                                                <span class="ui-fact-hint" id="incidents-learn-steps-hint">A lower number also limits steps already learned.</span>
+                                            </div>
+                                            <div class="inc-adv-row">
+                                                <label class="ui-label" for="incidents-learn-window">Count answers from the last</label>
+                                                <select class="ui-select" id="incidents-learn-window" aria-describedby="incidents-learn-window-hint">
+                                                    <option value="7">7 days</option>
+                                                    <option value="14">14 days</option>
+                                                    <option value="30">30 days</option>
+                                                    <option value="60">60 days</option>
+                                                    <option value="90">90 days</option>
+                                                </select>
+                                                <span class="ui-fact-hint" id="incidents-learn-window-hint">Older answers are left out.</span>
+                                            </div>
+                                        </div>
+                                        <div class="inc-adv-foot">
+                                            <button type="button" class="health-card-link" id="incidents-advanced-defaults" onclick="useIncidentAdvancedDefaults()">Use the defaults</button>
+                                            <span class="ui-fact-hint">Nothing is saved until you press Save.</span>
+                                        </div>
+                                    </details>
                                 </section>
                                 <section class="inc-drawer-section">
                                     <div class="inc-drawer-title">Example incidents</div>
