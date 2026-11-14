@@ -29,7 +29,7 @@ Feedback leaves never sit under the title box, wherever the admin puts it (top o
 
 ## Leaf details
 
-Click (or tap) a feedback leaf to open its details card, as on the 2D tree: whether the name is shown or hidden for privacy, the visitor's name (or Anonymous visitor), their badge in its colour, the date and their pledge snippet, all from `/api/tree`. The card (`leaf-detail.js`, `#leafDetailCard`) opens beside the leaf on the side with more room, and the leaf grows a little while it is open. Only the leaf shape counts as a click (not the square around it), and where leaves overlap, the one drawn on top; a press that moves turns the view instead. The card closes with its × button, the Escape key, a click away from the leaves, a Year Review change, or when the leaf falls.
+Click (or tap) a feedback leaf to open its details card, as on the 2D tree: whether the name is shown or hidden for privacy, the visitor's name (or Anonymous visitor), their badge in its colour, the date and their pledge snippet, all from `/api/tree`. The card (`leaf-detail.js`, `#leafDetailCard`) opens beside the leaf on the side with more room, and the leaf grows a little while it is open. Only the leaf shape counts as a click (not the square around it), and where leaves overlap, the one drawn on top; a press that moves turns the view instead. The card closes with its × button, the Escape key, a click away from the leaves, a Year Review change, when the leaf falls, or as soon as the view is turned (a drag, the arrow keys or the slow orbit), since the leaf then moves away from it.
 
 ## Growth stage
 

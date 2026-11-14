@@ -1020,9 +1020,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer }) {
   // Clicking (or tapping) a leaf opens its details card beside it (leaf-detail.js), and the leaf grows a
   // little while the card is open. A press that moves is a drag to turn the view, not a click. Only the leaf
   // itself counts, not the transparent square around it, and where leaves overlap, the one drawn on top.
-  // Clicking away from the leaves closes the card. The cursor shows a hand over a leaf.
+  // Clicking away from the leaves closes the card, and so does turning the view (a drag, the arrow keys or
+  // the slow orbit), since the leaf then moves away from the card. The cursor shows a hand over a leaf.
   let selectedLeaf = null;
   const details = createLeafDetail({ onClose: () => { selectedLeaf = null; } });
+  const cardView = new T.Vector3();   // the way the camera looked when the card opened
+  const currentView = new T.Vector3();
+  const CARD_TURN_LIMIT = T.MathUtils.degToRad(3); // a click's tiny wobble stays under this
   const canvas = renderer.domElement;
   const raycaster = new T.Raycaster();
   const pointer = new T.Vector2();
@@ -1081,10 +1085,14 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer }) {
     const leaf = leafAt(event.clientX, event.clientY);
     if (!leaf) { details.close(); return; }
     selectedLeaf = leaf;
+    camera.getWorldDirection(cardView);
     details.show({ visitor: leaf.visitor, badgeColour: badgeColour(leaf.visitor), x: event.clientX, y: event.clientY });
   });
   let lastHover = 0;
   canvas.addEventListener('pointermove', event => {
+    // Starting to drag the view closes the card at once.
+    if (press && press.id === event.pointerId && details.isOpen()
+      && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) details.close();
     if (event.buttons || event.pointerType === 'touch') return;
     const time = performance.now();
     if (time - lastHover < 90) return;
@@ -1121,6 +1129,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer }) {
   function update(dt, elapsed) {
     if (!group.visible) return;
     const time = now();
+    // Once the view has turned (by any means) the clicked leaf has moved away, so its card closes.
+    if (details.isOpen() && camera.getWorldDirection(currentView).angleTo(cardView) > CARD_TURN_LIMIT) details.close();
     for (const [key, leaf] of leaves) {
       if (leaf.state !== 'falling') shownSpot(leaf, leaf.shown);
       leaf.scale += (currentScale(leaf) - leaf.scale) * Math.min(1, dt * 4); // size changes ease in
