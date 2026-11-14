@@ -248,6 +248,8 @@ async function refresh() {
     latest.tree2d = {
       leafFallThreshold: Math.max(1, Number(tree2d.leafFallThreshold) || 15),
       treeStage: Math.round(Number(tree2d.treeStage) || 0),
+      // The 2D tree's badge colours (Badge Leaf Styling), for any badge the 3D settings leave as built in.
+      badgeColors: { ...(data.parameters?.badgeLeafStyles?.colors || {}) },
     };
     applyTitleBox(latest.titleBox);
     applyPanels(latest);

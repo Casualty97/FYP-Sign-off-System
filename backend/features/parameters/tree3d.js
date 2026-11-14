@@ -48,9 +48,10 @@
 //   leafShowcaseSeconds how long a new leaf stays at the bottom middle before floating up, 0 to 30 seconds
 //   leafFloatMs        how long it takes to float up to the tree, 2000 to 20000 ms
 //   leafFallMs         how long the oldest leaf takes to fall, 500 to 10000 ms (2D: Leaf Fall Duration)
-//   badgeColours       leaves in their badge's colour instead of green (2D: Badge Leaf Styling): a light
-//                      shade while new, then a dark shade of it after leafNewHours
-//   badgeLeafColors    the colour for each badge (BADGE_KEYS), any colour as on the 2D tree
+//   badgeColours       leaves in their badge's colour instead of green (2D: Badge Leaf Styling), on by
+//                      default: a light shade while new, then a dark shade of it after leafNewHours
+//   badgeLeafColors    the colour for each badge (BADGE_KEYS), any colour as on the 2D tree; a badge left at
+//                      its built-in colour here takes the 2D tree's colour (badgeLeafStyles.colors)
 //   (Maximum Visible Leaves stays the 2D tree's treeParameters.leafFallThreshold, shared by both trees)
 
 const SKIES = ['sunrise', 'day', 'sunset', 'night'];
@@ -122,7 +123,7 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   leafShowcaseSeconds: 12,
   leafFloatMs: 7200,
   leafFallMs: 4200,
-  badgeColours: false,
+  badgeColours: true,
   badgeLeafColors: DEFAULT_BADGE_LEAF_COLORS,
   titleBox: DEFAULT_TITLE_BOX
 });

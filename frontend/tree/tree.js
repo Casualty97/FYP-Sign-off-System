@@ -1811,8 +1811,11 @@ class TreeManager {
             && (Date.now() - visitTime.getTime()) >= 0
             && (Date.now() - visitTime.getTime()) <= this.badgeTintDurationMs;
 
-        if (!isVip && isWithinTintWindow) {
+        // Every leaf (not a VIP's) shows its badge's colour from the admin's Badge Leaf Styling: a light
+        // shade while new (the tint window, 24 hours by default), then a darker shade of it, as on the 3D tree.
+        if (!isVip) {
             leaf.classList.add('leaf-tinted');
+            leaf.classList.toggle('leaf-tint-aged', !isWithinTintWindow);
             leaf.style.setProperty('--leaf-badge-color', badgeLeafColor);
         }
         

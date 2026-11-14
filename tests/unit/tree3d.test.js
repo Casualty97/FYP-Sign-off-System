@@ -108,7 +108,7 @@ test('badge leaf colours take any colour for the known badges and keep the rest'
     assert.equal(merged.badgeLeafColors['ocean-guardian'], '#00aaff');
     assert.equal(merged.badgeLeafColors['climate-champion'], '#111111');
     assert.equal(merged.badgeLeafColors['feedback-completer'], DEFAULT_TREE3D_PARAMETERS.badgeLeafColors['feedback-completer']);
-    assert.equal(merged.badgeColours, false);
+    assert.equal(merged.badgeColours, true, 'leaves are coloured by their badge by default');
     assert.equal(merged.leafShowcaseSeconds, 12);
 });
 

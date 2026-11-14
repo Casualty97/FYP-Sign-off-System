@@ -89,10 +89,12 @@ const TREE3D_VISUAL_DEFAULTS = {
     leafShowcaseSeconds: 12,
     leafFloatMs: 7200,
     leafFallMs: 4200,
-    badgeColours: false
+    badgeColours: true
 };
 const TREE3D_VISUAL_NUMBERS = ['leafAreaWidth', 'leafAreaHeight', 'leafAreaOffset', 'leafRefreshMs', 'leafOpacity',
     'leafAppearMs', 'leafShowcaseSeconds', 'leafFloatMs', 'leafFallMs'];
+// The 2D tree's saved badge colours (Badge Leaf Styling), used for any badge left at its built-in colour in 3D.
+let tree3dBadgeColours2d = {};
 // The badges, with the 2D tree's default colours (Badge Leaf Styling).
 const TREE3D_BADGES = [
     ['feedback-completer', 'Feedback Contributor', '#4a7c59'],
@@ -302,8 +304,14 @@ function fillTree3dForm(settings) {
     if (tree3dField('leafAreaWidth')) {
         TREE3D_VISUAL_NUMBERS.forEach(key => { tree3dField(key).value = visual[key]; });
         tree3dField('badgeColours').checked = visual.badgeColours === true;
+        // The colour each badge shows on the 3D tree: its 3D colour once changed here, otherwise the 2D tree's
+        // (Badge Leaf Styling), as frontend/3dTree/feedback-leaves.js badgeColour.
         const colours = settings?.badgeLeafColors || {};
-        TREE3D_BADGES.forEach(([key, , fallback]) => { tree3dField(`badgeColour-${key}`).value = colours[key] || fallback; });
+        TREE3D_BADGES.forEach(([key, , builtIn]) => {
+            const own = String(colours[key] || '').toLowerCase();
+            const shown = own && own !== builtIn ? own : (tree3dBadgeColours2d[key] || own || builtIn);
+            tree3dField(`badgeColour-${key}`).value = shown;
+        });
         updateTree3dVisualLabels();
     }
 
@@ -639,6 +647,7 @@ async function loadTree3dSettings() {
     try {
         const response = await fetch('/api/parameters');
         const data = await response.json();
+        tree3dBadgeColours2d = { ...(data.parameters?.badgeLeafStyles?.colors || {}) };
         fillTree3dForm(data.parameters?.tree3dParameters);
         // The 3D tree shows as many leaves as the 2D tree's Maximum Visible Leaves.
         showTree3dMaxLeaves(data.parameters?.treeParameters?.leafFallThreshold);

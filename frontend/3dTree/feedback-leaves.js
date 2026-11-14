@@ -107,7 +107,7 @@ const BADGE_LEAF_COLOURS = { // the 2D tree's default badge colours
 const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24, leafScale: 1, showLeafNames: true,
   leafAreaWidth: 100, leafAreaHeight: 100, leafAreaOffset: 0, leafRefreshMs: POLL_MS, leafOpacity: 1,
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS,
-  badgeColours: false, badgeLeafColors: BADGE_LEAF_COLOURS,
+  badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
   tree2d: { leafFallThreshold: 15, treeStage: 4 },
   vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true };
 
@@ -767,14 +767,19 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer }) {
     return (BASE_SIZE / MODEL_SIZE) * (scale || 1) * fitScale; // smaller only when many leaves must fit
   }
 
-  // A leaf starts light when its feedback comes in and turns dark once it has been on the tree for the
-  // admin's leafNewHours ("A leaf stays light for", minutes or hours): light green, then dark green (2D: New /
-  // Old leaf pictures). With the admin's badge colours on, a light shade of its badge's colour, then a dark
-  // shade of it (2D: Badge Leaf Styling). VIP leaves stay gold. tintLeaf runs at every check for new
-  // feedback, so a leaf turns dark within one check of its time, fading over a few seconds (update).
+  // A leaf is coloured by its visitor's badge (on by default, the admin's "Colour leaves by their badge"):
+  // a light shade of the badge's colour when its feedback comes in, turning to a dark shade of it once it has
+  // been on the tree for the admin's leafNewHours ("A leaf stays light for", minutes or hours). With badge
+  // colours off, light green then dark green (2D: New / Old leaf pictures). VIP leaves stay gold. tintLeaf
+  // runs at every check for new feedback, so a leaf turns dark within one check of its time, fading over a
+  // few seconds (update).
+  // The badge's colour: the 3D tree's own (3D Tree Visualization Parameters) once the admin has changed it
+  // there; otherwise the 2D tree's (Badge Leaf Styling); otherwise the built-in one.
   function badgeColour(visitor) {
     const key = visitor?.badgeKey || 'feedback-completer';
-    return settings.badgeLeafColors?.[key] || visitor?.badgeColor || BADGE_LEAF_COLOURS[key] || settings.leafNewColor;
+    const own = String(settings.badgeLeafColors?.[key] || '').toLowerCase();
+    if (own && own !== BADGE_LEAF_COLOURS[key]) return own;
+    return settings.tree2d?.badgeColors?.[key] || own || visitor?.badgeColor || BADGE_LEAF_COLOURS[key] || settings.leafNewColor;
   }
   function tintLeaf(leaf, immediate = false) {
     const created = timeOf(leaf.visitor?.created_at);

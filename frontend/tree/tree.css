@@ -196,7 +196,7 @@ body {
     background-position: center, center;
     background-blend-mode: color, normal;
     /* Lifts the dark photo so light colours (amber, sky blue) stay bright, and sharpens the veins. */
-    filter: brightness(1.28) contrast(1.18) saturate(1.15);
+    filter: brightness(1.42) contrast(1.12) saturate(1.12);
     -webkit-mask-image: var(--leaf-image-url);
     mask-image: var(--leaf-image-url);
     -webkit-mask-size: contain;
@@ -205,6 +205,11 @@ body {
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
+}
+
+/* After its first day (the tint window) a leaf keeps its badge colour, in a darker shade. */
+.leaf.leaf-tinted.leaf-tint-aged:not(.vip)::before {
+    filter: brightness(0.98) contrast(1.16) saturate(1.32);
 }
 
 .leaf.vip {
