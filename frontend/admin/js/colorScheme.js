@@ -125,14 +125,26 @@ function adminDarkRule(rule) {
     // the Style & Theme Settings preview shows the light theme being edited, so it keeps its colours
     if (/\.preview-(card|content|btn-primary|btn-secondary)\b/.test(rule.selectorText)) return '';
     const parts = [];
+    let image = false;
     for (let i = 0; i < rule.style.length; i++) {
         const prop = rule.style[i];
         const kind = adminColorKind(prop);
         if (!kind) continue;
         const value = rule.style.getPropertyValue(prop);
         if (!value) continue;
+        if (prop === 'background-image') image = true;
         const dark = value.replace(ADMIN_COLOR_TOKEN, (token) => adminDarkColor(token, kind));
         parts.push(`${prop}: ${dark}${rule.style.getPropertyPriority(prop) ? ' !important' : ''}`);
+    }
+    // a twin with a background image keeps the rule's own repeat, position and size too, or an earlier twin's
+    // "background:" shorthand resets them (the arrow of every list was tiled across the field)
+    if (image) {
+        for (let i = 0; i < rule.style.length; i++) {
+            const prop = rule.style[i];
+            if (!prop.startsWith('background-') || adminColorKind(prop)) continue;
+            const value = rule.style.getPropertyValue(prop);
+            if (value) parts.push(`${prop}: ${value}${rule.style.getPropertyPriority(prop) ? ' !important' : ''}`);
+        }
     }
     // a shorthand written with var() ("background: var(--accent)") leaves its longhands empty in the stylesheet
     // object, so it is copied whole; without it an older rule's twin would win over it
