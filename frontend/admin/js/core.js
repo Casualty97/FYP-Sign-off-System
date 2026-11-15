@@ -522,6 +522,7 @@ let sessionTimeoutModal = null;
 // the latest activity of any admin tab of this browser counts (localStorage)
 let adminIdleMs = SESSION_TIMEOUT_MS;
 let adminIdleCountdown = null;
+let adminIdleLoadedAt = 0;
 const ADMIN_ACTIVITY_KEY = 'adminLastActivity';
 const ADMIN_SIGNOUT_NOTE_KEY = 'adminSignOutNote';
 // <Jun Kai end>
@@ -531,7 +532,11 @@ const ADMIN_SIGNOUT_NOTE_KEY = 'adminSignOutNote';
 /**
  * Reset activity timer on user interaction
  */
-function resetActivityTimer() {
+function resetActivityTimer(event) {
+    // <Jun Kai start> inside the notice only its buttons and Esc decide: a press on Sign out now must reach it, and
+    // Tab must be able to move between the two buttons
+    if (event && event.target && typeof event.target.closest === 'function' && event.target.closest('#idle-dialog')) return;
+    // <Jun Kai end>
     lastActivityTime = Date.now();
     sessionWarningShown = false;
     // <Jun Kai start> other admin tabs of this browser see the activity too (written at most every 5 seconds)
@@ -569,6 +574,8 @@ function checkSessionTimeout() {
     }
     // <Jun Kai start> signed in for 1 day: no idle logout, the server renews the session from the token
     if (adminRememberedUntil()) return;
+    // a time a System Admin changed meanwhile reaches open pages within 5 minutes
+    if (Date.now() - adminIdleLoadedAt > 5 * 60000) loadAdminIdleSetting();
     // never, when the setting is 0; another tab's activity counts; a short time gets a 1-minute notice
     if (!adminIdleMs) return;
     lastActivityTime = adminLatestActivity();
@@ -729,6 +736,7 @@ function stayAdminSignedIn() {
 }
 
 async function loadAdminIdleSetting() {
+    adminIdleLoadedAt = Date.now();
     try {
         const response = await fetch('/api/admin/sign-in-settings', { cache: 'no-store' });
         const data = await response.json();
