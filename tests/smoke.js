@@ -340,6 +340,7 @@ async function archiveStep(cookie) {
     await expect('POST /api/admin/aiops/examples without a session is refused', `${BASE}/api/admin/aiops/examples`, (r) => r.status === 401 || r.status === 403, { method: 'POST' });
     await expect('PUT /api/admin/hardware/alert-lines without a session is refused', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     await expect('PUT /api/admin/health/settings without a session is refused', `${BASE}/api/admin/health/settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    await expect('PUT /api/admin/sign-in-settings without a session is refused', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     // <Jun Kai end>
     let cookie = '';
     try {
@@ -432,6 +433,14 @@ async function archiveStep(cookie) {
           }, { headers: { cookie } });
           await expect('PUT /api/admin/health/settings puts the window back', `${BASE}/api/admin/health/settings`, (r) => r.body && r.body.success === true && r.body.settings.tabletOfflineMinutes === healthSaved.settings.tabletOfflineMinutes || r.text.slice(0, 160), put(healthSaved.settings));
         } else fail('PUT /api/admin/health/settings round trip skipped: GET /api/admin/health/settings gave no settings');
+        // sign-out after no activity: the minutes, a refused value, a round trip put back as it was
+        const idleSaved = (await get(`${BASE}/api/admin/sign-in-settings`, { headers: { cookie } })).body;
+        await expect('GET /api/admin/sign-in-settings has the minutes', `${BASE}/api/admin/sign-in-settings`, (r) => r.body && r.body.success === true && Number.isInteger(r.body.settings.idleMinutes) && r.body.defaults.idleMinutes === 30 || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('PUT /api/admin/sign-in-settings refuses 4 minutes', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 400 && r.body && r.body.field === 'idleMinutes' || `${r.status}: ${r.text.slice(0, 120)}`, put({ idleMinutes: 4 }));
+        if (idleSaved && idleSaved.settings) {
+          await expect('PUT /api/admin/sign-in-settings saves never (0)', `${BASE}/api/admin/sign-in-settings`, (r) => r.body && r.body.success === true && r.body.settings.idleMinutes === 0 || r.text.slice(0, 160), put({ idleMinutes: 0 }));
+          await expect('PUT /api/admin/sign-in-settings puts the minutes back', `${BASE}/api/admin/sign-in-settings`, (r) => r.body && r.body.success === true && r.body.settings.idleMinutes === idleSaved.settings.idleMinutes || r.text.slice(0, 160), put(idleSaved.settings));
+        } else fail('PUT /api/admin/sign-in-settings round trip skipped: GET /api/admin/sign-in-settings gave no settings');
         // <Jun Kai end>
         // anomaly detection: the settings round trip, then one test incident through acknowledge, verdict and resolve
         const AIOPS = `${BASE}/api/admin/aiops`;

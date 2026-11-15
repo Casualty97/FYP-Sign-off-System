@@ -323,6 +323,7 @@ function showPage(pageName) {
         loadAssetData();
     } else if (pageName === 'users') {
         loadUserManagementData();
+        loadIdleSignOutCard(); // <Jun Kai/> the Sign-in card (core.js)
     } else if (pageName === 'questions') {
         loadQuestionManagementData();
     } else if (pageName === 'audit') {

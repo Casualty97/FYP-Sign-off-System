@@ -7,7 +7,7 @@ Owners keep their page current (CI does not check this, the reviewer does).
 - [Digital tree (2D and 3D)](tree.md) — owner: Role 2, Wei Jie, 21 route(s)
 - [Pulse screen](pulse.md) — owner: Role 2, Wei Jie, 2 route(s)
 - [Pledgeboard](pledgeboard.md) — owner: Role 1, Zihan, 11 route(s)
-- [Admin page shell and the big admin router](admin.md) — owner: Role 3, Jun Kai, 20 route(s)
+- [Admin page shell and the big admin router](admin.md) — owner: Role 3, Jun Kai, 22 route(s)
 - [Archive, export and retention (incl. the Visitor Data Archive)](archive.md) — owner: Role 3, Jun Kai, 41 route(s)
 - [Feedback analysis (rules, BERT, Ollama)](analysis.md) — owner: Role 3, Jun Kai, 6 route(s)
 - [Email and badges](email.md) — owner: Role 3, Jun Kai, 9 route(s)
