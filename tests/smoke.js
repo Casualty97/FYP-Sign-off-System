@@ -338,6 +338,8 @@ async function archiveStep(cookie) {
     await expect('POST /api/admin/archive/update-status without a session is refused', `${BASE}/api/admin/archive/update-status`, (r) => r.status === 401, { method: 'POST' });
     await expect('GET /api/admin/aiops/status without a session is refused', `${BASE}/api/admin/aiops/status`, (r) => r.status === 401);
     await expect('POST /api/admin/aiops/examples without a session is refused', `${BASE}/api/admin/aiops/examples`, (r) => r.status === 401 || r.status === 403, { method: 'POST' });
+    await expect('PUT /api/admin/hardware/alert-lines without a session is refused', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    await expect('PUT /api/admin/health/settings without a session is refused', `${BASE}/api/admin/health/settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     // <Jun Kai end>
     let cookie = '';
     try {
