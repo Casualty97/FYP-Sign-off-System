@@ -8927,3 +8927,14 @@ button.policy-cal-day:hover { border-color: #b8c4d3; }
 .email-preview-empty { margin: 0; padding: 40px 0; text-align: center; font-size: 13px; color: var(--color-muted); }
 @media (max-width: 900px) { .email-health-side { justify-items: start; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Sign-in card on User Management (sign out after no activity) and the notice before it signs out */
+.idle-card { margin-top: 28px; }
+.idle-body { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 8px 28px; align-items: end; }
+.idle-field .ui-select:disabled { background-color: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
+.idle-hint { margin: 0 0 6px; max-width: 640px; line-height: 1.5; }
+.idle-countdown { margin: 0; font-size: 14px; color: var(--color-dark-gray); }
+.idle-countdown strong { margin-left: 6px; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--theme-text-color); }
+@media (max-width: 640px) { .idle-body { grid-template-columns: 1fr; align-items: start; } }
+/* <Jun Kai end> */

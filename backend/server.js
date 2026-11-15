@@ -420,6 +420,9 @@ app.use(session({
 const { restore: rememberRestore, router: rememberRoutes } = require('./core/rememberMe');
 app.use('/api/admin', rememberRestore);
 app.use('/api/admin/remember', rememberRoutes);
+// sign-out after no activity: the minutes every admin page counts (backend/core/idleSignOut.js)
+const { router: idleSignOutRoutes } = require('./core/idleSignOut');
+app.use('/api/admin/sign-in-settings', idleSignOutRoutes);
 // <Jun Kai end>
 
 // Pulse screen is public so it can be shown without an admin session.

@@ -1631,6 +1631,34 @@
                             </table>
                         </div>
                     </div>
+
+                    <!-- <Jun Kai start> signing out after no activity, the same for every admin (a System Admin changes it) -->
+                    <div class="ui-card idle-card" id="idle-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Sign-in</h3>
+                                <p>How long the admin page may sit untouched before it signs the admin out.</p>
+                            </div>
+                        </div>
+                        <div class="ui-card-body idle-body">
+                            <div class="ui-field idle-field">
+                                <label class="ui-label" for="idle-minutes">Sign out after no activity for</label>
+                                <select class="ui-select" id="idle-minutes" onchange="saveIdleSignOut()" aria-describedby="idle-minutes-hint">
+                                    <option value="5">5 min</option>
+                                    <option value="10">10 min</option>
+                                    <option value="15">15 min</option>
+                                    <option value="30">30 min</option>
+                                    <option value="60">1 h</option>
+                                    <option value="120">2 h</option>
+                                    <option value="240">4 h</option>
+                                    <option value="480">8 h</option>
+                                    <option value="0">Never</option>
+                                </select>
+                            </div>
+                            <p class="ui-help idle-hint" id="idle-minutes-hint">No click or key press for this long signs the admin out, with a notice 2 minutes before (1 minute below 10 minutes). It counts for every admin. A browser signed in with Keep me signed in is not signed out this way.</p>
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- VIP Management (DONE BY ZAH) -->
@@ -4813,9 +4841,28 @@
                     </div>
                 </div>
 
-                
+
 
             </main>
+    <!-- <Jun Kai start> the notice before an admin is signed out for no activity (core.js), outside the pages so it shows on any page -->
+    <dialog class="va-dialog va-dialog-small" id="idle-dialog" aria-labelledby="idle-dialog-title" aria-describedby="idle-dialog-text">
+        <div class="va-dialog-inner">
+            <div class="va-dialog-head">
+                <div>
+                    <h3 id="idle-dialog-title">Still there?</h3>
+                    <div class="va-dialog-sub" id="idle-dialog-text">Nothing has been clicked or typed here for a while, so the admin page will sign out.</div>
+                </div>
+            </div>
+            <div class="va-dialog-body">
+                <p class="idle-countdown">Signing out in <strong id="idle-dialog-countdown">2:00</strong></p>
+            </div>
+            <div class="va-dialog-foot">
+                <button type="button" class="ui-btn ui-btn-secondary" id="idle-signout-btn" onclick="handleLogout()">Sign out now</button>
+                <button type="button" class="ui-btn ui-btn-primary" id="idle-stay-btn" onclick="stayAdminSignedIn()">Stay signed in</button>
+            </div>
+        </div>
+    </dialog>
+    <!-- <Jun Kai end> -->
     <script src="/admin/js/core.js"></script>
     <script src="/admin/js/uiKit.js"></script>
     <script src="/admin/js/audit.js"></script>

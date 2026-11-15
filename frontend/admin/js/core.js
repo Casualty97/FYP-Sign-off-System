@@ -508,7 +508,9 @@
 // This code adds automatic logout when session expires
 
 // Session timeout configuration
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes (matches server session)
+// <Jun Kai/> the default only: the setting on User Management changes it (adminIdleMs, below). The page's own requests
+// keep the server session alive, so this timer is what signs an idle admin out.
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes warning before timeout
 const ACTIVITY_CHECK_INTERVAL_MS = 60 * 1000; // Check activity every minute
 
@@ -516,6 +518,13 @@ let lastActivityTime = Date.now();
 let sessionWarningShown = false;
 let activityCheckInterval = null;
 let sessionTimeoutModal = null;
+// <Jun Kai start> minutes without activity before signing out, from GET /api/admin/sign-in-settings (0 = never);
+// the latest activity of any admin tab of this browser counts (localStorage)
+let adminIdleMs = SESSION_TIMEOUT_MS;
+let adminIdleCountdown = null;
+const ADMIN_ACTIVITY_KEY = 'adminLastActivity';
+const ADMIN_SIGNOUT_NOTE_KEY = 'adminSignOutNote';
+// <Jun Kai end>
 
 // ==================== ACTIVITY TRACKING ====================
 
@@ -525,11 +534,13 @@ let sessionTimeoutModal = null;
 function resetActivityTimer() {
     lastActivityTime = Date.now();
     sessionWarningShown = false;
-    
-    // Close warning modal if it's showing
-    if (sessionTimeoutModal) {
-        closeSessionWarningModal();
-    }
+    // <Jun Kai start> other admin tabs of this browser see the activity too (written at most every 5 seconds)
+    try {
+        if (lastActivityTime - Number(localStorage.getItem(ADMIN_ACTIVITY_KEY) || 0) > 5000) localStorage.setItem(ADMIN_ACTIVITY_KEY, String(lastActivityTime));
+    } catch { /* storage switched off: this tab counts alone */ }
+    // the notice is a dialog now (it used to be the sessionTimeoutModal popup)
+    closeSessionWarningModal();
+    // <Jun Kai end>
 }
 
 /**
@@ -538,6 +549,7 @@ function resetActivityTimer() {
 function initActivityTracking() {
     // Track various user interactions
     const events = ['mousedown', 'keypress', 'touchstart', 'click']; // not mousemove/scroll: they closed the warning modal
+    events.push('keydown'); // <Jun Kai/> Tab and the arrow keys count too (keypress misses them)
     
     events.forEach(event => {
         document.addEventListener(event, resetActivityTimer, { passive: true });
@@ -557,16 +569,26 @@ function checkSessionTimeout() {
     }
     // <Jun Kai start> signed in for 1 day: no idle logout, the server renews the session from the token
     if (adminRememberedUntil()) return;
+    // never, when the setting is 0; another tab's activity counts; a short time gets a 1-minute notice
+    if (!adminIdleMs) return;
+    lastActivityTime = adminLatestActivity();
+    const warnBefore = adminIdleWarnMs();
     // <Jun Kai end>
-    
+
     const timeSinceLastActivity = Date.now() - lastActivityTime;
-    const timeUntilTimeout = SESSION_TIMEOUT_MS - timeSinceLastActivity;
-    
+    const timeUntilTimeout = adminIdleMs - timeSinceLastActivity; // <Jun Kai/> was SESSION_TIMEOUT_MS
+
     // Show warning if approaching timeout
-    if (timeUntilTimeout <= WARNING_BEFORE_TIMEOUT_MS && timeUntilTimeout > 0 && !sessionWarningShown) {
+    if (timeUntilTimeout <= warnBefore && timeUntilTimeout > 0 && !sessionWarningShown) {
         showSessionWarningModal(timeUntilTimeout);
         sessionWarningShown = true;
     }
+    // <Jun Kai start> activity in another tab meanwhile: the notice goes away
+    if (timeUntilTimeout > warnBefore && sessionWarningShown) {
+        sessionWarningShown = false;
+        closeSessionWarningModal();
+    }
+    // <Jun Kai end>
     
     // Auto-logout if timed out
     if (timeUntilTimeout <= 0) {
@@ -581,6 +603,10 @@ function startSessionMonitoring() {
     // Reset timer
     lastActivityTime = Date.now();
     sessionWarningShown = false;
+    // <Jun Kai start> a fresh page starts the count again; the minutes come from the setting on User Management
+    try { localStorage.setItem(ADMIN_ACTIVITY_KEY, String(lastActivityTime)); } catch { /* storage switched off */ }
+    loadAdminIdleSetting();
+    // <Jun Kai end>
     
     // Clear existing interval if any
     if (activityCheckInterval) {
@@ -611,105 +637,55 @@ function stopSessionMonitoring() {
  * Show session timeout warning modal
  */
 function showSessionWarningModal(timeRemaining) {
-    const minutesRemaining = Math.ceil(timeRemaining / 60000);
-    
-    // Create modal if it doesn't exist
-    if (!sessionTimeoutModal) {
-        sessionTimeoutModal = document.createElement('div');
-        sessionTimeoutModal.id = 'session-timeout-modal';
-        sessionTimeoutModal.innerHTML = `
-            <div class="modal-overlay" style="
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-            ">
-                <div class="modal-content" style="
-                    background: white;
-                    padding: 30px;
-                    border-radius: 8px;
-                    max-width: 400px;
-                    text-align: center;
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-                ">
-                    <div style="font-size: 48px; margin-bottom: 20px;">⏰</div>
-                    <h2 style="margin: 0 0 15px 0; color: #333;">Session Timeout Warning</h2>
-                    <p style="color: #666; margin-bottom: 25px;">
-                        Your session will expire in <strong id="timeout-countdown">${minutesRemaining}</strong> minute(s) due to inactivity.
-                    </p>
-                    <p style="color: #666; margin-bottom: 25px; font-size: 14px;">
-                        Click "Stay Logged In" to continue your session, or you will be automatically logged out.
-                    </p>
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="session-stay-btn" style="
-                            background: #10b981;
-                            color: white;
-                            border: none;
-                            padding: 10px 20px;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 16px;
-                        ">Stay Logged In</button>
-                        <button id="session-logout-btn" style="
-                            background: #ef4444;
-                            color: white;
-                            border: none;
-                            padding: 10px 20px;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 16px;
-                        ">Logout Now</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(sessionTimeoutModal);
-        
-        // Add event listeners
-        document.getElementById('session-stay-btn').addEventListener('click', () => {
-            resetActivityTimer();
-            // Make a keep-alive request to refresh server session
-            fetch('/api/admin/keep-alive', { method: 'POST' }).catch(() => {});
-            closeSessionWarningModal();
-        });
-        
-        document.getElementById('session-logout-btn').addEventListener('click', () => {
-            handleLogout();
-        });
-        
-        // Start countdown update
-        updateCountdown(timeRemaining);
-    } else {
-        sessionTimeoutModal.style.display = 'block';
-        updateCountdown(timeRemaining);
+    // <Jun Kai start> a calm dialog with a countdown in mm:ss (it replaced a popup with an emoji and the browser's
+    // alert box); its buttons are Stay signed in and Sign out now (admin.html, #idle-dialog)
+    const dialog = document.getElementById('idle-dialog');
+    if (!dialog || typeof dialog.showModal !== 'function') return;
+    const text = document.getElementById('idle-dialog-text');
+    if (text) text.textContent = `Nothing has been clicked or typed here for a while. The admin page signs out after ${adminIdleWords()} without activity.`;
+    if (!dialog.dataset.bound) {
+        dialog.dataset.bound = '1';
+        // Esc means "I am here"
+        dialog.addEventListener('cancel', (event) => { event.preventDefault(); stayAdminSignedIn(); });
     }
+    if (!dialog.open) dialog.showModal();
+    updateCountdown(timeRemaining);
+    clearInterval(adminIdleCountdown);
+    adminIdleCountdown = setInterval(() => {
+        lastActivityTime = adminLatestActivity();
+        const left = adminIdleMs - (Date.now() - lastActivityTime);
+        if (!adminIdleMs || left > adminIdleWarnMs()) { sessionWarningShown = false; closeSessionWarningModal(); return; }
+        updateCountdown(left);
+        if (left <= 0) handleSessionTimeout();
+    }, 1000);
+    const stay = document.getElementById('idle-stay-btn');
+    if (stay) stay.focus();
+    // <Jun Kai end>
 }
 
 /**
  * Update countdown timer in warning modal
  */
 function updateCountdown(timeRemaining) {
-    const countdownElement = document.getElementById('timeout-countdown');
+    // <Jun Kai start> minutes and seconds, every second
+    const countdownElement = document.getElementById('idle-dialog-countdown');
     if (countdownElement) {
-        const minutesRemaining = Math.ceil(timeRemaining / 60000);
-        countdownElement.textContent = minutesRemaining;
+        const seconds = Math.max(0, Math.ceil(timeRemaining / 1000));
+        countdownElement.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
     }
+    // <Jun Kai end>
 }
 
 /**
  * Close session timeout warning modal
  */
 function closeSessionWarningModal() {
-    if (sessionTimeoutModal) {
-        sessionTimeoutModal.style.display = 'none';
-    }
+    // <Jun Kai start>
+    clearInterval(adminIdleCountdown);
+    adminIdleCountdown = null;
+    const dialog = document.getElementById('idle-dialog');
+    if (dialog && dialog.open) dialog.close();
+    // <Jun Kai end>
 }
 
 /**
@@ -717,16 +693,102 @@ function closeSessionWarningModal() {
  */
 function handleSessionTimeout() {
     console.log('⏰ Session timeout - auto logout');
-    
+
     // Clear session monitoring
     stopSessionMonitoring();
-    
-    // Show timeout message
-    alert('⏰ Your session has expired due to inactivity. You will be logged out.');
-    
+
+    // <Jun Kai start> the login page says why, instead of a browser alert box
+    closeSessionWarningModal();
+    adminSignOutNote(`You were signed out after ${adminIdleWords()} without activity.`);
+    // <Jun Kai end>
+
     // Perform logout
     handleLogout();
 }
+
+// <Jun Kai start>
+// The latest activity of this tab or another admin tab of this browser
+function adminLatestActivity() {
+    try { return Math.max(lastActivityTime, Number(localStorage.getItem(ADMIN_ACTIVITY_KEY) || 0)); } catch { return lastActivityTime; }
+}
+
+// 2 minutes of notice, 1 minute when the time is under 10 minutes
+const adminIdleWarnMs = () => (adminIdleMs >= 10 * 60000 ? WARNING_BEFORE_TIMEOUT_MS : 60000);
+
+// "30 minutes", "1 hour", "8 hours"
+function adminIdleWords() {
+    const minutes = Math.round(adminIdleMs / 60000);
+    if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60} hour${minutes === 60 ? '' : 's'}`;
+    return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+}
+
+// Stay signed in: counts as activity, and the server session is renewed at once
+function stayAdminSignedIn() {
+    resetActivityTimer();
+    fetch('/api/admin/keep-alive', { method: 'POST' }).catch(() => {});
+}
+
+async function loadAdminIdleSetting() {
+    try {
+        const response = await fetch('/api/admin/sign-in-settings', { cache: 'no-store' });
+        const data = await response.json();
+        if (response.ok && data.success && data.settings && Number.isFinite(Number(data.settings.idleMinutes))) adminIdleMs = Number(data.settings.idleMinutes) * 60000;
+    } catch { /* keeps the default 30 minutes */ }
+}
+
+// A line for the login page after the page signed out by itself; the page reloads on logout, so it waits in localStorage
+function adminSignOutNote(text) {
+    try { localStorage.setItem(ADMIN_SIGNOUT_NOTE_KEY, text); } catch { /* storage switched off: no line */ }
+}
+
+function showAdminSignOutNote() {
+    let text = '';
+    try {
+        text = localStorage.getItem(ADMIN_SIGNOUT_NOTE_KEY) || '';
+        localStorage.removeItem(ADMIN_SIGNOUT_NOTE_KEY);
+    } catch { /* storage switched off */ }
+    if (text) showLoginNote(text);
+}
+
+// The Sign-in card on User Management: the minutes for every admin (a System Admin changes them)
+async function loadIdleSignOutCard() {
+    const select = document.getElementById('idle-minutes');
+    if (!select) return;
+    select.disabled = true;
+    try {
+        const response = await fetch('/api/admin/sign-in-settings', { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Could not load');
+        const minutes = String(data.settings.idleMinutes);
+        if (![...select.options].some((option) => option.value === minutes)) select.add(new Option(`${minutes} min`, minutes));
+        select.value = minutes;
+        select.dataset.saved = minutes;
+        select.disabled = sessionStorage.getItem('userRole') !== 'system_admin';
+    } catch (error) {
+        showNotification(`Could not load the sign-in setting: ${error.message}`, 'error');
+    }
+}
+
+async function saveIdleSignOut() {
+    const select = document.getElementById('idle-minutes');
+    if (!select || sessionStorage.getItem('userRole') !== 'system_admin') return;
+    const minutes = Number(select.value);
+    select.disabled = true;
+    try {
+        const response = await fetch('/api/admin/sign-in-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idleMinutes: minutes }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'Save failed');
+        select.dataset.saved = String(minutes);
+        adminIdleMs = minutes * 60000;
+        showNotification(minutes ? `Admins are now signed out after ${adminIdleWords()} without activity` : 'Admins are no longer signed out for no activity', 'success');
+    } catch (error) {
+        if (select.dataset.saved) select.value = select.dataset.saved;
+        showNotification(`Could not save: ${error.message}`, 'error');
+    } finally {
+        select.disabled = false;
+    }
+}
+// <Jun Kai end>
 
 // ==================== GLOBAL FETCH INTERCEPTOR FOR 401 DETECTION ====================
 
@@ -746,7 +808,9 @@ window.fetch = function(...args) {
                     sessionExpiredHandled = true;
                     console.log('🔒 401 Unauthorized detected - session expired');
                     setTimeout(() => {
-                        alert('🔒 Your session has expired. Please log in again.');
+                        // <Jun Kai start> the login page says it, instead of a browser alert box
+                        adminSignOutNote('Your session ended. Please sign in again.');
+                        // <Jun Kai end>
                         handleLogout();
                     }, 100);
                 });

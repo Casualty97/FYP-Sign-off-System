@@ -32,6 +32,8 @@ Login, session timeout, navigation between the admin pages, the dashboard with i
 | POST | `/api/admin/logout-audit` | backend/features/admin/routes.js |
 | GET | `/api/admin/nick-usage-analytics` | backend/features/admin/routes.js |
 | GET | `/api/admin/school-summary` | backend/features/admin/routes.js |
+| GET | `/api/admin/sign-in-settings` | backend/core/idleSignOut.js |
+| PUT | `/api/admin/sign-in-settings` | backend/core/idleSignOut.js |
 | GET | `/api/admin/test-db` | backend/features/admin/routes.js |
 | POST | `/api/admin/verify-password` | backend/features/admin/routes.js |
 | GET | `/api/admin/visitor-trends` | backend/features/admin/routes.js |
@@ -66,3 +68,20 @@ Generated from the route snapshot plus hand-written notes on 2026-10-31. Update 
 ## Login: show password and "keep me signed in" (12 Nov 2026, supervisor meeting 04)
 - The eye button inside the password field shows or hides the password (aria-pressed, the label says what it does).
 - "Keep me signed in on this computer for 1 day": the login answer sets an httpOnly, SameSite=Strict cookie (esg_admin_remember, path /api/admin, secure over HTTPS) holding a random 256-bit token. The server keeps only its SHA-256 hash, the admin, a fingerprint of the password hash and the expiry in backend/data/remember-tokens.json (at most 10 per admin); the password is never stored. backend/core/rememberMe.js runs on every /api/admin request: with no session but a valid token it opens a fresh session for that admin, as long as the account is active and not deleted and its password is unchanged. GET /api/admin/remember lets the page sign in by itself on load (the browser keeps only a hint with the username and the end time in localStorage). While the day lasts the page's 30-minute idle logout is off and the server renews the session from the token. Logout deletes the token; it ends after 24 hours in any case.
+
+## Sign out after no activity (15 Nov 2026)
+- The previous team's page timer (frontend/admin/js/core.js, Preti) signed an admin out after 30 minutes without a click
+  or key press, with a warning popup 2 minutes before. The 30 minutes is now a setting: User Management, Sign-in card,
+  "Sign out after no activity for" (5 min to 8 h, or Never; 30 minutes by default), the same for every admin. A System
+  Admin changes it (`PUT /api/admin/sign-in-settings`, Audit Logs `ADMIN_IDLE_SIGNOUT_UPDATE`); every admin page asks
+  for it when monitoring starts (`loadAdminIdleSetting`, after a login, a kept session or a remembered sign-in). Stored in
+  `backend/data/sign-in-settings.json` (backend/core/idleSignOut.js).
+- The notice is a calm dialog (`#idle-dialog`): "Still there?", a countdown in m:ss, Stay signed in and Sign out now;
+  Esc counts as Stay signed in. 2 minutes of notice, 1 minute below 10 minutes. The popup with an emoji and the browser
+  alert boxes are gone: after signing out by itself (or when the server session ended, the 401 path) the login page says
+  why ("You were signed out after 30 minutes without activity.", "Your session ended. Please sign in again.").
+- The latest activity of any admin tab of this browser counts (localStorage `adminLastActivity`), so a busy tab keeps an
+  idle one signed in and closes its notice. Tab and the arrow keys count as activity too (keydown).
+- Unchanged on purpose: a browser signed in with "Keep me signed in" is not signed out this way (12 Nov 2026, PR #21).
+- The page's own requests (the Incidents count every minute) keep the 30-minute server session alive, so this page timer
+  is what signs an idle admin out; a closed browser still loses its session after 30 minutes on the server.

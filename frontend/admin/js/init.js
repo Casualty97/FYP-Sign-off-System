@@ -47,7 +47,8 @@ window.addEventListener('DOMContentLoaded', function() {
         // <Jun Kai end>
     } else {
         console.log('No user logged in');
-        // <Jun Kai start>
+        // <Jun Kai start> why the page signed out by itself, if it did (core.js), then a remembered sign-in
+        showAdminSignOutNote();
         tryRememberedSignIn();
         // <Jun Kai end>
     }
