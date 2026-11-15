@@ -7916,6 +7916,11 @@ input:checked + .slider:before {
 .health-card-link:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; border-radius: 3px; }
 /* "Offline" with the time under it keeps the Status column narrow, so tablet names stay on one line */
 .health-ago { margin-top: 4px; font-size: 12px; white-space: nowrap; }
+/* Offline after, on the right of the Tablets header (a System Admin changes it, others see it greyed) */
+.health-offline-after { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+.health-offline-after .ui-label { margin: 0; white-space: nowrap; }
+.health-offline-after .ui-select { width: auto; min-width: 104px; }
+.health-offline-after .ui-select:disabled { background-color: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
 .health-skel { display: block; height: 10px; margin-top: 14px; border-radius: 5px; background: linear-gradient(90deg, #eef2f6 25%, #f7f9fb 37%, #eef2f6 63%); background-size: 400% 100%; animation: healthShimmer 1.4s ease infinite; }
 .health-skel + .health-skel { margin-top: 10px; }
 @keyframes healthShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
@@ -8632,6 +8637,35 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 .hw-swatches { display: inline-flex; gap: 3px; }
 .hw-swatches span { width: 5px; height: 14px; border-radius: 2px; }
 .hw-c-cpu { background: #1f6fd0; } .hw-c-memory { background: #14a88a; } .hw-c-gpu { background: #a0408f; } .hw-c-disk { background: #1e293b; }
+/* Alert lines: a small table (one row per part, its colour dot) beside what amber and red do */
+.hw-alerts { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px 40px; align-items: start; }
+.hw-alerts-main .ui-note { margin: 0 0 10px; }
+.hw-alerts-main .ui-note[hidden] { display: none; }
+.hw-alerts-table { width: 100%; border-collapse: collapse; }
+.hw-alerts-table th, .hw-alerts-table td { padding: 6px 12px 6px 0; border: 0; background: none; text-align: left; vertical-align: middle; }
+.hw-alerts-table thead th { padding-bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: none; color: var(--color-dark-gray); }
+.hw-alerts-table tbody th { font-size: 13.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--theme-text-color); white-space: nowrap; }
+.hw-alerts-table tbody tr + tr > * { border-top: 1px solid var(--theme-border-color); }
+.hw-alerts-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; vertical-align: 1px; }
+.hw-alerts-field { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-dark-gray); }
+.hw-alerts-field .ui-input { width: 76px; height: 34px; padding: 0 10px; }
+.hw-alerts-field .ui-input:disabled { background-color: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
+.hw-alerts-field .ui-input[aria-invalid="true"] { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+.hw-alerts-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 10px; }
+.hw-alerts-foot .health-card-link { font-size: 13px; }
+.hw-alerts-foot .health-card-link:disabled { color: var(--color-muted); text-decoration: none; cursor: default; }
+.hw-alerts-status { font-size: 12.5px; color: var(--color-dark-gray); }
+.hw-alerts-status.is-dirty { color: #b45309; }
+.hw-alerts-status.is-error { color: #b91c1c; }
+.hw-alerts-legend { display: grid; gap: 12px; margin: 2px 0 0; }
+.hw-alerts-legend dt { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--theme-text-color); }
+.hw-alerts-legend dd { margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
+.hw-alerts-swatch { width: 18px; height: 0; border-top: 2px dashed; }
+.hw-alerts-swatch.is-amber { border-color: #b45309; }
+.hw-alerts-swatch.is-red { border-color: #b91c1c; }
+@media (max-width: 760px) {
+    .hw-alerts { grid-template-columns: 1fr; }
+}
 .hw-key-cpu { background: #f0f6ff; border-color: #c7dcfb; } .hw-key-cpu .hw-key-value, .hw-key-cpu .hw-key-icon { color: #1857a8; }
 .hw-key-memory { background: #effaf6; border-color: #b9e8d9; } .hw-key-memory .hw-key-value, .hw-key-memory .hw-key-icon { color: #0c7a63; }
 .hw-key-gpu { background: #fbf3f9; border-color: #ecc9e2; } .hw-key-gpu .hw-key-value, .hw-key-gpu .hw-key-icon { color: #8a3079; }
@@ -8750,6 +8784,9 @@ html[data-theme="dark"] #login-page {
 html[data-theme="dark"] .text-light-gray { color: var(--color-muted) !important; }
 html[data-theme="dark"] :is(.badge-warning, .badge-permanent) { color: #0b1120; }
 html[data-theme="dark"] .hw-swatches .hw-c-disk { background-color: #cbd5e1; }
+html[data-theme="dark"] .hw-alerts-dot.hw-c-disk { background-color: #cbd5e1; }
+html[data-theme="dark"] .hw-alerts-swatch.is-amber { border-color: #fbbf24; }
+html[data-theme="dark"] .hw-alerts-swatch.is-red { border-color: #f87171; }
 @media (prefers-reduced-motion: reduce) { .theme-toggle { transition: none; } }
 /* <Jun Kai end> */
 

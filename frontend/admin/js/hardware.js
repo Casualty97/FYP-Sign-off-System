@@ -57,6 +57,14 @@ let hardwareRetentionDays = 30;
 let hardwareIntervalSeconds = 60;
 let hardwareSaved = null; // the settings as last loaded, to tell what a save changes
 let hardwarePendingSave = null; // the settings waiting behind the long-forecast reminder
+// <Jun Kai start> the alert lines of each part (amber, red), from the server; 85 / 95 until it answers
+const HARDWARE_ALERT_DEFAULT = { warn: 85, critical: 95 };
+let hardwareAlerts = Object.fromEntries(HARDWARE_METRICS.map((key) => [key, { ...HARDWARE_ALERT_DEFAULT }]));
+let hardwareAlertDefaults = JSON.parse(JSON.stringify(hardwareAlerts));
+let hardwareAlertLimits = { warn: [30, 99], critical: [31, 100] };
+let hardwareAlertsBusy = false;
+let hardwareLastOverview = null;
+// <Jun Kai end>
 
 function hardwareTheme() {
     const css = getComputedStyle(document.documentElement);
@@ -78,9 +86,45 @@ function hardwareAgo(iso) {
     return `${Math.round(seconds / 3600)} h ago`;
 }
 
-function hardwareTone(percent) {
-    return percent >= 95 ? 'down' : percent >= 85 ? 'warn' : 'ok';
+// <Jun Kai start> by the part's own alert lines (Alert lines card)
+function hardwareTone(percent, key) {
+    const line = hardwareAlerts[key] || HARDWARE_ALERT_DEFAULT;
+    return percent >= line.critical ? 'down' : percent >= line.warn ? 'warn' : 'ok';
 }
+
+// The lines a graph draws: a part's own two; on the graph with every part only a line all the parts on it share,
+// so no line is ever drawn that is not every shown part's real limit
+function hardwareLinesFor(chart) {
+    const key = chart.$hardwareKey || 'all';
+    let parts = key === 'all' ? HARDWARE_METRICS : [key];
+    if (key === 'all') {
+        const shown = HARDWARE_METRICS.filter((part, i) => {
+            const measured = chart.data.datasets[i * 4];
+            return measured && measured.data.some((point) => point && point.y !== null && point.y !== undefined);
+        });
+        if (shown.length) parts = shown;
+    }
+    const lines = [];
+    for (const [kind, light, dark, word] of [['warn', '#b45309', '#fbbf24', 'amber'], ['critical', '#b91c1c', '#f87171', 'red']]) {
+        const values = [...new Set(parts.map((part) => (hardwareAlerts[part] || HARDWARE_ALERT_DEFAULT)[kind]))];
+        if (values.length === 1) lines.push([values[0], hardwareDark() ? dark : light, `${values[0]}% ${word}`, kind]);
+    }
+    return lines;
+}
+
+// The legend under the graph says the lines that graph draws
+function hardwareLegendLimits() {
+    const el = document.getElementById('hardware-legend-limit-text');
+    if (!el) return;
+    const lines = hardwareLinesFor(hardwareCharts[hardwarePart] || { $hardwareKey: hardwarePart, data: { datasets: [] } });
+    const amber = lines.find((line) => line[3] === 'warn');
+    const red = lines.find((line) => line[3] === 'critical');
+    el.textContent = amber && red ? `Amber from ${amber[0]}%, red from ${red[0]}%`
+        : red ? `Red from ${red[0]}%; amber differs by part` : amber ? `Amber from ${amber[0]}%; red differs by part` : 'The alert lines differ by part';
+}
+
+const hardwareLinesDiffer = () => HARDWARE_METRICS.some((part) => ['warn', 'critical'].some((kind) => (hardwareAlerts[part] || HARDWARE_ALERT_DEFAULT)[kind] !== (hardwareAlerts.cpu || HARDWARE_ALERT_DEFAULT)[kind]));
+// <Jun Kai end>
 
 // "3mo" -> { amount: 3, unit: 'mo' }, or null for a preset or anything else
 function hardwareCustomRange(key) {
@@ -156,7 +200,7 @@ function hardwareBuildTicks(scale) {
 // Draws the "now" hairline that separates measured values from the forecast, and the hover crosshair
 const hardwareGuidePlugin = {
     id: 'hardwareGuide',
-    // under the lines: hatching where there were no samples, and the 85 % and 95 % limits
+    // under the lines: hatching where there were no samples, and the alert lines (85 % and 95 % unless changed)
     beforeDatasetsDraw(chart) {
         const { ctx, chartArea, scales } = chart;
         if (!chartArea || !scales.x || !scales.y) return;
@@ -183,8 +227,8 @@ const hardwareGuidePlugin = {
         ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
         ctx.textAlign = 'right';
         ctx.setLineDash([3, 4]);
-        const dark = hardwareDark(); // <Jun Kai/> lighter amber and red on a dark graph
-        for (const [value, color, label] of [[85, dark ? '#fbbf24' : '#b45309', '85% amber'], [95, dark ? '#f87171' : '#b91c1c', '95% red']]) {
+        // <Jun Kai/> lighter amber and red on a dark graph; each part's own lines (hardwareLinesFor)
+        for (const [value, color, label] of hardwareLinesFor(chart)) {
             const y = scales.y.getPixelForValue(value);
             ctx.strokeStyle = color;
             ctx.beginPath();
@@ -340,8 +384,10 @@ function ensureHardwareCharts() {
     for (const key of HARDWARE_METRICS) {
         const canvas = document.getElementById(`hardware-${key}-chart`);
         if (!canvas) continue;
-        if (!hardwareCharts[key]) hardwareCharts[key] = new Chart(canvas, hardwareChartConfig(key));
-        else hardwareCharts[key].resize();
+        if (!hardwareCharts[key]) {
+            hardwareCharts[key] = new Chart(canvas, hardwareChartConfig(key));
+            hardwareCharts[key].$hardwareKey = key; // <Jun Kai/> which part's alert lines it draws
+        } else hardwareCharts[key].resize();
     }
     // the graph with every part: the four datasets of each part, one after the other
     const canvas = document.getElementById('hardware-all-chart');
@@ -353,6 +399,7 @@ function ensureHardwareCharts() {
         config.plugins = [hardwareGuidePlugin, hardwareEndLabelPlugin];
         // <Jun Kai end>
         hardwareCharts.all = new Chart(canvas, config);
+        hardwareCharts.all.$hardwareKey = 'all'; // <Jun Kai/>
     } else if (hardwareCharts.all) hardwareCharts.all.resize();
     return true;
 }
@@ -488,7 +535,7 @@ function renderHardwareKeys(overview) {
         if (!pill) continue;
         const value = now[key];
         const known = value !== null && value !== undefined;
-        const tone = known ? hardwareTone(value) : 'muted';
+        const tone = known ? hardwareTone(value, key) : 'muted';
         pill.className = `ui-pill ui-pill-${tone}`;
         pill.innerHTML = `<span class="ui-dot"></span>${known ? { ok: 'Normal', warn: 'High', down: 'Critical' }[tone] : 'No reading'}`;
     }
@@ -525,7 +572,11 @@ function hardwarePartWords() {
     const title = document.getElementById('hardware-main-title');
     const words = document.getElementById('hardware-main-text');
     if (title) title.textContent = hardwareTableOpen ? 'Values' : hardwarePart === 'all' ? 'All parts' : HARDWARE_NAMES[hardwarePart];
-    if (words) words.textContent = hardwareTableOpen ? 'The same averages as the graph, every part, newest first.' : hardwarePart === 'disk' ? hardwareDiskText : HARDWARE_PART_TEXT[hardwarePart];
+    // <Jun Kai start> when the parts have different alert lines, the graph with every part draws only the shared ones
+    const allText = hardwareLinesDiffer() ? 'Every part on one graph. The alert lines differ by part: click a part on the left to see it with its own.' : HARDWARE_PART_TEXT.all;
+    if (words) words.textContent = hardwareTableOpen ? 'The same averages as the graph, every part, newest first.' : hardwarePart === 'disk' ? hardwareDiskText : hardwarePart === 'all' ? allText : HARDWARE_PART_TEXT[hardwarePart];
+    hardwareLegendLimits();
+    // <Jun Kai end>
 }
 
 // The cards on the left are the switch: every part on one graph, or one part with its own numbers
@@ -710,8 +761,12 @@ async function loadHardware() {
         const overview = await overviewResponse.json();
         if (!overviewResponse.ok || !overview.success) throw new Error(overview.error || 'Overview failed');
         renderHardwareCards(overview.overview);
-        renderHardwareKeys(overview.overview);
+        // <Jun Kai start> the alert lines first, so the part cards are judged by them
+        hardwareLastOverview = overview.overview;
         renderHardwareSettings(overview.overview);
+        renderHardwareAlerts(overview.overview);
+        renderHardwareKeys(overview.overview);
+        // <Jun Kai end>
         const series = await seriesResponse.json();
         if (!seriesResponse.ok || !series.success) throw new Error(series.error || 'Series failed');
         renderHardwareSeries(series);
@@ -1010,6 +1065,146 @@ async function putHardwareSettings(payload) {
         if (button) button.disabled = false;
     }
 }
+
+// <Jun Kai start>
+// ---- the Alert lines card: amber and red per part (a System Admin saves them; others see them) ----
+const hardwareIsSystemAdmin = () => { try { return sessionStorage.getItem('userRole') === 'system_admin'; } catch { return false; } };
+
+function hardwareAlertRows(values) {
+    const [warnMin, warnMax] = hardwareAlertLimits.warn;
+    const [critMin, critMax] = hardwareAlertLimits.critical;
+    const field = (key, kind, min, max, word) => `<span class="hw-alerts-field"><input class="ui-input" type="number" id="hardware-alert-${key}-${kind}" min="${min}" max="${max}" step="1" inputmode="numeric" value="${values[key][kind]}" aria-label="${HARDWARE_NAMES[key]}, ${word} from, in percent" oninput="hardwareAlertsChanged()"><span aria-hidden="true">%</span></span>`;
+    return HARDWARE_METRICS.map((key) => `<tr>
+                    <th scope="row"><span class="hw-alerts-dot hw-c-${key}" aria-hidden="true"></span>${HARDWARE_NAMES[key]}</th>
+                    <td>${field(key, 'warn', warnMin, warnMax, 'amber')}</td>
+                    <td>${field(key, 'critical', critMin, critMax, 'red')}</td>
+                </tr>`).join('');
+}
+
+// The lines on screen, or { error, input } for the first one that cannot be saved
+function readHardwareAlerts() {
+    const alerts = {};
+    for (const key of HARDWARE_METRICS) {
+        alerts[key] = {};
+        for (const kind of ['warn', 'critical']) {
+            const input = document.getElementById(`hardware-alert-${key}-${kind}`);
+            const n = input && input.value.trim() !== '' ? Number(input.value) : NaN;
+            const [min, max] = hardwareAlertLimits[kind];
+            if (!Number.isInteger(n) || n < min || n > max) return { error: `${HARDWARE_NAMES[key]} ${kind === 'warn' ? 'amber' : 'red'}: enter a whole number from ${min} to ${max}.`, input };
+            alerts[key][kind] = n;
+        }
+        if (alerts[key].critical <= alerts[key].warn) return { error: `${HARDWARE_NAMES[key]}: red must be higher than amber.`, input: document.getElementById(`hardware-alert-${key}-critical`) };
+    }
+    return { alerts };
+}
+
+// the inputs against some lines: the saved ones ("Unsaved changes") or the ones last filled in (has someone typed?)
+const hardwareAlertsDiffer = (lines) => HARDWARE_METRICS.some((key) => ['warn', 'critical'].some((kind) => {
+    const input = document.getElementById(`hardware-alert-${key}-${kind}`);
+    return input && String(lines[key][kind]) !== input.value.trim();
+}));
+const hardwareAlertsDirty = () => hardwareAlertsDiffer(hardwareAlerts);
+let hardwareAlertsShown = null;
+
+function fillHardwareAlertRows(lines) {
+    const rows = document.getElementById('hardware-alerts-rows');
+    if (!rows) return;
+    rows.innerHTML = hardwareAlertRows(lines);
+    hardwareAlertsShown = JSON.parse(JSON.stringify(lines));
+}
+
+function hardwareAlertsStatus(text, tone) {
+    const status = document.getElementById('hardware-alerts-status');
+    if (!status) return;
+    status.textContent = text;
+    status.classList.toggle('is-dirty', tone === 'dirty');
+    status.classList.toggle('is-error', tone === 'error');
+}
+
+// While typing: "Unsaved changes" only while a value differs from the saved lines; the defaults link greys out at the defaults
+function hardwareAlertsChanged() {
+    document.querySelectorAll('#hardware-alerts-rows [aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+    const status = document.getElementById('hardware-alerts-status');
+    if (hardwareAlertsDirty()) hardwareAlertsStatus('Unsaved changes', 'dirty');
+    else if (status && (status.classList.contains('is-dirty') || status.classList.contains('is-error'))) hardwareAlertsStatus('', '');
+    const atDefaults = HARDWARE_METRICS.every((key) => ['warn', 'critical'].every((kind) => {
+        const input = document.getElementById(`hardware-alert-${key}-${kind}`);
+        return input && input.value.trim() === String(hardwareAlertDefaults[key][kind]);
+    }));
+    const reset = document.getElementById('hardware-alerts-defaults');
+    if (reset) reset.disabled = !hardwareIsSystemAdmin() || atDefaults;
+}
+
+// From the overview: the saved lines, their defaults and limits; the inputs are refilled unless someone typed in them
+// (lines saved meanwhile by another admin come in at the next refresh)
+function renderHardwareAlerts(overview) {
+    if (overview.alerts) hardwareAlerts = overview.alerts;
+    if (overview.alertDefaults) hardwareAlertDefaults = overview.alertDefaults;
+    if (overview.alertLimits) hardwareAlertLimits = overview.alertLimits;
+    const rows = document.getElementById('hardware-alerts-rows');
+    if (!rows) return;
+    const admin = hardwareIsSystemAdmin();
+    const typed = hardwareAlertsShown && hardwareAlertsDiffer(hardwareAlertsShown);
+    if (!rows.children.length || (!typed && !rows.contains(document.activeElement))) fillHardwareAlertRows(hardwareAlerts);
+    rows.querySelectorAll('input').forEach((input) => { input.disabled = !admin; });
+    const note = document.getElementById('hardware-alerts-admin');
+    if (note) note.hidden = admin;
+    const save = document.getElementById('hardware-alerts-save');
+    if (save) save.hidden = !admin;
+    hardwareAlertsChanged();
+    hardwarePartWords();
+}
+
+function useHardwareAlertDefaults() {
+    if (!hardwareIsSystemAdmin()) return;
+    for (const key of HARDWARE_METRICS) {
+        for (const kind of ['warn', 'critical']) {
+            const input = document.getElementById(`hardware-alert-${key}-${kind}`);
+            if (input) input.value = String(hardwareAlertDefaults[key][kind]);
+        }
+    }
+    hardwareAlertsChanged();
+    // the link greys out now, so the focus goes to the first value
+    const first = document.querySelector('#hardware-alerts-rows input');
+    if (first) first.focus();
+}
+
+async function saveHardwareAlerts() {
+    if (hardwareAlertsBusy || !hardwareIsSystemAdmin()) return;
+    const read = readHardwareAlerts();
+    if (read.error) {
+        hardwareAlertsStatus(read.error, 'error');
+        if (read.input) { read.input.setAttribute('aria-invalid', 'true'); read.input.focus(); }
+        return;
+    }
+    const button = document.getElementById('hardware-alerts-save');
+    hardwareAlertsBusy = true;
+    if (button) button.disabled = true;
+    hardwareAlertsStatus('Saving', '');
+    try {
+        const response = await fetch('/api/admin/hardware/alert-lines', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alerts: read.alerts }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            const failed = data.field ? document.getElementById(`hardware-alert-${String(data.field).replace('.', '-')}`) : null;
+            if (failed) { failed.setAttribute('aria-invalid', 'true'); failed.focus(); }
+            throw new Error(data.error || 'Save failed');
+        }
+        hardwareAlerts = data.alerts;
+        fillHardwareAlertRows(hardwareAlerts);
+        hardwareAlertsStatus('', '');
+        hardwareAlertsChanged();
+        if (hardwareLastOverview) renderHardwareKeys(hardwareLastOverview);
+        Object.values(hardwareCharts).forEach((chart) => chart.update('none'));
+        hardwarePartWords();
+        showNotification('Alert lines saved', 'success');
+    } catch (error) {
+        hardwareAlertsStatus(`Could not save: ${error.message}`, 'error');
+    } finally {
+        hardwareAlertsBusy = false;
+        if (button) button.disabled = false;
+    }
+}
+// <Jun Kai end>
 
 function startHardwarePolling() {
     if (hardwareTimer) clearInterval(hardwareTimer);

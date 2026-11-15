@@ -12,11 +12,14 @@ const scheduler = require('../serverControl/scheduler');
 const emailService = require('../email/service');
 // <Jun Kai start>
 const tabletNames = require('./tabletNames');
+// the alert lines of each part (Hardware page, Alert lines) and when a tablet counts as offline (Tablets, Offline after)
+const hardwareSettings = require('../hardware/settings');
+const healthSettings = require('./settings');
+const tabletWindowSeconds = () => healthSettings.read().tabletOfflineMinutes * 60;
 // <Jun Kai end>
 
 const OLLAMA_URL = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
 const EMAIL_CACHE_MS = 5 * 60 * 1000; // an SMTP verify talks to Gmail, so keep the result for a while
-const TABLET_ONLINE_SECONDS = 180;
 
 const query = (fn, sql, params) => new Promise((resolve, reject) => db[fn](sql, params, (err, rows) => (err ? reject(err) : resolve(rows))));
 const withTimeout = (promise, ms, label) => Promise.race([
@@ -93,7 +96,9 @@ async function checkDisk() {
         const gb = (n) => (n / 1024 ** 3).toFixed(1);
         return {
             ...base,
-            status: usedPercent >= 95 ? 'down' : usedPercent >= 85 ? 'warn' : 'ok',
+            // <Jun Kai start> the Disk alert line of the Hardware page (85 / 95 unless changed there)
+            status: hardwareSettings.alertTone(usedPercent, hardwareSettings.readAlerts().disk),
+            // <Jun Kai end>
             summary: `${gb(free)} GB free of ${gb(total)} GB (${usedPercent}% used)`,
             detail: { path: paths.ROOT, freeBytes: free, totalBytes: total, usedPercent },
             latencyMs: null
@@ -152,12 +157,13 @@ async function checkServer() {
     const totalMem = os.totalmem();
     const memoryPercent = Math.round((1 - os.freemem() / totalMem) * 100);
     const rss = process.memoryUsage().rss;
+    const alerts = hardwareSettings.readAlerts(); // <Jun Kai/>
     return {
         key: 'server',
         label: 'Server PC',
         // <Jun Kai start>
-        // the same steps as the meters on the Hardware page: amber from 85 %, red from 95 %
-        status: cpuPercent >= 95 || memoryPercent >= 95 ? 'down' : cpuPercent >= 85 || memoryPercent >= 85 ? 'warn' : 'ok',
+        // the CPU and Memory alert lines of the Hardware page (85 / 95 unless changed there); the worse of the two
+        status: hardwareSettings.worstTone(hardwareSettings.alertTone(cpuPercent, alerts.cpu), hardwareSettings.alertTone(memoryPercent, alerts.memory)),
         summary: `CPU ${cpuPercent}%, memory ${memoryPercent}%`,
         // <Jun Kai end>
         detail: {
@@ -192,13 +198,14 @@ async function checkTablets() {
             ORDER BY last_seen DESC
             LIMIT 50`, []);
         const names = tabletNames.all();
-        const devices = tabletNames.sortDevices(rows.map((r) => ({ ...r, name: names[r.device_id] || null, online: r.seconds_ago <= TABLET_ONLINE_SECONDS })));
+        const windowSeconds = tabletWindowSeconds(); // <Jun Kai/> Offline after, on the Tablets list (3 minutes by default)
+        const devices = tabletNames.sortDevices(rows.map((r) => ({ ...r, name: names[r.device_id] || null, online: r.seconds_ago <= windowSeconds })));
         const online = devices.filter((d) => d.online);
         let status = 'ok';
         let summary = `${online.length} online of ${devices.length} known`;
         if (!devices.length) { status = 'unknown'; summary = 'No tablet has reported yet'; }
-        else if (!online.length) { status = 'warn'; summary = `None of the ${devices.length} known tablets reported in the last 3 minutes`; }
-        return { ...base, status, summary, detail: { devices, onlineWindowSeconds: TABLET_ONLINE_SECONDS }, latencyMs: null };
+        else if (!online.length) { status = 'warn'; summary = `None of the ${devices.length} known tablets reported in the last ${windowSeconds / 60} minutes`; }
+        return { ...base, status, summary, detail: { devices, onlineWindowSeconds: windowSeconds }, latencyMs: null };
     } catch (error) {
         if (error.code === 'ER_NO_SUCH_TABLE') {
             if (!heartbeatTableWarned) { heartbeatTableWarned = true; console.warn('⚠️ device_heartbeats table is missing: run npm run db:migrate'); }

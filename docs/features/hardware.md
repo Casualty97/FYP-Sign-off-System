@@ -17,7 +17,7 @@ Forecast length (11 Nov 2026, supervisor meeting 04): "Forecast ahead" goes from
 
 Look (9 Nov 2026): the time range is a segmented control with the chosen range raised on a grey track. The graphs break the line where there are no samples for more than three periods (the PC hibernating overnight) instead of drawing straight across the gap, the time axis follows the span actually drawn (with dates once it passes a day), and a range longer than the samples are kept starts at the oldest sample, with the note under the toolbar saying so. The Forecast card explains itself in one plain line; the method sits in a small line under the numbers.
 
-Look (12 Nov 2026, picked by the user from mock-ups): the four part cards sit on the left and decide what the graph shows. "All parts" draws every part on one graph; a part card shows that part alone with its numbers for the range shown (now, average, peak, lowest, forecast). Each part keeps one colour on its card and its line (CPU blue, memory green, GPU purple, disk dark grey; checked for colour-blind readers), the card pill says Normal, High (from 85 %) or Critical (from 95 %), and the graphs draw the 85 % and 95 % lines and hatch the stretches with no samples. Table view replaces the graph inside the same card.
+Look (12 Nov 2026, picked by the user from mock-ups): the four part cards sit on the left and decide what the graph shows. "All parts" draws every part on one graph; a part card shows that part alone with its numbers for the range shown (now, average, peak, lowest, forecast). Each part keeps one colour on its card and its line (CPU blue, memory green, GPU purple, disk dark grey; checked for colour-blind readers), the card pill says Normal, High or Critical by the part's own alert lines (85 % and 95 % unless changed in the Alert lines card), and the graphs draw those lines and hatch the stretches with no samples. Table view replaces the graph inside the same card.
 
 On "All parts" each line carries its name at its right end (where its forecast or its last reading ends), with a dot in its colour, so the lines can be told apart at a glance; names that would overlap are spread apart (hardwareEndLabelPlugin in frontend/admin/js/hardware.js, 12 Nov 2026).
 
@@ -29,6 +29,8 @@ On "All parts" each line carries its name at its right end (where its forecast o
 | GET | `/api/admin/hardware/series` | backend/features/hardware/routes.js |
 | GET | `/api/admin/hardware/settings` | backend/features/hardware/routes.js |
 | PUT | `/api/admin/hardware/settings` | backend/features/hardware/routes.js |
+| GET | `/api/admin/hardware/forecast-check` | backend/features/hardware/routes.js |
+| PUT | `/api/admin/hardware/alert-lines` | backend/features/hardware/routes.js |
 
 **Task-sheet items for this feature**
 
@@ -58,3 +60,19 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
   ahead. Forecasts up to a week still use the samples and still get the `retention` reason.
 - Before `npm run db:migrate` adds the table the page keeps working on the samples alone, and Sampling shows
   "table missing".
+
+## Alert lines per part (15 Nov 2026)
+- The Alert lines card under Forecast and Sampling sets amber ("warn", 30 to 99 %) and red ("critical", 31 to 100 %) for
+  CPU, memory, GPU and disk; red is always above amber. A System Admin saves them (`PUT /api/admin/hardware/alert-lines`,
+  Audit Logs `HARDWARE_ALERT_LINES_UPDATE`); other admins see them read-only. Stored as `alerts` in
+  `backend/data/hardware-settings.json` (`settings.readAlerts`, `validateAlerts`, `writeAlerts`); a Sampling save keeps
+  them and an alert save keeps the sampling. A file without them, or with a broken part, gives 85 / 95: nothing changes
+  until someone sets them.
+- They decide each part card's Normal / High / Critical (`hardwareTone(percent, part)`) and the dashed lines: a part's
+  graph draws its own two; the graph with every part draws only a line all the parts on it share and then says the lines
+  differ (`hardwareLinesFor`, `hardwareLegendLimits`), so no line is drawn that is not every shown part's real limit.
+- System Health uses the same lines: the Server PC card by CPU and memory (the worse of the two), the Disk card by disk
+  (backend/features/health/checks.js). GPU is on this page only. The anomaly detection keeps its own fixed numbers
+  (a disk incident from 90 %, critical at 95 %; a spike critical at 95 %).
+- The card says "Unsaved changes" only while a value differs from the saved lines; Use the defaults fills 85 / 95 without
+  saving.

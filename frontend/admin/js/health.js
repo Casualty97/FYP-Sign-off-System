@@ -311,10 +311,54 @@ function healthDeviceCell(d) {
             </div>`;
 }
 
+// <Jun Kai start>
+// ---- Offline after: when a quiet tablet counts as offline, for every admin (a System Admin changes it) ----
+let healthOfflineBusy = false;
+const healthIsSystemAdmin = () => { try { return sessionStorage.getItem('userRole') === 'system_admin'; } catch { return false; } };
+
+// The list shows the minutes the server used for this answer; not while it is being changed
+function renderHealthOfflineAfter(check) {
+    const select = document.getElementById('health-offline-after');
+    if (!select) return;
+    const admin = healthIsSystemAdmin();
+    select.disabled = !admin || healthOfflineBusy;
+    select.title = admin ? '' : 'Only a System Admin can change this';
+    const seconds = check && check.detail && check.detail.onlineWindowSeconds;
+    if (!seconds || healthOfflineBusy || document.activeElement === select) return;
+    const minutes = String(Math.round(seconds / 60));
+    if (![...select.options].some((option) => option.value === minutes)) select.add(new Option(`${minutes} min`, minutes));
+    select.value = minutes;
+    select.dataset.saved = minutes;
+}
+
+async function saveHealthOfflineAfter() {
+    const select = document.getElementById('health-offline-after');
+    if (!select || healthOfflineBusy || !healthIsSystemAdmin()) return;
+    const minutes = Number(select.value);
+    healthOfflineBusy = true;
+    select.disabled = true;
+    try {
+        const response = await fetch('/api/admin/health/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tabletOfflineMinutes: minutes }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'Save failed');
+        select.dataset.saved = String(minutes);
+        showNotification(`A tablet now counts as offline after ${minutes} minutes without a report`, 'success');
+    } catch (error) {
+        if (select.dataset.saved) select.value = select.dataset.saved;
+        showNotification(`Could not save: ${error.message}`, 'error');
+    } finally {
+        healthOfflineBusy = false;
+        select.disabled = !healthIsSystemAdmin();
+    }
+    loadHealth();
+}
+// <Jun Kai end>
+
 function renderHealthTablets(check, force) {
     const body = document.getElementById('health-tablets');
     if (!body) return;
     bindHealthTablets();
+    renderHealthOfflineAfter(check); // <Jun Kai/>
     // the 30-second refresh must not wipe a name that is being typed; the table catches up when it closes
     if (!force && healthRenaming && body.querySelector('.health-rename')) return;
     const devices = (check && check.detail && check.detail.devices) || [];
