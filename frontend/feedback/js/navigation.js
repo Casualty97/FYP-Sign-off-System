@@ -1135,6 +1135,8 @@ function showCelebrationDemoIfRequested() {
         submittedAt
     };
 
+    
+
     const submissionData = {
         badgeKey,
         badgeKeys: [badgeKey],
@@ -1172,6 +1174,7 @@ function submitAnother() {
     selectedRetention = LONG_TERM_RETENTION;
     selectedTheme = 'nature';
     userData = {};
+    resetBackgroundSelection(); // next visitor starts with no background (background.js) zihan
     photoData = null;
     captureMode = 'photo';
     boomerangFrames = [];

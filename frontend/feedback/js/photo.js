@@ -351,7 +351,7 @@ function stopBoomerangPreview() {
 }
 
 // Capture one current camera frame for photo or boomerang - changes made by nick
-function captureVideoFrameDataUrl(faceDetection = null, faceAccessoryLandmarks = null) {
+function captureVideoFrameDataUrl(faceDetection = null, faceAccessoryLandmarks = null, allowBackground = true) {
     const video = document.getElementById('video');
     const canvas = document.getElementById('photo-canvas');
     const context = canvas.getContext('2d');
@@ -366,7 +366,12 @@ function captureVideoFrameDataUrl(faceDetection = null, faceAccessoryLandmarks =
         context.scale(-1, 1);
     }
 
-    drawPhotoWithBeautyFilter(context, video, 0, 0, canvas.width, canvas.height, faceDetection);
+    //zihan start
+    // Virtual background: if the visitor picked one, use the camera picture with the background swapped. (zihan)
+    // getBackgroundCompositeCanvas returns null when there is no background (or on any problem), so we fall back to the plain video.
+    const backgroundPicture = allowBackground ? getBackgroundCompositeCanvas(video) : null;
+    drawPhotoWithBeautyFilter(context, backgroundPicture || video, 0, 0, canvas.width, canvas.height, faceDetection);
+    //zihan end
     drawFaceAccessory(context, faceAccessoryLandmarks, canvas.width, canvas.height);
     return canvas.toDataURL('image/png');
 }
@@ -493,12 +498,12 @@ async function captureBoomerangIfFaceDetected() {
         }
 
         updateFaceDetectionStatus('Recording boomerang...', 'loading');
-
+        await waitForBackgroundIfNeeded(); // make sure the background tool has finished loading before recording - zihan
         const frames = [];
         const boomerangFrameDelayMs = getBoomerangFrameDelayMs(); // changes made by nick
         for (let i = 0; i < BOOMERANG_FRAME_COUNT; i++) {
             const faceAccessoryLandmarks = await getCurrentFaceAccessoryLandmarks();
-            frames.push(captureVideoFrameDataUrl(faceDetection, faceAccessoryLandmarks));
+            frames.push(captureVideoFrameDataUrl(faceDetection, faceAccessoryLandmarks, BACKGROUND_IN_BOOMERANG)); //zihan
             await wait(boomerangFrameDelayMs);
         }
 
@@ -732,6 +737,7 @@ async function capturePhoto() {
 // Take photo from camera stream (desktop)
 async function takePhoto(faceDetection = null, faceAccessoryLandmarks = null) { // face-aware beauty capture done by nick
     // Normal photo capture shares frame drawing with boomerang - changes made by nick
+    await waitForBackgroundIfNeeded(); // make sure the background tool has finished loading before the shot - done by zihan
     photoData = captureVideoFrameDataUrl(faceDetection, faceAccessoryLandmarks);
     userData.photoSkipped = false;
     userData.captureMode = 'photo';

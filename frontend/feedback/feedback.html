@@ -680,6 +680,14 @@
                 </div>
             </div>
 
+            <!-- Background picker: the chosen background is added when the photo is captured （zihan) -->
+            <div class="background-panel" aria-label="Photo backgrounds">
+                <div class="face-filter-active" id="background-active">No background</div>
+                <div class="background-selector" id="background-selector" role="listbox" aria-label="Choose a background"></div>
+                <p class="background-hint">You will see your background on the camera. Keep your head, shoulders and hands in view.</p>
+                <p class="background-status" id="background-status" aria-live="polite"></p>
+            </div>
+
             <div class="photo-preview">
                 <div id="camera-container" class="camera-view">
                     <video id="video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
@@ -1231,6 +1239,7 @@
     <script src="/feedback/js/flowPages.js"></script>
     <script src="/feedback/js/faceDetect.js"></script>
     <script src="/feedback/js/faceFilters.js"></script>
+    <script src="/feedback/js/background.js"></script> <!--zihan-->
     <script src="/feedback/js/init.js"></script>
     <script src="/feedback/js/inactivity.js"></script>
     <script src="/feedback/js/questions.js"></script>

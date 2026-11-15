@@ -176,6 +176,7 @@ if (invertBtn) {
     // Beauty filter setting done by nick
     setupBeautyFilterSettings();
     setupFaceAccessorySelector();
+    setupBackgroundPicker(); // background thumbnails (background.js) -zihan
     setupRpBearCompanion(); // changes made by nick
     setupLostFoundModal(); // changes made by nick
 

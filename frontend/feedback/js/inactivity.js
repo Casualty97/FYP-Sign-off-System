@@ -97,6 +97,7 @@ function returnToLandingPage() {
     selectedTheme = 'nature';
     selectedFaceAccessory = 'none';
     userData = {};
+    resetBackgroundSelection(); // next visitor starts with no background (background.js)zihan
     photoData = null;
     captureMode = 'photo';
     boomerangFrames = [];

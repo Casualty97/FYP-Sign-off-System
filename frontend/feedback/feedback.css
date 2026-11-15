@@ -5073,3 +5073,89 @@ textarea::placeholder {
         padding: 16px;
     }
 }
+
+/* background picker css done by zihan */
+/* Virtual background picker (camera page). Looks like the frame picker on the style page. */
+.background-panel {
+    margin: 14px 0;
+}
+
+.background-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.background-card {
+    display: block;
+    width: 100%;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    font: inherit;
+    color: inherit;
+}
+
+.background-card.active {
+    background: #ecfdf5;
+    border-color: #10b981;
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);
+}
+
+.background-thumb {
+    display: block;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #cbd5e1, #e2e8f0);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.background-thumb.none {
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+}
+
+.background-thumb img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.background-thumb.thumb-failed {
+    background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+.background-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.background-hint {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+}
+
+.background-status {
+    min-height: 16px;
+    margin: 4px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f766e;
+    text-align: center;
+}
