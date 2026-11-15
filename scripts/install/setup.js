@@ -28,6 +28,17 @@ const DATA_FOLDERS = ['backend/data', 'backend/cache', 'logs'];
 const KEEP_IN_DATA = ['archives'];
 const AUTOMATION = { laptop: 'off', wallpc: 'on' };
 const NEED_ROOT = 2;
+const NO_PACKAGES = 'packages missing (node_modules): run install.cmd without -SkipNpm, or npm ci';
+
+// mysql2 comes with the packages, so a fresh copy has none until npm ci has run: null then, not a crash
+function loadMysql(load = require) {
+    try {
+        return load('mysql2/promise');
+    } catch (e) {
+        if (e.code === 'MODULE_NOT_FOUND') return null;
+        throw e;
+    }
+}
 
 const randomHex = () => crypto.randomBytes(32).toString('hex');
 const today = () => new Date().toISOString().slice(0, 10);
@@ -211,7 +222,7 @@ const say = {
 };
 
 async function install(opts) {
-    const mysql = require('mysql2/promise');
+    const mysql = loadMysql();
     const role = opts.role === 'wallpc' ? 'wallpc' : 'laptop';
     const dry = opts.dryRun;
     const act = (what, fn) => { if (dry) return say.would(what); fn(); say.ok(what); };
@@ -227,6 +238,17 @@ async function install(opts) {
     }
     const values = parseEnv(text);
     const cfg = dbConfig(values);
+
+    // a dry run on a fresh copy: npm ci would come first, so the database cannot be read yet
+    if (!mysql) {
+        if (!dry) { say.bad(NO_PACKAGES); return 1; }
+        const plan = planEnv(values, { role, safeKey: false });
+        for (const change of plan.changes) say.would(`set ${change.key} in backend/.env (${change.why})`);
+        if (plan.kept.includes('ENCRYPTION_KEY')) say.would('set ENCRYPTION_KEY once the database shows that no stored email depends on the development key');
+        say.would(`make the database ${cfg.database} and its user if needed (the MySQL root password is asked once), load database/schema.sql while it is empty and apply every migration`);
+        say.note('npm ci has not run in this copy yet, so this dry run cannot read the database (the real install does, after npm ci)');
+        return 0;
+    }
 
     let stats = await inspect(cfg, mysql);
     if (stats.error) { say.bad(stats.error); return 1; }
@@ -311,12 +333,12 @@ async function install(opts) {
 }
 
 async function check() {
-    const mysql = require('mysql2/promise');
+    const mysql = loadMysql();
     let problems = 0;
     const major = Number(process.versions.node.split('.')[0]);
     if (major >= 22) say.ok(`Node.js ${process.version}`);
     else { say.bad(`Node.js ${process.version} is too old: install Node.js 22 LTS`); problems++; }
-    if (fs.existsSync(path.join(ROOT, 'node_modules', 'mysql2'))) say.ok('packages installed (node_modules)');
+    if (mysql) say.ok('packages installed (node_modules)');
     else { say.bad('packages missing: run install.cmd (or npm ci)'); problems++; }
 
     const text = readEnvFile();
@@ -331,6 +353,7 @@ async function check() {
     if (missingFolders.length) say.note(`folders the servers write to are missing: ${missingFolders.join(', ')} (install.cmd makes them)`);
 
     const cfg = dbConfig(values);
+    if (!mysql) { say.note('the database is checked once the packages are installed'); return 1; }
     const stats = await inspect(cfg, mysql);
     if (stats.error) { say.bad(stats.error); return 1; }
     if (!stats.appUser) { say.bad(`MySQL answers, but ${cfg.user} cannot log in: run install.cmd`); return 1; }
@@ -351,7 +374,6 @@ function dataRemoval(existing) {
 // Uninstall -RemoveData: the database (its name typed again) and the runtime folders. backend/.env and the archive
 // zips stay: an archive can only be opened with the ENCRYPTION_KEY that wrote it.
 async function removeData(opts) {
-    const mysql = require('mysql2/promise');
     const cfg = dbConfig(parseEnv(readEnvFile() || ''));
     if (opts.database !== cfg.database) {
         say.bad(`the name typed (${opts.database || 'nothing'}) is not the database of this copy (${cfg.database}): nothing removed`);
@@ -362,6 +384,8 @@ async function removeData(opts) {
         for (const step of dataRemoval(DATA_FOLDERS.filter((f) => fs.existsSync(path.join(ROOT, f))))) say.would(step.text);
         return 0;
     }
+    const mysql = loadMysql();
+    if (!mysql) { say.bad(`${NO_PACKAGES}; nothing removed`); return 1; }
     try {
         const conn = await mysql.createConnection({ host: cfg.host, user: cfg.user, password: cfg.password });
         try { await conn.query('DROP DATABASE IF EXISTS ??', [cfg.database]); } finally { await conn.end(); }
@@ -404,5 +428,5 @@ if (require.main === module) {
     run(opts).then((code) => process.exit(code), (e) => { say.bad(e.message); process.exit(1); });
 }
 
-module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
+module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, loadMysql, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
 // <Jun Kai end>

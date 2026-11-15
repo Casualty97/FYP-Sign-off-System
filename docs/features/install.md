@@ -74,6 +74,8 @@ no archive; otherwise it leaves the key empty and says so, because a new key wou
 
 ## Notes
 
+- On a fresh copy (`npm ci` not run yet) `-Check` says the packages are missing and leaves the database for later, and a
+  dry run lists the settings and database steps without reading the database. A real install runs `npm ci` first.
 - `backend/.env` is still tracked in git (from the previous team). After the installer fills it, never commit it; the
   installer reminds you at the end.
 - `setup.js` exit codes: 0 done, 1 failed, 2 the root password is needed but there was no way to ask (set

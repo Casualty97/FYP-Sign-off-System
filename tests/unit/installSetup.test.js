@@ -92,6 +92,13 @@ test('removing the data never deletes the archive zips in backend/data/archives'
     assert.deepEqual(setup.dataRemoval([]), []);
 });
 
+test('a fresh copy without packages gets null for mysql2, any other loading error is passed on', () => {
+    const missing = () => { const e = new Error("Cannot find module 'mysql2/promise'"); e.code = 'MODULE_NOT_FOUND'; throw e; };
+    assert.equal(setup.loadMysql(missing), null);
+    assert.equal(setup.loadMysql(() => 'the module'), 'the module');
+    assert.throws(() => setup.loadMysql(() => { throw new Error('broken file'); }), /broken file/);
+});
+
 test('the Windows files are plain ASCII, and the .cmd files keep CRLF endings', () => {
     const files = ['scripts/install/install.ps1', 'scripts/install/uninstall.ps1', 'scripts/install/common.ps1', 'install.cmd', 'uninstall.cmd'];
     for (const file of files) {
