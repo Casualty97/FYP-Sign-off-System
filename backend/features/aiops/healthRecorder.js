@@ -6,6 +6,7 @@
 const settings = require('./settings');
 
 const FIRST_RUN_DELAY_MS = 20 * 1000;
+const SOON_MS = 5 * 1000;
 const EMAIL_EVERY_MS = 30 * 60 * 1000;
 const KEEP_RUNS_MS = 24 * 60 * 60 * 1000;
 const PRUNE_EVERY_MS = 60 * 60 * 1000;
@@ -18,7 +19,7 @@ const CONNECTION_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EN
 // checks and db come in as loaders (both open the database when required), so the tests can hand in fakes
 function createRecorder({ checks, db, now = () => Date.now(), getSettings = () => ({}) }) {
     const state = {
-        started: false, timer: null, getSettings, runs: [], inFlight: null, emailDueAt: 0,
+        started: false, timer: null, every: 0, getSettings, runs: [], inFlight: null, emailDueAt: 0,
         lastRunAt: null, lastError: null, runCount: 0, lastPrune: 0, reported: new Set()
     };
     const run = (sql, params) => new Promise((resolve, reject) => db().run(sql, params, (err) => (err ? reject(err) : resolve())));
@@ -118,16 +119,28 @@ function createRecorder({ checks, db, now = () => Date.now(), getSettings = () =
         if (state.timer.unref) state.timer.unref();
     }
 
-    // the interval is read again after every run, so a settings change applies from the next wait
+    // the interval is read again after every run
     function tick() {
-        const next = () => schedule(everySeconds() * 1000);
+        const next = () => {
+            state.every = everySeconds();
+            schedule(state.every * 1000);
+        };
         runNow().then(next, next);
+    }
+
+    // a new interval from the settings applies at once: a run within 5 s, then the new rhythm
+    function applySettings(next) {
+        const seconds = Number(next && next.healthEverySeconds) || settings.DEFAULTS.healthEverySeconds;
+        if (!state.started || seconds === state.every) return;
+        state.every = seconds;
+        schedule(Math.min(seconds * 1000, SOON_MS));
     }
 
     function start(nextSettings) {
         if (state.started) return;
         state.started = true;
         if (typeof nextSettings === 'function') state.getSettings = nextSettings;
+        state.every = everySeconds();
         schedule(FIRST_RUN_DELAY_MS);
         console.log(`[aiops] health recorder on: every ${everySeconds()} s, results kept ${retentionDays()} days`);
     }
@@ -145,7 +158,7 @@ function createRecorder({ checks, db, now = () => Date.now(), getSettings = () =
 
     const getStatus = () => ({ lastRunAt: state.lastRunAt, lastError: state.lastError, runCount: state.runCount });
 
-    return { start, runNow, runs, latest, getStatus };
+    return { start, applySettings, runNow, runs, latest, getStatus };
 }
 
 const recorder = createRecorder({

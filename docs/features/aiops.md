@@ -43,7 +43,7 @@ The master switch (Anomaly detection, on by default) is the rule that everything
 
 The incidents have their own page since 13 Nov 2026 (Incidents, under SYSTEM in the sidebar, between System Health and Hardware). The sidebar item carries the number of incidents that need a look (amber, red while one of them is critical; the same number as the chip on the page; hidden while the master switch is off, because nothing resolves itself then), refreshed on every page change and every minute. The page lists the incidents by number in three groups, Needs a look (critical first, then the newest), Being handled (acknowledged) and Resolved this week (five, then Show all), beside the chosen incident's story in three numbered steps: 1 What happened (the explanation, a chart with the usual band and the detector's floor, up to four number tiles; a resolved incident says At the time), 2 Why it might be (the advisor's summary and causes), 3 What to do (the fix the app can run, then exact steps with the keys drawn as keys and, for CPU and memory, the busiest programmes on this PC right now; a resolved incident shows What was done). Then Was this right? (the verdict) and History. It refreshes every 30 seconds while it is open, patched in place, so the choice, the focus and an open History survive. System Health keeps a short summary right under its status line (the counts, the three most urgent incidents, Open Incidents), because its status line counts only the health checks; the Customise option Incidents summary hides it for that admin without stopping the engine. The Hardware page shows a notice above its graphs while a CPU, memory, GPU or disk incident is open (View incident opens it), and a quiet line with a link when none is. Example incidents (below) show everywhere, tagged Example.
 
-Settings (the Settings button on the Incidents page opens a drawer from the right; system admins only, others see it read-only; the file is backend/data/aiops-settings.json): the master switch, Learn from your answers, Offer fixes on incidents and each fix's mode, one card per detector with its switch and its five levels with the number behind each (from detectors.levels()) and a sentence for the chosen level, the advisor, quiet hours, the check interval and how long to keep data, and Show / Remove example incidents. The limits, like the Hardware settings: intervalSeconds 30 to 600 (default 60), healthEverySeconds 60 to 3600 (300), retentionDays for the health results 1 to 365 (30), keepIncidentsDays 7 to 730 (90), cooldownMinutes 0 to 1440 (30), clearAfterMinutes 1 to 120 (10), sensitivity 1 to 5 (3). PUT /settings refuses a value out of range (400 with the field, for example `detectors.spike.sensitivity`) instead of clamping it, and keeps the keys a body leaves out; read() repairs a hand-edited file (numbers clamped, switches on unless exactly false), so a bad file can never stop the engine. A change takes effect without a restart.
+Settings (the Settings button on the Incidents page opens a drawer from the right; system admins only, others see it read-only; the file is backend/data/aiops-settings.json): the master switch, Learn from your answers, Offer fixes on incidents and each fix's mode, one card per detector with its switch and its five levels with the number behind each (from detectors.levels()) and a sentence for the chosen level, the advisor, quiet hours, the check interval and how long to keep data, an Advanced fold (see Advanced settings below), and Show / Remove example incidents. The limits, like the Hardware settings: intervalSeconds 30 to 600 (default 60), healthEverySeconds 60 to 3600 (300), retentionDays for the health results 1 to 365 (30), keepIncidentsDays 7 to 730 (90), cooldownMinutes 0 to 1440 (30), clearAfterMinutes 1 to 120 (10), fixDelayMinutes 1 to 60 (5), learnStreak 2 to 10 (3), learnMaxSteps 1 to 4 (2), learnWindowDays 7 to 365 (30), sensitivity 1 to 5 (3). PUT /settings refuses a value out of range (400 with the field, for example `detectors.spike.sensitivity`) instead of clamping it, and keeps the keys a body leaves out; read() repairs a hand-edited file (numbers clamped, switches on unless exactly false), so a bad file can never stop the engine. A change takes effect without a restart.
 
 Evaluation: scripts/aiops-replay.js (`npm run aiops:replay`) builds 7 synthetic days of minute samples (busy 10:00 to 18:00, quiet nights, a weekday and weekend difference, noise) and injects faults with known windows: a CPU spike of 25 minutes, a memory leak ramping for 36 hours, a disk filling over 3 days, the database down for 12 minutes, a tablet offline for 40 minutes, an error burst of 8 minutes and a new error template. It runs the engine with the memory store in 1-minute steps and prints, per fault, whether it was detected and after how long, plus the incidents opened outside any fault window. An incident counts for a fault when it opened inside the fault's window and is one the fault can rightly cause (a memory leak is caught as a slow creep first and, hours later, also as memory far above normal and unusual for the hour). Measured on 11 Nov 2026 with seeds 1 to 3: precision 1.00 and recall 1.00; the sudden faults were caught within 1 to 10 minutes, the leak once memory passed 80 % and the filling disk once the forecast came within 14 days. Precision is the share of opened incidents that fall inside a fault window (1.0 means no false alarms), recall is the share of injected faults that got an incident (1.0 means none was missed), and time to detect is the minutes from the start of a fault to its incident. tests/unit/aiopsReplay.test.js runs the same replay with a fixed seed in CI and fails below a precision of 0.8 or a recall of 0.85, so a change that makes a detector noisier or blinder fails the build.
 
@@ -110,6 +110,8 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
 - `backend/features/aiops/learning.js`. A detector whose incidents are marked False alarm or Not useful three times in
   a row (verdicts given after its last step, within 30 days) turns itself one step less sensitive; three Correct in a
   row bring it one step back. Never above the level the admin chose, at most two steps below it, never below Very low.
+  Those three numbers are settings since 15 Nov 2026 (learnStreak, learnMaxSteps, learnWindowDays; see Advanced
+  settings below); `learning.ruleOf` reads them and `learning.clampOffset` caps older steps when the limit is lowered.
 - The detectors run with the learned levels (`learning.apply` in engine.js); the saved settings keep the admin's levels.
   The steps are kept in `backend/data/aiops-learning.json`. Saving a new level for a detector in Settings forgets what
   was learned for it. Switch: "Learn from verdicts" (`learnFromVerdicts`, on by default).
@@ -124,8 +126,9 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
 ## Fixes with an admin's approval, step-by-step help, example incidents and the Incidents page, 13 Nov 2026
 - `fixes.js`: one fix, the one that is safe and already exists in the app: start the kiosk server when it is down (the
   same `control.startKiosk` as Start kiosk on Server Schedule). A System Admin approves it on the incident
-  (`POST /incidents/:id/fix`, a dialog asks once more), or ahead in Settings per fix: Ask first, Auto after 5 min (waits
-  for an approval, runs by itself 5 minutes after the incident opened), Automatic. An approval always runs, like the
+  (`POST /incidents/:id/fix`, a dialog asks once more), or ahead in Settings per fix: Ask first, Auto after a wait (waits
+  for an approval, runs by itself fixDelayMinutes after the incident opened or last reopened; 5 minutes by default),
+  Automatic. An approval always runs, like the
   Start kiosk button; KIOSK_AUTOMATION holds only what runs by itself (off: the automatic modes wait for an approval;
   dry-run: recorded only). An automatic start first checks the kiosk is still down, never runs while the policies keep
   the kiosk off, never twice within 10 minutes on one incident, and shares one last-start record with the policies
@@ -143,3 +146,22 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
   is only recorded.
 - `detectors.levels()` gives the drawer the number behind each sensitivity level; `GET /status` counts the open
   critical incidents for the sidebar colour (`counts.critical`).
+
+## Advanced settings, 15 Nov 2026
+- The settings drawer has an Advanced fold after Timing and keeping. It is folded on every opening; its title says
+  Defaults, or how many of its values differ from the defaults (`incidentsAdvancedTexts`). Use the defaults puts the
+  lists back to the defaults; nothing is saved until Save. A 400 on one of its fields opens the fold first.
+- Incidents: close after normal for (`clearAfterMinutes`, 5 min to 2 h in the list), open the old incident again if it
+  comes back within (`cooldownMinutes`, Never to 24 h). Health checks: run every (`healthEverySeconds`, 1 to 15 min in
+  the list; longer gaps would leave holes in the 24-hour strips, which have one block per 30 minutes; a service counts
+  as down after 2 failed checks in a row). Fixes: how long "Ask, then automatic" waits (`fixDelayMinutes`, 1 min to
+  1 h). Learning: answers in a row for one step, at most this many steps below the admin's level, answers from the
+  last N days (`learnStreak`, `learnMaxSteps`, `learnWindowDays`).
+- The labels follow the lists on screen: the fix mode reads "Auto after 10 min" when the wait is 10 minutes, and the
+  Learn switch's sentence says the chosen numbers. A value saved outside a list (a hand-edited file) shows as
+  "(current)".
+- The wait of "Ask, then automatic" now counts from the incident's newest reopening (`latestEvents(ids, 'reopened')`
+  in the sweep): before, a kiosk that went down again within the reopen window ran its fix at once, because
+  `opened_at` stays the first opening.
+- A new health check interval applies within 5 seconds (`healthRecorder.applySettings`, called from
+  `engine.applySettings`), like the detection interval; before, it waited out the old gap.

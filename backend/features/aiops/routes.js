@@ -185,13 +185,14 @@ router.get('/advisor', auth.requireAuth, async (req, res) => {
     res.json({ success: true, advisor: status, actions: ACTIONS, models });
 });
 
-// GET /api/admin/aiops/settings  the settings, their limits, the detector list, what each sensitivity level means, the
+// GET /api/admin/aiops/settings  the settings, their defaults and limits, the detector list, what each sensitivity level means, the
 // fixes with their modes and how this PC runs programmes (KIOSK_AUTOMATION)
 router.get('/settings', auth.requireAuth, (req, res) => {
+    const conf = settings.read();
     res.json({
-        success: true, settings: settings.read(), limits: settings.LIMITS, detectors: settings.DETECTORS, learned: learning.read(),
+        success: true, settings: conf, defaults: settings.DEFAULTS, limits: settings.LIMITS, detectors: settings.DETECTORS, learned: learning.read(),
         levels: detectors.levels(),
-        fixes: Object.entries(fixes.FIXES).map(([key, fix]) => ({ key, label: fix.label, forIncident: fix.forIncident, describe: fix.describe, modes: fix.modes.map((mode) => ({ key: mode, label: fixes.MODE_LABELS[mode] })) })),
+        fixes: Object.entries(fixes.FIXES).map(([key, fix]) => ({ key, label: fix.label, forIncident: fix.forIncident, describe: fix.describe, modes: fix.modes.map((mode) => ({ key: mode, label: fixes.modeLabel(mode, conf) })) })),
         automation: fixes.automationSetting()
     });
 });

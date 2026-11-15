@@ -1,6 +1,6 @@
 // Owner: Role 3, Jun Kai.
 // Fixes the app can do itself on an incident, always with a System Admin's approval: on the incident (Approve), or once in
-// the settings ("Automatic", or "Ask, then automatic after 5 minutes" when nobody approved first). Only what is safe and
+// the settings ("Automatic", or "Ask, then automatic" after fixDelayMinutes when nobody approved first). Only what is safe and
 // already exists elsewhere in the app: starting the kiosk server the way Start kiosk on Server Schedule does.
 // KIOSK_AUTOMATION governs what runs by itself, like the policies: off = nothing runs by itself, dry-run = only
 // recorded. An approval by hand always runs, like the Start kiosk button on Server Schedule (that setting does not
@@ -17,7 +17,7 @@ const FIXES = {
     }
 };
 const MODE_LABELS = { ask: 'Ask first', delayed: 'Ask, then automatic after 5 min', auto: 'Automatic' };
-const DELAY_MS = 5 * 60 * 1000;   // "delayed": runs by itself once the incident is this old and nobody approved
+const DELAY_MS = 5 * 60 * 1000;   // "delayed" by default: runs by itself once the incident is this old and nobody approved
 const RETRY_MS = 10 * 60 * 1000;  // an automatic run is not tried again on the same incident sooner than this
 const EXAMPLE_PREFIX = 'example:';
 
@@ -41,14 +41,22 @@ function automationSetting(value = process.env.KIOSK_AUTOMATION) {
     return ['off', 'dry-run'].includes(v) ? v : 'on';
 }
 
-// Whether an automatic run is due now: "auto" at once, "delayed" once the incident is 5 minutes old; never twice within
-// RETRY_MS on one incident, never on an example, and only while the incident is open (Acknowledge = someone is on it,
-// so nothing runs by itself)
-function autoDue(incident, mode, nowMs, lastTriedMs) {
+// the "Ask, then automatic" wait from the settings, in minutes
+function delayMinutes(settings) {
+    const n = Number(settings && settings.fixDelayMinutes);
+    return Number.isFinite(n) && n >= 1 ? n : DELAY_MS / 60000;
+}
+
+const modeLabel = (mode, settings) => (mode === 'delayed' ? `Ask, then automatic after ${delayMinutes(settings)} min` : MODE_LABELS[mode]);
+
+// Whether an automatic run is due now: "auto" at once, "delayed" once the incident has been open for delayMs since it
+// opened or last opened again (sinceMs); never twice within RETRY_MS on one incident, never on an example, and only
+// while the incident is open (Acknowledge = someone is on it, so nothing runs by itself)
+function autoDue(incident, mode, nowMs, lastTriedMs, { delayMs = DELAY_MS, sinceMs = 0 } = {}) {
     if (!incident || isExample(incident) || incident.status !== 'open') return false;
     if (mode !== 'auto' && mode !== 'delayed') return false;
     if (lastTriedMs && nowMs - lastTriedMs < RETRY_MS) return false;
-    if (mode === 'delayed') return nowMs - Date.parse(incident.opened_at) >= DELAY_MS;
+    if (mode === 'delayed') return nowMs - Math.max(Date.parse(incident.opened_at) || 0, sinceMs || 0) >= delayMs;
     return true;
 }
 
@@ -105,10 +113,18 @@ function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAtte
         if (conf.offerFixes === false || automation() === 'off' || !allowAuto()) return 0;
         const nowMs = now().getTime();
         let started = 0;
-        for (const incident of await store.listOpen()) {
+        const candidates = (await store.listOpen()).filter((incident) => fixFor(incident) && !running.has(incident.id));
+        if (!candidates.length) return 0;
+        // a reopened incident waits again: the wait counts from its newest reopening
+        const waiting = candidates.some((incident) => modeOf(conf, fixFor(incident)) === 'delayed');
+        const reopened = waiting && typeof store.latestEvents === 'function'
+            ? await store.latestEvents(candidates.map((incident) => incident.id), 'reopened').catch(() => ({}))
+            : {};
+        const delayMs = delayMinutes(conf) * 60000;
+        for (const incident of candidates) {
             const fixKey = fixFor(incident);
-            if (!fixKey || running.has(incident.id)) continue;
-            if (!autoDue(incident, modeOf(conf, fixKey), nowMs, tried.get(incident.id))) continue;
+            const sinceMs = reopened[incident.id] ? Date.parse(reopened[incident.id].at) || 0 : 0;
+            if (!autoDue(incident, modeOf(conf, fixKey), nowMs, tried.get(incident.id), { delayMs, sinceMs })) continue;
             if (nowMs - lastAttempt() < gap()) continue;
             // already better (the incident closes at the next checks): nothing to run, nothing to record
             if (stillNeeded[fixKey] && !(await Promise.resolve().then(stillNeeded[fixKey]).catch(() => false))) continue;
@@ -153,12 +169,12 @@ function describeFix(incident, settings, fixer) {
     if (!fixKey) return null;
     const fix = FIXES[fixKey];
     return {
-        key: fixKey, label: fix.label, describe: fix.describe, mode: modeOf(settings, fixKey),
+        key: fixKey, label: fix.label, describe: fix.describe, mode: modeOf(settings, fixKey), delayMinutes: delayMinutes(settings),
         offered: isExample(incident) || (settings || {}).offerFixes !== false,
         running: fixer ? fixer.isRunning(incident.id) : false,
         example: isExample(incident), automation: automationSetting()
     };
 }
 
-module.exports = { FIXES, MODE_LABELS, DELAY_MS, RETRY_MS, EXAMPLE_PREFIX, isExample, fixFor, modeOf, automationSetting, autoDue, createFixer, fixStatus, describeFix };
+module.exports = { FIXES, MODE_LABELS, DELAY_MS, RETRY_MS, EXAMPLE_PREFIX, isExample, fixFor, modeOf, automationSetting, delayMinutes, modeLabel, autoDue, createFixer, fixStatus, describeFix };
 // <Jun Kai end>

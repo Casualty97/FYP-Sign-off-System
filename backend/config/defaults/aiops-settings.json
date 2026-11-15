@@ -6,9 +6,13 @@
   "keepIncidentsDays": 90,
   "quietHours": true,
   "learnFromVerdicts": true,
+  "learnStreak": 3,
+  "learnMaxSteps": 2,
+  "learnWindowDays": 30,
   "cooldownMinutes": 30,
   "clearAfterMinutes": 10,
   "offerFixes": true,
+  "fixDelayMinutes": 5,
   "detectors": {
     "spike": { "enabled": true, "sensitivity": 3 },
     "timeOfDay": { "enabled": true, "sensitivity": 3 },

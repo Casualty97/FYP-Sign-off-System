@@ -146,6 +146,35 @@ test('a run that is still going is not started twice, and runs older than 24 hou
     assert.equal(recorder.getStatus().runCount, 3);
 });
 
+test('a new health check interval from the settings applies at once: a run within 5 seconds, then the new rhythm', async () => {
+    const timers = [];
+    const original = { setTimeout: global.setTimeout, clearTimeout: global.clearTimeout, log: console.log };
+    global.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return { unref() {} }; };
+    global.clearTimeout = () => {};
+    console.log = () => {};
+    try {
+        const settings = { healthEverySeconds: 300 };
+        const { recorder, calls } = fakes({ settings });
+        recorder.applySettings({ healthEverySeconds: 60 });
+        assert.equal(timers.length, 0, 'nothing happens before the recorder starts');
+        recorder.start();
+        assert.deepEqual(timers.map((x) => x.ms), [20000]);
+        recorder.applySettings({ healthEverySeconds: 300 });
+        assert.equal(timers.length, 1, 'the same interval changes nothing');
+        settings.healthEverySeconds = 60;
+        recorder.applySettings(settings);
+        assert.deepEqual(timers.map((x) => x.ms), [20000, 5000], 'a run within 5 seconds');
+        timers[1].fn();
+        await new Promise((resolve) => setImmediate(resolve));
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(calls.runAll.length, 1);
+        assert.equal(timers[timers.length - 1].ms, 60000, 'then every minute');
+    } finally {
+        Object.assign(global, { setTimeout: original.setTimeout, clearTimeout: original.clearTimeout });
+        console.log = original.log;
+    }
+});
+
 test('the prune runs once an hour', async () => {
     const { recorder, calls, advance } = fakes();
     const prunes = () => calls.sql.filter((c) => c.sql.startsWith('DELETE FROM')).length;

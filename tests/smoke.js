@@ -421,6 +421,10 @@ async function archiveStep(cookie) {
           await expect('PUT /api/admin/aiops/settings puts the saved settings back', `${AIOPS}/settings`, (r) => r.status === 200 && r.body && r.body.settings && r.body.settings.detectors.spike.sensitivity === original.detectors.spike.sensitivity || r.text.slice(0, 160), put(original));
         } else fail('PUT /api/admin/aiops/settings round trip skipped: GET /api/admin/aiops/settings gave no settings');
         await expect('PUT /api/admin/aiops/settings refuses a 5 second interval', `${AIOPS}/settings`, (r) => r.status === 400 && r.body && r.body.field === 'intervalSeconds' || `${r.status}: ${r.text.slice(0, 120)}`, put({ intervalSeconds: 5 }));
+        // <Jun Kai start> the Advanced values: their defaults come with the settings, and a wait of 0 minutes is refused
+        await expect('GET /api/admin/aiops/settings has the defaults of the Advanced values', `${AIOPS}/settings`, (r) => r.body && r.body.defaults && r.body.defaults.fixDelayMinutes === 5 && typeof r.body.settings.learnStreak === 'number' || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('PUT /api/admin/aiops/settings refuses a fix wait of 0 minutes', `${AIOPS}/settings`, (r) => r.status === 400 && r.body && r.body.field === 'fixDelayMinutes' || `${r.status}: ${r.text.slice(0, 120)}`, put({ fixDelayMinutes: 0 }));
+        // <Jun Kai end>
         const made = await get(`${AIOPS}/test-incident`, post({}));
         const incidentId = made.body && made.body.incident && made.body.incident.id;
         (incidentId ? pass : fail)(`POST /api/admin/aiops/test-incident opens a test incident (${made.status})${incidentId ? '' : ': ' + made.text.slice(0, 120)}`);
