@@ -21,6 +21,7 @@ let incidentsFixTimer = null;        // refreshes every 4 s while a fix is start
 let incidentsSettingsBusy = false;
 let incidentsSettingsData = null;    // the last answer of GET /settings, for the drawer
 let incidentsDrawerDirty = false;
+let incidentsDrawerSnapshot = '';   // the drawer's values as they were loaded
 let incidentsApproveFor = null;      // { id, fix, example } waiting in the approve dialog
 const incidentsJson = new Map();     // id -> the list entry as last loaded; a change reloads its story
 const incidentsDetail = new Map();   // id -> { data } or { error } from GET /incidents/:id
@@ -1409,10 +1410,13 @@ function incidentsSettingsStatus(text, tone) {
     else help.setAttribute('role', 'status');
 }
 
-function incidentsMarkDirty() {
-    if (incidentsDrawerDirty || !incidentsSettingsData) return;
-    incidentsDrawerDirty = true;
-    incidentsSettingsStatus('Unsaved changes', 'dirty');
+// unsaved only while the values differ from the loaded ones, so changing one back clears it
+function incidentsUpdateDirty() {
+    if (!incidentsSettingsData || !incidentsDrawerSnapshot) return;
+    incidentsDrawerDirty = JSON.stringify(readIncidentSettings()) !== incidentsDrawerSnapshot;
+    const help = document.getElementById('incidents-settings-help');
+    if (incidentsDrawerDirty) incidentsSettingsStatus('Unsaved changes', 'dirty');
+    else if (help && help.classList.contains('is-dirty')) incidentsSettingsStatus('', '');
 }
 
 function incidentLevelSentence(level, sensitivity) {
@@ -1524,6 +1528,7 @@ async function fillIncidentSettings() {
     document.getElementById('incidents-settings-save').disabled = true;
     incidentsSettingsData = null;
     incidentsDrawerDirty = false;
+    incidentsDrawerSnapshot = '';
     incidentsSettingsStatus('', '');
     const result = document.getElementById('incidents-examples-result');
     if (result) { result.textContent = ''; result.classList.remove('is-error'); }
@@ -1543,6 +1548,11 @@ async function fillIncidentSettings() {
         incidentsSelectValue('incidents-interval', interval, `${incidentDuration(interval)} (current)`);
         incidentsSelectValue('incidents-retention', retention, `${retention} days (current)`);
         incidentsSelectValue('incidents-keep', keep, `${keep} days (current)`);
+        // only the saved model until Ollama lists the rest, so the snapshot holds the saved values
+        const model = (settings.advisor && settings.advisor.model) || 'qwen2.5:3b';
+        const modelSelect = document.getElementById('incidents-advisor-model');
+        if (modelSelect) modelSelect.innerHTML = `<option value="${escapeHtmlSafe(model)}" selected>${escapeHtmlSafe(model)}</option>`;
+        incidentsDrawerSnapshot = JSON.stringify(readIncidentSettings());
         incidentsSettingsData = data;
         if (body) {
             body.querySelectorAll('section').forEach((s) => { s.hidden = false; });
@@ -1552,7 +1562,7 @@ async function fillIncidentSettings() {
         renderIncidentExamplesBox();
         document.getElementById('incidents-settings-save').disabled = !admin;
         if (loading) loading.hidden = true;
-        await fillIncidentAdvisorModels((settings.advisor && settings.advisor.model) || 'qwen2.5:3b');
+        await fillIncidentAdvisorModels(model);
         document.getElementById('incidents-advisor-model').disabled = !admin;
     } catch (error) {
         if (loading) loading.textContent = `Could not load the settings: ${error.message}`;
@@ -1602,7 +1612,7 @@ function bindIncidentsDrawer(drawer) {
         } else if (input.id === 'incidents-offer-fixes') {
             incidentsApplyFixesState();
         }
-        if (input.closest('.inc-drawer-body') && !input.closest('.inc-examples')) incidentsMarkDirty();
+        if (input.closest('.inc-drawer-body') && !input.closest('.inc-examples')) incidentsUpdateDirty();
     });
 }
 
