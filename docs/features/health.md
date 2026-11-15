@@ -16,7 +16,7 @@ Customise (supervisor meeting 03): every check is shown by default; an admin rem
 
 Tablet names: the edit button next to a tablet in the Tablets panel gives it a name or a number (up to 40 characters, no two tablets with the same name); an empty name shows the device name again. Named tablets are listed first in number order ("Tablet 2" before "Tablet 10"), the others after them, most recent first. The names are kept in backend/data/tablet-names.json, apart from the heartbeat rows, so a kiosk never overwrites them.
 
-Look (9 Nov 2026): the status pill on each card carries the state; a card that needs attention or is down tints its whole border instead of a coloured side stripe. The disk card names the drive (the full folder path is in its tooltip), the Server PC card shows the CPU and memory load (Attention from 85 %, Down from 95 %, the same steps as the Hardware page), the PC and app uptime with the app memory, and a link to the Hardware page for the graphs, so the Tablets list was the only panel under the cards until the Incidents panel joined it (11 Nov 2026), and an offline tablet shows an Offline pill with how long ago under it. The 30-second refresh redraws only the cards whose text changed.
+Look (9 Nov 2026): the status pill on each card carries the state; a card that needs attention or is down tints its whole border instead of a coloured side stripe. The disk card names the drive (the full folder path is in its tooltip), the Server PC card shows the CPU and memory load (Attention and Down by the CPU and Memory alert lines of the Hardware page, 85 % and 95 % unless changed there), the PC and app uptime with the app memory, and a link to the Hardware page for the graphs, so the Tablets list was the only panel under the cards until the Incidents panel joined it (11 Nov 2026), and an offline tablet shows an Offline pill with how long ago under it. The 30-second refresh redraws only the cards whose text changed.
 
 Look (12 Nov 2026, picked by the user from mock-ups): the summary is one big status line ("1 check needs attention", "All checks healthy") with the counts, tinted by the worst state. Checks that are not healthy come first under "Needs a look", the rest under "Healthy". Each card ends with a strip of its last 24 hours, one block per half hour showing the worst background result in it (GET /api/admin/health/history, from health_check_results; Ollama is not checked in the background, so its card says so). Log lines quoted in incidents lose the emoji of old console messages.
 
@@ -27,8 +27,11 @@ Incidents (11 Nov 2026, moved 13 Nov 2026): the incidents the anomaly detection 
 | Method | Path | Registered in |
 |---|---|---|
 | GET | `/api/admin/health` | backend/features/health/routes.js |
+| GET | `/api/admin/health/history` | backend/features/health/routes.js |
 | GET | `/api/admin/health/layout` | backend/features/health/routes.js |
 | PUT | `/api/admin/health/layout` | backend/features/health/routes.js |
+| GET | `/api/admin/health/settings` | backend/features/health/routes.js |
+| PUT | `/api/admin/health/settings` | backend/features/health/routes.js |
 | PUT | `/api/admin/health/tablets/:deviceId/name` | backend/features/health/routes.js |
 | POST | `/api/health/heartbeat` | backend/features/health/publicRoutes.js |
 | GET | `/api/network-interfaces` | backend/kioskServer.js |
@@ -46,3 +49,12 @@ Incidents (11 Nov 2026, moved 13 Nov 2026): the incidents the anomaly detection 
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31; Incidents panel and the Anomaly detection option added 2026-11-11; replaced by the incidents summary (the full list moved to the Incidents page) 2026-11-13. Update this page when you change the feature.
+
+## Offline after and the alert lines (15 Nov 2026)
+- Tablets: "Offline after" on the right of the Tablets header sets how long a tablet may stay quiet before the list calls
+  it offline (`tabletOfflineMinutes`, 3 minutes by default, 2 to 30; the tablets report once a minute). A System Admin
+  changes it (`PUT /api/admin/health/settings`, Audit Logs `HEALTH_SETTINGS_UPDATE`); for others it is greyed. Stored in
+  `backend/data/health-settings.json` (backend/features/health/settings.js). The Tablets card's line follows it
+  ("Online means a report in the last N minutes"). Incidents keep their own minutes (Incidents, Settings, Named tablets
+  offline), so the list and an incident can disagree.
+- The Server PC and Disk cards follow the alert lines set on the Hardware page (see hardware.md, Alert lines per part).

@@ -3420,8 +3420,23 @@
                             <div class="ui-card-header">
                                 <div>
                                     <h3>Tablets</h3>
-                                    <p>Each kiosk screen reports once a minute from the feedback page. Use the edit button next to a tablet to give it a name or a number.</p>
+                                    <!-- <Jun Kai start> -->
+                                    <p>Each kiosk screen reports once a minute from the feedback page; one quiet for longer than Offline after shows as offline. Incidents use their own minutes (Incidents, Settings). Use the edit button next to a tablet to give it a name or a number.</p>
+                                    <!-- <Jun Kai end> -->
                                 </div>
+                                <!-- <Jun Kai start> when a quiet tablet counts as offline, for every admin (a System Admin changes it) -->
+                                <div class="health-offline-after">
+                                    <label class="ui-label" for="health-offline-after">Offline after</label>
+                                    <select class="ui-select" id="health-offline-after" onchange="saveHealthOfflineAfter()">
+                                        <option value="2">2 min</option>
+                                        <option value="3">3 min</option>
+                                        <option value="5">5 min</option>
+                                        <option value="10">10 min</option>
+                                        <option value="15">15 min</option>
+                                        <option value="30">30 min</option>
+                                    </select>
+                                </div>
+                                <!-- <Jun Kai end> -->
                             </div>
                             <div class="ui-table-wrap">
                                 <!-- <Jun Kai start> -->
@@ -3815,7 +3830,7 @@
                                     <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line></svg>Measured</span>
                                     <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"></line></svg>Forecast, with its typical error shaded</span>
                                     <span><span class="hw-legend-gap" aria-hidden="true"></span>No samples (PC asleep or server stopped)</span>
-                                    <span class="hw-legend-limit"><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"></line></svg>Amber from 85%, red from 95%</span>
+                                    <span class="hw-legend-limit"><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"></line></svg><!-- <Jun Kai start> --><span id="hardware-legend-limit-text">Amber from 85%, red from 95%</span><!-- <Jun Kai end> --></span>
                                 </div>
                             </div>
                             <div class="hw-table" id="hardware-table-card" hidden>
@@ -3926,6 +3941,35 @@
                             <div class="ui-card-body"><dl class="ui-kv" id="hardware-sampler-details"></dl></div>
                         </div>
                     </div>
+                    <!-- <Jun Kai start> the alert lines of each part: the graphs, the part cards and System Health's Server PC and Disk cards -->
+                    <div class="ui-card" id="hardware-alerts-card">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3>Alert lines</h3>
+                                <p>When each part counts as high or critical.</p>
+                            </div>
+                            <button class="ui-btn ui-btn-primary" id="hardware-alerts-save" onclick="saveHardwareAlerts()">Save</button>
+                        </div>
+                        <div class="ui-card-body hw-alerts">
+                            <div class="hw-alerts-main">
+                                <div class="ui-note" id="hardware-alerts-admin" hidden>Only a System Admin can change the alert lines.</div>
+                                <table class="hw-alerts-table">
+                                    <thead><tr><th scope="col">Part</th><th scope="col">Amber from</th><th scope="col">Red from</th></tr></thead>
+                                    <tbody id="hardware-alerts-rows"></tbody>
+                                </table>
+                                <div class="hw-alerts-foot">
+                                    <button type="button" class="health-card-link" id="hardware-alerts-defaults" onclick="useHardwareAlertDefaults()">Use the defaults</button>
+                                    <span class="hw-alerts-status" id="hardware-alerts-status" role="status"></span>
+                                </div>
+                            </div>
+                            <dl class="hw-alerts-legend">
+                                <div><dt><span class="hw-alerts-swatch is-amber" aria-hidden="true"></span>Amber</dt><dd>The part's card says High and its graph shows the amber line. On System Health the Server PC card (CPU and memory) or the Disk card turns amber.</dd></div>
+                                <div><dt><span class="hw-alerts-swatch is-red" aria-hidden="true"></span>Red</dt><dd>The card says Critical, the graph shows the red line, and the System Health card turns red.</dd></div>
+                                <div><dt>GPU</dt><dd>Only on this page: System Health has no GPU card.</dd></div>
+                            </dl>
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
                     <!-- shown before a forecast longer than the stored history is saved -->
                     <dialog class="va-dialog va-dialog-small" id="hardware-horizon-dialog" aria-labelledby="hardware-horizon-title" aria-describedby="hardware-horizon-sub">
                         <div class="va-dialog-inner">

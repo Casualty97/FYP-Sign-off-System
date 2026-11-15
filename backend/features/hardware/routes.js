@@ -4,6 +4,7 @@
 //   GET  /series?range=24h    averaged samples for the graphs plus the forecast (1h up to 5y, see ranges.js); a range
 //                             longer than the samples are kept comes from the daily summaries, one point per day or more
 //   GET  /settings  PUT /settings   interval, retention, forecast horizon (1 hour to 1 year)
+//   PUT  /alert-lines        (System Admin) amber and red per part; System Health's Server PC and Disk cards use them
 //   GET  /forecast-check?forecastHours=&retentionDays=   would that forecast reach further than the samples go back
 // <Jun Kai start>
 const express = require('express');
@@ -14,6 +15,7 @@ const settings = require('./settings');
 const forecast = require('./forecast');
 const ranges = require('./ranges');
 const dailyStore = require('./daily');
+const { logAudit } = require('../../core/audit');
 
 const router = express.Router();
 const all = (sql, params) => new Promise((resolve, reject) => db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows))));
@@ -160,7 +162,7 @@ router.get('/overview', auth.requireAuth, async (req, res) => {
         const counts = await all('SELECT COUNT(*) AS total, SUM(sampled_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS day, UNIX_TIMESTAMP(MIN(sampled_at)) * 1000 AS oldest FROM hardware_samples', []);
         const oldest = counts[0].oldest === null || counts[0].oldest === undefined ? null : new Date(Number(counts[0].oldest)).toISOString();
         const days = await dailyStore.summary();
-        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), limits: settings.LIMITS, stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0), oldestAt: oldest, daily: days }, serverTime: new Date().toISOString() } });
+        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), limits: settings.LIMITS, alerts: settings.readAlerts(), alertLimits: settings.ALERT_LIMITS, alertDefaults: settings.ALERT_DEFAULTS, stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0), oldestAt: oldest, daily: days }, serverTime: new Date().toISOString() } });
     } catch (error) { fail(res, error, 'overview'); }
 });
 
@@ -177,7 +179,7 @@ router.get('/series', auth.requireAuth, async (req, res) => {
 });
 
 router.get('/settings', auth.requireAuth, (req, res) => {
-    res.json({ success: true, settings: settings.read(), limits: settings.LIMITS });
+    res.json({ success: true, settings: settings.read(), limits: settings.LIMITS, alerts: settings.readAlerts(), alertLimits: settings.ALERT_LIMITS, alertDefaults: settings.ALERT_DEFAULTS });
 });
 
 // Asked by the page before it saves: is a forecast this far ahead dependable with the samples stored so far?
@@ -198,6 +200,18 @@ router.put('/settings', auth.requireAuth, (req, res) => {
         sampler.applySettings(result.settings);
         res.json({ success: true, settings: result.settings });
     } catch (error) { fail(res, error, 'settings save'); }
+});
+
+// PUT /api/admin/hardware/alert-lines  (System Admin) { alerts: { cpu: { warn, critical }, memory, gpu, disk } }; a part
+// left out keeps its line. 400 names the field ("disk.critical") so the page can mark it.
+router.put('/alert-lines', auth.requireAdmin, (req, res) => {
+    const result = settings.validateAlerts(req.body && req.body.alerts);
+    if (result.error) return res.status(400).json({ success: false, error: result.error, field: result.field });
+    try {
+        settings.writeAlerts(result.alerts);
+        logAudit('HARDWARE_ALERT_LINES_UPDATE', req.session.user.username, 'hardware', null, req);
+        res.json({ success: true, alerts: result.alerts });
+    } catch (error) { fail(res, error, 'alert lines save'); }
 });
 
 module.exports = router;
