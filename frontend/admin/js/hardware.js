@@ -66,6 +66,21 @@ let hardwareAlertsBusy = false;
 let hardwareLastOverview = null;
 // <Jun Kai end>
 
+// <Jun Kai start> the live reading of the part cards: asked every half second while the page is open
+// (GET /api/admin/hardware/live); the graphs, the forecast and the stored samples keep their own timers
+const HARDWARE_LIVE_MS = 500;
+const HARDWARE_LIVE_FRESH_MS = 3000;
+let hardwareLive = null;
+let hardwareLiveTimer = null;
+let hardwareLiveBusy = false;
+let hardwareLastForecast = null;
+
+// The newest reading for the cards: the live one while it keeps coming, else the last stored sample
+function hardwareLatest(stored) {
+    return hardwareLive && Date.now() - hardwareLive.receivedAt < HARDWARE_LIVE_FRESH_MS ? hardwareLive : stored;
+}
+// <Jun Kai end>
+
 function hardwareTheme() {
     const css = getComputedStyle(document.documentElement);
     const v = (name, fallback) => (css.getPropertyValue(name) || '').trim() || fallback;
@@ -536,8 +551,12 @@ function renderHardwareKeys(overview) {
         const value = now[key];
         const known = value !== null && value !== undefined;
         const tone = known ? hardwareTone(value, key) : 'muted';
-        pill.className = `ui-pill ui-pill-${tone}`;
-        pill.innerHTML = `<span class="ui-dot"></span>${known ? { ok: 'Normal', warn: 'High', down: 'Critical' }[tone] : 'No reading'}`;
+        // <Jun Kai start> written only when it changes: the live reading arrives every half second
+        const className = `ui-pill ui-pill-${tone}`;
+        const html = `<span class="ui-dot"></span>${known ? { ok: 'Normal', warn: 'High', down: 'Critical' }[tone] : 'No reading'}`;
+        if (pill.className !== className) pill.className = className;
+        if (pill.innerHTML !== html) pill.innerHTML = html;
+        // <Jun Kai end>
     }
 }
 
@@ -554,19 +573,34 @@ function renderHardwareFacts(latest) {
         const label = key === 'disk' ? 'Disk full in' : text(`hardware-fc-${key}-label`);
         const value = text(`hardware-fc-${key}`);
         const facts = [
-            ['Now', percent(now[key]), latest && latest.at ? `sampled ${hardwareAgo(latest.at)}` : ''],
+            ['Now', percent(now[key]), latest && latest.live ? 'live' : latest && latest.at ? `sampled ${hardwareAgo(latest.at)}` : ''], // <Jun Kai/>
             ['Average in this range', rows.length ? percent(sum / rows.length) : '–', `${rows.length} points`],
             ['Peak in this range', high ? percent(high[key]) : '–', high ? `at ${hardwareTimeLabel(high.t, true)}` : ''],
             ['Lowest in this range', low ? percent(low[key]) : '–', low ? `at ${hardwareTimeLabel(low.t, true)}` : ''],
             [label, value, text(`hardware-fc-${key}-hint`)]
         ];
         const box = document.getElementById(`hardware-${key}-facts`);
-        if (box) box.innerHTML = facts.map(([l, v, h]) => `<div><span class="ui-fact-label">${escapeHtmlSafe(l)}</span><span class="ui-fact-value">${escapeHtmlSafe(v)}</span><span class="ui-fact-hint">${escapeHtmlSafe(h)}</span></div>`).join('');
+        if (box) box.innerHTML = facts.map(([l, v, h], i) => `<div${i === 0 ? ' data-hw-now' : ''}><span class="ui-fact-label">${escapeHtmlSafe(l)}</span><span class="ui-fact-value">${escapeHtmlSafe(v)}</span><span class="ui-fact-hint">${escapeHtmlSafe(h)}</span></div>`).join(''); // <Jun Kai/> the "Now" row is marked for renderHardwareNow
         const next = document.getElementById(`hardware-${key}-next`);
         if (next) next.textContent = value === '–' || !value ? 'forecast not ready' : key === 'disk' ? (value === 'Not growing' ? 'not growing' : `full in ${value}`) : `${value} ${label.replace(/^\S+ /, '')}`;
     }
     hardwarePartWords();
 }
+
+// <Jun Kai start> the "Now" line under each graph, every half second, without redrawing the other facts
+function renderHardwareNow(latest) {
+    const now = { cpu: latest.cpu, memory: latest.memory && latest.memory.percent, gpu: latest.gpu && latest.gpu.percent, disk: latest.disk && latest.disk.percent };
+    for (const key of HARDWARE_METRICS) {
+        const row = document.querySelector(`#hardware-${key}-facts [data-hw-now]`);
+        if (!row) continue;
+        const text = now[key] === null || now[key] === undefined ? '–' : `${Number(now[key]).toFixed(0)}%`;
+        const value = row.querySelector('.ui-fact-value');
+        const hint = row.querySelector('.ui-fact-hint');
+        if (value && value.textContent !== text) value.textContent = text;
+        if (hint && hint.textContent !== 'live') hint.textContent = 'live';
+    }
+}
+// <Jun Kai end>
 
 function hardwarePartWords() {
     const title = document.getElementById('hardware-main-title');
@@ -589,15 +623,21 @@ function setHardwarePart(part) {
     ensureHardwareCharts();
 }
 
+// <Jun Kai start> the sampler pill has its own function: the live reading must not paint over an error the minute
+// refresh shows there
+function renderHardwareSamplerPill(sampler) {
+    const pill = document.getElementById('hardware-sampler-pill');
+    const pillState = sampler.lastError ? ['down', 'Sampler error'] : sampler.running ? ['ok', `Sampling every ${sampler.intervalSeconds} s`] : ['muted', 'Sampler off'];
+    if (pill) { pill.className = `ui-pill ui-pill-${pillState[0]}`; pill.innerHTML = `<span class="ui-dot"></span>${escapeHtmlSafe(pillState[1])}`; }
+}
+// <Jun Kai end>
+
 // The number and the line under it on each part card
 function renderHardwareCards(overview) {
     const latest = overview.latest;
     const sampler = overview.sampler || {};
-    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const set = (id, text) => { const el = document.getElementById(id); if (el && el.textContent !== text) el.textContent = text; }; // <Jun Kai/> written only when it changes
     const gb = (mb) => (mb / 1024).toFixed(1);
-    const pill = document.getElementById('hardware-sampler-pill');
-    const pillState = sampler.lastError ? ['down', 'Sampler error'] : sampler.running ? ['ok', `Sampling every ${sampler.intervalSeconds} s`] : ['muted', 'Sampler off'];
-    if (pill) { pill.className = `ui-pill ui-pill-${pillState[0]}`; pill.innerHTML = `<span class="ui-dot"></span>${escapeHtmlSafe(pillState[1])}`; }
     if (!latest) {
         for (const key of HARDWARE_METRICS) set(`hardware-${key}-value`, '–');
         const waiting = sampler.lastError ? sampler.lastError : 'Waiting for the first sample (about 10 seconds after the server starts)';
@@ -609,7 +649,7 @@ function renderHardwareCards(overview) {
     }
     const ago = hardwareAgo(latest.at);
     set('hardware-cpu-value', latest.cpu === null || latest.cpu === undefined ? '–' : latest.cpu.toFixed(0));
-    set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'No CPU reading in the last sample' : `Average over the last interval, sampled ${ago}`);
+    set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'No CPU reading in the last sample' : latest.live ? 'Live: average of the last half second' : `Average over the last interval, sampled ${ago}`); // <Jun Kai/>
     set('hardware-memory-value', latest.memory ? latest.memory.percent.toFixed(0) : '–');
     set('hardware-memory-hint', latest.memory ? `${gb(latest.memory.usedMb)} of ${gb(latest.memory.totalMb)} GB in use` : '');
     set('hardware-disk-value', latest.disk ? latest.disk.percent.toFixed(0) : '–');
@@ -626,7 +666,7 @@ function renderHardwareCards(overview) {
 }
 
 function renderHardwareForecast(forecast, latest) {
-    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const set = (id, text) => { const el = document.getElementById(id); if (el && el.textContent !== text) el.textContent = text; }; // <Jun Kai/> also run by the live reading
     const horizon = hardwareSpell('horizon', (forecast && forecast.horizonHours) || 24);
     // beyond a week the server forecasts from daily averages: the value is the usual level, not "now plus a trend"
     const daily = !!forecast && forecast.basis === 'daily';
@@ -664,7 +704,10 @@ function renderHardwareForecast(forecast, latest) {
     if (note) {
         const check = forecast && forecast.check;
         note.hidden = !(check && check.rough);
-        note.textContent = check && check.rough ? `Rough guide. ${hardwareRoughLines(check).slice(0, 2).join(' ')}` : '';
+        // <Jun Kai start> written only when it changes
+        const text = check && check.rough ? `Rough guide. ${hardwareRoughLines(check).slice(0, 2).join(' ')}` : '';
+        if (note.textContent !== text) note.textContent = text;
+        // <Jun Kai end>
     }
 }
 
@@ -760,18 +803,25 @@ async function loadHardware() {
         ]);
         const overview = await overviewResponse.json();
         if (!overviewResponse.ok || !overview.success) throw new Error(overview.error || 'Overview failed');
-        renderHardwareCards(overview.overview);
+        // <Jun Kai start> while the live reading keeps coming the cards keep it, instead of jumping back to the stored sample
+        const latest = hardwareLatest(overview.overview.latest);
+        renderHardwareSamplerPill(overview.overview.sampler || {});
+        renderHardwareCards({ ...overview.overview, latest });
+        // <Jun Kai end>
         // <Jun Kai start> the alert lines first, so the part cards are judged by them
         hardwareLastOverview = overview.overview;
         renderHardwareSettings(overview.overview);
         renderHardwareAlerts(overview.overview);
-        renderHardwareKeys(overview.overview);
+        renderHardwareKeys({ latest }); // <Jun Kai/> the live reading when there is one
         // <Jun Kai end>
         const series = await seriesResponse.json();
         if (!seriesResponse.ok || !series.success) throw new Error(series.error || 'Series failed');
         renderHardwareSeries(series);
-        renderHardwareForecast(series.forecast, overview.overview.latest);
-        renderHardwareFacts(overview.overview.latest);
+        // <Jun Kai start> kept for the live reading, which rewrites the "now" in the forecast hints
+        hardwareLastForecast = series.forecast;
+        renderHardwareForecast(series.forecast, latest);
+        renderHardwareFacts(latest);
+        // <Jun Kai end>
         if (hardwareTableOpen) renderHardwareTable();
     } catch (error) {
         console.error('❌ Error loading hardware:', error);
@@ -1193,7 +1243,7 @@ async function saveHardwareAlerts() {
         fillHardwareAlertRows(hardwareAlerts);
         hardwareAlertsStatus('', '');
         hardwareAlertsChanged();
-        if (hardwareLastOverview) renderHardwareKeys(hardwareLastOverview);
+        if (hardwareLastOverview) renderHardwareKeys({ latest: hardwareLatest(hardwareLastOverview.latest) }); // <Jun Kai/>
         Object.values(hardwareCharts).forEach((chart) => chart.update('none'));
         hardwarePartWords();
         showNotification('Alert lines saved', 'success');
@@ -1212,6 +1262,39 @@ function startHardwarePolling() {
         const page = document.getElementById('hardware-page');
         if (page && page.classList.contains('active') && sessionStorage.getItem('loggedUser')) loadHardware();
     }, 60000);
+    // <Jun Kai start> the part cards every half second; the timer stops by itself when the page closes
+    if (hardwareLiveTimer) clearInterval(hardwareLiveTimer);
+    hardwareLiveTimer = setInterval(tickHardwareLive, HARDWARE_LIVE_MS);
+    // <Jun Kai end>
+}
+// <Jun Kai end>
+
+// <Jun Kai start> one live reading: skipped while the tab is hidden, before the first full load, or while the last
+// one is still on its way, so a slow answer never piles requests up
+async function tickHardwareLive() {
+    const page = document.getElementById('hardware-page');
+    if (!page || !page.classList.contains('active') || !sessionStorage.getItem('loggedUser')) {
+        clearInterval(hardwareLiveTimer);
+        hardwareLiveTimer = null;
+        hardwareLive = null;
+        return;
+    }
+    if (document.hidden || hardwareLiveBusy || !hardwareLastOverview) return;
+    hardwareLiveBusy = true;
+    try {
+        const response = await fetch('/api/admin/hardware/live', { cache: 'no-store' });
+        const body = await response.json();
+        if (!response.ok || !body.success) return;
+        hardwareLive = { ...body.live, live: true, receivedAt: Date.now() };
+        renderHardwareCards({ ...hardwareLastOverview, latest: hardwareLive });
+        renderHardwareKeys({ latest: hardwareLive });
+        renderHardwareNow(hardwareLive);
+        if (hardwareLastForecast) renderHardwareForecast(hardwareLastForecast, hardwareLive);
+    } catch {
+        // a missed half second: the next tick asks again; if the answers stop, the minute refresh puts the stored sample back
+    } finally {
+        hardwareLiveBusy = false;
+    }
 }
 // <Jun Kai end>
 

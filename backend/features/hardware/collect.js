@@ -117,15 +117,15 @@ async function detectGpu() {
     return { source: 'none', name: null };
 }
 
-let gpuBusy = false;
-async function gpu(source) {
-    if (source === 'none' || gpuBusy) return null;
-    gpuBusy = true;
-    try {
-        if (source === 'nvidia-smi') return await readNvidia();
-        return await readCounters();
-    } finally { gpuBusy = false; }
+// <Jun Kai start> one GPU read at a time: a second caller (the sampler while the Hardware page asks for live
+// readings, live.js) gets the same answer instead of null, so a stored sample never loses its GPU value
+let gpuRead = null;
+function gpu(source) {
+    if (source === 'none') return Promise.resolve(null);
+    if (!gpuRead) gpuRead = (source === 'nvidia-smi' ? readNvidia() : readCounters()).finally(() => { gpuRead = null; });
+    return gpuRead;
 }
+// <Jun Kai end>
 
 module.exports = { CpuMeter, memory, disk, detectGpu, gpu, parseTypeperf };
 // <Jun Kai end>
