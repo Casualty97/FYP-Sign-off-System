@@ -3809,34 +3809,43 @@
                                 <button type="button" class="ui-btn ui-btn-secondary" id="hardware-table-btn" onclick="toggleHardwareTable()">Table view</button>
                             </div>
                             <div class="hw-toolbar">
-                                <div class="hw-range" id="hardware-range-wrap">
-                            <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
-                                <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
-                                <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
-                                <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
-                                <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
-                                <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
-                                <button type="button" class="hw-seg-btn" data-range="custom" id="hardware-range-custom-btn" onclick="toggleHardwareRangeForm()" aria-expanded="false" aria-controls="hardware-range-form">Custom</button>
-                            </div>
-                            <form class="hw-range-form" id="hardware-range-form" hidden novalidate onsubmit="applyHardwareCustomRange(event)">
-                                <label class="ui-label" for="hardware-range-amount">Show the last</label>
-                                <div class="hw-range-inputs">
-                                    <input class="ui-input" type="number" id="hardware-range-amount" min="1" step="1" inputmode="numeric" aria-describedby="hardware-range-hint">
-                                    <select class="ui-select" id="hardware-range-unit" aria-label="Unit of the time range">
-                                        <option value="h">hours</option>
-                                        <option value="d">days</option>
-                                        <option value="w">weeks</option>
-                                        <option value="mo">months</option>
-                                        <option value="y">years</option>
-                                    </select>
+                                <!-- <Jun Kai start> Past or Forecast, then the same chips: the last 24 hours, or the next 24 hours -->
+                                <div class="hw-toolbar-left">
+                                    <div class="hw-segment" id="hardware-mode" role="group" aria-label="What the graph shows">
+                                        <button type="button" class="hw-seg-btn active" data-mode="past" aria-pressed="true" onclick="setHardwareMode('past')">Past</button>
+                                        <button type="button" class="hw-seg-btn" data-mode="forecast" aria-pressed="false" onclick="setHardwareMode('forecast')">Forecast</button>
+                                    </div>
+                                    <span class="hw-range-word" id="hardware-range-word" aria-hidden="true">Last</span>
+                                    <div class="hw-range" id="hardware-range-wrap">
+                                        <div class="hw-segment" id="hardware-range" role="group" aria-label="Show the last">
+                                            <button type="button" class="hw-seg-btn" data-range="1h" aria-pressed="false" onclick="setHardwareRange('1h')">1 hour</button>
+                                            <button type="button" class="hw-seg-btn" data-range="6h" aria-pressed="false" onclick="setHardwareRange('6h')">6 hours</button>
+                                            <button type="button" class="hw-seg-btn active" data-range="24h" aria-pressed="true" onclick="setHardwareRange('24h')">24 hours</button>
+                                            <button type="button" class="hw-seg-btn" data-range="7d" aria-pressed="false" onclick="setHardwareRange('7d')">7 days</button>
+                                            <button type="button" class="hw-seg-btn" data-range="30d" aria-pressed="false" onclick="setHardwareRange('30d')">30 days</button>
+                                            <button type="button" class="hw-seg-btn" data-range="custom" id="hardware-range-custom-btn" onclick="toggleHardwareRangeForm()" aria-expanded="false" aria-controls="hardware-range-form">Custom</button>
+                                        </div>
+                                        <form class="hw-range-form" id="hardware-range-form" hidden novalidate onsubmit="applyHardwareCustomRange(event)">
+                                            <label class="ui-label" for="hardware-range-amount" id="hardware-range-label">Show the last</label>
+                                            <div class="hw-range-inputs">
+                                                <input class="ui-input" type="number" id="hardware-range-amount" min="1" step="1" inputmode="numeric" aria-describedby="hardware-range-hint">
+                                                <select class="ui-select" id="hardware-range-unit" aria-label="Unit of the time range">
+                                                    <option value="h">hours</option>
+                                                    <option value="d">days</option>
+                                                    <option value="w">weeks</option>
+                                                    <option value="mo">months</option>
+                                                    <option value="y">years</option>
+                                                </select>
+                                            </div>
+                                            <div class="ui-help" id="hardware-range-hint">From 1 hour to 5 years.</div>
+                                            <div class="hw-range-actions">
+                                                <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHardwareRangeForm(true)">Cancel</button>
+                                                <button type="submit" class="ui-btn ui-btn-primary">Show</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
-                                <p class="ui-help" id="hardware-range-hint">From 1 hour to 5 years.</p>
-                                <div class="hw-range-actions">
-                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHardwareRangeForm(true)">Cancel</button>
-                                    <button type="submit" class="ui-btn ui-btn-primary">Show</button>
-                                </div>
-                            </form>
-                        </div>
+                                <!-- <Jun Kai end> -->
                                 <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
                             </div>
                             <div class="hw-plots" id="hardware-charts">
@@ -3845,6 +3854,9 @@
                                         <canvas id="hardware-all-chart" aria-label="CPU, memory, GPU and disk usage on one graph" role="img"></canvas>
                                         <div class="hw-chart-empty" id="hardware-all-empty">Waiting for samples</div>
                                     </div>
+                                    <!-- <Jun Kai start> Forecast: where each part is heading (the Forecast card used to say it) -->
+                                    <div class="ui-facts hw-part-facts" id="hardware-forecast-facts" hidden></div>
+                                    <!-- <Jun Kai end> -->
                                 </div>
                                 <div class="hw-plot" data-part-panel="cpu" hidden>
                                     <div class="hw-chart hw-chart-big">
@@ -3874,12 +3886,16 @@
                                     </div>
                                     <div class="ui-facts hw-part-facts" id="hardware-disk-facts"></div>
                                 </div>
+                                <!-- <Jun Kai start> Forecast: why it is only a rough guide, when it is one -->
+                                <div class="ui-note ui-note-warn" id="hardware-forecast-rough" role="note" hidden></div>
+                                <!-- <Jun Kai end> -->
                                 <div class="hw-legend">
                                     <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line></svg>Measured</span>
-                                    <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"></line></svg>Forecast, with its typical error shaded</span>
+                                    <span id="hardware-legend-forecast" hidden><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"></line></svg>Forecast, with its typical error shaded</span>
                                     <span><span class="hw-legend-gap" aria-hidden="true"></span>No samples (PC asleep or server stopped)</span>
                                     <span class="hw-legend-limit"><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"></line></svg><!-- <Jun Kai start> --><span id="hardware-legend-limit-text">Amber from 85%, red from 95%</span><!-- <Jun Kai end> --></span>
                                 </div>
+                                <!-- <Jun Kai start> --><div class="ui-help hw-forecast-method" id="hardware-forecast-method"></div><!-- <Jun Kai end> -->
                             </div>
                             <div class="hw-table" id="hardware-table-card" hidden>
                                 <div class="ui-table-wrap">
@@ -3891,37 +3907,20 @@
                             </div>
                         </div>
                     </div>
-                    <div class="ui-card">
-                        <div class="ui-card-header">
-                            <div>
-                                <h3>Forecast</h3>
-                                <p>Where each value is heading if the recent trend carries on. Statistics only, no AI.</p>
-                            </div>
-                        </div>
-                        <div class="ui-card-body">
-                            <div class="ui-facts">
-                                <div><span class="ui-fact-label" id="hardware-fc-cpu-label">CPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-cpu">–</span><span class="ui-fact-hint" id="hardware-fc-cpu-hint"></span></div>
-                                <div><span class="ui-fact-label" id="hardware-fc-memory-label">Memory in 1 day</span><span class="ui-fact-value" id="hardware-fc-memory">–</span><span class="ui-fact-hint" id="hardware-fc-memory-hint"></span></div>
-                                <div><span class="ui-fact-label" id="hardware-fc-gpu-label">GPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-gpu">–</span><span class="ui-fact-hint" id="hardware-fc-gpu-hint"></span></div>
-                                <div><span class="ui-fact-label">Disk full in</span><span class="ui-fact-value" id="hardware-fc-disk">–</span><span class="ui-fact-hint" id="hardware-fc-disk-hint"></span></div>
-                            </div>
-                            <div class="ui-note ui-note-warn" id="hardware-forecast-rough" role="note" hidden></div>
-                            <p class="ui-help hw-forecast-method" id="hardware-forecast-method"></p>
-                        </div>
-                    </div>
                     <!-- <Jun Kai start> the settings: a drawer from the right, like the incident settings (Esc or Cancel discards the changes) -->
                     <dialog class="inc-drawer" id="hardware-drawer" aria-labelledby="hardware-drawer-title" aria-describedby="hardware-drawer-sub">
                         <div class="inc-drawer-inner">
                             <div class="inc-drawer-head">
                                 <div>
                                     <h3 id="hardware-drawer-title">Hardware settings</h3>
-                                    <div class="inc-drawer-sub" id="hardware-drawer-sub">How often to measure, how long to keep the samples and how far ahead to forecast, and when each part counts as high or critical.</div>
+                                    <div class="inc-drawer-sub" id="hardware-drawer-sub">How often to measure and how long to keep the samples, and when each part counts as high or critical. How far ahead to forecast is picked on the graph, under Forecast.</div>
                                 </div>
                                 <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeHardwareSettings()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             </div>
                             <div class="inc-drawer-body" id="hardware-drawer-body">
                                 <section class="inc-drawer-section">
-                                    <div class="inc-drawer-title">Sampling</div>
+                                    <div class="inc-drawer-title">Forecast sampling</div>
+                                    <div class="hw-drawer-text">The graphs and the forecast are built from these samples. A forecast is dependable for about as far ahead as the samples go back. Forecasts longer than 7 days also use the daily summaries, which are kept for good.</div>
                                     <div class="hw-drawer-fields">
                                         <div class="ui-field">
                                             <label class="ui-label" for="hardware-interval">Sample every</label>
@@ -3961,32 +3960,6 @@
                                             </div>
                                             <p class="ui-help hw-custom-hint" id="hardware-retention-hint" hidden></p>
                                         </div>
-                                        <div class="ui-field">
-                                            <label class="ui-label" for="hardware-horizon">Forecast ahead</label>
-                                            <select class="ui-select" id="hardware-horizon" onchange="hardwareSettingChanged('horizon')">
-                                                <option value="6">6 hours</option>
-                                                <option value="12">12 hours</option>
-                                                <option value="24">1 day</option>
-                                                <option value="48">2 days</option>
-                                                <option value="72">3 days</option>
-                                                <option value="168">7 days</option>
-                                                <option value="720">1 month</option>
-                                                <option value="2160">3 months</option>
-                                                <option value="4320">6 months</option>
-                                                <option value="8760">1 year</option>
-                                                <option value="custom">Custom</option>
-                                            </select>
-                                            <div class="hw-custom" id="hardware-horizon-custom" hidden>
-                                                <input class="ui-input" type="number" id="hardware-horizon-amount" min="1" step="1" inputmode="numeric" aria-label="Custom forecast length" aria-describedby="hardware-horizon-hint">
-                                                <select class="ui-select" id="hardware-horizon-unit" aria-label="Unit of the forecast length">
-                                                    <option value="1">hours</option>
-                                                    <option value="24">days</option>
-                                                    <option value="720">months</option>
-                                                    <option value="8760">years</option>
-                                                </select>
-                                            </div>
-                                            <p class="ui-help hw-custom-hint" id="hardware-horizon-hint" hidden></p>
-                                        </div>
                                     </div>
                                 </section>
                                 <section class="inc-drawer-section">
@@ -4021,25 +3994,6 @@
                         </div>
                     </dialog>
                     <!-- <Jun Kai end> -->
-                    <!-- shown before a forecast longer than the stored history is saved -->
-                    <dialog class="va-dialog va-dialog-small" id="hardware-horizon-dialog" aria-labelledby="hardware-horizon-title" aria-describedby="hardware-horizon-sub">
-                        <div class="va-dialog-inner">
-                            <div class="va-dialog-head">
-                                <div>
-                                    <h3 id="hardware-horizon-title">This forecast will be a rough guide</h3>
-                                    <div class="va-dialog-sub" id="hardware-horizon-sub">You can still save it. Here is what to expect.</div>
-                                </div>
-                                <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="closeHardwareHorizonDialog()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-                            </div>
-                            <div class="va-dialog-body">
-                                <ul class="hw-check-list" id="hardware-horizon-list"></ul>
-                            </div>
-                            <div class="va-dialog-foot">
-                                <button type="button" class="ui-btn ui-btn-secondary" id="hardware-horizon-back" onclick="closeHardwareHorizonDialog()">Go back</button>
-                                <button type="button" class="ui-btn ui-btn-primary" id="hardware-horizon-save" onclick="confirmHardwareHorizon()">Save anyway</button>
-                            </div>
-                        </div>
-                    </dialog>
                 </div>
                 <!-- <Jun Kai end> -->
 

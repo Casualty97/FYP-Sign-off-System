@@ -2,11 +2,11 @@
 // Admin hardware API, mounted at /api/admin/hardware (session required):
 //   GET  /overview            latest sample, sampler status, settings and the processor's name (the part cards)
 //   GET  /live                <Jun Kai/> the part cards' reading, asked every second while the page is open (live.js)
-//   GET  /series?range=24h    averaged samples for the graphs plus the forecast (1h up to 5y, see ranges.js); a range
+//   GET  /series?range=24h&horizon=24   averaged samples for the graphs (1h up to 5y, see ranges.js) plus the forecast
+//                             horizon hours ahead (1 hour to 1 year; the saved forecastHours when it is left out). A range
 //                             longer than the samples are kept comes from the daily summaries, one point per day or more
-//   GET  /settings  PUT /settings   interval, retention, forecast horizon (1 hour to 1 year)
+//   GET  /settings  PUT /settings   interval, retention, and forecastHours (the length when /series gets no horizon)
 //   PUT  /alert-lines        (System Admin) amber and red per part; System Health's Server PC and Disk cards use them
-//   GET  /forecast-check?forecastHours=&retentionDays=   would that forecast reach further than the samples go back
 // <Jun Kai start>
 const express = require('express');
 const auth = require('../../core/auth');
@@ -140,6 +140,17 @@ function describeCheck(current, history) {
     };
 }
 
+// <Jun Kai start> "24" -> 24: how far ahead the graph asks to forecast (its Past / Forecast switch, 17 Nov 2026), within
+// the limits of the saved forecast length (1 hour to 1 year); the saved length when it is left out, null when it is wrong
+function readHorizon(value, saved) {
+    if (value === undefined || value === '') return saved;
+    if (!/^\d{1,5}$/.test(String(value))) return null;
+    const hours = Number(value);
+    const [min, max] = settings.LIMITS.forecastHours;
+    return hours >= min && hours <= max ? hours : null;
+}
+// <Jun Kai end>
+
 async function buildForecast(current) {
     const body = current.forecastHours > LONG_HORIZON_HOURS ? await dailyForecast(current) : await stepForecast(current.forecastHours);
     return { ...body, horizonHours: current.forecastHours, check: describeCheck(current, await sampleHistory()) };
@@ -182,25 +193,19 @@ router.get('/series', auth.requireAuth, async (req, res) => {
         const range = ranges.parse(req.query.range === undefined ? '24h' : req.query.range);
         if (!range) return res.status(400).json({ success: false, error: 'range must be 1 hour to 5 years, written like 12h, 10d, 3w, 6mo or 2y' });
         const current = settings.read();
+        // <Jun Kai start>
+        const horizon = readHorizon(req.query.horizon, current.forecastHours);
+        if (horizon === null) return res.status(400).json({ success: false, error: 'horizon must be a whole number of hours from 1 to 8760 (1 year)' });
+        // <Jun Kai end>
         const long = range.bucketSeconds >= 86400 || range.seconds > current.retentionDays * 86400;
         const bucketSeconds = long ? Math.max(range.bucketSeconds, 86400) : range.bucketSeconds;
         const points = long ? await longRows(range.seconds, bucketSeconds) : await bucketedRows(range.seconds, bucketSeconds);
-        res.json({ success: true, range: range.key, seconds: range.seconds, bucketSeconds, source: long ? 'daily' : 'samples', points, forecast: await buildForecast(current), serverTime: new Date().toISOString() });
+        res.json({ success: true, range: range.key, seconds: range.seconds, bucketSeconds, source: long ? 'daily' : 'samples', points, forecast: await buildForecast({ ...current, forecastHours: horizon }), serverTime: new Date().toISOString() }); // <Jun Kai/>
     } catch (error) { fail(res, error, 'series'); }
 });
 
 router.get('/settings', auth.requireAuth, (req, res) => {
     res.json({ success: true, settings: settings.read(), limits: settings.LIMITS, alerts: settings.readAlerts(), alertLimits: settings.ALERT_LIMITS, alertDefaults: settings.ALERT_DEFAULTS });
-});
-
-// Asked by the page before it saves: is a forecast this far ahead dependable with the samples stored so far?
-router.get('/forecast-check', auth.requireAuth, async (req, res) => {
-    const current = settings.read();
-    const result = settings.validate({ ...current, forecastHours: req.query.forecastHours, retentionDays: req.query.retentionDays ?? current.retentionDays });
-    if (result.error) return res.status(400).json({ success: false, error: result.error });
-    try {
-        res.json({ success: true, check: describeCheck(result.settings, await sampleHistory()) });
-    } catch (error) { fail(res, error, 'forecast check'); }
 });
 
 router.put('/settings', auth.requireAuth, (req, res) => {

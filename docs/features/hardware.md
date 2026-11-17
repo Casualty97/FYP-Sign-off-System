@@ -15,7 +15,7 @@ backend/server.js starts the sampler after boot. Every N seconds (default 60, se
 
 Live cards (16 Nov 2026): while the Hardware page is open and its browser tab is visible, the page asks `GET /api/admin/hardware/live` every second and puts the answer on the four part cards, their Normal / High / Critical pills, the "Now" line under each graph and the "now" in the forecast hints. The server (backend/features/hardware/live.js) reads the CPU with its own meter (the busy share of the last second; two pages asking at once share one reading, and after 2 s without a request it measures a fresh quarter second), memory and disk on the spot, and the GPU in the background every 2 s with nvidia-smi or every 5 s with the Windows counters (each GPU read starts a program; until the first answer the last stored sample's GPU is shown). Nothing is stored: the samples, the graphs and the forecast keep the Sampling interval. A GPU read already running is shared with the sampler, so a stored sample never loses its GPU value while the page is open.
 
-Forecast length (11 Nov 2026, supervisor meeting 04): "Forecast ahead" goes from 1 hour to 1 year (presets 6 hours to 7 days, 1, 3 and 6 months, 1 year; Custom in hours, days, months of 30 days or years of 365 days). Up to 7 days the forecast works on the 10-minute steps described above. Beyond that it works on one average per day (only days with at least an hour of samples, so closed days are left out; it needs 6 such days), looks back twice the forecast length (at least 30 days, at most the keep period), is thinned to at most 200 points and is kept for 10 minutes; this far ahead the damped trend has faded, so CPU, memory and GPU show their usual level and range, not a prediction for one day, and only the disk line really extrapolates. A forecast counts as dependable when the stored samples go back about as far as it looks ahead (`forecast.horizonCheck`, 5 % short still counts). Otherwise it is a rough guide: the Forecast card says so in an amber note with the reason (waiting is enough, or samples are deleted before the history can get that long), and saving such a choice first opens a reminder with "Go back" and "Save anyway". The reminder appears when the forecast length changes or the keep period is shortened, for presets and Custom values alike; `GET /api/admin/hardware/forecast-check?forecastHours=&retentionDays=` answers the question for the values in the form. The Sampler details show the oldest sample. A disk that is not growing is drawn level instead of continuing a clean-up downwards. `PORT` in backend/.env runs the HTTPS server on another port, handy for testing a branch next to a live copy.
+Forecast length (11 Nov 2026, supervisor meeting 04; the field, the Forecast card, the reminder and `GET /forecast-check` were replaced on 17 Nov 2026 by the Past / Forecast switch described at the end): "Forecast ahead" goes from 1 hour to 1 year (presets 6 hours to 7 days, 1, 3 and 6 months, 1 year; Custom in hours, days, months of 30 days or years of 365 days). Up to 7 days the forecast works on the 10-minute steps described above. Beyond that it works on one average per day (only days with at least an hour of samples, so closed days are left out; it needs 6 such days), looks back twice the forecast length (at least 30 days, at most the keep period), is thinned to at most 200 points and is kept for 10 minutes; this far ahead the damped trend has faded, so CPU, memory and GPU show their usual level and range, not a prediction for one day, and only the disk line really extrapolates. A forecast counts as dependable when the stored samples go back about as far as it looks ahead (`forecast.horizonCheck`, 5 % short still counts). Otherwise it is a rough guide: the Forecast card says so in an amber note with the reason (waiting is enough, or samples are deleted before the history can get that long), and saving such a choice first opens a reminder with "Go back" and "Save anyway". The reminder appears when the forecast length changes or the keep period is shortened, for presets and Custom values alike; `GET /api/admin/hardware/forecast-check?forecastHours=&retentionDays=` answers the question for the values in the form. The Sampler details show the oldest sample. A disk that is not growing is drawn level instead of continuing a clean-up downwards. `PORT` in backend/.env runs the HTTPS server on another port, handy for testing a branch next to a live copy.
 
 Look (9 Nov 2026): the time range is a segmented control with the chosen range raised on a grey track. The graphs break the line where there are no samples for more than three periods (the PC hibernating overnight) instead of drawing straight across the gap, the time axis follows the span actually drawn (with dates once it passes a day), and a range longer than the samples are kept starts at the oldest sample, with the note under the toolbar saying so. The Forecast card explains itself in one plain line; the method sits in a small line under the numbers.
 
@@ -32,7 +32,6 @@ On "All parts" each line carries its name at its right end (where its forecast o
 | GET | `/api/admin/hardware/series` | backend/features/hardware/routes.js |
 | GET | `/api/admin/hardware/settings` | backend/features/hardware/routes.js |
 | PUT | `/api/admin/hardware/settings` | backend/features/hardware/routes.js |
-| GET | `/api/admin/hardware/forecast-check` | backend/features/hardware/routes.js |
 | PUT | `/api/admin/hardware/alert-lines` | backend/features/hardware/routes.js |
 
 **Task-sheet items for this feature**
@@ -94,3 +93,27 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
 - The line above the cards says how fresh the numbers are: "Live, updates every second" while the live reading
   arrives, "From the last sample, 2 min ago" when it does not, or why there is no number yet
   (`renderHardwareLiveNote`). It replaces the "Live: average of the last second" that used to be the CPU card's line.
+
+## Past / Forecast switch on the graph, 17 Nov 2026
+- The graph card and the Forecast card both showed where the values were heading, and the graph drew a forecast on some
+  ranges only (none on 1 hour, 6 hours or a long custom range such as 1 year), which was confusing. The graph card now
+  has a Past / Forecast switch in front of the chips, and the Forecast card is gone.
+- Past ("Last" 1 hour to 30 days, or Custom up to 5 years) shows only what was measured. Under one part's graph: now,
+  average, peak and lowest of the range.
+- Forecast ("Next" 1 hour to 30 days, or Custom up to 1 year in hours, days, weeks, months of 30 days or years of 365
+  days) shows half the forecast length of history before now (a third of the graph), a "now" line, then the forecast to
+  its end, so a forecast a year ahead runs out to a year from now. When the daily summaries do not reach that far
+  back, the history starts at the oldest day instead. Under All parts: each part's value at the end with its likely
+  range, and when the disk is full (what the Forecast card used to show). Under one part: now, the value at the end,
+  the likely range (the shaded band) and what it is based on; for the disk: where it will be, when it is full and how
+  fast it grows. The rough guide note and the method line sit under the graph in this mode only.
+- While a forecast is not ready (up to 7 days ahead it needs an hour of samples without a break; further ahead it needs 6
+  days with samples) the graph still runs to the end of the length picked and says why in the empty space after "now".
+- The page asks for `GET /series?range=<half the length in hours>&horizon=<hours>`. `horizon` (1 to 8760) is new; when
+  it is left out the saved `forecastHours` is used, which is how the first visit picks up the length saved before. The
+  page sends the length in Past mode too, because the part cards keep their short forecast line ("36% in 24 hours").
+- The view (Past or Forecast, the range and the length) is kept in the browser (localStorage, `hardwareGraphView`).
+- The Settings drawer lost "Forecast ahead". Its first section is called Forecast sampling and says that the graphs and
+  the forecast are built from these samples. A save sends the saved `forecastHours` back unchanged. The reminder dialog
+  before saving a long forecast and `GET /forecast-check` are gone, because the rough guide note under the graph says the
+  same thing whenever it applies.

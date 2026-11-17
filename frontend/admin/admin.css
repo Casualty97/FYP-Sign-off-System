@@ -8342,7 +8342,7 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 #health-page .health-card-summary, #health-page .health-card-detail { overflow-wrap: anywhere; }
 .ui-btn-danger:disabled { color: var(--color-dark-gray); border-color: var(--theme-border-color); }
 
-.hw-forecast-method { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--theme-border-color); line-height: 1.5; max-width: 72ch; }
+.hw-forecast-method { margin: 0; padding: 0 22px 18px; font-size: 12px; line-height: 1.5; max-width: 110ch; }
 .hw-forecast-method:empty { display: none; }
 
 /* a bar too short for its policy name shows the name only in the tooltip */
@@ -8619,11 +8619,9 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 /* <Jun Kai end> */
 
 /* <Jun Kai start> */
-/* Hardware: the note and the reminder for a forecast that reaches further than the stored samples */
-#hardware-forecast-rough { margin-top: 18px; }
+/* Hardware: the note for a forecast that reaches further than the stored samples (under the graph in Forecast mode) */
+#hardware-forecast-rough { margin: 2px 22px 14px; }
 #hardware-forecast-rough[hidden] { display: none; }
-.hw-check-list { display: grid; gap: 10px; margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.55; color: var(--theme-text-color); }
-#hardware-horizon-dialog .ui-btn:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
 /* <Jun Kai end> */
 
 /* <Jun Kai start> */
@@ -8675,7 +8673,12 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 .hw-plots[hidden], .hw-plot[hidden] { display: none; }
 .hw-chart-big { height: 380px; padding: 14px 16px 8px; }
 .hw-chart-big .hw-chart-empty { inset: 14px 16px 8px; }
-.hw-part-facts { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px 24px; padding: 6px 22px 16px; }
+.hw-part-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 24px; padding: 6px 22px 16px; }
+/* the graph's toolbar (17 Nov 2026): Past / Forecast, then "Last" or "Next" and the chips */
+.hw-toolbar-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
+.hw-range-word { font-size: 12.5px; font-weight: 600; color: var(--color-dark-gray); }
+#hardware-series-note.is-error { color: #b91c1c; }
+html[data-theme="dark"] #hardware-series-note.is-error { color: #f87171; }
 .hw-legend { display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 4px 22px 18px; font-size: 12px; color: var(--color-dark-gray); }
 .hw-legend span { display: inline-flex; align-items: center; gap: 8px; }
 .hw-legend-gap { width: 18px; height: 12px; border-radius: 2px; background: repeating-linear-gradient(135deg, rgba(148, 163, 184, 0.6) 0 1px, transparent 1px 5px); }
