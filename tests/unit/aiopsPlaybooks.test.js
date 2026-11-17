@@ -34,6 +34,16 @@ test('a CPU spike says how to open Task Manager and leaves room for the busiest 
     assert.equal(endTask.live, undefined);
 });
 
+test('with the Local AI models switch off the steps no longer say to keep Ollama running', () => {
+    const endTask = (help) => help.steps.find((s) => /End task/.test(s.text)).text;
+    const off = playbooks.helpFor(incident('spike', 'high', 'cpu'), null, { localAi: false });
+    assert.match(endTask(off), /Leave \*\*Node\.js\*\* and \*\*MySQL\*\* running: they are the kiosk and its database\./);
+    assert.doesNotMatch(endTask(off), /Ollama/);
+    const creep = playbooks.helpFor(incident('drift', 'rising', 'memory'), { action: 'restart-kiosk-server' }, { localAi: false });
+    assert.doesNotMatch(texts(creep.steps), /Ollama/);
+    assert.match(texts(playbooks.helpFor(incident('drift', 'rising', 'memory'), { action: 'restart-kiosk-server' }).steps), /\*\*MySQL\*\* and \*\*Ollama\*\* running/, 'on by default');
+});
+
 test('memory and GPU get their own column; the GPU has no live list', () => {
     const memory = playbooks.helpFor(incident('spike', 'high', 'memory'), null);
     assert.equal(memory.steps.find((s) => s.live).live, 'memory');
@@ -113,7 +123,8 @@ test('the busiest programmes: grouped, named plainly, the kiosk\'s own marked ke
     assert.deepEqual(memory.map((p) => p.name), ['Google Chrome', 'Node.js', 'Microsoft Teams']);
     assert.equal(memory[0].memoryMb, 1000);
     const ollama = processes.summarise([{ name: 'ollama', cpu: 0, memoryBytes: 200 * 1024 * 1024 }, { name: 'ollama_llama_server', cpu: 0, memoryBytes: 1800 * 1024 * 1024 }, { name: 'mysqld', cpu: 0, memoryBytes: 400 * 1024 * 1024 }], 'memory', 8);
-    assert.deepEqual(ollama, [{ name: 'Ollama', cpu: 0, memoryMb: 2000, keep: 'the local AI advisor' }, { name: 'MySQL', cpu: 0, memoryMb: 400, keep: "the kiosk's database" }], 'Ollama and its runner are one programme');
+    assert.deepEqual(ollama, [{ name: 'Ollama', cpu: 0, memoryMb: 2000, keep: 'the local AI' }, { name: 'MySQL', cpu: 0, memoryMb: 400, keep: "the kiosk's database" }], 'Ollama and its runner are one programme');
+    assert.deepEqual(processes.withoutAiKeep(ollama), [{ name: 'Ollama', cpu: 0, memoryMb: 2000 }, { name: 'MySQL', cpu: 0, memoryMb: 400, keep: "the kiosk's database" }], 'Local AI models off: Ollama is a programme like any other');
     assert.deepEqual(processes.summarise([{ name: 'notepad', cpu: 4, memoryBytes: 10 }], 'cpu', 8), [], 'under 1 % is left out');
     assert.deepEqual(processes.summarise(null, 'cpu', 8), []);
     const windows = processes.summarise([{ name: 'svchost#4', cpu: 300, memoryBytes: 0 }, { name: 'WmiPrvSE', cpu: 200, memoryBytes: 0 }, { name: 'powershell', cpu: 150, memoryBytes: 0 }, { name: 'MsMpEng', cpu: 120, memoryBytes: 0 }, { name: 'zoom', cpu: 80, memoryBytes: 0 }], 'cpu', 8);

@@ -16,8 +16,9 @@ let healthHistory = null;  // GET /api/admin/health/history: { from, slotMs, slo
 let healthHistoryAt = 0;
 let healthHistoryNote = '';
 
-const HEALTH_STATUS_LABEL = { ok: 'Healthy', warn: 'Attention', down: 'Down', unknown: 'Unknown' };
-const HEALTH_STATUS_TONE = { ok: 'ok', warn: 'warn', down: 'down', unknown: 'muted' };
+// off: switched off on purpose (Ollama while Local AI models is off), never counted as a problem
+const HEALTH_STATUS_LABEL = { ok: 'Healthy', warn: 'Attention', down: 'Down', unknown: 'Unknown', off: 'Off' };
+const HEALTH_STATUS_TONE = { ok: 'ok', warn: 'warn', down: 'down', unknown: 'muted', off: 'muted' };
 const HEALTH_ICON_NAME = { database: 'database', kiosk: 'monitor', disk: 'disk', server: 'server', ollama: 'brain', email: 'mail', tablets: 'tablet', automation: 'clock', incidents: 'alert' };
 const HEALTH_ORDER = ['database', 'kiosk', 'ollama', 'email', 'disk', 'server', 'automation', 'tablets', 'incidents'];
 const HEALTH_LABEL = {
@@ -186,14 +187,21 @@ function renderHealthCards() {
         healthCardMarkup = [];
     } else {
         const byKey = new Map(((healthLast && healthLast.checks) || []).map((check) => [check.key, check]));
-        // the checks that need a look come first, under their own heading (12 Nov 2026 design)
-        const look = visible.filter((key) => byKey.has(key) && byKey.get(key).status !== 'ok');
-        const rest = visible.filter((key) => !look.includes(key));
+        // the checks that need a look come first, under their own heading (12 Nov 2026 design); the ones switched off
+        // on purpose go last, under theirs
+        const statusOf = (key) => (byKey.has(key) ? byKey.get(key).status : null);
+        const look = visible.filter((key) => byKey.has(key) && !['ok', 'off'].includes(statusOf(key)));
+        const off = visible.filter((key) => statusOf(key) === 'off');
+        const rest = visible.filter((key) => !look.includes(key) && !off.includes(key));
         const items = [];
-        if (look.length) items.push({ key: '#look', html: '<div class="health-group" data-key="#look">Needs a look</div>' });
-        for (const key of look) items.push({ key, html: renderHealthCard(byKey.get(key)).trim() });
-        if (look.length && rest.length) items.push({ key: '#fine', html: '<div class="health-group" data-key="#fine">Healthy</div>' });
-        for (const key of rest) items.push({ key, html: (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key)).trim() });
+        const heading = (key, title) => items.push({ key, html: `<div class="health-group" data-key="${key}">${title}</div>` });
+        const cardsOf = (keys) => keys.forEach((key) => items.push({ key, html: (byKey.has(key) ? renderHealthCard(byKey.get(key)) : renderHealthPlaceholder(key)).trim() }));
+        if (look.length) heading('#look', 'Needs a look');
+        cardsOf(look);
+        if (look.length && rest.length) heading('#fine', 'Healthy');
+        cardsOf(rest);
+        if (off.length && (look.length || rest.length)) heading('#off', 'Switched off');
+        cardsOf(off);
         const keys = items.map((item) => item.key);
         const markup = items.map((item) => item.html);
         // the 30-second refresh swaps only the cards whose text changed, so hover and the rest of the grid stay still
@@ -261,11 +269,14 @@ function renderHealthSummary() {
     if (counts.down) parts.push(`${counts.down} down`);
     if (counts.warn) parts.push(`${counts.warn} need${counts.warn === 1 ? 's' : ''} attention`);
     if (counts.unknown) parts.push(`${counts.unknown} unknown`);
-    const sub = parts.length ? `${counts.ok} healthy, ${parts.join(', ')}. The ones to look at are listed first.` : `All ${counts.ok} checks on this page are healthy.`;
+    if (counts.off) parts.push(`${counts.off} switched off`);
+    const lookAt = counts.down || counts.warn || counts.unknown;
+    const sub = parts.length ? `${counts.ok} healthy, ${parts.join(', ')}.${lookAt ? ' The ones to look at are listed first.' : ''}` : `All ${counts.ok} checks on this page are healthy.`;
     const shown = [[counts.ok, 'healthy']];
     if (counts.warn) shown.push([counts.warn, 'attention']);
     if (counts.down) shown.push([counts.down, 'down']);
     if (counts.unknown) shown.push([counts.unknown, 'unknown']);
+    if (counts.off) shown.push([counts.off, 'off']);
     setHealthStatus(state, line, sub, shown);
     if (at) at.textContent = `Checked at ${new Date(healthLast.checkedAt).toLocaleTimeString('en-SG', { hour12: false })}`;
 }

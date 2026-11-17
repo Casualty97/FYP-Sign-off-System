@@ -11,7 +11,7 @@
 
 **What it does**
 
-backend/server.js starts the sampler after boot. Every N seconds (default 60, set on the page: 15 s to 10 min; each setting of the Sampling card has presets and a Custom choice for any whole number within its limits) it stores CPU % (average since the previous sample), memory, disk use of the project drive and the GPU (nvidia-smi when present, otherwise the Windows performance counters through `typeperf`; "not available" elsewhere). Rows older than the retention setting (default 30 days) are deleted once an hour. The page shows a card per part (CPU, memory, GPU, disk) and one graph for 1 hour to 30 days or a custom range (the last N hours, days, weeks, months or years, up to 5 years, with calendar months and years), averaged per minute up to per 2 weeks so an answer never exceeds about 200 points, a table view of the same values, and a forecast: Holt double exponential smoothing with a damped trend for CPU, memory and GPU over the unbroken run of 10-minute averages in the last 24 hours (or twice the forecast horizon when that is longer; a night in hibernation is not treated as a step). A trend is trusted for about as long as it has been seen (it fades by half over half the run, at least an hour, and a run shorter than 6 hours counts for less) and never moves the value further than the readings moved within the run, so the PC settling after a wake-up no longer forecasts memory at 0 %. Drawn as a dashed line plus a band that widens with the horizon up to twice the usual spread of the readings, and a straight-line fit of the last 30 days for the disk ("full in about N days"). Statistics only, no AI. The graphs and the forecast refresh every minute while the page is open.
+backend/server.js starts the sampler after boot. Every N seconds (default 60, set on the page: 15 s to 10 min; each Sampling setting in the Settings drawer has presets and a Custom choice for any whole number within its limits) it stores CPU % (average since the previous sample), memory, disk use of the project drive and the GPU (nvidia-smi when present, otherwise the Windows performance counters through `typeperf`; "not available" elsewhere). Rows older than the retention setting (default 30 days) are deleted once an hour. The page shows a card per part (CPU, memory, GPU, disk) and one graph for 1 hour to 30 days or a custom range (the last N hours, days, weeks, months or years, up to 5 years, with calendar months and years), averaged per minute up to per 2 weeks so an answer never exceeds about 200 points, a table view of the same values, and a forecast: Holt double exponential smoothing with a damped trend for CPU, memory and GPU over the unbroken run of 10-minute averages in the last 24 hours (or twice the forecast horizon when that is longer; a night in hibernation is not treated as a step). A trend is trusted for about as long as it has been seen (it fades by half over half the run, at least an hour, and a run shorter than 6 hours counts for less) and never moves the value further than the readings moved within the run, so the PC settling after a wake-up no longer forecasts memory at 0 %. Drawn as a dashed line plus a band that widens with the horizon up to twice the usual spread of the readings, and a straight-line fit of the last 30 days for the disk ("full in about N days"). Statistics only, no AI. The graphs and the forecast refresh every minute while the page is open.
 
 Live cards (16 Nov 2026): while the Hardware page is open and its browser tab is visible, the page asks `GET /api/admin/hardware/live` every second and puts the answer on the four part cards, their Normal / High / Critical pills, the "Now" line under each graph and the "now" in the forecast hints. The server (backend/features/hardware/live.js) reads the CPU with its own meter (the busy share of the last second; two pages asking at once share one reading, and after 2 s without a request it measures a fresh quarter second), memory and disk on the spot, and the GPU in the background every 2 s with nvidia-smi or every 5 s with the Windows counters (each GPU read starts a program; until the first answer the last stored sample's GPU is shown). Nothing is stored: the samples, the graphs and the forecast keep the Sampling interval. A GPU read already running is shared with the sampler, so a stored sample never loses its GPU value while the page is open.
 
@@ -65,7 +65,7 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
   "table missing".
 
 ## Alert lines per part (15 Nov 2026)
-- The Alert lines card under Forecast and Sampling sets amber ("warn", 30 to 99 %) and red ("critical", 31 to 100 %) for
+- The Alert lines (Settings drawer since 17 Nov 2026) set amber ("warn", 30 to 99 %) and red ("critical", 31 to 100 %) for
   CPU, memory, GPU and disk; red is always above amber. A System Admin saves them (`PUT /api/admin/hardware/alert-lines`,
   Audit Logs `HARDWARE_ALERT_LINES_UPDATE`); other admins see them read-only. Stored as `alerts` in
   `backend/data/hardware-settings.json` (`settings.readAlerts`, `validateAlerts`, `writeAlerts`); a Sampling save keeps
@@ -77,5 +77,20 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
 - System Health uses the same lines: the Server PC card by CPU and memory (the worse of the two), the Disk card by disk
   (backend/features/health/checks.js). GPU is on this page only. The anomaly detection keeps its own fixed numbers
   (a disk incident from 90 %, critical at 95 %; a spike critical at 95 %).
-- The card says "Unsaved changes" only while a value differs from the saved lines; Use the defaults fills 85 / 95 without
-  saving.
+- The drawer says "Unsaved changes" only while a value differs from the saved settings; Use the defaults fills 85 / 95
+  without saving.
+
+## Settings drawer, CPU card and the live line (17 Nov 2026)
+- The Sampling card and the Alert lines card left the page: the Settings button at the top right (next to Refresh) opens
+  a drawer from the right with Sampling (sample every, keep samples for, forecast ahead), Alert lines and the Sampler
+  facts (GPU reading, samples stored, daily summaries, oldest and last sample, last error). The Forecast card is full
+  width now. The drawer is the incident settings drawer (the same `inc-drawer` classes), filled with the saved values
+  each time it opens (`openHardwareSettings`), so the minute refresh never writes over typing.
+- One Save (`saveHardwareSettings`) sends only the part that changed: `PUT /settings` (any signed-in admin) and, for a
+  System Admin, `PUT /alert-lines`. The long-forecast reminder still comes first. A failure keeps the drawer open and
+  says which part was saved; Esc, Cancel or a click beside the drawer drop what was typed.
+- The CPU card's line names the processor, like the other cards describe their part: `machine.cpu` in
+  `GET /overview` (collect.cpuInfo: the name without the trade marks and the clock, and the logical processors).
+- The line above the cards says how fresh the numbers are: "Live, updates every second" while the live reading
+  arrives, "From the last sample, 2 min ago" when it does not, or why there is no number yet
+  (`renderHardwareLiveNote`). It replaces the "Live: average of the last second" that used to be the CPU card's line.

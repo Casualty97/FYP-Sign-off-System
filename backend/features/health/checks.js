@@ -1,6 +1,7 @@
 // Owner: Role 3, Jun Kai.
 // Health checks behind the admin System Health page. Every check answers
-// { key, label, status: ok | warn | down | unknown, summary, detail, latencyMs } and never throws.
+// { key, label, status: ok | warn | down | unknown | off, summary, detail, latencyMs } and never throws. off: switched
+// off on purpose (Ollama while the Local AI models switch is off), never a problem.
 const os = require('os');
 const fs = require('fs');
 const http = require('http');
@@ -15,6 +16,7 @@ const tabletNames = require('./tabletNames');
 // the alert lines of each part (Hardware page, Alert lines) and when a tablet counts as offline (Tablets, Offline after)
 const hardwareSettings = require('../hardware/settings');
 const healthSettings = require('./settings');
+const aiopsSettings = require('../aiops/settings');
 const tabletWindowSeconds = () => healthSettings.read().tabletOfflineMinutes * 60;
 // <Jun Kai end>
 
@@ -70,6 +72,11 @@ async function checkDatabase() {
 
 async function checkOllama() {
     const base = { key: 'ollama', label: 'Ollama (local LLM)' };
+    // <Jun Kai start> the Local AI models switch is off: nothing in the app uses Ollama, so it is not even asked
+    if (!aiopsSettings.localAiOn()) {
+        return { ...base, status: 'off', summary: 'Switched off in the incident settings', detail: { url: OLLAMA_URL, hint: 'Local AI models is off (Incidents page, Settings): the advisor and Feedback Reports do not use Ollama.' }, latencyMs: null };
+    }
+    // <Jun Kai end>
     try {
         const { value, ms } = await timed(() => withTimeout(getJson(`${OLLAMA_URL}/api/tags`, 4000), 4000, 'Ollama'));
         const models = Array.isArray(value.body && value.body.models) ? value.body.models.map((m) => m.name) : [];

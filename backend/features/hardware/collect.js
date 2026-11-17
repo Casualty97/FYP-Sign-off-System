@@ -27,6 +27,15 @@ function cpuTimes() {
     return { idle, total };
 }
 
+// The processor for the CPU card: its name without the trade marks and the clock ("11th Gen Intel Core i7-1165G7"),
+// and the logical processors Windows counts. null when the system does not say.
+function cpuInfo(cpus = os.cpus()) {
+    if (!Array.isArray(cpus) || !cpus.length) return null;
+    const model = String(cpus[0].model || '').replace(/\((R|TM)\)/gi, '').replace(/\bCPU\b/g, '').replace(/@.*$/, '')
+        .replace(/\s+/g, ' ').trim();
+    return { model: model || null, logicalProcessors: cpus.length };
+}
+
 // Average CPU use since the previous read, so a 60 s interval gives the real 60 s average
 class CpuMeter {
     constructor() { this.last = cpuTimes(); }
@@ -127,5 +136,5 @@ function gpu(source) {
 }
 // <Jun Kai end>
 
-module.exports = { CpuMeter, memory, disk, detectGpu, gpu, parseTypeperf };
+module.exports = { CpuMeter, memory, disk, detectGpu, gpu, parseTypeperf, cpuInfo };
 // <Jun Kai end>

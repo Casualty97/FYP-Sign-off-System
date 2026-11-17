@@ -4,7 +4,8 @@
 // earlier incidents of the same kind that an admin marked "Correct" (how the advice learns from the verdicts). It
 // never runs anything: the step is a suggestion for the admin. When Ollama is off, too slow or answers nonsense,
 // rule-based advice is given instead. Each answer is kept as an 'advice' event on the incident's timeline.
-// Switched on and off in the anomaly detection settings (advisor.enabled), together with the master switch.
+// Its own switch (advisor.enabled) in the incident settings; Anomaly detection off does not touch it. With Local AI
+// models off (localAi) it never asks Ollama and gives the rule-based advice.
 // <Jun Kai start>
 const { isExample } = require('./fixes');
 
@@ -24,6 +25,7 @@ const MAX = { summary: 400, cause: 200, why: 300, causes: 3, examples: 3, points
 const TIMEOUT_MS = 120 * 1000;      // a 3B model on a CPU can take a minute
 const AGAIN_AFTER_MS = 30 * 1000;   // "Ask again" for one incident at most this often
 const ADVISED = new Set(['opened', 'reopened', 'severity']); // events after which an incident needs (new) advice
+const LOCAL_AI_OFF = 'Local AI models are switched off in the incident settings';
 
 const cut = (value, max) => String(value === null || value === undefined ? '' : value).slice(0, max);
 
@@ -162,7 +164,7 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
     const conf = () => {
         const current = settings() || {};
         const advisor = current.advisor || {};
-        return { on: current.enabled !== false && advisor.enabled !== false, model: advisor.model || 'qwen2.5:3b' };
+        return { on: advisor.enabled !== false, localAi: current.localAi !== false, model: advisor.model || 'qwen2.5:3b' };
     };
 
     async function adviseOne(id) {
@@ -171,12 +173,14 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
         if (!incident || incident.status === 'resolved' || isExample(incident)) return null;
         const events = await store.events(id);
         const examples = await store.examples(incident.detector, MAX.examples, incident.id);
-        const { model } = conf();
+        const { model, localAi } = conf();
         const started = now();
         let advice;
         let source = 'llm';
         let error = null;
         try {
+            // Local AI models off: Ollama is not asked at all
+            if (!localAi) throw new Error(LOCAL_AI_OFF);
             advice = await ask({ url, model, prompt: buildPrompt(incident, events, examples) });
             // a test incident has nothing behind it: whatever the model says, no causes and nothing to do
             if (incident.detector === 'test') advice = { ...advice, causes: [], action: 'none' };
@@ -185,7 +189,7 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
             advice = ruleAdvice(incident);
             source = 'rules';
         }
-        const detail = { source, model: source === 'llm' ? model : null, ...advice, actionText: ACTIONS[advice.action] || ACTIONS.none, seconds: Math.round((now() - started) / 100) / 10, ...(error ? { fallbackReason: cut(error, 200) } : {}) };
+        const detail = { source, model: source === 'llm' ? model : null, ...advice, actionText: ACTIONS[advice.action] || ACTIONS.none, seconds: Math.round((now() - started) / 100) / 10, ...(error ? { fallbackReason: cut(error, 200) } : {}), ...(localAi ? {} : { localAiOff: true }) };
         await store.addEvent(id, 'advice', detail, new Date(now()).toISOString());
         state.lastAt = new Date(now()).toISOString();
         state.lastSource = source;
@@ -238,5 +242,5 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
     return { request, sweep, isBusy, getStatus, drain };
 }
 
-module.exports = { ACTIONS, LIKELIHOOD, TIMEOUT_MS, AGAIN_AFTER_MS, evidenceOf, buildPrompt, parseAdvice, ruleAdvice, askOllama, createAdvisor };
+module.exports = { ACTIONS, LIKELIHOOD, TIMEOUT_MS, AGAIN_AFTER_MS, LOCAL_AI_OFF, evidenceOf, buildPrompt, parseAdvice, ruleAdvice, askOllama, createAdvisor };
 // <Jun Kai end>

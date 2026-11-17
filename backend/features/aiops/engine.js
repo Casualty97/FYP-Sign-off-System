@@ -2,7 +2,7 @@
 // Runs the anomaly detection in backend/server.js: every intervalSeconds it loads the last day of hardware samples,
 // the health recorder's runs, the named tablets and the new log lines, hands them to the incident engine
 // (incidents.js over the SQL store) and keeps the status the System Health page shows. The master switch in the
-// settings turns all of it off.
+// settings turns the detection off; the advisor keeps its own switch.
 // <Jun Kai start>
 const settings = require('./settings');
 const detectors = require('./detectors');
@@ -228,8 +228,9 @@ function createRunner(overrides = {}) {
                 state.notes = result.notes || {};
             }
             state.lastResult = { at: result.at, skipped: result.skipped, anomalies: result.anomalies, opened: result.opened, merged: result.merged, resolved: result.resolved };
-            // new or changed incidents get advice; it runs in the background so the check does not wait for the model
-            if (!result.skipped) advisor.sweep().catch((error) => logOnce(`advisor: ${error.message}`));
+            // new or changed incidents get advice; it runs in the background so the check does not wait for the model.
+            // Also while Anomaly detection is off: the advisor has its own switch
+            advisor.sweep().catch((error) => logOnce(`advisor: ${error.message}`));
             // fixes an admin made automatic in the settings (the kiosk start itself runs in the background)
             if (!result.skipped) await fixer.sweep().catch((error) => logOnce(`fixes: ${error.message}`));
             await prune(now.getTime(), current());

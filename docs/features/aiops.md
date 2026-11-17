@@ -39,7 +39,7 @@ Every anomaly carries a fingerprint (detector, kind and subject, for example `sp
 
 Admins can Acknowledge an open incident (it stays on the panel, after the open ones), Resolve an open or acknowledged one with an optional note (up to 500 characters), and give any incident a verdict: Correct, Not useful or False alarm. The verdict is stored now (which verdict, by whom, when) and shown as a pill; the next PR uses the verdicts to tune the sensitivities. Each action is audited (AIOPS_INCIDENT_ACKNOWLEDGE, AIOPS_INCIDENT_RESOLVE, AIOPS_INCIDENT_VERDICT, and AIOPS_TEST_INCIDENT for the Test incident button) and written to the timeline.
 
-The master switch (Anomaly detection, on by default) is the rule that everything AI-related can be switched off: off, the engine does not check, nothing new opens or resolves itself, the open incidents stay as they are and the panel says Detection off; the background health recorder has no switch of its own, because the health history is useful on its own. Each detector has its own switch as well. Nothing leaves this PC: the detectors read the PC's own samples, health results, log lines and heartbeats, and the incidents live in its own database. Quiet hours (on by default): while the automation is in automatic mode and the hibernation policies say the kiosk should be off, the tablets detector and the kiosk server check are muted (their anomalies are dropped, not stored, and the panel says Muted); the database, the mail login, the hardware, the disk and the log detectors keep running, because the server PC is still on when the kiosk is not. In manual mode the policies are paused, so nothing is muted.
+The master switch (Anomaly detection, on by default) switches the detection off: off, the engine does not check, nothing new opens or resolves itself, the open incidents stay as they are and the panel says Detection off. It does not switch off the advisor (its own switch) or the local AI models (the Local AI models switch, see the section at the end); the background health recorder has no switch of its own, because the health history is useful on its own. Each detector has its own switch as well. Nothing leaves this PC: the detectors read the PC's own samples, health results, log lines and heartbeats, and the incidents live in its own database. Quiet hours (on by default): while the automation is in automatic mode and the hibernation policies say the kiosk should be off, the tablets detector and the kiosk server check are muted (their anomalies are dropped, not stored, and the panel says Muted); the database, the mail login, the hardware, the disk and the log detectors keep running, because the server PC is still on when the kiosk is not. In manual mode the policies are paused, so nothing is muted.
 
 The incidents have their own page since 13 Nov 2026 (Incidents, under SYSTEM in the sidebar, between System Health and Hardware). The sidebar item carries the number of incidents that need a look (amber, red while one of them is critical; the same number as the chip on the page; hidden while the master switch is off, because nothing resolves itself then), refreshed on every page change and every minute. The page lists the incidents by number in three groups, Needs a look (critical first, then the newest), Being handled (acknowledged) and Resolved this week (five, then Show all), beside the chosen incident's story in three numbered steps: 1 What happened (the explanation, a chart with the usual band and the detector's floor, up to four number tiles; a resolved incident says At the time), 2 Why it might be (the advisor's summary and causes), 3 What to do (the fix the app can run, then exact steps with the keys drawn as keys and, for CPU and memory, the busiest programmes on this PC right now; a resolved incident shows What was done). Then Was this right? (the verdict) and History. It refreshes every 30 seconds while it is open, patched in place, so the choice, the focus and an open History survive. System Health keeps a short summary right under its status line (the counts, the three most urgent incidents, Open Incidents), because its status line counts only the health checks; the Customise option Incidents summary hides it for that admin without stopping the engine. The Hardware page shows a notice above its graphs while a CPU, memory, GPU or disk incident is open (View incident opens it), and a quiet line with a link when none is. Example incidents (below) show everywhere, tagged Example.
 
@@ -103,7 +103,8 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
   queued; one incident at a time. "Ask again" in the incident's details: `POST /api/admin/aiops/incidents/:id/advice`
   (at most every 30 s per incident). Each answer is an `advice` event on the timeline; `GET /incidents` carries the
   newest one (`advice`, `adviceBusy`). `GET /api/admin/aiops/advisor`: its state, the step list and Ollama's models.
-- Settings: `advisor.enabled` (off with the master switch too) and `advisor.model`, in the Settings panel.
+- Settings: `advisor.enabled` and `advisor.model`, in the Settings panel. Since 17 Nov 2026 Anomaly detection off no longer
+  switches the advisor off: the sweep also runs after a skipped check (engine.js), so open incidents still get advice.
 - Also: the log reader now works out each line's template once (review of part 1).
 
 ## Learning from the verdicts, 12 Nov 2026
@@ -165,3 +166,19 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
   `opened_at` stays the first opening.
 - A new health check interval applies within 5 seconds (`healthRecorder.applySettings`, called from
   `engine.applySettings`), like the detection interval; before, it waited out the old gap.
+
+## Local AI models switch, 17 Nov 2026
+- `localAi` in aiops-settings.json (on by default), shown as Local AI models (Ollama and Xenova) under Local AI advisor in
+  the Settings drawer. It covers every local AI model of the app: Ollama (the advisor; the Qwen AI, Gemma AI and
+  LocalGPT modes of Feedback Reports) and Xenova (the Xenova AI mode there). `settings.localAiOn()` is the one check the
+  other features use.
+- Off: the advisor never asks Ollama and gives the rule-based advice, marked `localAiOff` (the page says "Local AI models
+  is switched off in Settings"); GET /advisor does not ask Ollama for its models; Feedback Reports disables those four
+  modes and the server refuses them with 409 (backend/features/admin/routes.js, before any analysis starts or is
+  cached); System Health's Ollama card says Off without contacting Ollama (health/checks.js, status `off`); the Task
+  Manager steps stop saying to keep Ollama running (playbooks.helpFor `localAi`) and the busiest programmes list stops
+  marking it keep (processes.withoutAiKeep).
+- With this switch off, no AI model runs on this PC for the admin pages, whatever the advisor switch says; with the
+  advisor off too there is no advice at all. Not covered: two kiosk features keep their own models (Role 1's pledge
+  check at submission and face detection on the tablets), and Translate to English calls Google's online translation.
+- A change is audited as AIOPS_LOCAL_AI_ON or AIOPS_LOCAL_AI_OFF.

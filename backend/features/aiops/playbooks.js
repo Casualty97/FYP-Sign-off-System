@@ -8,8 +8,11 @@ const key = (name) => `[[${name}]]`;
 const step = (text, live = null) => (live ? { text, live } : { text });
 const OPEN_TASK_MANAGER = `Press ${key('Ctrl')} + ${key('Shift')} + ${key('Esc')} to open Task Manager.`;
 const RESTART_APP = 'restart the app at a quiet time: **Server Schedule** in the sidebar, switch to **Manual**, press **Restart application**, then switch back to **Automatic**';
-// in the End task step itself, so the warning stays when the busiest list cannot be read and its step is left out
-const END_TASK = 'Right-click the programme you do not need and choose **End task**. Leave **Node.js**, **MySQL** and **Ollama** running: they are the kiosk, its database and the advisor.';
+// in the End task step itself, so the warning stays when the busiest list cannot be read and its step is left out.
+// Ollama only while the Local AI models switch is on: off, nothing in the app uses it
+const endTask = (localAi = true) => (localAi
+    ? 'Right-click the programme you do not need and choose **End task**. Leave **Node.js**, **MySQL** and **Ollama** running: they are the kiosk, its database and the local AI.'
+    : 'Right-click the programme you do not need and choose **End task**. Leave **Node.js** and **MySQL** running: they are the kiosk and its database.');
 
 // the help each detector may show, its default first: an advisor answer outside this list falls back to the default
 function allowedFor(incident) {
@@ -38,7 +41,7 @@ function chooseAction(incident, advice) {
 }
 
 // CPU, memory or GPU: find the programme in Task Manager and end it
-function busySteps(part) {
+function busySteps(part, localAi = true) {
     const column = part === 'memory' ? 'Memory' : part === 'gpu' ? 'GPU' : 'CPU';
     const third = part === 'gpu'
         ? step('Look for video calls, games or a browser playing video.')
@@ -47,7 +50,7 @@ function busySteps(part) {
         step(OPEN_TASK_MANAGER),
         step(`On the **Processes** tab, click the **${column}** column so the busiest programme is at the top.`),
         third,
-        step(END_TASK),
+        step(endTask(localAi)),
         step(`Nothing else to do: this incident closes by itself once ${part === 'memory' ? 'memory use' : column} is back to normal.`)
     ];
 }
@@ -58,15 +61,16 @@ const KIOSK_LOG = [
     step('Send those lines to the team. This incident stays open until the kiosk answers again.')
 ];
 
+// each takes the incident and { localAi }: whether the Local AI models switch is on
 const STEPS = {
-    'close-heavy-apps': (incident) => busySteps(['memory', 'gpu'].includes(String(incident.subject)) ? String(incident.subject) : 'cpu'),
-    'restart-kiosk-server': (incident) => {
+    'close-heavy-apps': (incident, { localAi = true } = {}) => busySteps(['memory', 'gpu'].includes(String(incident.subject)) ? String(incident.subject) : 'cpu', localAi),
+    'restart-kiosk-server': (incident, { localAi = true } = {}) => {
         if (incident.detector === 'drift') {
             return [
                 step(`${OPEN_TASK_MANAGER} Click the **Memory** column.`),
                 step('Right now the most memory is used by {busiest}.', 'memory'),
                 step(`If **Node.js** is at the top and keeps growing, ${RESTART_APP}.`),
-                step('If another programme keeps growing, right-click it and choose **End task** (leave **MySQL** and **Ollama** running).'),
+                step(`If another programme keeps growing, right-click it and choose **End task** (leave **MySQL**${localAi ? ' and **Ollama**' : ''} running).`),
                 step('If memory climbs again day after day, tell the team: the app may be holding on to memory.')
             ];
         }
@@ -144,11 +148,12 @@ const STEPS = {
 };
 
 // The help for one incident: the steps, and the fix the app can do itself when one applies (fixKey from fixes.js).
-// With a fix on offer, its card leads and the steps become what to try if it does not come back.
-function helpFor(incident, advice, { fixKey = null, fixesOn = true } = {}) {
+// With a fix on offer, its card leads and the steps become what to try if it does not come back. localAi: the Local
+// AI models switch (the steps say to keep Ollama running only while it is on).
+function helpFor(incident, advice, { fixKey = null, fixesOn = true, localAi = true } = {}) {
     if (!incident) return null;
     const action = chooseAction(incident, advice);
-    const steps = (STEPS[action] || STEPS.none)(incident);
+    const steps = (STEPS[action] || STEPS.none)(incident, { localAi });
     if (fixKey && fixesOn) {
         const fallback = action === 'restart-kiosk-server' && incident.detector === 'services' ? KIOSK_LOG : steps;
         return { action, fix: fixKey, steps: [], fallback: { title: 'If it does not come back', steps: fallback } };

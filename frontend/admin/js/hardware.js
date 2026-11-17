@@ -10,7 +10,6 @@ let hardwareTimer = null;
 let hardwareLoading = false;
 let hardwareDrawn = false;
 let hardwareTableOpen = false;
-let hardwareSettingsFilled = false;
 let hardwarePendingReload = false;
 let hardwareLastPoints = [];
 const hardwareCharts = {};
@@ -42,7 +41,7 @@ const HARDWARE_RANGES = {
 };
 const HARDWARE_REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const HARDWARE_GPU_SOURCE = { 'nvidia-smi': 'nvidia-smi', 'windows-counters': 'Windows performance counters', none: 'No GPU reading on this PC', detecting: 'Looking for a GPU' };
-// Sampling card: each select has presets plus Custom; the units turn the typed number into the stored one
+// Sampling (Settings drawer): each select has presets plus Custom; the units turn the typed number into the stored one
 const HARDWARE_SETTING_FIELDS = {
     interval: { key: 'intervalSeconds', words: [[60, 'minute'], [1, 'second']] },
     retention: { key: 'retentionDays', words: [[1, 'day']] },
@@ -56,13 +55,12 @@ const HARDWARE_RANGE_SAME = { '1d': '24h', '1w': '7d' };
 let hardwareRetentionDays = 30;
 let hardwareIntervalSeconds = 60;
 let hardwareSaved = null; // the settings as last loaded, to tell what a save changes
-let hardwarePendingSave = null; // the settings waiting behind the long-forecast reminder
+let hardwarePendingSave = null; // the settings waiting behind the long-forecast reminder ({ sampling, alerts } since 17 Nov 2026)
 // <Jun Kai start> the alert lines of each part (amber, red), from the server; 85 / 95 until it answers
 const HARDWARE_ALERT_DEFAULT = { warn: 85, critical: 95 };
 let hardwareAlerts = Object.fromEntries(HARDWARE_METRICS.map((key) => [key, { ...HARDWARE_ALERT_DEFAULT }]));
 let hardwareAlertDefaults = JSON.parse(JSON.stringify(hardwareAlerts));
 let hardwareAlertLimits = { warn: [30, 99], critical: [31, 100] };
-let hardwareAlertsBusy = false;
 let hardwareLastOverview = null;
 // <Jun Kai end>
 
@@ -101,7 +99,7 @@ function hardwareAgo(iso) {
     return `${Math.round(seconds / 3600)} h ago`;
 }
 
-// <Jun Kai start> by the part's own alert lines (Alert lines card)
+// <Jun Kai start> by the part's own alert lines (Settings drawer, Alert lines)
 function hardwareTone(percent, key) {
     const line = hardwareAlerts[key] || HARDWARE_ALERT_DEFAULT;
     return percent >= line.critical ? 'down' : percent >= line.warn ? 'warn' : 'ok';
@@ -632,24 +630,55 @@ function renderHardwareSamplerPill(sampler) {
 }
 // <Jun Kai end>
 
+// <Jun Kai start>
+// "11th Gen Intel Core i7-1165G7, 8 logical processors": the processor, from the overview (os.cpus() on the server)
+function hardwareCpuText(machine) {
+    const cpu = machine && machine.cpu;
+    if (!cpu || !cpu.model) return '';
+    const n = Number(cpu.logicalProcessors) || 0;
+    return n ? `${cpu.model}, ${n} logical processor${n === 1 ? '' : 's'}` : cpu.model;
+}
+
+// The line above the cards says how fresh their numbers are: live (the reading every second), the stored sample with
+// its age, or why there is no number yet
+function renderHardwareLiveNote(latest, sampler) {
+    const note = document.getElementById('hardware-live-note');
+    const text = document.getElementById('hardware-live-text');
+    if (!note || !text) return;
+    let words = 'Live, updates every second';
+    let tone = 'live';
+    if (latest && !latest.live) {
+        words = latest.at ? `From the last sample, ${hardwareAgo(latest.at)}` : 'From the last sample';
+        tone = 'stored';
+    } else if (!latest) {
+        words = sampler && sampler.lastError ? sampler.lastError : 'Waiting for the first sample (about 10 seconds after the server starts)';
+        tone = sampler && sampler.lastError ? 'error' : 'stored';
+    }
+    if (text.textContent !== words) text.textContent = words;
+    const className = `hw-live is-${tone}`;
+    if (note.className !== className) note.className = className;
+}
+// <Jun Kai end>
+
 // The number and the line under it on each part card
 function renderHardwareCards(overview) {
     const latest = overview.latest;
     const sampler = overview.sampler || {};
     const set = (id, text) => { const el = document.getElementById(id); if (el && el.textContent !== text) el.textContent = text; }; // <Jun Kai/> written only when it changes
     const gb = (mb) => (mb / 1024).toFixed(1);
+    // <Jun Kai start> the CPU card names the processor, like the other cards describe their part; how fresh the numbers
+    // are is the line above the cards
+    set('hardware-cpu-hint', hardwareCpuText(overview.machine));
+    renderHardwareLiveNote(latest, sampler);
+    // <Jun Kai end>
     if (!latest) {
         for (const key of HARDWARE_METRICS) set(`hardware-${key}-value`, '–');
-        const waiting = sampler.lastError ? sampler.lastError : 'Waiting for the first sample (about 10 seconds after the server starts)';
-        set('hardware-cpu-hint', waiting);
         set('hardware-memory-hint', '');
         set('hardware-disk-hint', '');
         set('hardware-gpu-hint', HARDWARE_GPU_SOURCE[sampler.gpu && sampler.gpu.source] || '');
         return;
     }
-    const ago = hardwareAgo(latest.at);
     set('hardware-cpu-value', latest.cpu === null || latest.cpu === undefined ? '–' : latest.cpu.toFixed(0));
-    set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'No CPU reading in the last sample' : latest.live ? 'Live: average of the last second' : `Average over the last interval, sampled ${ago}`); // <Jun Kai/>
     set('hardware-memory-value', latest.memory ? latest.memory.percent.toFixed(0) : '–');
     set('hardware-memory-hint', latest.memory ? `${gb(latest.memory.usedMb)} of ${gb(latest.memory.totalMb)} GB in use` : '');
     set('hardware-disk-value', latest.disk ? latest.disk.percent.toFixed(0) : '–');
@@ -657,7 +686,8 @@ function renderHardwareCards(overview) {
     if (latest.gpu && latest.gpu.percent !== null && latest.gpu.percent !== undefined) {
         set('hardware-gpu-value', latest.gpu.percent.toFixed(0));
         const memoryText = latest.gpu.memoryUsedMb ? `${gb(latest.gpu.memoryUsedMb)} GB${latest.gpu.memoryTotalMb ? ` of ${gb(latest.gpu.memoryTotalMb)} GB` : ''} memory in use` : '';
-        const name = sampler.gpu && sampler.gpu.name ? sampler.gpu.name : '';
+        // <Jun Kai/> without the trade marks, like the processor's name on the CPU card
+        const name = sampler.gpu && sampler.gpu.name ? sampler.gpu.name.replace(/\((R|TM)\)/gi, '').replace(/\s+/g, ' ').trim() : '';
         set('hardware-gpu-hint', [name, memoryText].filter(Boolean).join(', '));
     } else {
         set('hardware-gpu-value', '–');
@@ -747,12 +777,7 @@ function renderHardwareSettings(overview) {
     hardwareSaved = { ...settings };
     set('hardware-interval-text', hardwareSpell('interval', settings.intervalSeconds || 60));
     set('hardware-retention-text', hardwareSpell('retention', settings.retentionDays || 30));
-    if (!hardwareSettingsFilled) {
-        for (const [name, field] of Object.entries(HARDWARE_SETTING_FIELDS)) {
-            if (settings[field.key] !== undefined) fillHardwareField(name, settings[field.key]);
-        }
-        hardwareSettingsFilled = true;
-    }
+    // <Jun Kai/> the fields are filled when the Settings drawer opens (openHardwareSettings), never under someone's typing
     const details = document.getElementById('hardware-sampler-details');
     if (!details) return;
     const rows = [
@@ -812,6 +837,7 @@ async function loadHardware() {
         hardwareLastOverview = overview.overview;
         renderHardwareSettings(overview.overview);
         renderHardwareAlerts(overview.overview);
+        if (hardwareDrawerWaiting) fillHardwareDrawer(); // the drawer was opened before the first load
         renderHardwareKeys({ latest }); // <Jun Kai/> the live reading when there is one
         // <Jun Kai end>
         const series = await seriesResponse.json();
@@ -1029,22 +1055,181 @@ function hardwareFieldError(name, message) {
     }
 }
 
+// <Jun Kai start>
+// ---- the Settings drawer (17 Nov 2026): Sampling, Alert lines and the sampler's details, one Save ----
+// Sampling can be saved by any signed-in admin (PUT /settings); the alert lines by a System Admin only (PUT /alert-lines).
+// Save sends only the part that changed; Esc, Cancel or a click beside the drawer drop what was typed.
+const hardwareIsSystemAdmin = () => { try { return sessionStorage.getItem('userRole') === 'system_admin'; } catch { return false; } };
+let hardwareDrawerBusy = false;
+let hardwareDrawerWaiting = false; // opened before the first load: filled as soon as the saved settings arrive
+
+function hardwareDrawerStatus(text, tone) {
+    const status = document.getElementById('hardware-drawer-status');
+    if (!status) return;
+    status.textContent = text;
+    status.classList.toggle('is-dirty', tone === 'dirty');
+    status.classList.toggle('is-error', tone === 'error');
+}
+
+// a sampling field that differs from the saved value, or a Custom box that cannot be read yet
+function hardwareSamplingDirty() {
+    if (!hardwareSaved) return false;
+    return Object.entries(HARDWARE_SETTING_FIELDS).some(([name, field]) => {
+        const read = readHardwareField(name);
+        return !!read.error || read.value !== hardwareSaved[field.key];
+    });
+}
+
+// after every change in the drawer: "Unsaved changes", and the defaults link greys out at the defaults
+function hardwareDrawerChanged() {
+    if (hardwareDrawerBusy) return;
+    const status = document.getElementById('hardware-drawer-status');
+    if (hardwareSamplingDirty() || hardwareAlertsDirty()) hardwareDrawerStatus('Unsaved changes', 'dirty');
+    else if (status && (status.classList.contains('is-dirty') || status.classList.contains('is-error'))) hardwareDrawerStatus('', '');
+    const atDefaults = HARDWARE_METRICS.every((key) => ['warn', 'critical'].every((kind) => {
+        const input = document.getElementById(`hardware-alert-${key}-${kind}`);
+        return input && input.value.trim() === String(hardwareAlertDefaults[key][kind]);
+    }));
+    const reset = document.getElementById('hardware-alerts-defaults');
+    if (reset) reset.disabled = !hardwareIsSystemAdmin() || atDefaults;
+}
+
+// the saved values, every time the drawer opens
+function fillHardwareDrawer() {
+    const save = document.getElementById('hardware-settings-save');
+    hardwareDrawerWaiting = !hardwareSaved;
+    if (save) save.disabled = hardwareDrawerWaiting;
+    if (hardwareDrawerWaiting) {
+        hardwareDrawerStatus('Loading the saved settings', '');
+        return;
+    }
+    for (const [name, field] of Object.entries(HARDWARE_SETTING_FIELDS)) {
+        if (hardwareSaved[field.key] !== undefined) fillHardwareField(name, hardwareSaved[field.key]);
+    }
+    fillHardwareAlertRows(hardwareAlerts);
+    const admin = hardwareIsSystemAdmin();
+    document.querySelectorAll('#hardware-alerts-rows input').forEach((input) => { input.disabled = !admin; });
+    const note = document.getElementById('hardware-alerts-admin');
+    if (note) note.hidden = admin;
+    hardwareDrawerStatus('', '');
+    hardwareDrawerChanged();
+}
+
+function bindHardwareDrawer(drawer) {
+    if (drawer.dataset.bound) return;
+    drawer.dataset.bound = '1';
+    drawer.addEventListener('cancel', (event) => { event.preventDefault(); closeHardwareSettings(); });
+    drawer.addEventListener('click', (event) => { if (event.target === drawer) closeHardwareSettings(); });
+    drawer.addEventListener('close', () => { drawer.classList.remove('is-closing'); });
+    drawer.addEventListener('input', hardwareDrawerChanged);
+    drawer.addEventListener('change', hardwareDrawerChanged);
+}
+
+function openHardwareSettings() {
+    const drawer = document.getElementById('hardware-drawer');
+    if (!drawer || typeof drawer.showModal !== 'function') return;
+    bindHardwareDrawer(drawer);
+    fillHardwareDrawer();
+    drawer.classList.remove('is-closing');
+    if (!drawer.open) drawer.showModal();
+}
+
+function closeHardwareSettings() {
+    const drawer = document.getElementById('hardware-drawer');
+    if (!drawer || !drawer.open || drawer.classList.contains('is-closing')) return;
+    hardwareDrawerWaiting = false;
+    if (HARDWARE_REDUCE_MOTION) {
+        drawer.close();
+        return;
+    }
+    drawer.classList.add('is-closing');
+    setTimeout(() => { if (drawer.open) drawer.close(); }, 180);
+}
+
 async function saveHardwareSettings() {
-    const payload = {};
+    if (hardwareDrawerBusy || hardwareDrawerWaiting) return;
+    const sampling = {};
     for (const [name, field] of Object.entries(HARDWARE_SETTING_FIELDS)) {
         const result = readHardwareField(name);
         if (result.error) {
             hardwareFieldError(name, result.error);
+            hardwareDrawerStatus(result.error, 'error');
             return;
         }
-        payload[field.key] = result.value;
+        sampling[field.key] = result.value;
     }
+    let alerts = null;
+    if (hardwareIsSystemAdmin() && hardwareAlertsDirty()) {
+        const read = readHardwareAlerts();
+        if (read.error) {
+            hardwareDrawerStatus(read.error, 'error');
+            if (read.input) { read.input.setAttribute('aria-invalid', 'true'); read.input.focus(); }
+            return;
+        }
+        alerts = read.alerts;
+    }
+    const samplingChanged = Object.values(HARDWARE_SETTING_FIELDS).some((field) => sampling[field.key] !== hardwareSaved[field.key]);
+    if (!samplingChanged && !alerts) {
+        closeHardwareSettings();
+        return;
+    }
+    const pending = { sampling: samplingChanged ? sampling : null, alerts };
     // a forecast that reaches further than the samples go back is a rough guide: the admin is told before it is saved
-    const riskier = !hardwareSaved || payload.forecastHours !== hardwareSaved.forecastHours || payload.retentionDays < hardwareSaved.retentionDays;
-    const check = riskier ? await hardwareHorizonCheck(payload) : null;
-    if (check && check.rough && openHardwareHorizonDialog(check, payload)) return;
-    await putHardwareSettings(payload);
+    if (pending.sampling) {
+        const riskier = sampling.forecastHours !== hardwareSaved.forecastHours || sampling.retentionDays < hardwareSaved.retentionDays;
+        const check = riskier ? await hardwareHorizonCheck(sampling) : null;
+        if (check && check.rough && openHardwareHorizonDialog(check, pending)) return;
+    }
+    await hardwareSaveAll(pending);
 }
+
+// PUT one part; a refused alert line is marked in the drawer
+async function hardwarePut(url, body) {
+    const response = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+        const failed = data.field ? document.getElementById(`hardware-alert-${String(data.field).replace('.', '-')}`) : null;
+        if (failed) { failed.setAttribute('aria-invalid', 'true'); failed.focus(); }
+        throw new Error(data.error || 'Save failed');
+    }
+    return data;
+}
+
+// The changed parts, sampling first; on a failure the drawer stays open and says which part was saved
+async function hardwareSaveAll(pending) {
+    const buttons = ['hardware-settings-save', 'hardware-settings-cancel'].map((id) => document.getElementById(id)).filter(Boolean);
+    hardwareDrawerBusy = true;
+    buttons.forEach((button) => { button.disabled = true; });
+    hardwareDrawerStatus('Saving', '');
+    const saved = [];
+    try {
+        if (pending.sampling) {
+            await hardwarePut('/api/admin/hardware/settings', pending.sampling);
+            hardwareSaved = { ...hardwareSaved, ...pending.sampling };
+            saved.push('sampling');
+        }
+        if (pending.alerts) {
+            const data = await hardwarePut('/api/admin/hardware/alert-lines', { alerts: pending.alerts });
+            hardwareAlerts = data.alerts;
+            fillHardwareAlertRows(hardwareAlerts);
+            saved.push('alerts');
+        }
+        closeHardwareSettings();
+        showNotification('Hardware settings saved', 'success');
+    } catch (error) {
+        hardwareDrawerStatus(saved.includes('sampling') ? `The sampling settings were saved, but the alert lines were not: ${error.message}` : `Could not save: ${error.message}`, 'error');
+    } finally {
+        hardwareDrawerBusy = false;
+        buttons.forEach((button) => { button.disabled = false; });
+        if (saved.includes('alerts')) {
+            if (hardwareLastOverview) renderHardwareKeys({ latest: hardwareLatest(hardwareLastOverview.latest) });
+            Object.values(hardwareCharts).forEach((chart) => chart.update('none'));
+            hardwarePartWords();
+        }
+        if (saved.length) loadHardware();
+    }
+}
+// <Jun Kai end>
 
 // null when the server could not say (the save itself then reports a server that is down)
 async function hardwareHorizonCheck(payload) {
@@ -1094,32 +1279,13 @@ function closeHardwareHorizonDialog() {
 }
 
 async function confirmHardwareHorizon() {
-    const payload = hardwarePendingSave;
+    const pending = hardwarePendingSave;
     closeHardwareHorizonDialog();
-    if (payload) await putHardwareSettings(payload);
-}
-
-async function putHardwareSettings(payload) {
-    const button = document.getElementById('hardware-settings-save');
-    if (button) button.disabled = true;
-    try {
-        const response = await fetch('/api/admin/hardware/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || 'Save failed');
-        showNotification('Sampling settings saved', 'success');
-        hardwareSettingsFilled = false;
-        loadHardware();
-    } catch (error) {
-        showNotification(`Could not save the settings: ${error.message}`, 'error');
-    } finally {
-        if (button) button.disabled = false;
-    }
+    if (pending) await hardwareSaveAll(pending); // <Jun Kai/> both parts of the drawer
 }
 
 // <Jun Kai start>
-// ---- the Alert lines card: amber and red per part (a System Admin saves them; others see them) ----
-const hardwareIsSystemAdmin = () => { try { return sessionStorage.getItem('userRole') === 'system_admin'; } catch { return false; } };
-
+// ---- the alert lines: amber and red per part, in the Settings drawer (a System Admin saves them; others see them) ----
 function hardwareAlertRows(values) {
     const [warnMin, warnMax] = hardwareAlertLimits.warn;
     const [critMin, critMax] = hardwareAlertLimits.critical;
@@ -1154,54 +1320,24 @@ const hardwareAlertsDiffer = (lines) => HARDWARE_METRICS.some((key) => ['warn', 
     return input && String(lines[key][kind]) !== input.value.trim();
 }));
 const hardwareAlertsDirty = () => hardwareAlertsDiffer(hardwareAlerts);
-let hardwareAlertsShown = null;
-
 function fillHardwareAlertRows(lines) {
     const rows = document.getElementById('hardware-alerts-rows');
     if (!rows) return;
     rows.innerHTML = hardwareAlertRows(lines);
-    hardwareAlertsShown = JSON.parse(JSON.stringify(lines));
 }
 
-function hardwareAlertsStatus(text, tone) {
-    const status = document.getElementById('hardware-alerts-status');
-    if (!status) return;
-    status.textContent = text;
-    status.classList.toggle('is-dirty', tone === 'dirty');
-    status.classList.toggle('is-error', tone === 'error');
-}
-
-// While typing: "Unsaved changes" only while a value differs from the saved lines; the defaults link greys out at the defaults
+// While typing in a line: the red mark of a refused value goes, and the drawer says whether anything changed
 function hardwareAlertsChanged() {
     document.querySelectorAll('#hardware-alerts-rows [aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
-    const status = document.getElementById('hardware-alerts-status');
-    if (hardwareAlertsDirty()) hardwareAlertsStatus('Unsaved changes', 'dirty');
-    else if (status && (status.classList.contains('is-dirty') || status.classList.contains('is-error'))) hardwareAlertsStatus('', '');
-    const atDefaults = HARDWARE_METRICS.every((key) => ['warn', 'critical'].every((kind) => {
-        const input = document.getElementById(`hardware-alert-${key}-${kind}`);
-        return input && input.value.trim() === String(hardwareAlertDefaults[key][kind]);
-    }));
-    const reset = document.getElementById('hardware-alerts-defaults');
-    if (reset) reset.disabled = !hardwareIsSystemAdmin() || atDefaults;
+    hardwareDrawerChanged();
 }
 
-// From the overview: the saved lines, their defaults and limits; the inputs are refilled unless someone typed in them
-// (lines saved meanwhile by another admin come in at the next refresh)
+// From the overview: the saved lines, their defaults and limits (the drawer shows them when it opens; lines saved
+// meanwhile by another admin come in with the next refresh)
 function renderHardwareAlerts(overview) {
     if (overview.alerts) hardwareAlerts = overview.alerts;
     if (overview.alertDefaults) hardwareAlertDefaults = overview.alertDefaults;
     if (overview.alertLimits) hardwareAlertLimits = overview.alertLimits;
-    const rows = document.getElementById('hardware-alerts-rows');
-    if (!rows) return;
-    const admin = hardwareIsSystemAdmin();
-    const typed = hardwareAlertsShown && hardwareAlertsDiffer(hardwareAlertsShown);
-    if (!rows.children.length || (!typed && !rows.contains(document.activeElement))) fillHardwareAlertRows(hardwareAlerts);
-    rows.querySelectorAll('input').forEach((input) => { input.disabled = !admin; });
-    const note = document.getElementById('hardware-alerts-admin');
-    if (note) note.hidden = admin;
-    const save = document.getElementById('hardware-alerts-save');
-    if (save) save.hidden = !admin;
-    hardwareAlertsChanged();
     hardwarePartWords();
 }
 
@@ -1217,42 +1353,6 @@ function useHardwareAlertDefaults() {
     // the link greys out now, so the focus goes to the first value
     const first = document.querySelector('#hardware-alerts-rows input');
     if (first) first.focus();
-}
-
-async function saveHardwareAlerts() {
-    if (hardwareAlertsBusy || !hardwareIsSystemAdmin()) return;
-    const read = readHardwareAlerts();
-    if (read.error) {
-        hardwareAlertsStatus(read.error, 'error');
-        if (read.input) { read.input.setAttribute('aria-invalid', 'true'); read.input.focus(); }
-        return;
-    }
-    const button = document.getElementById('hardware-alerts-save');
-    hardwareAlertsBusy = true;
-    if (button) button.disabled = true;
-    hardwareAlertsStatus('Saving', '');
-    try {
-        const response = await fetch('/api/admin/hardware/alert-lines', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alerts: read.alerts }) });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) {
-            const failed = data.field ? document.getElementById(`hardware-alert-${String(data.field).replace('.', '-')}`) : null;
-            if (failed) { failed.setAttribute('aria-invalid', 'true'); failed.focus(); }
-            throw new Error(data.error || 'Save failed');
-        }
-        hardwareAlerts = data.alerts;
-        fillHardwareAlertRows(hardwareAlerts);
-        hardwareAlertsStatus('', '');
-        hardwareAlertsChanged();
-        if (hardwareLastOverview) renderHardwareKeys({ latest: hardwareLatest(hardwareLastOverview.latest) }); // <Jun Kai/>
-        Object.values(hardwareCharts).forEach((chart) => chart.update('none'));
-        hardwarePartWords();
-        showNotification('Alert lines saved', 'success');
-    } catch (error) {
-        hardwareAlertsStatus(`Could not save: ${error.message}`, 'error');
-    } finally {
-        hardwareAlertsBusy = false;
-        if (button) button.disabled = false;
-    }
 }
 // <Jun Kai end>
 

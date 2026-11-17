@@ -111,7 +111,7 @@ router.get('/incidents/:id', auth.requireAuth, async (req, res) => {
         const last = (type) => events.filter((e) => e.type === type).pop() || null;
         const lastAdvice = last('advice');
         const fix = fixOn(incident, conf, { fix: last('fix'), done: last('fix-done') });
-        const help = playbooks.helpFor(incident, lastAdvice ? lastAdvice.detail : null, { fixKey: fix ? fix.key : null });
+        const help = playbooks.helpFor(incident, lastAdvice ? lastAdvice.detail : null, { fixKey: fix ? fix.key : null, localAi: settings.localAiOn(conf) });
         // fixKind: a fix exists for this kind of incident even when it is not on offer (switched off, or resolved)
         res.json({ success: true, incident: { ...incident, example: fixes.isExample(incident) }, events, help, fix, fixKind: fixes.fixFor(incident), floor: chartFloor(incident) });
     } catch (error) { fail(res, error, 'load the incident'); }
@@ -170,18 +170,22 @@ router.post('/incidents/:id/advice', auth.requireAuth, async (req, res) => {
 router.get('/processes', auth.requireAuth, async (req, res) => {
     const by = req.query.by === 'memory' ? 'memory' : 'cpu';
     try {
-        res.json({ success: true, by, programmes: await processes.top(by) });
+        const programmes = await processes.top(by);
+        res.json({ success: true, by, programmes: settings.localAiOn() ? programmes : processes.withoutAiKeep(programmes) });
     } catch (error) { fail(res, error, 'read the busiest programmes'); }
 });
 
-// GET /api/admin/aiops/advisor  the advisor's state, its step list and the models Ollama has (empty when it is not running)
+// GET /api/admin/aiops/advisor  the advisor's state, its step list and the models Ollama has (empty when it is not
+// running, and Ollama is not asked at all while the Local AI models switch is off)
 router.get('/advisor', auth.requireAuth, async (req, res) => {
     const status = engine.advisor.getStatus();
     let models = [];
-    try {
-        const response = await fetch(`${status.url}/api/tags`, { signal: AbortSignal.timeout(3000) });
-        if (response.ok) models = ((await response.json()).models || []).map((m) => m && m.name).filter((name) => typeof name === 'string');
-    } catch { /* Ollama not running: the page offers the saved model only */ }
+    if (status.localAi) {
+        try {
+            const response = await fetch(`${status.url}/api/tags`, { signal: AbortSignal.timeout(3000) });
+            if (response.ok) models = ((await response.json()).models || []).map((m) => m && m.name).filter((name) => typeof name === 'string');
+        } catch { /* Ollama not running: the page offers the saved model only */ }
+    }
     res.json({ success: true, advisor: status, actions: ACTIONS, models });
 });
 
@@ -214,6 +218,8 @@ router.put('/settings', auth.requireAdmin, (req, res) => {
             if (before.fixes[key] !== mode) logAudit(`AIOPS_FIX_MODE_${mode.toUpperCase()}`, who(req), 'aiops', key, req);
         }
         if (before.offerFixes !== result.settings.offerFixes) logAudit(result.settings.offerFixes ? 'AIOPS_FIXES_ON' : 'AIOPS_FIXES_OFF', who(req), 'aiops', null, req);
+        // the local AI models switched on or off for the whole app (the advisor, Feedback Reports, System Health)
+        if (before.localAi !== result.settings.localAi) logAudit(result.settings.localAi ? 'AIOPS_LOCAL_AI_ON' : 'AIOPS_LOCAL_AI_OFF', who(req), 'aiops', null, req);
         res.json({ success: true, settings: result.settings });
     } catch (error) { fail(res, error, 'save the settings'); }
 });

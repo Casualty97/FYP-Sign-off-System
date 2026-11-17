@@ -294,6 +294,9 @@ function showPage(pageName) {
         loadFlaggedFeedback();
         loadVisitorTrendsData();
         loadCacheStorageMode();
+        // <Jun Kai start> the AI analysis modes follow the Local AI models switch
+        if (typeof refreshAnalysisModes === 'function') refreshAnalysisModes();
+        // <Jun Kai end>
     } else if (pageName === 'digital-tree') {
         loadDigitalTreeData();
     } else if (pageName === 'health') {

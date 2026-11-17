@@ -55,7 +55,7 @@ const INCIDENT_MODE_SENTENCE = {
     auto: 'Runs by itself as soon as the incident opens, at most once every 10 minutes, and never while the policies keep the kiosk off.'
 };
 const INCIDENT_RANK = { critical: 0, warn: 1, info: 2 };
-const INCIDENT_FIELD_ID = { enabled: 'incidents-enabled', learnFromVerdicts: 'incidents-learn', offerFixes: 'incidents-offer-fixes', quietHours: 'incidents-quiet', intervalSeconds: 'incidents-interval', retentionDays: 'incidents-retention', keepIncidentsDays: 'incidents-keep', clearAfterMinutes: 'incidents-clear-after', cooldownMinutes: 'incidents-cooldown', healthEverySeconds: 'incidents-health-every', fixDelayMinutes: 'incidents-fix-delay', learnStreak: 'incidents-learn-streak', learnMaxSteps: 'incidents-learn-steps', learnWindowDays: 'incidents-learn-window' };
+const INCIDENT_FIELD_ID = { enabled: 'incidents-enabled', learnFromVerdicts: 'incidents-learn', offerFixes: 'incidents-offer-fixes', quietHours: 'incidents-quiet', localAi: 'incidents-local-ai', intervalSeconds: 'incidents-interval', retentionDays: 'incidents-retention', keepIncidentsDays: 'incidents-keep', clearAfterMinutes: 'incidents-clear-after', cooldownMinutes: 'incidents-cooldown', healthEverySeconds: 'incidents-health-every', fixDelayMinutes: 'incidents-fix-delay', learnStreak: 'incidents-learn-streak', learnMaxSteps: 'incidents-learn-steps', learnWindowDays: 'incidents-learn-window' };
 // the Advanced fold: [settings key, its list, how a value reads when it is not one of the list's choices]
 const INCIDENT_ADVANCED = [
     ['clearAfterMinutes', 'incidents-clear-after', (v) => incidentWait(v)],
@@ -637,7 +637,7 @@ function incidentWhyHtml(incident) {
     let source;
     if (advice.source === 'example') source = 'Example advice, written for this example incident';
     else if (advice.source === 'llm') source = `From the local AI (${advice.model || 'model'}) at ${incidentWhen(advice.at)}`;
-    else source = `Rule-based at ${incidentWhen(advice.at)}: the local AI was not available`;
+    else source = `Rule-based at ${incidentWhen(advice.at)}: ${advice.localAiOff ? 'Local AI models is switched off in Settings' : 'the local AI was not available'}`;
     const again = canAsk ? ` · ${askButton(busy ? 'Asking' : 'Ask again')}` : '';
     return `${advice.summary ? `<div class="inc-story">${escapeHtmlSafe(advice.summary)}</div>` : ''}
             ${causes ? `<div class="inc-causes">${causes}</div>` : ''}
@@ -823,7 +823,7 @@ function incidentTimelineHtml(events, unit, id) {
             case 'note': type = 'Note'; text = d.note || ''; break;
             case 'advice':
                 type = 'Advice';
-                text = d.source === 'llm' ? `from the local AI (${d.model || 'model'}) in ${incidentIsNumber(d.seconds) ? d.seconds : '?'} s` : d.source === 'example' ? 'example advice' : 'rule-based: the local AI was not available';
+                text = d.source === 'llm' ? `from the local AI (${d.model || 'model'}) in ${incidentIsNumber(d.seconds) ? d.seconds : '?'} s` : d.source === 'example' ? 'example advice' : d.localAiOff ? 'rule-based: Local AI models is switched off' : 'rule-based: the local AI was not available';
                 break;
             case 'fix':
                 type = d.automatic ? 'Fix ran by itself' : 'Fix approved';
@@ -1612,6 +1612,7 @@ async function fillIncidentSettings() {
         document.getElementById('incidents-offer-fixes').checked = settings.offerFixes !== false;
         document.getElementById('incidents-quiet').checked = settings.quietHours !== false;
         document.getElementById('incidents-advisor').checked = !settings.advisor || settings.advisor.enabled !== false;
+        document.getElementById('incidents-local-ai').checked = settings.localAi !== false;
         renderIncidentFixes(data, settings);
         renderIncidentDetectors(data, settings);
         const interval = Number(settings.intervalSeconds) || 60;
@@ -1640,6 +1641,7 @@ async function fillIncidentSettings() {
         }
         incidentsApplyFixesState();
         incidentsAdvancedTexts();
+        incidentsAiState();
         renderIncidentExamplesBox();
         document.getElementById('incidents-settings-save').disabled = !admin;
         if (loading) loading.hidden = true;
@@ -1650,22 +1652,41 @@ async function fillIncidentSettings() {
     }
 }
 
+let incidentsModelsHelp = '';     // what Ollama said about its models when the drawer opened
+let incidentsModelsAsked = true;  // false: Local AI models was saved as off, so Ollama was not asked
+
 async function fillIncidentAdvisorModels(saved) {
     const select = document.getElementById('incidents-advisor-model');
     if (!select) return;
     let models = [];
     let help = '';
+    incidentsModelsAsked = true;
     try {
         const data = await incidentsFetch('/api/admin/aiops/advisor');
         models = Array.isArray(data.models) ? data.models : [];
+        // with Local AI models saved as off the server does not ask Ollama, so the list says nothing about it
+        incidentsModelsAsked = !(data.advisor && data.advisor.localAi === false);
         if (!models.length) help = 'Ollama is not running or has no models: the advisor gives rule-based advice until it is.';
     } catch (error) {
         help = `Could not ask Ollama for its models: ${error.message}`;
     }
     const names = [...new Set([saved, ...models])];
-    select.innerHTML = names.map((name) => `<option value="${escapeHtmlSafe(name)}"${name === saved ? ' selected' : ''}>${escapeHtmlSafe(name)}${models.includes(name) ? '' : ' (not on this PC)'}</option>`).join('');
+    select.innerHTML = names.map((name) => `<option value="${escapeHtmlSafe(name)}"${name === saved ? ' selected' : ''}>${escapeHtmlSafe(name)}${models.includes(name) || !incidentsModelsAsked ? '' : ' (not on this PC)'}</option>`).join('');
+    incidentsModelsHelp = help;
+    incidentsAiState();
+}
+
+// The model hint and the note under the two AI switches follow the switches as they are on screen, saved or not
+function incidentsAiState() {
+    const on = (id) => { const el = document.getElementById(id); return !!(el && el.checked); };
+    const localAi = on('incidents-local-ai');
     const note = document.getElementById('incidents-advisor-help');
-    if (note) note.textContent = help;
+    if (note) note.textContent = !localAi ? 'Not used while Local AI models is off.' : incidentsModelsAsked ? incidentsModelsHelp : 'Ollama is asked for its models once this is saved.';
+    const allOff = document.getElementById('incidents-ai-all-off');
+    if (allOff) {
+        allOff.hidden = localAi;
+        allOff.textContent = `${on('incidents-advisor') ? 'No AI model runs on this PC for the admin pages now: the advisor gives rule-based advice.' : 'The advisor and the local AI models are both off, so no AI model runs on this PC for the admin pages.'} Not covered here: the kiosk's pledge check and face detection keep their own models, and Translate to English uses Google's online service.`;
+    }
 }
 
 function bindIncidentsDrawer(drawer) {
@@ -1693,6 +1714,8 @@ function bindIncidentsDrawer(drawer) {
             if (note) note.textContent = incidentModeText(INCIDENT_MODE_SENTENCE, input.value, wait ? wait.value : 5);
         } else if (input.id === 'incidents-offer-fixes') {
             incidentsApplyFixesState();
+        } else if (input.id === 'incidents-advisor' || input.id === 'incidents-local-ai') {
+            incidentsAiState();
         } else if (INCIDENT_ADVANCED.some(([, id]) => id === input.id)) {
             incidentsAdvancedTexts();
         }
@@ -1749,6 +1772,7 @@ function readIncidentSettings() {
         fixes,
         detectors,
         advisor: { enabled: checked('incidents-advisor'), model: (document.getElementById('incidents-advisor-model') || {}).value || 'qwen2.5:3b' },
+        localAi: checked('incidents-local-ai'),
         quietHours: checked('incidents-quiet'),
         intervalSeconds: number('incidents-interval'),
         retentionDays: number('incidents-retention'),

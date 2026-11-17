@@ -16,8 +16,8 @@ const START = Date.parse('2026-11-11T02:00:00Z'); // 10:00 in Singapore
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 
-// world: what the fakes answer; the test changes it between checks
-function setup(world = {}) {
+// world: what the fakes answer; the test changes it between checks. overrides: other fakes for createRunner
+function setup(world = {}, overrides = {}) {
     let t = START;
     const w = { devices: [], names: {}, mode: 'manual', kioskOn: true, heartbeatsMissing: false, samplesError: null, ...world };
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aiops-engine-'));
@@ -43,7 +43,8 @@ function setup(world = {}) {
         settings: () => settings.DEFAULTS,
         audit: () => {},
         files: () => [path.join(dir, 'app-events-server.jsonl'), path.join(dir, 'app-events-kiosk.jsonl')],
-        now: () => new Date(t)
+        now: () => new Date(t),
+        ...overrides
     });
     return {
         runner, store, world: w,
@@ -153,6 +154,17 @@ test('before the first check every detector is waiting, and a failed check keeps
         s.world.samplesError = null;
         await s.minutes(1);
         assert.equal(s.runner.getStatus().lastError, null, 'the next good check clears it');
+    } finally { s.cleanup(); }
+});
+
+test('with Anomaly detection off nothing is compared, but the advisor still looks at the open incidents', async () => {
+    let sweeps = 0;
+    const advisor = () => ({ sweep: async () => { sweeps++; return 0; }, request: () => ({ queued: false }), isBusy: () => false, getStatus: () => ({ on: true, localAi: true }) });
+    const s = setup({}, { settings: () => ({ ...settings.DEFAULTS, enabled: false }), advisor });
+    try {
+        const result = await s.minutes(2);
+        assert.equal(result.skipped, 'disabled');
+        assert.equal(sweeps, 2, 'one advice sweep after every check, as with detection on');
     } finally { s.cleanup(); }
 });
 // <Jun Kai end>

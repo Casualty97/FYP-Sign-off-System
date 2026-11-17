@@ -12,6 +12,8 @@
 
 Classifies feedback as positive, neutral or negative with rules, the BERT model (@xenova/transformers, loaded on first use) or an Ollama model (phi3, qwen, gemma), caches results, flags inappropriate text and builds the insight report. When the Visitor Data Archive deletes feedback, cacheStore.purgeTexts removes the cached analyses of texts that no remaining feedback uses.
 
+The Xenova, Qwen, Gemma and LocalGPT modes follow the Local AI models switch of the incident settings (`localAi` in backend/data/aiops-settings.json, 17 Nov 2026). Off: the page disables them with a note (refreshAnalysisModes in frontend/admin/js/analysis.js, run when Feedback Reports opens), and GET /feedback-insight-summary and GET /feedback-sentiment-analysis answer 409 before any analysis starts or any result is cached. Rule-Based Analysis always works.
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |

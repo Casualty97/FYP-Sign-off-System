@@ -1,6 +1,6 @@
 // Owner: Role 3, Jun Kai.
 // Admin hardware API, mounted at /api/admin/hardware (session required):
-//   GET  /overview            latest sample, sampler status and settings (the stat tiles)
+//   GET  /overview            latest sample, sampler status, settings and the processor's name (the part cards)
 //   GET  /live                <Jun Kai/> the part cards' reading, asked every second while the page is open (live.js)
 //   GET  /series?range=24h    averaged samples for the graphs plus the forecast (1h up to 5y, see ranges.js); a range
 //                             longer than the samples are kept comes from the daily summaries, one point per day or more
@@ -17,6 +17,7 @@ const forecast = require('./forecast');
 const ranges = require('./ranges');
 const dailyStore = require('./daily');
 const live = require('./live'); // <Jun Kai/>
+const { cpuInfo } = require('./collect');
 const { logAudit } = require('../../core/audit');
 
 const router = express.Router();
@@ -164,7 +165,7 @@ router.get('/overview', auth.requireAuth, async (req, res) => {
         const counts = await all('SELECT COUNT(*) AS total, SUM(sampled_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS day, UNIX_TIMESTAMP(MIN(sampled_at)) * 1000 AS oldest FROM hardware_samples', []);
         const oldest = counts[0].oldest === null || counts[0].oldest === undefined ? null : new Date(Number(counts[0].oldest)).toISOString();
         const days = await dailyStore.summary();
-        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), limits: settings.LIMITS, alerts: settings.readAlerts(), alertLimits: settings.ALERT_LIMITS, alertDefaults: settings.ALERT_DEFAULTS, stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0), oldestAt: oldest, daily: days }, serverTime: new Date().toISOString() } });
+        res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, machine: { cpu: cpuInfo() }, settings: settings.read(), limits: settings.LIMITS, alerts: settings.readAlerts(), alertLimits: settings.ALERT_LIMITS, alertDefaults: settings.ALERT_DEFAULTS, stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0), oldestAt: oldest, daily: days }, serverTime: new Date().toISOString() } });
     } catch (error) { fail(res, error, 'overview'); }
 });
 

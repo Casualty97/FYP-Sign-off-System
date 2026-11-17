@@ -278,6 +278,9 @@ const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
 const deletedCounts = require('../archive/deletedCounts');
 const { toSgtDay } = require('../archive/visitorSchedule');
 const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
+// the Local AI models switch of the incident settings: off, the analysis modes that run a model are refused
+const aiopsSettings = require('../aiops/settings');
+const LOCAL_AI_OFF_TEXT = 'Local AI models are switched off (Incidents page, Settings, Local AI advisor). Use Rule-Based Analysis, or switch them on there.';
 // <Jun Kai end>
 
 
@@ -2324,6 +2327,13 @@ async function getInterventionAlertsFromRows(feedbackRows, answerRows, health, c
 // AI Insight Summary for admin feedback analysis (Done by Yu Kang)
 router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
     const mode = req.query.mode || analysis_modes.RULE_BASED;
+    // <Jun Kai start> refused here, before a running analysis is stopped and before anything is cached: the engines
+    // turn every failure into "neutral", which would be cached as a real answer
+    const modelModes = [analysis_modes.XENOVA, analysis_modes.LOCALGPT, analysis_modes.QWEN, analysis_modes.GEMMA];
+    if (modelModes.includes(mode) && !aiopsSettings.localAiOn()) {
+        return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true });
+    }
+    // <Jun Kai end>
     console.debug(`🧠 Generating feedback insights using mode: ${mode}`);
 
     if (activeFeedbackAnalysisController) {
@@ -2525,6 +2535,9 @@ router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
 
 // Sentiment AI analysis of feedback answers (added by Yu Kang)
 router.get('/feedback-sentiment-analysis', async (req, res) => {
+    // <Jun Kai start> the Xenova model is a local AI model too
+    if (!aiopsSettings.localAiOn()) return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true });
+    // <Jun Kai end>
     console.debug('🧠 Running LOCAL AI sentiment analysis...');
 
     const query = `

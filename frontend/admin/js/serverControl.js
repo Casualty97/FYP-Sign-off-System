@@ -1257,6 +1257,9 @@ async function loadAutomationStatus() {
         console.error('❌ Error loading automation status:', error);
         setAutomationText('automation-summary', 'Automation status is not available right now.');
         setAutomationState('Unavailable', 'down');
+        // <Jun Kai start> on the page too: the History drawer is closed most of the time
+        setAutomationText('policy-mode-hint', 'Automation status is not available right now.');
+        // <Jun Kai end>
     }
 }
 
@@ -1303,7 +1306,8 @@ function renderAutomationStatus(a) {
     setAutomationText('automation-next-stop-hint', off || (a.nextStop ? `Off hours begin. ${policyIn(a.nextStop)}.` : 'No policy stops the kiosk soon'));
     setAutomationText('automation-next-start-hint', off || (a.nextStart ? 'The kiosk server starts if needed.' : 'No policy starts the kiosk soon'));
     setAutomationText('policy-mode', isAuto ? 'Automatic' : 'Manual');
-    setAutomationText('policy-mode-hint', !a.enabled ? 'Automation is switched off on this machine, so nothing runs the policies.' : isAuto ? 'Policies are followed.' : 'Policies are paused. Switch back under Controls.');
+    // a dry run is said here as well, since the History drawer that also says it is closed most of the time
+    setAutomationText('policy-mode-hint', !a.enabled ? 'Automation is switched off on this machine, so nothing runs the policies.' : !isAuto ? 'Policies are paused. Switch back under Controls.' : a.dryRun ? 'Dry run: the policies are followed, but their actions are only logged.' : 'Policies are followed.');
     setAutomationText('policy-now-hint', !planned ? (!a.enabled ? 'Automation is off on this machine' : 'You start and stop it under Controls')
         : a.currentWindow ? `By the policy "${a.currentWindow.schedule}"` : a.stoppedBy ? `Off hours: "${a.stoppedBy.schedule}"` : 'No policy covers this moment');
     // <Jun Kai end>
@@ -1329,3 +1333,35 @@ function renderAutomationStatus(a) {
                 </li>`;
     }).join('');
 }
+
+// <Jun Kai start>
+// History (17 Nov 2026): the automation state and its recent actions in a drawer from the right, opened from the button
+// at the top of the page (the same drawer as the incident and hardware settings). It is refreshed when it opens.
+function bindScheduleHistory(drawer) {
+    if (drawer.dataset.bound) return;
+    drawer.dataset.bound = '1';
+    drawer.addEventListener('cancel', (event) => { event.preventDefault(); closeScheduleHistory(); });
+    drawer.addEventListener('click', (event) => { if (event.target === drawer) closeScheduleHistory(); });
+    drawer.addEventListener('close', () => { drawer.classList.remove('is-closing'); });
+}
+
+function openScheduleHistory() {
+    const drawer = document.getElementById('schedule-history-drawer');
+    if (!drawer || typeof drawer.showModal !== 'function') return;
+    bindScheduleHistory(drawer);
+    drawer.classList.remove('is-closing');
+    if (!drawer.open) drawer.showModal();
+    loadAutomationStatus();
+}
+
+function closeScheduleHistory() {
+    const drawer = document.getElementById('schedule-history-drawer');
+    if (!drawer || !drawer.open || drawer.classList.contains('is-closing')) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        drawer.close();
+        return;
+    }
+    drawer.classList.add('is-closing');
+    setTimeout(() => { if (drawer.open) drawer.close(); }, 180);
+}
+// <Jun Kai end>
