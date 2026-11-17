@@ -7,8 +7,6 @@
 // Its own switch (advisor.enabled) in the incident settings; Anomaly detection off does not touch it. With Local AI
 // models off (localAi) it never asks Ollama and gives the rule-based advice.
 // <Jun Kai start>
-const { isExample } = require('./fixes');
-
 const ACTIONS = {
     none: 'Nothing to do yet: keep an eye on it',
     'close-heavy-apps': 'Close programs that use a lot of CPU or memory on the server PC',
@@ -60,7 +58,6 @@ function buildPrompt(incident, events = [], examples = []) {
         'action: exactly one key from this list:',
         steps,
         'why: one sentence on why that step comes first. Use only the facts given. Do not invent numbers, names or events.',
-        'If the detector is "test", an admin opened it only to try the panel: say so in the summary, give no causes and choose none.',
         'Plain English for a non-technical admin, no markdown.'
     ].join('\n');
     const facts = {
@@ -169,8 +166,7 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
 
     async function adviseOne(id) {
         const incident = await store.get(id);
-        // an example incident keeps the advice it came with
-        if (!incident || incident.status === 'resolved' || isExample(incident)) return null;
+        if (!incident || incident.status === 'resolved') return null;
         const events = await store.events(id);
         const examples = await store.examples(incident.detector, MAX.examples, incident.id);
         const { model, localAi } = conf();
@@ -182,8 +178,6 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
             // Local AI models off: Ollama is not asked at all
             if (!localAi) throw new Error(LOCAL_AI_OFF);
             advice = await ask({ url, model, prompt: buildPrompt(incident, events, examples) });
-            // a test incident has nothing behind it: whatever the model says, no causes and nothing to do
-            if (incident.detector === 'test') advice = { ...advice, causes: [], action: 'none' };
         } catch (failure) {
             error = failure.message;
             advice = ruleAdvice(incident);
@@ -227,7 +221,6 @@ function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http
         if (!conf().on) return 0;
         let added = 0;
         for (const incident of await store.listOpen()) {
-            if (isExample(incident)) continue;
             const events = await store.events(incident.id);
             const lastStep = events.reduce((at, e) => (ADVISED.has(e.type) ? Math.max(at, Date.parse(e.at) || 0) : at), 0);
             const lastAdvice = events.reduce((at, e) => (e.type === 'advice' ? Math.max(at, Date.parse(e.at) || 0) : at), 0);

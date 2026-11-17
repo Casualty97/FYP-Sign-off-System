@@ -23,7 +23,7 @@ Owners keep their page current (CI does not check this, the reviewer does).
 - [VIP visitors](vips.md) — owner: shared, 3 route(s)
 - [Admin themes](themes.md) — owner: Role 3, Jun Kai, 7 route(s)
 - [System and LLM health](health.md) — owner: Role 3, Jun Kai, 8 route(s)
-- [Anomaly detection and incidents (AIOps)](aiops.md) — owner: Role 3, Jun Kai, 16 route(s)
+- [Anomaly detection and incidents (AIOps)](aiops.md) — owner: Role 3, Jun Kai, 14 route(s)
 - [Hardware usage graphs with forecasting](hardware.md) — owner: Role 3, Jun Kai, 6 route(s)
 - [Install and uninstall scripts](install.md) — owner: Role 3, Jun Kai, no routes (install.cmd, uninstall.cmd, scripts/install)
 

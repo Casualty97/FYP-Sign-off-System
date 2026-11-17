@@ -13,7 +13,6 @@ const { createLogReader } = require('./logReader');
 const { createAdvisor } = require('./advisor');
 const learning = require('./learning');
 const fixes = require('./fixes');
-const examples = require('./examples');
 
 const FIRST_TICK_DELAY_MS = 90 * 1000;
 const SOON_MS = 5 * 1000;
@@ -190,14 +189,11 @@ function createRunner(overrides = {}) {
 
     async function setVerdict(id, verdict, by) {
         const incident = await engine.setVerdict(id, verdict, by);
-        // an example's verdict is only recorded on it: it never tunes a detector
-        if (incident && !fixes.isExample(incident)) await learnFrom(incident.detector).catch((error) => logOnce(`learning: ${error.message}`));
+        // a test incident's verdict is only recorded on it: it never tunes a detector
+        if (incident && !fixes.isTest(incident)) await learnFrom(incident.detector).catch((error) => logOnce(`learning: ${error.message}`));
         return incident;
     }
 
-    const createExamples = (by) => examples.createExamples(store, by, d.now());
-    const removeExamples = () => examples.removeExamples(store);
-    const countExamples = () => store.countByFingerprintPrefix(fixes.EXAMPLE_PREFIX);
     const runFix = (id, fixKey, by) => fixer.run(id, fixKey, by);
 
     function logOnce(message) {
@@ -274,6 +270,10 @@ function createRunner(overrides = {}) {
         state.awakeSince = d.now().getTime();
         d.recorder().start(current);
         reader.load();
+        // the seven Example incidents were replaced by Send a test incident (17 Nov 2026): any left in the tables go once
+        Promise.resolve().then(() => store.deleteByFingerprintPrefix('example:'))
+            .then((removed) => { if (removed) console.log(`[aiops] removed ${removed} old example incident(s): test incidents replace them`); })
+            .catch(() => { /* the tables may not exist yet (npm run db:migrate): nothing to remove */ });
         schedule(FIRST_TICK_DELAY_MS);
         console.log(conf.enabled
             ? `[aiops] anomaly detection on: a check every ${state.intervalSeconds} s, the first in ${FIRST_TICK_DELAY_MS / 1000} s`
@@ -334,7 +334,7 @@ function createRunner(overrides = {}) {
     return {
         start, getStatus, runNow: runTick, applySettings, counts, store, advisor, fixer,
         acknowledge: engine.acknowledge, resolve: engine.resolve, setVerdict, openTest: engine.openTest, learnFrom,
-        runFix, createExamples, removeExamples, countExamples
+        runFix
     };
 }
 

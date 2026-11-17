@@ -3698,16 +3698,19 @@
                                     </details>
                                 </section>
                                 <section class="inc-drawer-section">
-                                    <div class="inc-drawer-title">Example incidents</div>
-                                    <div class="inc-examples">
-                                        <div class="inc-examples-text" id="incidents-examples-text">Seven made-up incidents that show every part of this panel: a chart, the advice, step-by-step help, a fix waiting for approval, an acknowledged one and two resolved ones. They are labelled Example, never run anything and never tune a detector.</div>
-                                        <button type="button" class="ui-btn ui-btn-secondary" id="incidents-examples-btn" onclick="toggleIncidentExamples()">Show example incidents</button>
+                                    <div class="inc-drawer-title">Test incident</div>
+                                    <div class="inc-test">
+                                        <div class="inc-test-text">Send one incident with made up numbers to see how this page handles it: the chart, the advisor's answer, the steps and, for Kiosk server down while Offer fixes on incidents is on, the fix to approve (approving only writes to its history). It is labelled Test, closes by itself after 10 minutes and tunes nothing.</div>
+                                        <div class="inc-test-row">
+                                            <label class="ui-sr-only" for="incidents-test-kind">Kind of test incident</label>
+                                            <select class="ui-select" id="incidents-test-kind"></select>
+                                            <button type="button" class="ui-btn ui-btn-secondary" id="incidents-test-btn" onclick="raiseTestIncident()">Send test incident</button>
+                                        </div>
                                     </div>
-                                    <div class="inc-drawer-result" id="incidents-examples-result" role="status"></div>
+                                    <div class="inc-drawer-result" id="incidents-test-result" role="status"></div>
                                 </section>
                             </div>
                             <div class="inc-drawer-foot">
-                                <button type="button" class="health-card-link" id="incidents-test-btn" onclick="raiseTestIncident()">Send a test incident</button>
                                 <span class="inc-drawer-status" id="incidents-settings-help" role="status"></span>
                                 <div class="ui-row">
                                     <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-cancel" onclick="closeIncidentSettings()">Cancel</button>

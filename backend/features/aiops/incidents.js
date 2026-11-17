@@ -6,7 +6,8 @@
 // Incident = { id, fingerprint, detector, kind, subject, severity info|warn|critical, status open|acknowledged|resolved,
 //   title, explanation, evidence (object), opened_at, last_seen_at, acknowledged_at, acknowledged_by, resolved_at,
 //   resolved_by ('auto' when it cleared by itself), resolve_note, verdict, verdict_by, verdict_at, occurrences }; dates are ISO strings.
-const { EXAMPLE_PREFIX, isExample } = require('./fixes');
+const { TEST_PREFIX, isTest } = require('./fixes');
+const { testIncident, testKinds, TEST_KIND_DEFAULT } = require('./testIncidents');
 
 const SEVERITIES = ['info', 'warn', 'critical'];
 const VERDICTS = ['correct', 'not-useful', 'false-alarm'];
@@ -172,16 +173,16 @@ function createEngine({ store, detect, now = () => new Date(), settings, load, a
         const closed = Array.isArray(detected.closed) ? detected.closed : [];
         for (const incident of open) {
             if (wanted.has(incident.fingerprint)) continue;
-            if (isExample(incident)) continue; // examples stay as they were made until they are removed
-            const isTest = incident.detector === 'test';
-            if (!isTest && startsWithAny(closed, incident.fingerprint)) {
+            // a test incident closes 10 minutes after it opened, whatever its detector does
+            const test = isTest(incident);
+            if (!test && startsWithAny(closed, incident.fingerprint)) {
                 await autoResolve(incident, at, 'detector-off');
                 result.resolved++;
                 continue;
             }
-            if (!isTest && startsWithAny(held, incident.fingerprint)) continue;
-            const age = ms(at) - ms(isTest ? incident.opened_at : incident.last_seen_at);
-            if (age < (isTest ? TEST_RESOLVE_MS : clearMs)) continue;
+            if (!test && startsWithAny(held, incident.fingerprint)) continue;
+            const age = ms(at) - ms(test ? incident.opened_at : incident.last_seen_at);
+            if (age < (test ? TEST_RESOLVE_MS : clearMs)) continue;
             await autoResolve(incident, at);
             result.resolved++;
         }
@@ -227,23 +228,15 @@ function createEngine({ store, detect, now = () => new Date(), settings, load, a
         return store.get(incident.id);
     }
 
-    // a sample incident so the admin sees the flow (and the smoke test exercises it); the tick resolves it after 10 minutes
-    async function openTest(by) {
+    // Send test incident: one incident with made up numbers, of the kind the admin picked (testIncidents.js), with its real detector so
+    // the page, the advisor and the steps treat it like the real thing; the tick closes it 10 minutes after it opened
+    async function openTest(by, kind = TEST_KIND_DEFAULT) {
         const at = iso(now());
         const nowMs = ms(at);
-        const points = [];
-        // made-up numbers shaped like a real spike: about 30 % for 24 minutes, then a climb to 78 %
-        for (let i = 0; i < 30; i++) points.push({ t: nowMs - (29 - i) * 60 * 1000, v: i < 24 ? 30 + (i % 3) : 30 + (i - 23) * 8 });
-        const name = by === null || by === undefined || by === '' ? 'an admin' : String(by);
-        const id = await store.insert({
-            ...EMPTY_ROW,
-            fingerprint: 'test:sample:' + nowMs.toString(36) + Math.random().toString(36).slice(2, 6),
-            detector: 'test', kind: 'sample', subject: null, severity: 'info', status: 'open', title: 'Test incident',
-            explanation: `Opened by ${name} to show how an incident looks; its numbers are made up. It resolves itself after 10 minutes.`,
-            evidence: { metric: 'sample', value: points[points.length - 1].v, baseline: 30, unit: '%', points },
-            opened_at: at, last_seen_at: at, occurrences: 1
-        });
-        await store.addEvent(id, 'opened', { by, test: true }, at);
+        const row = testIncident(kind === undefined || kind === null || kind === '' ? TEST_KIND_DEFAULT : String(kind), nowMs, by);
+        if (!row) throw Object.assign(new Error(`Choose a test incident: ${testKinds().map((k) => k.key).join(', ')}`), { status: 400 });
+        const id = await store.insert({ ...EMPTY_ROW, ...row, status: 'open', opened_at: at, last_seen_at: at, occurrences: 1 });
+        await store.addEvent(id, 'opened', { by, test: true, severity: row.severity }, at);
         seenAt.set(id, nowMs);
         record('AIOPS_TEST_INCIDENT', by, id);
         return store.get(id);
@@ -256,8 +249,8 @@ function createEngine({ store, detect, now = () => new Date(), settings, load, a
 // limit }), listOpen(), findResolvedSince(fingerprint, sinceMs), addEvent(id, type, detail, at) -> id, events(id),
 // examples(detector, limit, exceptId) (resolved, marked correct, newest first), latestEvents(ids, type) -> { id: event },
 // verdicts(detector, sinceMs) -> [{ verdict, verdict_at }] newest first, deleteByFingerprintPrefix(prefix) -> count,
-// countByFingerprintPrefix(prefix) -> count, prune(beforeMs) -> count. Example incidents (fingerprint "example:...")
-// never count for examples() and verdicts(), so they never teach the advisor or tune a detector. Dates in can be Dates or ISO strings; dates out are ISO strings; evidence and detail are objects.
+// countByFingerprintPrefix(prefix) -> count, prune(beforeMs) -> count. Test incidents (fingerprint "test:...", or the
+// detector 'test' of before 17 Nov 2026) never count for examples() and verdicts(), so they never teach the advisor or tune a detector. Dates in can be Dates or ISO strings; dates out are ISO strings; evidence and detail are objects.
 function memoryStore() {
     const incidents = [];
     const events = [];
@@ -315,11 +308,11 @@ function memoryStore() {
             return events.filter((event) => event.incident_id === idOf(id)).sort((a, b) => ms(a.at) - ms(b.at) || a.id - b.id).map(copy);
         },
         async examples(detector, limit = 3, exceptId = null) {
-            return incidents.filter((row) => row.detector === detector && row.verdict === 'correct' && row.status === 'resolved' && row.id !== idOf(exceptId) && !isExample(row))
+            return incidents.filter((row) => row.detector === detector && row.verdict === 'correct' && row.status === 'resolved' && row.id !== idOf(exceptId) && !isTest(row))
                 .sort(byResolved).slice(0, limit).map(copy);
         },
         async verdicts(detector, sinceMs) {
-            return incidents.filter((row) => row.detector === detector && row.verdict && ms(row.verdict_at) >= sinceMs && !isExample(row))
+            return incidents.filter((row) => row.detector === detector && row.verdict && ms(row.verdict_at) >= sinceMs && !isTest(row))
                 .sort((a, b) => ms(b.verdict_at) - ms(a.verdict_at)).slice(0, 20).map((row) => ({ verdict: row.verdict, verdict_at: row.verdict_at }));
         },
         async deleteByFingerprintPrefix(prefix) {
@@ -429,15 +422,15 @@ function sqlStore(db) {
         },
         async examples(detector, limit = 3, exceptId = null) {
             const rows = await all("SELECT * FROM incidents WHERE detector = ? AND verdict = 'correct' AND status = 'resolved' AND id <> ? AND fingerprint NOT LIKE ? ORDER BY resolved_at DESC, id DESC LIMIT ?",
-                [String(detector || ''), idOf(exceptId) || 0, `${EXAMPLE_PREFIX}%`, Math.max(1, Math.min(10, Number(limit) || 3))]);
+                [String(detector || ''), idOf(exceptId) || 0, `${TEST_PREFIX}%`, Math.max(1, Math.min(10, Number(limit) || 3))]);
             return rows.map(fromRow);
         },
         async verdicts(detector, sinceMs) {
             const rows = await all('SELECT verdict, verdict_at FROM incidents WHERE detector = ? AND verdict IS NOT NULL AND verdict_at >= ? AND fingerprint NOT LIKE ? ORDER BY verdict_at DESC LIMIT 20',
-                [String(detector || ''), new Date(sinceMs), `${EXAMPLE_PREFIX}%`]);
+                [String(detector || ''), new Date(sinceMs), `${TEST_PREFIX}%`]);
             return rows.map((row) => ({ verdict: row.verdict, verdict_at: iso(row.verdict_at) }));
         },
-        // only by an exact prefix (the examples' "example:"), never a pattern a caller builds
+        // only by an exact prefix ("example:", the Example incidents removed on 17 Nov 2026), never a pattern a caller builds
         async deleteByFingerprintPrefix(prefix) {
             if (!prefix || /[%_\\]/.test(prefix)) return 0;
             await run('DELETE FROM incident_events WHERE incident_id IN (SELECT id FROM incidents WHERE fingerprint LIKE ?)', [`${prefix}%`]);

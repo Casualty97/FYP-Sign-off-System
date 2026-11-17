@@ -22,7 +22,7 @@ let incidentsSettingsBusy = false;
 let incidentsSettingsData = null;    // the last answer of GET /settings, for the drawer
 let incidentsDrawerDirty = false;
 let incidentsDrawerSnapshot = '';   // the drawer's values as they were loaded
-let incidentsApproveFor = null;      // { id, fix, example } waiting in the approve dialog
+let incidentsApproveFor = null;      // { id, fix, test } waiting in the approve dialog
 const incidentsJson = new Map();     // id -> the list entry as last loaded; a change reloads its story
 const incidentsDetail = new Map();   // id -> { data } or { error } from GET /incidents/:id
 const incidentsDetailStale = new Set();
@@ -349,9 +349,10 @@ function incidentsGroups(nowMs) {
     return { open, handled, resolved, resolvedTotal: resolvedAll.length };
 }
 
-// "Fixed by an approved start" when a fix worked before it closed
+// "Fixed by an approved start" when a fix worked before it closed; on a test incident nothing was started
 function incidentResolvedHow(incident) {
     const run = incident.fixRun;
+    if (run && run.ok && run.test) return 'Fix approved, nothing ran';
     if (run && run.ok) return run.automatic ? 'Fixed by an automatic start' : 'Fixed by an approved start';
     return incidentDetectorLabel(incident.detector);
 }
@@ -362,8 +363,8 @@ function incidentFixTag(incident, nowMs) {
     switch (fix.state) {
         case 'running': return '<span class="inc-tag-fix">Starting</span>';
         case 'started':
-            // an example or a dry run only recorded the approval
-            if (incident.example || fix.dryRun) return `<span class="inc-tag-ok">Approved ${escapeHtmlSafe(incidentAgoText(fix.at, nowMs))}</span>`;
+            // a test incident or a dry run only recorded the approval
+            if (incident.test || fix.dryRun) return `<span class="inc-tag-ok">Approved ${escapeHtmlSafe(incidentAgoText(fix.at, nowMs))}</span>`;
             return `<span class="inc-tag-ok">Started ${escapeHtmlSafe(incidentAgoText(fix.at, nowMs))}</span>`;
         case 'failed': return '<span class="inc-tag-bad">Fix did not work</span>';
         default: return '<span class="inc-tag-fix">Fix available</span>';
@@ -384,12 +385,12 @@ function incidentRowParts(incident, nowMs) {
         const tag = incidentFixTag(incident, nowMs);
         if (tag) meta.push(tag);
     }
-    const example = incident.example ? '<span class="inc-tag-example">Example</span>' : '';
+    const testTag = incident.test ? '<span class="inc-tag-test">Test</span>' : '';
     const selected = incidentsSelected === id;
     return {
         cls: `inc-item is-${tone}`,
         current: selected ? 'true' : 'false',
-        inner: `<span class="inc-dot" aria-hidden="true"></span><span class="inc-item-text"><span class="inc-item-title"><span class="inc-num">#${id}</span>${escapeHtmlSafe(incidentText(incident.title || 'Incident'))}</span><span class="inc-item-meta">${example}${meta.join(' · ')}</span></span>`
+        inner: `<span class="inc-dot" aria-hidden="true"></span><span class="inc-item-text"><span class="inc-item-title"><span class="inc-num">#${id}</span>${escapeHtmlSafe(incidentText(incident.title || 'Incident'))}</span><span class="inc-item-meta">${testTag}${meta.join(' · ')}</span></span>`
     };
 }
 
@@ -590,7 +591,7 @@ function incidentChartHtml(incident, floor, nowMs) {
     // the floor label sits on the side of its line that the end of the graph leaves free
     const tags = (band ? `<span class="inc-chart-tag is-band" style="top: ${top(band[1])}%">usual ${incidentNumber(band[0])}–${incidentWithUnit(band[1], unit)}</span>` : '')
         + (incidentIsNumber(floor) ? `<span class="inc-chart-tag is-floor${last.v > floor ? ' is-below' : ''}" style="top: ${top(floor)}%">${incidentWithUnit(floor, unit)} floor</span>` : '');
-    // the right edge says how old the last reading is (an example incident's readings age)
+    // the right edge says how old the last reading is
     const firstT = incidentIsNumber(points[0].t) ? points[0].t : null;
     const lastT = incidentIsNumber(last.t) ? last.t : null;
     const axis = firstT !== null && lastT !== null
@@ -625,7 +626,7 @@ function incidentWhyHtml(incident) {
     const advice = incident.advice && typeof incident.advice === 'object' ? incident.advice : null;
     const open = incidentIsOpen(incident);
     const busy = incident.adviceBusy === true;
-    const canAsk = open && incidentsAdvisorOn && !incident.example;
+    const canAsk = open && incidentsAdvisorOn;
     const askButton = (text) => `<button type="button" class="health-card-link" data-act="advice" data-id="${incident.id}"${busy ? ' disabled' : ''}>${text}</button>`;
     if (!advice) {
         if (busy) return '<div class="inc-muted">The advisor is looking at this incident. Its answer shows here in a moment.</div>';
@@ -635,8 +636,7 @@ function incidentWhyHtml(incident) {
     }
     const causes = (Array.isArray(advice.causes) ? advice.causes : []).map((c) => `<div class="inc-cause"><span class="inc-likely is-${escapeHtmlSafe(c.likelihood || 'medium')}">${escapeHtmlSafe(INCIDENT_LIKELY[c.likelihood] || 'Possible')}</span><span>${escapeHtmlSafe(c.cause || '')}</span></div>`).join('');
     let source;
-    if (advice.source === 'example') source = 'Example advice, written for this example incident';
-    else if (advice.source === 'llm') source = `From the local AI (${advice.model || 'model'}) at ${incidentWhen(advice.at)}`;
+    if (advice.source === 'llm') source = `From the local AI (${advice.model || 'model'}) at ${incidentWhen(advice.at)}`;
     else source = `Rule-based at ${incidentWhen(advice.at)}: ${advice.localAiOff ? 'Local AI models is switched off in Settings' : 'the local AI was not available'}`;
     const again = canAsk ? ` · ${askButton(busy ? 'Asking' : 'Ask again')}` : '';
     return `${advice.summary ? `<div class="inc-story">${escapeHtmlSafe(advice.summary)}</div>` : ''}
@@ -715,7 +715,7 @@ function incidentFixHtml(incident, data) {
             card = incidentFixCard('busy', '<span class="inc-spinner" aria-hidden="true"></span>', `${fix.label}: starting`, 'This takes up to 30 seconds. The result shows here and in the history.', '');
             break;
         case 'started':
-            if (status.example) card = incidentFixCard('done', INCIDENT_CHECK, 'Example: nothing was started', 'On a real incident the kiosk server would start now, and this incident would close by itself once the next checks see it.', '');
+            if (status.test) card = incidentFixCard('done', INCIDENT_CHECK, 'Test: nothing was started', 'On a real incident the kiosk server would start now, and this incident would close by itself once the next checks see it.', '');
             else if (status.dryRun) card = incidentFixCard('done', INCIDENT_CHECK, 'Dry run: nothing was started', 'KIOSK_AUTOMATION=dry-run in backend/.env only records what would run by itself. An approval on this card still runs.', '');
             else card = incidentFixCard('done', INCIDENT_CHECK, `Done at ${incidentClock(status.at)}: ${status.message || lower}`, `${who}. This incident closes by itself once the next health checks see it working, usually within ${fix.confirmMinutes || 15} minutes.`, '');
             break;
@@ -724,10 +724,10 @@ function incidentFixHtml(incident, data) {
             notes.push(`${who} at ${incidentClock(status.at)}. The steps below are what to try next.`);
             break;
         default:
-            card = incidentFixCard('', INCIDENT_WRENCH, `The app can fix this: ${lower}`, fix.describe || '', approve(fix.example ? 'Approve' : 'Approve and start'));
+            card = incidentFixCard('', INCIDENT_WRENCH, `The app can fix this: ${lower}`, fix.describe || '', approve(fix.test ? 'Approve' : 'Approve and start'));
             if (status.last) notes.push(`The start at ${incidentClock(status.last.at)} did not bring it back.`);
             notes.push(admin ? "Needs a System Admin's approval. Who approved it and what happened go into the incident's history and Audit Logs." : 'A System Admin can approve this fix. Who approved it and what happened go into the history and Audit Logs.');
-            if (fix.example) notes.push('Example incident: approving only writes to its history. Nothing is started.');
+            if (fix.test) notes.push('Test incident: approving only writes to its history. Nothing is started.');
             else if (fix.mode !== 'ask' && fix.automation === 'off') notes.push('This PC does not start programmes by itself (KIOSK_AUTOMATION=off), so it waits for an approval.');
             else if (incident.status === 'acknowledged' && fix.mode !== 'ask') notes.push('Acknowledged: nothing runs by itself while someone is on it.');
             else if (fix.mode === 'delayed') notes.push(`If nobody approves it, it runs by itself ${incidentWait(fix.delayMinutes || 5, true)} after the incident opened or opened again (set in Settings).`);
@@ -745,7 +745,7 @@ function incidentDoneHtml(events) {
         const fixText = INCIDENT_FIX_DONE[d.fix] || 'the fix';
         if (event.type === 'acknowledged') lines.push(`Acknowledged by ${d.by || 'an admin'} at ${at}.`);
         else if (event.type === 'fix') lines.push(d.automatic ? `The app ran "${fixText}" by itself at ${at} (Automatic in Settings).` : `${d.by || 'An admin'} approved "${fixText}" at ${at}.`);
-        else if (event.type === 'fix-done') lines.push(d.example ? 'Example: nothing was run.' : d.ok ? `It worked: ${d.message || 'done'}.` : `It did not work: ${d.message || 'no reason given'}.`);
+        else if (event.type === 'fix-done') lines.push(d.test ? 'Test: nothing was run.' : d.ok ? `It worked: ${d.message || 'done'}.` : `It did not work: ${d.message || 'no reason given'}.`);
         else if (event.type === 'resolved') {
             if (d.auto) lines.push(d.reason === 'detector-off' ? `Closed at ${at} because its detector was switched off.` : `Closed by itself at ${at}: the readings went back to normal.`);
             else lines.push(`Resolved by ${d.by || 'an admin'} at ${at}${d.note ? `: ${d.note}` : '.'}`);
@@ -785,8 +785,7 @@ function incidentVerdictHtml(incident) {
         return `<button type="button" class="ui-btn ui-btn-secondary" data-act="verdict" data-id="${incident.id}" data-verdict="${key}" aria-pressed="${chosen}">${label}</button>`;
     }).join('');
     let hint = 'Your answer tunes this detector';
-    if (incident.example) hint = 'Examples never tune a detector';
-    else if (incident.detector === 'test') hint = 'A test incident tunes nothing';
+    if (incident.test) hint = 'A test incident tunes nothing';
     else if (incidentsStatus && incidentsStatus.learnFromVerdicts === false) hint = 'Your answer is kept with the incident';
     return `<span class="inc-verdict-label">Was this right?</span><span class="inc-verdict-btns" role="group" aria-label="Was this right?">${buttons}</span><span class="inc-verdict-hint">${hint}</span>`;
 }
@@ -823,11 +822,11 @@ function incidentTimelineHtml(events, unit, id) {
             case 'note': type = 'Note'; text = d.note || ''; break;
             case 'advice':
                 type = 'Advice';
-                text = d.source === 'llm' ? `from the local AI (${d.model || 'model'}) in ${incidentIsNumber(d.seconds) ? d.seconds : '?'} s` : d.source === 'example' ? 'example advice' : d.localAiOff ? 'rule-based: Local AI models is switched off' : 'rule-based: the local AI was not available';
+                text = d.source === 'llm' ? `from the local AI (${d.model || 'model'}) in ${incidentIsNumber(d.seconds) ? d.seconds : '?'} s` : d.localAiOff ? 'rule-based: Local AI models is switched off' : 'rule-based: the local AI was not available';
                 break;
             case 'fix':
                 type = d.automatic ? 'Fix ran by itself' : 'Fix approved';
-                text = `${by}${d.example ? ' (example: nothing runs)' : d.dryRun ? ' (dry run)' : ''}`;
+                text = `${by}${d.test ? ' (test: nothing runs)' : d.dryRun ? ' (dry run)' : ''}`;
                 break;
             case 'fix-done': type = d.ok ? 'Fix worked' : 'Fix did not work'; text = d.message || ''; break;
             default: text = '';
@@ -858,7 +857,7 @@ function incidentTitleHtml(incident) {
         chips.push(uiPill(severity.tone, severity.label));
         if (incident.status === 'acknowledged') chips.push(uiPill('muted', 'Acknowledged'));
     }
-    if (incident.example) chips.push('<span class="inc-tag-example">Example</span>');
+    if (incident.test) chips.push('<span class="inc-tag-test">Test</span>');
     return `<div class="inc-d-chips">${chips.join('')}</div><h4 class="inc-d-title">${escapeHtmlSafe(incidentText(incident.title || 'Incident'))}</h4>`;
 }
 
@@ -1182,8 +1181,8 @@ function incidentSummaryRow(incident, nowMs) {
     const meta = [escapeHtmlSafe(incidentDetectorLabel(incident.detector)), escapeHtmlSafe(incidentAge(incident.opened_at, nowMs))];
     if (incident.status === 'acknowledged') meta.push('being handled');
     else if (incident.fix && incident.fix.state === 'offer') meta.push('<span class="inc-tag-fix">Fix available</span>');
-    const example = incident.example ? '<span class="inc-tag-example">Example</span>' : '';
-    return `<button type="button" class="inc-sum-row is-${tone}" data-open-incident="${incident.id}"><span class="inc-dot" aria-hidden="true"></span><span class="inc-num">#${incident.id}</span><span class="inc-sum-text">${escapeHtmlSafe(incidentText(incident.title || 'Incident'))}</span><span class="inc-sum-meta">${example}${meta.join(' · ')}</span></button>`;
+    const testTag = incident.test ? '<span class="inc-tag-test">Test</span>' : '';
+    return `<button type="button" class="inc-sum-row is-${tone}" data-open-incident="${incident.id}"><span class="inc-dot" aria-hidden="true"></span><span class="inc-num">#${incident.id}</span><span class="inc-sum-text">${escapeHtmlSafe(incidentText(incident.title || 'Incident'))}</span><span class="inc-sum-meta">${testTag}${meta.join(' · ')}</span></button>`;
 }
 
 // System Health: the open incidents in short under the status line, those that need a look first; health.js calls it
@@ -1239,7 +1238,7 @@ function renderHardwareIncidentNote(data) {
             tone = INCIDENT_SEVERITY[i.severity] ? i.severity : 'warn';
             const when = i.status === 'acknowledged' ? 'being handled' : age === 'just now' ? 'started just now' : `started ${age} ago`;
             html = `<span class="inc-dot" aria-hidden="true"></span><strong>Incident #${i.id}</strong><span class="hw-inc-title">${escapeHtmlSafe(incidentText(i.title || 'Incident'))}</span>`
-                + `${i.example ? '<span class="inc-tag-example">Example</span>' : ''}<span class="hw-inc-meta">${escapeHtmlSafe(when)}${hardware.length > 1 ? ` · and ${hardware.length - 1} more` : ''}</span>`
+                + `${i.test ? '<span class="inc-tag-test">Test</span>' : ''}<span class="hw-inc-meta">${escapeHtmlSafe(when)}${hardware.length > 1 ? ` · and ${hardware.length - 1} more` : ''}</span>`
                 + `<button type="button" class="health-card-link hw-inc-open" data-open-incident="${i.id}">View incident</button>`;
         } else {
             html = '<span>No open CPU, memory, GPU or disk incidents</span> · <button type="button" class="health-card-link" data-open-incident="">Open Incidents</button>';
@@ -1369,15 +1368,15 @@ function openIncidentApprove(id) {
         dialog.addEventListener('close', () => { dialog.classList.remove('is-closing'); incidentsApproveFor = null; });
         dialog.addEventListener('cancel', (event) => { event.preventDefault(); closeIncidentApprove(); });
     }
-    incidentsApproveFor = { id: String(id), fix: fix.key, example: !!fix.example };
+    incidentsApproveFor = { id: String(id), fix: fix.key, test: !!fix.test };
     document.getElementById('incidents-approve-title').textContent = `Approve the fix for incident #${id}?`;
-    document.getElementById('incidents-approve-sub').innerHTML = fix.example
-        ? `<strong>Example incident.</strong> Nothing is started: the approval is only written to this example's history.`
+    document.getElementById('incidents-approve-sub').innerHTML = fix.test
+        ? `<strong>Test incident.</strong> Nothing is started: the approval is only written to this test incident's history.`
         : `<strong>${escapeHtmlSafe(fix.label)}.</strong> ${escapeHtmlSafe(fix.describe || '')} Nothing else is changed.`;
     const rows = [
         ['Approved by', `${incidentsUsername()} (System Admin)`],
         ['Written to', "the incident's history and Audit Logs"],
-        ['Afterwards', fix.example ? 'nothing changes: it is an example' : 'the incident closes by itself once the next checks see the kiosk']
+        ['Afterwards', fix.test ? 'nothing changes: it is a test incident' : 'the incident closes by itself once the next checks see the kiosk']
     ];
     document.getElementById('incidents-approve-kv').innerHTML = rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(v)}</dd>`).join('');
     const error = document.getElementById('incidents-approve-error');
@@ -1385,7 +1384,7 @@ function openIncidentApprove(id) {
     error.textContent = '';
     const go = document.getElementById('incidents-approve-go');
     go.disabled = false;
-    go.textContent = fix.example ? 'Approve' : 'Approve and start';
+    go.textContent = fix.test ? 'Approve' : 'Approve and start';
     dialog.classList.remove('is-closing');
     if (!dialog.open) dialog.showModal();
     document.getElementById('incidents-approve-cancel').focus();
@@ -1558,16 +1557,18 @@ function incidentsSelectValue(id, value, label) {
     select.value = text;
 }
 
-function renderIncidentExamplesBox() {
-    const button = document.getElementById('incidents-examples-btn');
-    const text = document.getElementById('incidents-examples-text');
-    if (!button || !text) return;
-    const count = Number(incidentsStatus && incidentsStatus.examples) || 0;
-    button.textContent = count ? 'Remove example incidents' : 'Show example incidents';
-    button.disabled = !incidentsIsAdmin();
-    text.textContent = count
-        ? `${count} example incident${count === 1 ? ' is' : 's are'} in the list, labelled Example. Removing them deletes only the examples.`
-        : 'Seven made-up incidents that show every part of this panel: a chart, the advice, step-by-step help, a fix waiting for approval, an acknowledged one and two resolved ones. They are labelled Example, never run anything and never tune a detector.';
+// Send a test incident: the kinds come with the settings (GET /settings testKinds); any admin who is signed in may send one
+function renderIncidentTestBox() {
+    const select = document.getElementById('incidents-test-kind');
+    const button = document.getElementById('incidents-test-btn');
+    if (!select || !button) return;
+    const kinds = (incidentsSettingsData && Array.isArray(incidentsSettingsData.testKinds)) ? incidentsSettingsData.testKinds : [];
+    const chosen = select.value || 'cpu';
+    select.innerHTML = kinds.map((k) => `<option value="${escapeHtmlSafe(k.key)}">${escapeHtmlSafe(k.label)}</option>`).join('');
+    if (kinds.some((k) => k.key === chosen)) select.value = chosen;
+    // this admin may only be allowed to look at the settings below, but anyone signed in can send a test incident
+    select.disabled = !kinds.length;
+    button.disabled = !kinds.length;
 }
 
 function incidentsApplyFixesState() {
@@ -1602,7 +1603,7 @@ async function fillIncidentSettings() {
     incidentsDrawerDirty = false;
     incidentsDrawerSnapshot = '';
     incidentsSettingsStatus('', '');
-    const result = document.getElementById('incidents-examples-result');
+    const result = document.getElementById('incidents-test-result');
     if (result) { result.textContent = ''; result.classList.remove('is-error'); }
     try {
         const data = await incidentsFetch('/api/admin/aiops/settings');
@@ -1642,7 +1643,7 @@ async function fillIncidentSettings() {
         incidentsApplyFixesState();
         incidentsAdvancedTexts();
         incidentsAiState();
-        renderIncidentExamplesBox();
+        renderIncidentTestBox();
         document.getElementById('incidents-settings-save').disabled = !admin;
         if (loading) loading.hidden = true;
         await fillIncidentAdvisorModels(model);
@@ -1719,7 +1720,7 @@ function bindIncidentsDrawer(drawer) {
         } else if (INCIDENT_ADVANCED.some(([, id]) => id === input.id)) {
             incidentsAdvancedTexts();
         }
-        if (input.closest('.inc-drawer-body') && !input.closest('.inc-examples')) incidentsUpdateDirty();
+        if (input.closest('.inc-drawer-body') && !input.closest('.inc-test')) incidentsUpdateDirty();
     });
 }
 
@@ -1823,37 +1824,20 @@ async function saveIncidentSettings() {
     }
 }
 
-async function toggleIncidentExamples() {
-    if (!incidentsIsAdmin()) return;
-    const button = document.getElementById('incidents-examples-btn');
-    const result = document.getElementById('incidents-examples-result');
-    const shown = Number(incidentsStatus && incidentsStatus.examples) > 0;
-    button.disabled = true;
-    result.classList.remove('is-error');
-    try {
-        const data = await incidentsFetch('/api/admin/aiops/examples', { method: shown ? 'DELETE' : 'POST', body: '{}' });
-        result.textContent = shown ? `Removed ${data.removed} example incident${data.removed === 1 ? '' : 's'}.` : `Added ${data.made} example incidents to the list. Close this panel to look at them.`;
-        // the most urgent example is shown first
-        if (!shown) incidentsSelected = null;
-        await loadIncidents(true);
-    } catch (error) {
-        result.textContent = error.message;
-        result.classList.add('is-error');
-    } finally {
-        renderIncidentExamplesBox();
-    }
-}
-
 async function raiseTestIncident() {
     const button = document.getElementById('incidents-test-btn');
+    const select = document.getElementById('incidents-test-kind');
+    const result = document.getElementById('incidents-test-result');
     if (button) button.disabled = true;
+    if (result) { result.textContent = ''; result.classList.remove('is-error'); }
     try {
-        const data = await incidentsFetch('/api/admin/aiops/test-incident', { method: 'POST', body: '{}' });
-        incidentsSettingsStatus('Test incident opened. It closes by itself in 10 minutes.', '');
-        if (data.incident && data.incident.id) incidentsSelected = String(data.incident.id);
+        const data = await incidentsFetch('/api/admin/aiops/test-incident', { method: 'POST', body: JSON.stringify({ kind: select ? select.value : 'cpu' }) });
+        const id = data.incident && data.incident.id;
+        if (result) result.textContent = id ? `Test incident #${id} opened. Close this panel to see it; it closes by itself in 10 minutes.` : 'Test incident opened.';
+        if (id) incidentsSelected = String(id);
         await loadIncidents(true);
     } catch (error) {
-        incidentsSettingsStatus(error.message, 'error');
+        if (result) { result.textContent = error.message; result.classList.add('is-error'); }
     } finally {
         if (button) button.disabled = false;
     }

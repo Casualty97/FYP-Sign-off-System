@@ -337,7 +337,7 @@ async function archiveStep(cookie) {
     // <Jun Kai start>
     await expect('POST /api/admin/archive/update-status without a session is refused', `${BASE}/api/admin/archive/update-status`, (r) => r.status === 401, { method: 'POST' });
     await expect('GET /api/admin/aiops/status without a session is refused', `${BASE}/api/admin/aiops/status`, (r) => r.status === 401);
-    await expect('POST /api/admin/aiops/examples without a session is refused', `${BASE}/api/admin/aiops/examples`, (r) => r.status === 401 || r.status === 403, { method: 'POST' });
+    await expect('POST /api/admin/aiops/test-incident without a session is refused', `${BASE}/api/admin/aiops/test-incident`, (r) => r.status === 401 || r.status === 403, { method: 'POST' });
     await expect('PUT /api/admin/hardware/alert-lines without a session is refused', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     await expect('PUT /api/admin/health/settings without a session is refused', `${BASE}/api/admin/health/settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     await expect('PUT /api/admin/sign-in-settings without a session is refused', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
@@ -474,19 +474,19 @@ async function archiveStep(cookie) {
         if (incidentId) await expect('POST advice on a resolved incident is refused', `${AIOPS}/incidents/${incidentId}/advice`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
         await expect('POST advice on an unknown incident is 404', `${AIOPS}/incidents/99999999/advice`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
         await expect('GET /api/admin/aiops/advisor has the step list', `${AIOPS}/advisor`, (r) => r.body && r.body.success === true && !!r.body.actions && typeof r.body.actions.none === 'string' && Array.isArray(r.body.models) || r.text.slice(0, 160), { headers: { cookie } });
-        // the fixes, the busiest programmes and the example incidents (an example's fix is only recorded: nothing starts)
-        await expect('GET /api/admin/aiops/settings has the level numbers and the fixes', `${AIOPS}/settings`, (r) => r.body && r.body.levels && r.body.levels.spike && r.body.levels.spike.short.length === 5 && Array.isArray(r.body.fixes) && r.body.fixes.some((f) => f.key === 'start-kiosk') || r.text.slice(0, 160), { headers: { cookie } });
+        // the fixes, the busiest programmes and a test "Kiosk server down" (a test incident's fix is only recorded: nothing starts)
+        await expect('GET /api/admin/aiops/settings has the level numbers, the fixes and the test kinds', `${AIOPS}/settings`, (r) => r.body && r.body.levels && r.body.levels.spike && r.body.levels.spike.short.length === 5 && Array.isArray(r.body.fixes) && r.body.fixes.some((f) => f.key === 'start-kiosk') && Array.isArray(r.body.testKinds) && r.body.testKinds.some((k) => k.key === 'kiosk') || r.text.slice(0, 160), { headers: { cookie } });
         await expect('GET /api/admin/aiops/processes answers a list', `${AIOPS}/processes?by=memory`, (r) => r.body && r.body.success === true && Array.isArray(r.body.programmes) || r.text.slice(0, 160), { headers: { cookie } });
-        await expect('POST /api/admin/aiops/examples adds the seven example incidents', `${AIOPS}/examples`, (r) => r.body && r.body.success === true && r.body.made === 7 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
-        const listed = (await get(`${AIOPS}/incidents?status=open`, { headers: { cookie } })).body;
-        const kioskExample = listed && Array.isArray(listed.incidents) ? listed.incidents.find((i) => i.example && i.fix && i.fix.key === 'start-kiosk') : null;
-        (kioskExample ? pass : fail)('the kiosk-down example offers the start fix');
-        if (kioskExample) {
-          await expect('POST /api/admin/aiops/incidents/:id/fix on the example only records it', `${AIOPS}/incidents/${kioskExample.id}/fix`, (r) => r.body && r.body.success === true && r.body.example === true && r.body.done === true || `${r.status}: ${r.text.slice(0, 120)}`, post({ fix: 'start-kiosk' }));
-          await expect('the example has fix and fix-done on its timeline', `${AIOPS}/incidents/${kioskExample.id}`, (r) => ['fix', 'fix-done'].every((t) => ((r.body && r.body.events) || []).some((e) => e.type === t)) && !!r.body.help || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('POST /api/admin/aiops/test-incident refuses a kind it does not know', `${AIOPS}/test-incident`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({ kind: 'format-the-disk' }));
+        const kioskMade = await get(`${AIOPS}/test-incident`, post({ kind: 'kiosk' }));
+        const kioskId = kioskMade.body && kioskMade.body.incident && kioskMade.body.incident.id;
+        (kioskId ? pass : fail)(`POST /api/admin/aiops/test-incident opens a test kiosk incident (${kioskMade.status})${kioskId ? '' : ': ' + kioskMade.text.slice(0, 120)}`);
+        if (kioskId) {
+          await expect('the test kiosk incident offers the start fix', `${AIOPS}/incidents?status=open`, (r) => r.body && Array.isArray(r.body.incidents) && r.body.incidents.some((i) => i.id === kioskId && i.test === true && i.fix && i.fix.key === 'start-kiosk') || r.text.slice(0, 160), { headers: { cookie } });
+          await expect('POST /api/admin/aiops/incidents/:id/fix on the test incident only records it', `${AIOPS}/incidents/${kioskId}/fix`, (r) => r.body && r.body.success === true && r.body.test === true && r.body.done === true || `${r.status}: ${r.text.slice(0, 120)}`, post({ fix: 'start-kiosk' }));
+          await expect('the test incident has fix and fix-done on its timeline', `${AIOPS}/incidents/${kioskId}`, (r) => ['fix', 'fix-done'].every((t) => ((r.body && r.body.events) || []).some((e) => e.type === t)) && !!r.body.help || r.text.slice(0, 160), { headers: { cookie } });
+          await expect('POST resolve closes the test kiosk incident', `${AIOPS}/incidents/${kioskId}/resolve`, (r) => r.body && r.body.incident && r.body.incident.status === 'resolved' || r.text.slice(0, 160), post({ note: 'Smoke test' }));
         }
-        if (incidentId) await expect('POST fix on an incident it does not fit is refused', `${AIOPS}/incidents/${incidentId}/fix`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({ fix: 'start-kiosk' }));
-        await expect('DELETE /api/admin/aiops/examples removes them again', `${AIOPS}/examples`, (r) => r.body && r.body.success === true && r.body.removed === 7 || `${r.status}: ${r.text.slice(0, 120)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', cookie }, body: '{}' });
         // <Jun Kai end>
         await expect('POST /api/admin/aiops/run-now runs one check', `${AIOPS}/run-now`, (r) => r.body && r.body.success === true && !!r.body.result && (r.body.result.skipped === null || r.body.result.skipped === 'disabled') || r.text.slice(0, 160), post({}));
         await expect('POST acknowledge on an unknown incident is 404', `${AIOPS}/incidents/999999999/acknowledge`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));

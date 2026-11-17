@@ -4,7 +4,7 @@
 // already exists elsewhere in the app: starting the kiosk server the way Start kiosk on Server Schedule does.
 // KIOSK_AUTOMATION governs what runs by itself, like the policies: off = nothing runs by itself, dry-run = only
 // recorded. An approval by hand always runs, like the Start kiosk button on Server Schedule (that setting does not
-// stop the button either). An example incident's fix is only recorded, never run. Every run goes on the incident's timeline
+// stop the button either). A test incident's fix is only recorded, never run. Every run goes on the incident's timeline
 // ('fix' when it starts, 'fix-done' with the result) and into Audit Logs.
 // <Jun Kai start>
 const FIXES = {
@@ -19,9 +19,10 @@ const FIXES = {
 const MODE_LABELS = { ask: 'Ask first', delayed: 'Ask, then automatic after 5 min', auto: 'Automatic' };
 const DELAY_MS = 5 * 60 * 1000;   // "delayed" by default: runs by itself once the incident is this old and nobody approved
 const RETRY_MS = 10 * 60 * 1000;  // an automatic run is not tried again on the same incident sooner than this
-const EXAMPLE_PREFIX = 'example:';
+// test incidents (Send a test incident) start with this; detector 'test' is the single test incident of before 17 Nov 2026
+const TEST_PREFIX = 'test:';
 
-const isExample = (incident) => String((incident && incident.fingerprint) || '').startsWith(EXAMPLE_PREFIX);
+const isTest = (incident) => !!incident && (String(incident.fingerprint || '').startsWith(TEST_PREFIX) || incident.detector === 'test');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 
 function fixFor(incident) {
@@ -50,10 +51,10 @@ function delayMinutes(settings) {
 const modeLabel = (mode, settings) => (mode === 'delayed' ? `Ask, then automatic after ${delayMinutes(settings)} min` : MODE_LABELS[mode]);
 
 // Whether an automatic run is due now: "auto" at once, "delayed" once the incident has been open for delayMs since it
-// opened or last opened again (sinceMs); never twice within RETRY_MS on one incident, never on an example, and only
+// opened or last opened again (sinceMs); never twice within RETRY_MS on one incident, never on a test incident, and only
 // while the incident is open (Acknowledge = someone is on it, so nothing runs by itself)
 function autoDue(incident, mode, nowMs, lastTriedMs, { delayMs = DELAY_MS, sinceMs = 0 } = {}) {
-    if (!incident || isExample(incident) || incident.status !== 'open') return false;
+    if (!incident || isTest(incident) || incident.status !== 'open') return false;
     if (mode !== 'auto' && mode !== 'delayed') return false;
     if (lastTriedMs && nowMs - lastTriedMs < RETRY_MS) return false;
     if (mode === 'delayed') return nowMs - Math.max(Date.parse(incident.opened_at) || 0, sinceMs || 0) >= delayMs;
@@ -80,20 +81,21 @@ function createFixer({ store, settings, actions, lastAttempt = () => 0, noteAtte
         if (!incident) return null;
         if (incident.status === 'resolved') throw fail(400, 'This incident is resolved: there is nothing to fix');
         if (!FIXES[fixKey] || fixFor(incident) !== fixKey) throw fail(400, 'This fix does not apply to this incident');
-        const example = isExample(incident);
-        if (!example && (settings() || {}).offerFixes === false) throw fail(409, 'Fixes are switched off in the incident settings');
+        // a test incident follows the Offer fixes switch like a real one, but its fix only goes on its history
+        const test = isTest(incident);
+        if ((settings() || {}).offerFixes === false) throw fail(409, 'Fixes are switched off in the incident settings');
         if (running.has(incident.id)) throw fail(409, 'This fix is already running');
         // only a run by itself asks KIOSK_AUTOMATION; an admin's approval is a press of Start kiosk
         const mode = automatic ? automation() : 'on';
-        if (!example && mode === 'off') throw fail(409, 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so nothing runs without an approval');
+        if (!test && mode === 'off') throw fail(409, 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so nothing runs without an approval');
         if (automatic) tried.set(incident.id, now().getTime());
-        const dryRun = !example && mode === 'dry-run';
-        await store.addEvent(incident.id, 'fix', { fix: fixKey, by, automatic, example, dryRun }, iso());
+        const dryRun = !test && mode === 'dry-run';
+        await store.addEvent(incident.id, 'fix', { fix: fixKey, by, automatic, test, dryRun }, iso());
         record(automatic ? 'AIOPS_INCIDENT_FIX_AUTO' : 'AIOPS_INCIDENT_FIX', by, incident.id);
-        if (example || dryRun) {
-            const message = example ? 'Example incident: nothing was run' : 'Dry run: nothing was started (KIOSK_AUTOMATION=dry-run)';
-            await store.addEvent(incident.id, 'fix-done', { fix: fixKey, ok: true, message, example, dryRun }, iso());
-            return { started: true, done: true, example, dryRun };
+        if (test || dryRun) {
+            const message = test ? 'Test incident: nothing was run' : 'Dry run: nothing was started (KIOSK_AUTOMATION=dry-run)';
+            await store.addEvent(incident.id, 'fix-done', { fix: fixKey, ok: true, message, test, dryRun }, iso());
+            return { started: true, done: true, test, dryRun };
         }
         running.set(incident.id, fixKey);
         noteAttempt(now().getTime());
@@ -153,14 +155,14 @@ function fixStatus({ running = false, lastFix = null, lastDone = null, nowMs = D
     const who = { by: fixDetail.by || null, automatic: !!fixDetail.automatic };
     const pending = lastFix && ms(lastFix) > ms(lastDone);
     if (running || (pending && nowMs - ms(lastFix) < NO_ANSWER_MS)) return { state: 'running', at: lastFix ? lastFix.at : null, ...who };
-    if (pending) return { state: 'failed', at: lastFix.at, ...who, message: 'No answer was recorded: the server may have restarted during the start', example: false, dryRun: false };
+    if (pending) return { state: 'failed', at: lastFix.at, ...who, message: 'No answer was recorded: the server may have restarted during the start', test: false, dryRun: false };
     if (!lastDone) return { state: 'offer' };
     const done = lastDone.detail || {};
-    const result = { at: lastDone.at, ...who, message: String(done.message || ''), example: !!done.example, dryRun: !!done.dryRun };
+    const result = { at: lastDone.at, ...who, message: String(done.message || ''), test: !!done.test, dryRun: !!done.dryRun };
     if (!done.ok) return { state: 'failed', ...result };
     if (nowMs - ms(lastDone) < confirmMs) return { state: 'started', ...result };
-    // an example or a dry run started nothing, so there is no start that "did not bring it back"
-    return result.example || result.dryRun ? { state: 'offer' } : { state: 'offer', last: result };
+    // a test or a dry run started nothing, so there is no start that "did not bring it back"
+    return result.test || result.dryRun ? { state: 'offer' } : { state: 'offer', last: result };
 }
 
 // What the page needs to show a fix on one incident
@@ -170,11 +172,11 @@ function describeFix(incident, settings, fixer) {
     const fix = FIXES[fixKey];
     return {
         key: fixKey, label: fix.label, describe: fix.describe, mode: modeOf(settings, fixKey), delayMinutes: delayMinutes(settings),
-        offered: isExample(incident) || (settings || {}).offerFixes !== false,
+        offered: (settings || {}).offerFixes !== false,
         running: fixer ? fixer.isRunning(incident.id) : false,
-        example: isExample(incident), automation: automationSetting()
+        test: isTest(incident), automation: automationSetting()
     };
 }
 
-module.exports = { FIXES, MODE_LABELS, DELAY_MS, RETRY_MS, EXAMPLE_PREFIX, isExample, fixFor, modeOf, automationSetting, delayMinutes, modeLabel, autoDue, createFixer, fixStatus, describeFix };
+module.exports = { FIXES, MODE_LABELS, DELAY_MS, RETRY_MS, TEST_PREFIX, isTest, fixFor, modeOf, automationSetting, delayMinutes, modeLabel, autoDue, createFixer, fixStatus, describeFix };
 // <Jun Kai end>

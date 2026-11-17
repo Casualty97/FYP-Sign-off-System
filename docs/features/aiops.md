@@ -6,10 +6,10 @@
 
 - backend/features/aiops/detectors.js (the seven detectors; pure functions, no clock, database or network), incidents.js (the incident engine with its memory store and its SQL store), settings.js (backend/data/aiops-settings.json, seeded from backend/config/defaults/aiops-settings.json), healthRecorder.js (the background health runs), logReader.js (follows the event log files), engine.js (the wiring in server.js: the tick timer, the detectors' input, quiet hours, the status), routes.js (the API below, mounted at /api/admin/aiops by backend/server.js)
 - backend/core/log.js captureEvents(): server.js and kioskServer.js call it right after setupLogging(), so every console.warn and console.error also lands in logs/app-events-server.jsonl or logs/app-events-kiosk.jsonl
-- backend/features/aiops/fixes.js (the fix an admin approves: starting the kiosk server; modes and status), playbooks.js (the step-by-step help, written once), processes.js (the busiest programmes for the CPU and memory steps), examples.js (the seven example incidents)
+- backend/features/aiops/fixes.js (the fix an admin approves: starting the kiosk server; modes and status), playbooks.js (the step-by-step help, written once), processes.js (the busiest programmes for the CPU and memory steps), testIncidents.js (the made-up incident of each kind for Send test incident)
 - frontend/admin/js/incidents.js and the Incidents page in admin.html (its own sidebar item under SYSTEM, with the count of incidents that need a look), plus a short summary under System Health's status line and a notice on the Hardware page (styles in the UI kit block of admin.css); the summary's Customise switch is the `incidents` option of backend/features/health/layout.js
 - tables incidents, incident_events and health_check_results (database/migrations/007_aiops_incidents.sql); scripts/setup/Purge_Actuator.js and Datastore_Assembly.js clear them with the other Role 3 tables
-- scripts/aiops-replay.js (`npm run aiops:replay`, the evaluation) and tests/unit/aiopsDetectors.test.js, aiopsIncidents.test.js, aiopsSettings.test.js, aiopsHealthRecorder.test.js, aiopsLogReader.test.js, aiopsInput.test.js, aiopsEngine.test.js, aiopsReplay.test.js, aiopsAdvisor.test.js, aiopsLearning.test.js, aiopsFixes.test.js, aiopsPlaybooks.test.js, aiopsExamples.test.js (run with `npm run test:unit`, also in CI; none needs a database)
+- scripts/aiops-replay.js (`npm run aiops:replay`, the evaluation) and tests/unit/aiopsDetectors.test.js, aiopsIncidents.test.js, aiopsSettings.test.js, aiopsHealthRecorder.test.js, aiopsLogReader.test.js, aiopsInput.test.js, aiopsEngine.test.js, aiopsReplay.test.js, aiopsAdvisor.test.js, aiopsLearning.test.js, aiopsFixes.test.js, aiopsPlaybooks.test.js, aiopsTestIncidents.test.js (run with `npm run test:unit`, also in CI; none needs a database)
 
 **What it does**
 
@@ -67,10 +67,8 @@ Refinements after the first live test (11 Nov 2026). Privacy: email addresses in
 | PUT | `/api/admin/aiops/settings` | backend/features/aiops/routes.js |
 | POST | `/api/admin/aiops/run-now` | backend/features/aiops/routes.js |
 | POST | `/api/admin/aiops/test-incident` | backend/features/aiops/routes.js |
-| POST | `/api/admin/aiops/examples` | backend/features/aiops/routes.js |
-| DELETE | `/api/admin/aiops/examples` | backend/features/aiops/routes.js |
 
-All of them need a login; PUT /settings, POST /run-now, POST /incidents/:id/fix and POST and DELETE /examples need a system admin. GET /status answers the engine state (enabled, last and next check, each detector's switch, sensitivity, state and note, how much data it has, the open, acknowledged and resolved-today counts, quiet now); GET /incidents takes `?status=open|resolved|all&limit=50` (open first, newest first, at most 500); GET /incidents/:id adds the timeline; POST /resolve takes `{ note }` and POST /verdict `{ verdict: 'correct' | 'not-useful' | 'false-alarm' }`; POST /run-now runs one check now and answers how many anomalies, opened, merged and resolved. A wrong id is 404, and the tables missing before `npm run db:migrate` are 503.
+All of them need a login; PUT /settings, POST /run-now and POST /incidents/:id/fix need a system admin. GET /status answers the engine state (enabled, last and next check, each detector's switch, sensitivity, state and note, how much data it has, the open, acknowledged and resolved-today counts, quiet now); GET /incidents takes `?status=open|resolved|all&limit=50` (open first, newest first, at most 500); GET /incidents/:id adds the timeline; POST /resolve takes `{ note }` and POST /verdict `{ verdict: 'correct' | 'not-useful' | 'false-alarm' }`; POST /run-now runs one check now and answers how many anomalies, opened, merged and resolved. A wrong id is 404, and the tables missing before `npm run db:migrate` are 503.
 
 **Task-sheet items for this feature**
 
@@ -96,7 +94,8 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
   verdicts teach it ("LLM/AI training" of task-sheet point 3, without fine-tuning on a kiosk PC). No visitor records go
   in, and nothing leaves the PC.
 - It never runs anything: the step is a suggestion on the page. The answer is checked (an unknown step becomes "none",
-  steps copied into the causes are dropped, texts cut to size); a test incident always gets "nothing to do".
+  steps copied into the causes are dropped, texts cut to size). A test incident gets real advice for its kind, but its
+  answer never becomes an example for a real incident.
 - When Ollama is off, slow (120 s) or answers in the wrong shape, rule-based advice per detector is given instead and
   marked as such.
 - When: after every check, an open incident whose newest open, reopen or severity step has no advice after it is
@@ -144,7 +143,7 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
   PowerShell are never listed. Asked only when an incident is chosen or on Check again, never on the refresh.
 - `examples.js` (`POST` and `DELETE /examples`): seven example incidents (fingerprints starting `example:`) that show
   every part of the page; they never tune a detector, never teach the advisor, never resolve themselves and their fix
-  is only recorded.
+  is only recorded. Removed on 17 Nov 2026: Send test incident does the same job (see the section of that date).
 - `detectors.levels()` gives the drawer the number behind each sensitivity level; `GET /status` counts the open
   critical incidents for the sidebar colour (`counts.critical`).
 
@@ -182,3 +181,21 @@ Hand-written on 2026-11-11. Update this page when you change the feature.
   advisor off too there is no advice at all. Not covered: two kiosk features keep their own models (Role 1's pledge
   check at submission and face detection on the tablets), and Translate to English calls Google's online translation.
 - A change is audited as AIOPS_LOCAL_AI_ON or AIOPS_LOCAL_AI_OFF.
+
+## Test incidents replace the example incidents, 17 Nov 2026
+- The seven Example incidents and "Send a test incident" did the same job for different reasons, which was confusing.
+  They are one feature now: the Test incident section of the Settings drawer has a list of kinds and a Send test
+  incident button (any admin who is signed in): CPU much busier than usual, Kiosk server down, Disk filling up, Tablet offline
+  and Server errors (`testIncidents.testKinds()`, sent to the page in `GET /settings` as `testKinds`).
+- `POST /test-incident { kind }` (CPU when no kind is given; an unknown kind is a 400 that lists the kinds) opens one
+  incident with made up numbers and the real detector of that kind, so the page shows it like a real one: the chart, the advisor's
+  answer, the steps, Acknowledge, Resolve and the verdict. Its explanation starts with "Test opened by <admin>: the
+  numbers are made up", it is labelled Test on the page, the summary and the Hardware notice, and an Audit Logs line
+  (AIOPS_TEST_INCIDENT) records who sent it.
+- Its fingerprint starts with `test:` (`fixes.TEST_PREFIX`, `fixes.isTest`). Because of that it closes by itself 10
+  minutes after it opened, even while its detector is held or switched off; it never becomes an example for the advisor
+  and never tunes a detector (the SQL store filters `fingerprint NOT LIKE 'test:%'`); a fix on it is only recorded
+  ("Test incident: nothing was run") and never runs by itself. Unlike the examples it follows Offer fixes on incidents:
+  with fixes switched off it shows no fix card, like a real incident.
+- The runner deletes the old example incidents once at start (`deleteByFingerprintPrefix('example:')`), and
+  `POST` and `DELETE /examples` are gone.

@@ -65,7 +65,7 @@ test('modes and KIOSK_AUTOMATION fall back to the safe value', () => {
     assert.equal(fixes.automationSetting(undefined), 'on');
 });
 
-test('an automatic run is due at once in Automatic, after 5 minutes in "Ask, then automatic", never on an example', () => {
+test('an automatic run is due at once in Automatic, after 5 minutes in "Ask, then automatic", never on a test incident', () => {
     const open = kioskDown();
     assert.equal(fixes.autoDue(open, 'ask', START, null), false);
     assert.equal(fixes.autoDue(open, 'auto', START, null), true);
@@ -73,7 +73,7 @@ test('an automatic run is due at once in Automatic, after 5 minutes in "Ask, the
     assert.equal(fixes.autoDue(open, 'delayed', START + 5 * MINUTE, null), true);
     assert.equal(fixes.autoDue(open, 'auto', START + 20 * MINUTE, START + 15 * MINUTE), false, 'not again within 10 minutes');
     assert.equal(fixes.autoDue(open, 'auto', START + 26 * MINUTE, START + 15 * MINUTE), true);
-    assert.equal(fixes.autoDue(kioskDown({ fingerprint: 'example:kiosk:abc' }), 'auto', START, null), false);
+    assert.equal(fixes.autoDue(kioskDown({ fingerprint: 'test:kiosk:abc' }), 'auto', START, null), false);
     assert.equal(fixes.autoDue(kioskDown({ status: 'resolved' }), 'auto', START, null), false);
     assert.equal(fixes.autoDue(kioskDown({ status: 'acknowledged' }), 'delayed', START + 30 * MINUTE, null), false, 'Acknowledge holds the countdown');
     assert.equal(fixes.autoDue(kioskDown({ status: 'acknowledged' }), 'auto', START, null), false);
@@ -91,7 +91,7 @@ test('fixStatus: on offer, starting, started (until the incident can close), fai
     assert.match(lost.message, /restarted/);
 
     const ok = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0.5, { ok: true, message: 'Server started successfully' }), nowMs: now(5), confirmMs: 15 * MINUTE });
-    assert.deepEqual(ok, { state: 'started', at: new Date(START + 0.5 * MINUTE).toISOString(), by: 'systemadmin', automatic: false, message: 'Server started successfully', example: false, dryRun: false });
+    assert.deepEqual(ok, { state: 'started', at: new Date(START + 0.5 * MINUTE).toISOString(), by: 'systemadmin', automatic: false, message: 'Server started successfully', test: false, dryRun: false });
     const later = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0.5, { ok: true }), nowMs: now(20), confirmMs: 15 * MINUTE });
     assert.equal(later.state, 'offer', 'still open long after a good start: offered again');
     assert.equal(later.last.by, 'systemadmin');
@@ -100,10 +100,10 @@ test('fixStatus: on offer, starting, started (until the incident can close), fai
     assert.equal(bad.state, 'failed');
     assert.equal(bad.automatic, true);
     assert.equal(bad.message, 'did not come up');
-    const example = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, example: true, message: 'Example incident: nothing was run' }), nowMs: now(0) });
-    assert.equal(example.state, 'started');
-    assert.equal(example.example, true);
-    assert.deepEqual(fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, example: true }), nowMs: now(20), confirmMs: 15 * MINUTE }), { state: 'offer' }, 'an example started nothing, so it never "did not bring it back"');
+    const tested = fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, test: true, message: 'Test incident: nothing was run' }), nowMs: now(0) });
+    assert.equal(tested.state, 'started');
+    assert.equal(tested.test, true);
+    assert.deepEqual(fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, test: true }), nowMs: now(20), confirmMs: 15 * MINUTE }), { state: 'offer' }, 'a test started nothing, so it never "did not bring it back"');
     assert.deepEqual(fixes.fixStatus({ lastFix: fixAt(0), lastDone: doneAt(0, { ok: true, dryRun: true }), nowMs: now(20), confirmMs: 15 * MINUTE }), { state: 'offer' });
 });
 
@@ -123,7 +123,7 @@ test('an approved fix answers at once, starts the kiosk once and records the res
     assert.equal(s.fixer.isRunning(id), false);
     assert.deepEqual(await s.types(id), ['fix', 'fix-done']);
     const [fix, done] = await s.store.events(id);
-    assert.deepEqual(fix.detail, { fix: 'start-kiosk', by: 'systemadmin', automatic: false, example: false, dryRun: false });
+    assert.deepEqual(fix.detail, { fix: 'start-kiosk', by: 'systemadmin', automatic: false, test: false, dryRun: false });
     assert.equal(done.detail.ok, true);
     assert.equal(done.detail.message, 'Server started successfully');
     assert.deepEqual(s.calls.audits, [{ action: 'AIOPS_INCIDENT_FIX', by: 'systemadmin', id }]);
@@ -169,15 +169,18 @@ test('an approval runs whatever KIOSK_AUTOMATION says, like Start kiosk; off and
     assert.match(done.detail.message, /Dry run/);
 });
 
-test('an example incident only records the fix, even with fixes off and KIOSK_AUTOMATION=off', async () => {
-    const s = setup({ automation: 'off', conf: { offerFixes: false } });
-    const id = await s.store.insert(kioskDown({ fingerprint: 'example:kiosk:abc' }));
-    assert.deepEqual(await s.fixer.run(id, 'start-kiosk', 'systemadmin'), { started: true, done: true, example: true, dryRun: false });
-    assert.equal(s.calls.start, 0, 'nothing is started for an example');
+test('a test incident only records the fix, even with KIOSK_AUTOMATION=off, and follows Offer fixes like a real one', async () => {
+    const s = setup({ automation: 'off' });
+    const id = await s.store.insert(kioskDown({ fingerprint: 'test:kiosk:abc' }));
+    assert.deepEqual(await s.fixer.run(id, 'start-kiosk', 'systemadmin'), { started: true, done: true, test: true, dryRun: false });
+    assert.equal(s.calls.start, 0, 'nothing is started for a test incident');
     assert.deepEqual(s.calls.noted, []);
     const done = (await s.store.events(id)).find((e) => e.type === 'fix-done');
-    assert.equal(done.detail.example, true);
+    assert.equal(done.detail.test, true);
     assert.match(done.detail.message, /nothing was run/);
+    const off = setup({ conf: { offerFixes: false } });
+    const offId = await off.store.insert(kioskDown({ fingerprint: 'test:kiosk:def' }));
+    await assert.rejects(off.fixer.run(offId, 'start-kiosk', 'systemadmin'), (error) => error.status === 409);
 });
 
 test('the fix is refused on a resolved incident, on one it does not fit and while fixes are switched off', async () => {
@@ -214,10 +217,10 @@ test('the sweep runs a fix made Automatic, keeps the shared gap to any other sta
     assert.equal(await s.fixer.sweep(), 1, 'tried again after 10 minutes while it is still down');
 });
 
-test('"Ask, then automatic" waits 5 minutes from the opening; Ask first and examples never run by themselves', async () => {
+test('"Ask, then automatic" waits 5 minutes from the opening; Ask first and test incidents never run by themselves', async () => {
     const s = setup({ conf: { fixes: { 'start-kiosk': 'delayed' } } });
     await s.store.insert(kioskDown());
-    await s.store.insert(kioskDown({ fingerprint: 'example:kiosk:abc' }));
+    await s.store.insert(kioskDown({ fingerprint: 'test:kiosk:abc' }));
     s.advance(4 * MINUTE);
     assert.equal(await s.fixer.sweep(), 0);
     s.advance(MINUTE);
@@ -264,7 +267,8 @@ test('describeFix tells the page what is on offer', async () => {
     assert.equal(fix.offered, true);
     assert.equal(fix.running, false);
     assert.equal(fixes.describeFix(incident, { offerFixes: false }, s.fixer).offered, false);
-    assert.equal(fixes.describeFix({ ...incident, fingerprint: 'example:kiosk:x' }, { offerFixes: false }, s.fixer).offered, true);
+    const tested = fixes.describeFix({ ...incident, fingerprint: 'test:kiosk:x' }, { offerFixes: false }, s.fixer);
+    assert.deepEqual([tested.offered, tested.test], [false, true], 'a test incident follows Offer fixes too');
     assert.equal(fixes.describeFix({ ...incident, subject: 'email' }, {}, s.fixer), null);
 });
 
