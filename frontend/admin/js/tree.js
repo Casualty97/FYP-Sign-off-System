@@ -78,6 +78,11 @@ async function saveTreeParameters() {
         const showTitleBox = document.getElementById('param-showTitleBox').checked;
         const leafScaleSlider = document.getElementById('param-leafDisplayScale');
         const leafDisplayScale = leafScaleSlider ? parseFloat(leafScaleSlider.value) : 1.0;
+        // The VIP leaves' own scale (VIP Leaf Adjustments), 0.4 to 2; without the slider, the saved one stays.
+        const vipLeafScaleSlider = document.getElementById('param-vipLeafDisplayScale');
+        const vipLeafDisplayScale = vipLeafScaleSlider
+            ? Math.min(2, Math.max(0.4, parseFloat(vipLeafScaleSlider.value) || 1))
+            : undefined;
         const treeDisplayMode = document.getElementById('param-treeDisplayMode')?.value === '3d' ? '3d' : '2d';
 
         // Get thresholds
@@ -107,6 +112,7 @@ async function saveTreeParameters() {
             treeStageMode: mode === 'manual' ? 'manual' : 'auto',
             showTitleBox,
             leafDisplayScale,
+            vipLeafDisplayScale,
             treeDisplayMode,
             leafThresholds: thresholds,   // save thresholds for later
             treeTitleBox: collectTreeTitleSettings()  // collect title box settings if needed

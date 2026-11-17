@@ -138,9 +138,6 @@ function setSharedLeafScale(value) {
     const oldOutput = document.getElementById('param-leafDisplayScaleValue');
     if (oldOutput) oldOutput.textContent = String(normalized);
 
-    const oldOutputVip = document.getElementById('param-vipLeafDisplayScaleValue');
-    if (oldOutputVip) oldOutputVip.textContent = String(normalized);
-
     document.querySelectorAll('.badge-leaf-preview').forEach(preview => {
         preview.style.setProperty('--badge-preview-scale', normalized);
     });
@@ -614,7 +611,7 @@ function collectParameterForm() {
             treeStage: Math.max(0, Math.min(4, Number(getInputValue('param-treeStage')) || 0)),
             treeDisplayMode: getInputValue('param-treeDisplayMode') === '3d' ? '3d' : '2d',
             leafDisplayScale: sharedLeafScale,
-            vipLeafDisplayScale: parseFloat(getInputValue('param-vipLeafDisplayScale')) || 1.0,
+            vipLeafDisplayScale: clampNumber(getInputValue('param-vipLeafDisplayScale') || 1, 0.4, 2, 1), // VIP Leaf Adjustments
             showTitleBox: getCheckedValue('param-showTitleBox')
         },
         feedbackPageStyle: {

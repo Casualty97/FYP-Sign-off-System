@@ -6731,7 +6731,12 @@ router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
         if (treeStage !== undefined) config.treeParameters.treeStage = treeStage;
         if (showTitleBox !== undefined) config.treeParameters.showTitleBox = showTitleBox;
         if (leafDisplayScale !== undefined) config.treeParameters.leafDisplayScale = leafDisplayScale;
-        if (vipLeafDisplayScale !== undefined) config.treeParameters.vipLeafDisplayScale = vipLeafDisplayScale;
+        // The 2D tree's VIP leaf size (VIP Leaf Adjustments), 0.4 to 2.
+        if (vipLeafDisplayScale !== undefined) {
+            const vipScale = Number(vipLeafDisplayScale);
+            if (!Number.isFinite(vipScale)) return res.status(400).json({ success: false, error: 'VIP leaf display scale must be a number' });
+            config.treeParameters.vipLeafDisplayScale = Math.min(2, Math.max(0.4, Math.round(vipScale * 100) / 100));
+        }
         if (leafThresholds) config.treeParameters.leafThresholds = normalizeLeafThresholds(leafThresholds);
         // Auto: the tree grows by itself with its leaf count (features/parameters/treeStage.js).
         if (treeStageMode !== undefined) config.treeParameters.treeStageMode = normalizeTreeStageMode(treeStageMode);
