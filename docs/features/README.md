@@ -25,5 +25,6 @@ Owners keep their page current (CI does not check this, the reviewer does).
 - [System and LLM health](health.md) — owner: Role 3, Jun Kai, 8 route(s)
 - [Anomaly detection and incidents (AIOps)](aiops.md) — owner: Role 3, Jun Kai, 16 route(s)
 - [Hardware usage graphs with forecasting](hardware.md) — owner: Role 3, Jun Kai, 6 route(s)
+- [Install and uninstall scripts](install.md) — owner: Role 3, Jun Kai, no routes (install.cmd, uninstall.cmd, scripts/install)
 
 Routes not yet on any page: `GET /api/generate-qr`, `GET /`, `GET /api/feedback`

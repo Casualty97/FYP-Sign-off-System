@@ -45,7 +45,7 @@ Look (9 Nov 2026): the Controls card sat right under the Automation card, so the
 **Task-sheet items for this feature**
 
 - Enhance Hibernation setting via policy-based setting (meeting 03: Active and Stop policies, single weekdays, specific beats general, drag-and-drop priority).
-- Install and uninstall scripts for the whole application.
+- Install and uninstall scripts for the whole application: built 12 Nov 2026, see [install.md](install.md) (`install.cmd`, `uninstall.cmd`).
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 

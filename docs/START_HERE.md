@@ -104,7 +104,16 @@ additively and you tell Jun Kai. Your own folders are yours.
    cd FYP-Sign-off-System
    npm ci
    ```
-3. Create the database (it asks for your MySQL root password, and it drops `dp_kiosk_db` if it exists):
+3. Quickest way (Windows): run the installer. It checks the programs, runs `npm ci`, fills the empty keys of
+   `backend\.env` (`ENCRYPTION_KEY`, `SESSION_SECRET`, `KIOSK_AUTOMATION=off`), creates the database if it is
+   missing (asking once for the MySQL root password) and applies the migrations. It never drops a table, so it is safe
+   to run again. Then skip to `node startAll.js` in step 5. Details: [docs/features/install.md](features/install.md).
+   ```powershell
+   .\install.cmd -Role Laptop
+   .\install.cmd -Check
+   ```
+   The manual way (the rest of step 3, then steps 4 and 5) does the same by hand.
+   Create the database (it asks for your MySQL root password, and it drops `dp_kiosk_db` if it exists):
    ```powershell
    node scripts/setup/Datastore_Assembly.js
    ```
