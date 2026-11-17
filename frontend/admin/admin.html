@@ -1741,6 +1741,18 @@
                             <small class="text-muted">The same scale is saved to normal green leaves and badge-coloured leaves so both change together.</small>
                         </div>
 
+                        <div class="form-group">
+                            <label for="param-tintDurationHours">A leaf stays light for</label>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="number" id="param-tintDurationHours" min="1" max="10080" step="1" value="24" style="width:110px;">
+                                <select id="param-tintDurationUnit" aria-label="Minutes or hours" style="width:auto; flex:0 0 auto;">
+                                    <option value="minutes">minutes</option>
+                                    <option value="hours" selected>hours</option>
+                                </select>
+                            </div>
+                            <small class="text-muted">On the 2D tree, a new feedback's leaf starts in a light shade of its badge colour and turns to a dark shade of it after this long, so older leaves stand out. Any time up to 7 days, for example 1 minute, 30 minutes or 24 hours. The 3D tree has its own, "A leaf stays light for" in 3D Leaf Adjustments.</small>
+                        </div>
+
                         <div class="badge-leaf-style-grid">
                             <label class="badge-leaf-style-card">
                                 <span class="badge-leaf-preview" data-preview-badge-leaf="feedback-completer"></span>

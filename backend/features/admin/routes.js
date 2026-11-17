@@ -6153,7 +6153,7 @@ if (Object.prototype.hasOwnProperty.call(normalized, 'tintDurationHours')) {
         error.statusCode = 400;
         throw error;
     }
-    normalized.tintDurationHours = Number(hours.toFixed(1));
+    normalized.tintDurationHours = Number(hours.toFixed(3)); // to about 4 seconds, so minutes can be set (1 minute: 0.017)
 }
 
   return normalized;

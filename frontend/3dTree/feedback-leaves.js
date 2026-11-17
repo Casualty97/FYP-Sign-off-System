@@ -55,6 +55,7 @@ const TINT_BOOST = 2.3;          // the leaf picture is mid grey: this brings th
 const NEON = new T.Color(0x39ff14);
 const WHITE = new T.Color(0xffffff);
 const MIN_LIGHTNESS = 0.38;      // a leaf colour is shown at least this light (HSL), so it stands out on the canopy
+const OLD_MIN_LIGHTNESS = 0.24;  // an older leaf's dark shade may be this dark, so it is clearly a dark shade
 // The glowing leaf: a leaf of light in a vivid badge colour, as if lit from within, with a bright, almost
 // white outline, glowing veins and a soft glow around it (AURA). The leaf picture is an almost even grey
 // (its veins only ~5% lighter) and its normal map has clear vein relief, so the main veins are found from
@@ -236,13 +237,14 @@ function flightEase(t) {
   return bez(y1, y2, s);
 }
 
-// A leaf colour as shown: the chosen colour, lifted to at least MIN_LIGHTNESS so a dark leaf still stands
-// out against the tree's own dark foliage (and, in the glowing look, to at least NEON_SATURATION).
-function displayColour(hex) {
+// A leaf colour as shown: the chosen colour, lifted to at least minLightness so a dark leaf still stands out
+// against the tree's own dark foliage (MIN_LIGHTNESS; an older leaf's dark shade OLD_MIN_LIGHTNESS, so it
+// still reads as a dark shade of its colour) and, in the glowing look, to at least NEON_SATURATION.
+function displayColour(hex, minLightness = MIN_LIGHTNESS) {
   const colour = new T.Color(hex);
   const hsl = {};
   colour.getHSL(hsl, T.SRGBColorSpace);
-  colour.setHSL(hsl.h, Math.max(hsl.s, leafLook.saturation), Math.max(hsl.l, MIN_LIGHTNESS), T.SRGBColorSpace);
+  colour.setHSL(hsl.h, Math.max(hsl.s, leafLook.saturation), Math.max(hsl.l, minLightness), T.SRGBColorSpace);
   return colour.multiplyScalar(TINT_BOOST);
 }
 
@@ -888,7 +890,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const plain = isNew ? settings.leafNewColor : settings.leafOldColor;
     const colour = leaf.isVip ? settings.vipLeafColor
       : settings.badgeColours === true ? badgeShade(badgeColour(leaf.visitor), isNew) : plain;
-    leaf.targetColour = displayColour(colour);
+    leaf.targetColour = displayColour(colour, isNew || leaf.isVip ? MIN_LIGHTNESS : OLD_MIN_LIGHTNESS);
     if (immediate) leaf.colour.copy(leaf.targetColour);
   }
 

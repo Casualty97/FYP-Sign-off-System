@@ -431,7 +431,12 @@ function populateParameterForm(config) {
         if (vipValEl) vipValEl.textContent = String(vipLeafScale);
     }
     setSharedLeafScale(leafScale);
-    setInputValue('param-tintDurationHours', badgeLeafStyles.tintDurationHours != null ? badgeLeafStyles.tintDurationHours : 24);
+    // "A leaf stays light for", in hours (24 when unset or 0, as the 2D tree takes it), shown in minutes when it
+    // is not a whole number of hours (so 1 minute shows as 1 minute).
+    const tintHours = Number(badgeLeafStyles.tintDurationHours) > 0 ? Number(badgeLeafStyles.tintDurationHours) : 24;
+    const tintInHours = Number.isInteger(tintHours);
+    setInputValue('param-tintDurationHours', tintInHours ? tintHours : Math.max(1, Math.round(tintHours * 60)));
+    setInputValue('param-tintDurationUnit', tintInHours ? 'hours' : 'minutes');
 
     const badgeLeafColors = getBadgeLeafStyleColors(badgeLeafStyles.colors);
     const defaultBadgeLeafColors = getDefaultBadgeLeafColors();
@@ -614,7 +619,9 @@ function collectParameterForm() {
         },
         badgeLeafStyles: {
             leafScale: sharedLeafScale,
-            tintDurationHours: clampNumber(getInputValue('param-tintDurationHours'), 0, 168, 24),
+            tintDurationHours: Math.round(clampNumber(
+                (Number(getInputValue('param-tintDurationHours')) || 24) / (getInputValue('param-tintDurationUnit') === 'minutes' ? 60 : 1),
+                0, 168, 24) * 1000) / 1000,
             colors: collectBadgeLeafStyleColors()
         },
         photoSettings: {
