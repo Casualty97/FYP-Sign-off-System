@@ -1,6 +1,7 @@
 // Owner: Role 3, Jun Kai.
 // Admin hardware API, mounted at /api/admin/hardware (session required):
 //   GET  /overview            latest sample, sampler status and settings (the stat tiles)
+//   GET  /live                <Jun Kai/> the part cards' reading, asked every second while the page is open (live.js)
 //   GET  /series?range=24h    averaged samples for the graphs plus the forecast (1h up to 5y, see ranges.js); a range
 //                             longer than the samples are kept comes from the daily summaries, one point per day or more
 //   GET  /settings  PUT /settings   interval, retention, forecast horizon (1 hour to 1 year)
@@ -15,6 +16,7 @@ const settings = require('./settings');
 const forecast = require('./forecast');
 const ranges = require('./ranges');
 const dailyStore = require('./daily');
+const live = require('./live'); // <Jun Kai/>
 const { logAudit } = require('../../core/audit');
 
 const router = express.Router();
@@ -165,6 +167,14 @@ router.get('/overview', auth.requireAuth, async (req, res) => {
         res.json({ success: true, overview: { latest, sampler: { ...status, lastSample: undefined }, settings: settings.read(), limits: settings.LIMITS, alerts: settings.readAlerts(), alertLimits: settings.ALERT_LIMITS, alertDefaults: settings.ALERT_DEFAULTS, stored: { total: Number(counts[0].total), last24h: Number(counts[0].day || 0), oldestAt: oldest, daily: days }, serverTime: new Date().toISOString() } });
     } catch (error) { fail(res, error, 'overview'); }
 });
+
+// <Jun Kai start> CPU, memory and disk read now, the GPU every few seconds; nothing is stored (live.js)
+router.get('/live', auth.requireAuth, async (req, res) => {
+    try {
+        res.json({ success: true, live: await live.read(sampler.getStatus()) });
+    } catch (error) { fail(res, error, 'live reading'); }
+});
+// <Jun Kai end>
 
 router.get('/series', auth.requireAuth, async (req, res) => {
     try {
