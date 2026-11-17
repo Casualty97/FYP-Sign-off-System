@@ -4,8 +4,9 @@
 // ever taken away (none of its leaves, and none of the visitors' feedback leaves):
 //   - with every new leaf more foliage grows in, slowly (over GROW_SECONDS), at the edge of the canopy so
 //     far: the canopy spreads out from its middle with a ragged edge, as a real growing tree, each new sprig
-//     unfolding from nothing. New growth is a bright fresh lime green (as young leaves), fading to the
-//     canopy's own colour over FRESH_SECONDS, so every leaf's growth shows, however small;
+//     unfolding from nothing. New growth is a fresh lime green (as young leaves) at the leaf's own
+//     brightness, a little lighter, so it never glows at night, fading to the canopy's own colour over
+//     FRESH_SECONDS, so every leaf's growth shows, however small;
 //   - at the next stage's number the tree grows into that stage's bigger tree in place, without reloading
 //     the page (scene.js loads the new model in the background while the tree is shown). The new tree takes
 //     its place at the size the tree was and with as much foliage as it had (the share of its sprigs the
@@ -230,8 +231,9 @@ function growingMaterial(material, uniforms, done) {
       + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
         {
           float fresh = freshness * smoothstep( freshFrom - ${FRESH_REACH.toFixed(3)}, freshFrom, vGrowOrder );
+          // Lime green at the leaf's own brightness (a little lighter), so it never glows in the dark.
           float light = dot( diffuseColor.rgb, vec3( .3, .59, .11 ) );
-          diffuseColor.rgb = mix( diffuseColor.rgb, vec3( .86, 1., .26 ) * ( .75 + .9 * light ), fresh * .9 );
+          diffuseColor.rgb = mix( diffuseColor.rgb, vec3( .98, 1.14, .3 ) * light * 1.35, fresh * .85 );
         }`);
   };
   const key = material.customProgramCacheKey?.bind(material);

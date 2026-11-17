@@ -157,6 +157,9 @@ const NAME_BOXES = [            // lines -> widest box inside the blade, centred
 const NAME_FONT_PX = 64;          // canvas pixels per font size
 const NAME_LIFT = 0.0006;        // how far the name sits off the leaf surface, towards the viewer
 const GOLD_GLOW = new T.Color(0xffd23f); // the 2D VIP leaf's gold glow (vipGoldPulse in tree.css)
+// At night (natural look) the leaves are in moonlight, as the tree is (matte-tree.js), but less dim, so they
+// and their names stay easy to read; the glowing look lights them itself.
+const NIGHT_LEAF = new T.Color(0.6, 0.65, 0.78);
 
 // The admin's 3D Tree Visualization Parameters (the 2D tree's, for the 3D tree) can change the timings
 // above: POLL_MS (leafRefreshMs), APPEAR_MS (leafAppearMs), SHOWCASE_MS (leafShowcaseSeconds), FLOAT_MS
@@ -1214,9 +1217,11 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   }
 
   const haloSize = new T.Vector3();
+  const nightLight = new T.Color();
   function update(dt, elapsed) {
     if (!group.visible) return;
     const time = now();
+    nightLight.setRGB(1, 1, 1).lerp(NIGHT_LEAF, clock.night?.value || 0);
     // Once the view has turned (by any means) the clicked leaf has moved away, so its card closes.
     if (details.isOpen() && camera.getWorldDirection(currentView).angleTo(cardView) > CARD_TURN_LIMIT) details.close();
     for (const [key, leaf] of leaves) {
@@ -1246,6 +1251,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         ? 0.55 + 0.45 * (0.5 + 0.5 * Math.sin((time / 2000) * Math.PI * 2)) // 2D vipGoldPulse, 2 s
         : 0;
       leaf.material.color.copy(leaf.colour).lerp(NEON, glow * 0.35).multiplyScalar(1 + gold * 0.18);
+      if (!leafLook.aura) leaf.material.color.multiply(nightLight);
       placeName(leaf);
       // Glowing look: every leaf glows in its own colour (AURA), breathing gently, each at its own pace, with
       // a light sweeping across it now and then. In both looks a new visitor's leaf glows green, and a VIP's

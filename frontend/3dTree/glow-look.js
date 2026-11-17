@@ -200,6 +200,7 @@ export function addGlowLook({ scene, renderer, tree, clock, lights }) {
     // After the weather's update: night, in cool moonlight, whatever the weather or the time of day.
     update(shown = tree) {
       uniforms.glowUnscale.value = 1 / Math.max(0.05, shown.scale.x); // a tree growing into its next stage
+      if (clock.treeShade) clock.treeShade.value = 0; // the tree lights itself (matte-tree.js timeOfDay)
       clock.night.value = 1;
       clock.dusk.value = 0;
       lights.sun.intensity = 0.28;

@@ -15,7 +15,27 @@ function leafWind(material,clock) {
   };
 }
 
+// The tree in the light of the time of day, as the river and the forest are (its materials take no lighting
+// of their own, so without this it stays in daylight at night): cool moonlight at night, warmer at dusk, a
+// little duller in rain. clock.treeShade (1 by default) sets how much; the glowing look (glow-look.js) lights
+// the tree itself and sets it to 0. Applied last, over the growing foliage's colours (tree-growth.js).
+function timeOfDay(material,clock) {
+  const before=material.onBeforeCompile;
+  material.onBeforeCompile=(shader,renderer)=>{
+    before?.call(material,shader,renderer);
+    Object.assign(shader.uniforms,{treeNight:clock.night,treeDusk:clock.dusk,treeRain:clock.rain,treeShade:clock.treeShade});
+    shader.fragmentShader='uniform float treeNight,treeDusk,treeRain,treeShade;\n'
+      +shader.fragmentShader.replace('#include <opaque_fragment>',`
+        vec3 treeLight=mix(vec3(1.),vec3(.28,.33,.45),treeNight);
+        treeLight*=mix(vec3(1.),vec3(1.,.78,.62),treeDusk*(1.-treeNight)*.45);
+        treeLight*=1.-.18*treeRain*(1.-treeNight);
+        outgoingLight*=mix(vec3(1.),treeLight,treeShade);
+        #include <opaque_fragment>`);
+  };
+}
+
 export function addMatteTree(scene,tree,clock,stage=4) {
+  clock.treeShade??={value:1};
   tree.name=stage>=4?'Ketapang | fully grown Stage 4':`Ketapang | growing, Stage ${stage}`;
   tree.position.y=clock.soil.value;
   const materials=new Map();
@@ -28,6 +48,7 @@ export function addMatteTree(scene,tree,clock,stage=4) {
       toneMapped:false,
     });
     if (source.alphaTest>0) leafWind(material,clock);
+    timeOfDay(material,clock);
     materials.set(source,material);
     return material;
   }
