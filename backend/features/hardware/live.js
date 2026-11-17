@@ -1,5 +1,5 @@
 // Owner: Role 3, Jun Kai.
-// The live reading behind the four part cards of the Hardware page (GET /api/admin/hardware/live, asked every half
+// The live reading behind the four part cards of the Hardware page (GET /api/admin/hardware/live, asked every
 // second while the page is open). Nothing is stored: the saved samples still come from sampler.js on the Sampling
 // interval. It only works while a page asks, so with no Hardware page open it reads nothing.
 // <Jun Kai start>

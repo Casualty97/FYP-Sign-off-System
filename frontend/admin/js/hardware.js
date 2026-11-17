@@ -66,9 +66,9 @@ let hardwareAlertsBusy = false;
 let hardwareLastOverview = null;
 // <Jun Kai end>
 
-// <Jun Kai start> the live reading of the part cards: asked every half second while the page is open
+// <Jun Kai start> the live reading of the part cards: asked every second while the page is open
 // (GET /api/admin/hardware/live); the graphs, the forecast and the stored samples keep their own timers
-const HARDWARE_LIVE_MS = 500;
+const HARDWARE_LIVE_MS = 1000;
 const HARDWARE_LIVE_FRESH_MS = 3000;
 let hardwareLive = null;
 let hardwareLiveTimer = null;
@@ -551,7 +551,7 @@ function renderHardwareKeys(overview) {
         const value = now[key];
         const known = value !== null && value !== undefined;
         const tone = known ? hardwareTone(value, key) : 'muted';
-        // <Jun Kai start> written only when it changes: the live reading arrives every half second
+        // <Jun Kai start> written only when it changes: the live reading arrives every second
         const className = `ui-pill ui-pill-${tone}`;
         const html = `<span class="ui-dot"></span>${known ? { ok: 'Normal', warn: 'High', down: 'Critical' }[tone] : 'No reading'}`;
         if (pill.className !== className) pill.className = className;
@@ -587,7 +587,7 @@ function renderHardwareFacts(latest) {
     hardwarePartWords();
 }
 
-// <Jun Kai start> the "Now" line under each graph, every half second, without redrawing the other facts
+// <Jun Kai start> the "Now" line under each graph, every second, without redrawing the other facts
 function renderHardwareNow(latest) {
     const now = { cpu: latest.cpu, memory: latest.memory && latest.memory.percent, gpu: latest.gpu && latest.gpu.percent, disk: latest.disk && latest.disk.percent };
     for (const key of HARDWARE_METRICS) {
@@ -649,7 +649,7 @@ function renderHardwareCards(overview) {
     }
     const ago = hardwareAgo(latest.at);
     set('hardware-cpu-value', latest.cpu === null || latest.cpu === undefined ? '–' : latest.cpu.toFixed(0));
-    set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'No CPU reading in the last sample' : latest.live ? 'Live: average of the last half second' : `Average over the last interval, sampled ${ago}`); // <Jun Kai/>
+    set('hardware-cpu-hint', latest.cpu === null || latest.cpu === undefined ? 'No CPU reading in the last sample' : latest.live ? 'Live: average of the last second' : `Average over the last interval, sampled ${ago}`); // <Jun Kai/>
     set('hardware-memory-value', latest.memory ? latest.memory.percent.toFixed(0) : '–');
     set('hardware-memory-hint', latest.memory ? `${gb(latest.memory.usedMb)} of ${gb(latest.memory.totalMb)} GB in use` : '');
     set('hardware-disk-value', latest.disk ? latest.disk.percent.toFixed(0) : '–');
@@ -1262,7 +1262,7 @@ function startHardwarePolling() {
         const page = document.getElementById('hardware-page');
         if (page && page.classList.contains('active') && sessionStorage.getItem('loggedUser')) loadHardware();
     }, 60000);
-    // <Jun Kai start> the part cards every half second; the timer stops by itself when the page closes
+    // <Jun Kai start> the part cards every second; the timer stops by itself when the page closes
     if (hardwareLiveTimer) clearInterval(hardwareLiveTimer);
     hardwareLiveTimer = setInterval(tickHardwareLive, HARDWARE_LIVE_MS);
     // <Jun Kai end>
@@ -1291,7 +1291,7 @@ async function tickHardwareLive() {
         renderHardwareNow(hardwareLive);
         if (hardwareLastForecast) renderHardwareForecast(hardwareLastForecast, hardwareLive);
     } catch {
-        // a missed half second: the next tick asks again; if the answers stop, the minute refresh puts the stored sample back
+        // a missed reading: the next tick asks again; if the answers stop, the minute refresh puts the stored sample back
     } finally {
         hardwareLiveBusy = false;
     }

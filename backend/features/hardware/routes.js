@@ -1,7 +1,7 @@
 // Owner: Role 3, Jun Kai.
 // Admin hardware API, mounted at /api/admin/hardware (session required):
 //   GET  /overview            latest sample, sampler status and settings (the stat tiles)
-//   GET  /live                <Jun Kai/> the part cards' reading, asked every half second while the page is open (live.js)
+//   GET  /live                <Jun Kai/> the part cards' reading, asked every second while the page is open (live.js)
 //   GET  /series?range=24h    averaged samples for the graphs plus the forecast (1h up to 5y, see ranges.js); a range
 //                             longer than the samples are kept comes from the daily summaries, one point per day or more
 //   GET  /settings  PUT /settings   interval, retention, forecast horizon (1 hour to 1 year)
