@@ -6714,7 +6714,7 @@ router.post('/parameters/tree-background/upload', auth.requireAdmin, uploadTreeB
 router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
     try {
         console.debug('🌳 Saving tree parameters');
-        const { treeStage, treeStageMode, showTitleBox, leafDisplayScale, vipLeafDisplayScale, leafThresholds, treeTitleBox, treeDisplayMode, leafFallThreshold } = req.body;
+        const { treeStage, treeStageMode, showTitleBox, leafDisplayScale, vipLeafDisplayScale, leafThresholds, treeTitleBox, treeDisplayMode, leafFallThreshold, leafShowcaseSeconds } = req.body;
         const normalizedDisplayMode = treeDisplayMode === undefined
             ? undefined
             : normalizeTreeDisplayMode({ treeDisplayMode }).treeDisplayMode;
@@ -6740,6 +6740,13 @@ router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
             const maxLeaves = Math.round(Number(leafFallThreshold));
             if (!Number.isFinite(maxLeaves)) return res.status(400).json({ success: false, error: 'Maximum Visible Leaves must be a number' });
             config.treeParameters.leafFallThreshold = Math.min(500, Math.max(1, maxLeaves));
+        }
+        // Time at the bottom middle, shared by the 2D and 3D trees: how long a new feedback's leaf shows at the
+        // bottom middle of the screen before it joins the tree (also set from the 3D Visualization Parameters).
+        if (leafShowcaseSeconds !== undefined) {
+            const seconds = Number(leafShowcaseSeconds);
+            if (!Number.isFinite(seconds)) return res.status(400).json({ success: false, error: 'Time at the bottom middle must be a number' });
+            config.treeParameters.leafShowcaseSeconds = Math.min(30, Math.max(0, Math.round(seconds)));
         }
         if (normalizedDisplayMode !== undefined) config.treeParameters.treeDisplayMode = normalizedDisplayMode;
 

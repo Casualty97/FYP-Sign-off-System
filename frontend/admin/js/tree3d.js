@@ -474,16 +474,29 @@ function showTree3dMaxLeavesExample() {
     if (tree3dField('maxLeavesNext')) tree3dField('maxLeavesNext').textContent = `${value + 1}${suffix}`;
 }
 
+// Time at the bottom middle is the 2D tree's (treeParameters.leafShowcaseSeconds), shared by both trees: 12 seconds
+// when unset, 0 to 30.
+function showTree3dShowcase(seconds) {
+    const raw = Number(seconds);
+    const value = seconds === undefined || seconds === null || seconds === '' || !Number.isFinite(raw) ? 12 : Math.min(30, Math.max(0, Math.round(raw)));
+    if (tree3dField('leafShowcaseSeconds')) tree3dField('leafShowcaseSeconds').value = value;
+    const field2d = document.getElementById('param-leafShowcaseSeconds');
+    if (field2d) field2d.value = value;
+    return value;
+}
+
 async function saveTree3dVisualization() {
     try {
+        const showcase = tree3dField('leafShowcaseSeconds')?.value;
         const saved = await putTree3dSettings(collectTree3dSettings());
         if (saved) fillTree3dForm(saved);
         const leafFallThreshold = showTree3dMaxLeaves(tree3dField('maxVisibleLeaves')?.value);
+        const leafShowcaseSeconds = showTree3dShowcase(showcase);
         const response = await fetch('/api/admin/parameters/treeParameters', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ leafFallThreshold })
+            body: JSON.stringify({ leafFallThreshold, leafShowcaseSeconds })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) throw new Error(data.error || 'Failed to save Maximum Visible Leaves');
@@ -679,6 +692,7 @@ async function loadTree3dSettings() {
         fillTree3dForm(data.parameters?.tree3dParameters);
         // The 3D tree shows as many leaves as the 2D tree's Maximum Visible Leaves.
         showTree3dMaxLeaves(data.parameters?.treeParameters?.leafFallThreshold);
+        showTree3dShowcase(data.parameters?.treeParameters?.leafShowcaseSeconds);
     } catch (error) {
         console.error('Error loading 3D tree settings:', error);
         fillTree3dForm(null);

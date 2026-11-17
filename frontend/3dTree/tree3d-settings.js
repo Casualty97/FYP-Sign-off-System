@@ -250,6 +250,11 @@ async function refresh() {
     latest.tree2d = {
       leafFallThreshold: Math.max(1, Number(tree2d.leafFallThreshold) || 15),
       treeStage: Math.round(Number(tree2d.treeStage) || 0),
+      // Time at the bottom middle, shared with the 2D tree (12 seconds when unset): how long a new feedback's
+      // leaf stays at the bottom middle of the screen before it floats up (feedback-leaves.js).
+      leafShowcaseSeconds: tree2d.leafShowcaseSeconds === undefined || tree2d.leafShowcaseSeconds === null
+        || tree2d.leafShowcaseSeconds === '' || !Number.isFinite(Number(tree2d.leafShowcaseSeconds))
+        ? 12 : Math.min(30, Math.max(0, Number(tree2d.leafShowcaseSeconds))),
       // In Auto, how far the tree has grown through its stage (0 to 1), so it grows a little with every leaf
       // (tree-growth.js); null in Manual (the stage's tree shows full). As tree-stage.js growthProgress.
       growth: tree2d.treeStageMode === 'auto' && tree2d.treeStageAuto && Number.isFinite(progress)

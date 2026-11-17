@@ -86,8 +86,12 @@ function megabytesToBytes(value, fallbackMb) {
     return Math.max(1, Number.isFinite(number) ? number : fallbackMb) * 1024 * 1024;
 }
 
+// An empty box gives the fallback (the default), not 0: an empty "Time at the Bottom Middle" used to save 0 and
+// make new leaves skip the bottom middle.
 function getNumberValue(id, fallback) {
-    const number = Number(getInputValue(id));
+    const raw = getInputValue(id);
+    if (raw === '') return fallback;
+    const number = Number(raw);
     return Number.isFinite(number) ? number : fallback;
 }
 
@@ -398,6 +402,7 @@ function populateParameterForm(config) {
     setInputValue('param-leafOpacity', tree.leafOpacity);
     setInputValue('param-leafAnimationDuration', tree.leafAnimationDuration);
     setInputValue('param-leafShowcaseSeconds', tree.leafShowcaseSeconds ?? 12);
+    setInputValue('tree3d-leafShowcaseSeconds', tree.leafShowcaseSeconds ?? 12); // the same setting in the 3D panel
     setInputValue('param-leafFallThreshold', tree.leafFallThreshold);
     setInputValue('param-leafFallDuration', tree.leafFallDuration);
     const normalizedTreeStage = Number.isInteger(Number(tree.treeStage))

@@ -174,7 +174,7 @@ const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldCol
   leafAreaWidth: 100, leafAreaHeight: 100, leafAreaOffset: 0, leafRefreshMs: POLL_MS, leafOpacity: 1,
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
-  tree2d: { leafFallThreshold: 15, treeStage: 4 },
+  tree2d: { leafFallThreshold: 15, treeStage: 4, leafShowcaseSeconds: SHOWCASE_MS / 1000 },
   vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true };
 
 const normaliseName = name => String(name || '').trim().toLowerCase();
@@ -458,7 +458,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     return {
       refresh: within(settings.leafRefreshMs, POLL_MS, 5000, 120000),
       appear: within(settings.leafAppearMs, APPEAR_MS, 100, 5000),
-      showcase: within(Number(settings.leafShowcaseSeconds) * 1000, SHOWCASE_MS, 0, 30000),
+      // Time at the bottom middle: one setting for both trees, the 2D tree's (treeParameters.leafShowcaseSeconds).
+      showcase: within(Number(settings.tree2d?.leafShowcaseSeconds) * 1000, SHOWCASE_MS, 0, 30000),
       float: within(settings.leafFloatMs, FLOAT_MS, 2000, 20000),
       fall: within(settings.leafFallMs, FALL_MS, 500, 10000),
     };
