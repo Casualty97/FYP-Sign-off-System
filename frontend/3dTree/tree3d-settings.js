@@ -12,6 +12,7 @@
 const POLL_MS = 5000;
 const DEFAULT_SUBTITLE = 'Terminalia catappa · A living river valley';
 const DEFAULTS = {
+  glowLook: true, // the glowing look (glow-look.js); scene.js reloads the page when it changes
   weatherSource: 'live', manualSky: 'day', manualRain: false, rainArea: 'all', riverLevelMode: 'auto',
   autoOrbit: true, soundEnabled: false, soundVolume: 78, showSoilPanel: false,
   showWeatherPanel: true, showRiverPanel: true, showControlsBar: true, showYearReview: true,

@@ -25,6 +25,13 @@ test('a full save from the admin form is kept as sent', () => {
         opacity: 0.3, blur: 10, radius: 12, position: 'top-left', paddingX: 20, paddingY: 10 });
 });
 
+test('the glowing look is on by default and can be turned off', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.glowLook, true);
+    assert.equal(normalizeTree3dParameters({ glowLook: false }).glowLook, false);
+    assert.equal(mergeTree3dParameters(DEFAULT_TREE3D_PARAMETERS, { glowLook: false }).glowLook, false);
+    assert.throws(() => normalizeTree3dParameters({ glowLook: 'on' }), { statusCode: 400, message: /Glowing look/ });
+});
+
 test('wrong values are refused with a readable message, out-of-range numbers are clamped', () => {
     assert.throws(() => normalizeTree3dParameters({ weatherSource: 'cloudy' }), { statusCode: 400, message: /Weather source/ });
     assert.throws(() => normalizeTree3dParameters({ manualSky: 'noon' }), { statusCode: 400 });

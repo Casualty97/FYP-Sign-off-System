@@ -16,6 +16,7 @@ import { createTreeView } from './tree-view.js';
 import { addFeedbackLeaves } from './feedback-leaves.js';
 import { startingStage, stageModelUrl, prepareStageTree, perchSeats, canopyDriftRoutes, normaliseStage } from './tree-stage.js';
 import { onTree3dSettings } from './tree3d-settings.js';
+import { addGlowLook, startingLook } from './glow-look.js';
 
 // Edit these values for the installation.
 const config = {
@@ -93,7 +94,8 @@ async function start() {
   }
   updateSize();
   // The tree's growth stage, the same as the 2D tree's (tree-stage.js).
-  const {stage,fixed}=await startingStage();
+  // ... and the look: glowing or the daylight river valley (the admin's "Glowing look", glow-look.js).
+  const [{stage,fixed},look]=await Promise.all([startingStage(),startingLook()]);
   const assets = await loadEnvironment((count,total)=>{
     loadingDetail.textContent = `Loading Stage ${stage} and the river assets · ${count}/${total}`;
   },lowQuality,stageModelUrl(stage));
@@ -120,12 +122,13 @@ async function start() {
     if (ambient.enabled) ambient.leafSplash(soundPan(position),camera.position.distanceTo(position));
   });
   const dropLeaves=time=>{ if (driftRoutes.length) leaves.gust(time); };
-  // A different stage saved in the admin: reload into it (unless ?stage= fixes the stage).
-  if (!fixed) onTree3dSettings(next=>{
-    if (next?.tree2d && normaliseStage(next.tree2d.treeStage)!==stage) location.reload();
+  // A different stage or look saved in the admin: reload into it (unless ?stage= or ?look= fixes it).
+  onTree3dSettings(next=>{
+    if (!fixed && next?.tree2d && normaliseStage(next.tree2d.treeStage)!==stage) location.reload();
+    if (!look.fixed && next && (next.glowLook!==false)!==look.glow) location.reload();
   });
   // One leaf per feedback on the tree, with the 2D tree's leaf animations (feedback-leaves.js).
-  const feedbackLeaves=addFeedbackLeaves({scene,tree,clock,camera,renderer});
+  const feedbackLeaves=addFeedbackLeaves({scene,tree,clock,camera,renderer,glow:look.glow});
 
   const updateHabitat=addForestHabitat(scene,assets,clock,lowQuality,seeded(60331));
   const updateForestWildlife=addForestWildlife(scene,assets.forestWildlife,assets.layout.habitat,clock,lowQuality);
@@ -150,6 +153,9 @@ async function start() {
   resize.observe(view);
   finishSunset=installSkyControls(weather,camera);
   weather.update(0,camera);
+  // The glowing tree at night (glow-look.js), when the admin's "Glowing look" is on.
+  const glowLook=look.glow?addGlowLook({scene,renderer,tree,clock,lights:{sun,hemi,fill,rim}}):null;
+  glowLook?.update();
 
   volume.addEventListener('input',()=>ambient.setLevel(Number(volume.value)/100));
   const soundLabel=buttons.sound.querySelector('span');
@@ -222,6 +228,7 @@ async function start() {
     }
     treeView.update(dt,frameSeconds);
     weather.update(dt,camera);
+    glowLook?.update();
     updateRiverLevel(dt);
     leaves.update(elapsed);
     feedbackLeaves.update(dt,elapsed);

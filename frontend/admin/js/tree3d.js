@@ -5,6 +5,7 @@
 // (frontend/3dTree/tree3d-settings.js). The defaults below match the 3D page with no settings saved.
 
 const TREE3D_DEFAULTS = {
+    glowLook: true,
     weatherSource: 'live',
     manualSky: 'day',
     manualRain: false,
@@ -267,6 +268,7 @@ function fillTree3dForm(settings) {
     const box = { ...TREE3D_TITLE_DEFAULTS, ...(settings?.titleBox || {}) };
     const leaves = { ...TREE3D_LEAF_DEFAULTS, ...(settings || {}) };
 
+    tree3dField('glowLook').checked = s.glowLook !== false;
     tree3dField('weatherSource').value = s.weatherSource;
     tree3dField('manualSky').value = s.manualSky;
     tree3dField('manualRain').checked = s.manualRain === true;
@@ -337,6 +339,7 @@ function collectTree3dSettings() {
         return Number.isFinite(value) ? value : fallback;
     };
     return {
+        glowLook: tree3dField('glowLook').checked,
         weatherSource: tree3dField('weatherSource').value,
         manualSky: tree3dField('manualSky').value,
         manualRain: tree3dField('manualRain').checked,

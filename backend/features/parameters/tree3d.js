@@ -3,6 +3,10 @@
 // Stored in parametersConfig.json as `tree3dParameters` and read by frontend/3dTree/tree3d-settings.js
 // through the public /api/parameters. The defaults reproduce the 3D page as it looks without settings.
 //
+//   glowLook           the glowing look (the ESG Centre's glowing-tree concept): the scene at night, light
+//                      streams in the tree, glowing leaves, rings of light and specks of light, with glowing
+//                      feedback leaves and handwritten names (frontend/3dTree/glow-look.js); off shows the
+//                      daylight river valley with natural leaves. The page reloads into the new look.
 //   weatherSource      'live' (Singapore weather feeds) or 'manual'
 //   manualSky          time of day in manual weather: sunrise, day, sunset or night
 //   manualRain         rain and thunder in manual weather
@@ -89,6 +93,7 @@ const DEFAULT_TITLE_BOX = Object.freeze({
 });
 
 const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
+  glowLook: true,
   weatherSource: 'live',
   manualSky: 'day',
   manualRain: false,
@@ -178,6 +183,7 @@ function normalizeTree3dParameters(updates) {
   const has = key => Object.prototype.hasOwnProperty.call(updates, key);
   const out = {};
 
+  if (has('glowLook')) out.glowLook = bool(updates.glowLook, 'Glowing look');
   if (has('weatherSource')) out.weatherSource = oneOf(updates.weatherSource, ['live', 'manual'], 'Weather source');
   if (has('manualSky')) out.manualSky = oneOf(updates.manualSky, SKIES, 'Time of day');
   if (has('manualRain')) out.manualRain = bool(updates.manualRain, 'Manual rain');

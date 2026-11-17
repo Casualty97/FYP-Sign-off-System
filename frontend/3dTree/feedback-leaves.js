@@ -23,8 +23,9 @@
 //     where it is on the tree, at its own angle, without turning or moving; a leaf the view leaves round the
 //     back of the tree fades away rather than showing through it, and comes back when the view returns;
 //   - every leaf stays easy to see on the canopy: it is never darker than a set lightness;
-//   - the leaf's veins show: the leaf model's own vein relief (its normal map) shades the leaf as if lit from
-//     the upper left, and the faint vein lines of its picture are strengthened, so they read at a distance;
+//   - every leaf glows like a leaf of light: a vivid badge colour, brightest in its middle, with glowing veins,
+//     a bright outline, a soft glow around it in its own colour that breathes gently, and now and then a
+//     light sweeping across it (GLOW_FRAGMENT); its name is white handwriting with a soft glow;
 //   - a VIP's leaf (a name on the admin's VIP Management list, as /api/tree marks it, or a name from
 //     /api/tree/vip-names) is gold, with the 2D tree's gold pulse, at its own VIP scale.
 // Colours (light green new, dark green older), left or right leaves, size and how long a leaf counts as
@@ -50,11 +51,53 @@ const APPEAR_MS = 900;           // how long it takes to fade in there
 const STAGE_CLEAR_MS = 3000;     // the next new leaf appears there this long after the one before starts floating up
 const TINT_BOOST = 2.3;          // the leaf picture is mid grey: this brings the chosen colour back to strength
 const NEON = new T.Color(0x39ff14);
+const WHITE = new T.Color(0xffffff);
 const MIN_LIGHTNESS = 0.38;      // a leaf colour is shown at least this light (HSL), so it stands out on the canopy
-// Veins. The leaf picture is an almost even grey (its veins only ~5% lighter), while its normal map has
-// clear vein relief. The leaf is unlit like the tree, so the relief is turned into shading here.
+// The glowing leaf: a leaf of light in a vivid badge colour, as if lit from within, with a bright, almost
+// white outline, glowing veins and a soft glow around it (AURA). The leaf picture is an almost even grey
+// (its veins only ~5% lighter) and its normal map has clear vein relief, so the main veins are found from
+// the relief and the finer ones from the picture, keeping only clear lines. The edge is found from the
+// picture's outline: blurred (a smaller copy of the picture, its mipmap) it fades towards the edge, so 1
+// minus the blurred outline is high just inside the edge. The material's colour is the leaf colour boosted
+// by TINT_BOOST (displayColour).
+const VEIN_GLOW = 0.8;           // how brightly the veins glow
+const RIM_GLOW = 1.25;           // how brightly the leaf's outline glows
+const SHIMMER_EVERY = 7;         // seconds between the light sweeps across a leaf (each leaf at its own time)
+const SHIMMER_SWEEP = 1.3;       // seconds a sweep takes to cross the leaf
+const GLOW_FRAGMENT = `
+#ifdef USE_MAP
+  vec4 texel = texture2D( map, vMapUv );
+  const vec3 lumaWeights = vec3( .2126, .7152, .0722 );
+  float veinPoint = dot( texture2D( map, vMapUv, -.6 ).rgb, lumaWeights );
+  float veinAround = dot( texture2D( map, vMapUv, 2.5 ).rgb, lumaWeights );
+  float lines = smoothstep( .05, .16, ( veinPoint - veinAround ) / max( veinAround, .05 ) );
+  vec3 relief = normalize( texture2D( veinNormal, vMapUv, -.75 ).xyz * 2. - 1. );
+  float ridges = smoothstep( .8, .95, dot( relief, normalize( vec3( -.45, .55, .7 ) ) ) );
+  float vein = max( .55 * lines, ridges );
+  // The outline: a thin bright line and a wider glow just inside it.
+  float rimLine = smoothstep( .1, .5, 1. - texture2D( map, vMapUv, 1.5 ).a );
+  float rimGlow = 1. - texture2D( map, vMapUv, 3.5 ).a;
+  float middle = texture2D( map, vMapUv, 5. ).a; // 1 in the middle of the blade, less towards its edge
+  vec3 tint = diffuseColor.rgb / ${TINT_BOOST.toFixed(2)};
+  vec3 glow = mix( tint, vec3( 1. ), .45 );
+  vec3 hot = mix( tint, vec3( 1. ), .75 );
+  // A light sweeping across the leaf now and then (shimmer: where the sweep is, from 0 to 1; off below 0).
+  float sweep = shimmer < 0. ? 0. : exp( -pow( ( vMapUv.x * .8 + vMapUv.y * .6 - shimmer * 1.9 + .25 ) / .07, 2. ) );
+  // Lit from within: brightest in the middle, deeper colour towards the edge, glowing veins and outline.
+  diffuseColor.rgb = tint * ( .55 + .85 * middle * middle )
+    + glow * ( ${VEIN_GLOW.toFixed(2)} * vein + .9 * rimGlow )
+    + hot * ( ${RIM_GLOW.toFixed(2)} * rimLine + .7 * sweep );
+  diffuseColor.a *= texel.a;
+#endif
+`;
+const AURA = 0.65;               // the soft glow every leaf has around it, in its own colour (it breathes gently)
+const NEON_SATURATION = 0.85;    // leaf colours are shown at least this saturated, so they glow vividly
+
+// The natural leaf (with the admin's "Glowing look" off): the leaf picture in its colour, its veins shown.
+// The picture is an almost even grey (its veins only ~5% lighter), while its normal map has clear vein
+// relief. The leaf is unlit like the tree, so the relief is turned into shading here.
 const VEIN_LINES = 6.0;          // how much the picture's own light vein lines are strengthened
-const VEIN_RELIEF = 1.6;        // how strongly the vein relief shades the leaf (0 = flat)
+const VEIN_RELIEF = 1.6;         // how strongly the vein relief shades the leaf (0 = flat)
 const VEIN_FRAGMENT = `
 #ifdef USE_MAP
   vec4 sampledDiffuseColor = texture2D( map, vMapUv );
@@ -73,6 +116,23 @@ const VEIN_FRAGMENT = `
 #endif
 `;
 
+// The two looks of the feedback leaves: glowing (the admin's "Glowing look", on by default) or natural.
+// Set once when the leaves are added (addFeedbackLeaves); the page reloads when the admin changes it.
+const LEAF_LOOKS = {
+  glow: {
+    fragment: GLOW_FRAGMENT, cacheKey: 'feedback-leaf-glow', aura: true, saturation: NEON_SATURATION,
+    // Handwritten, as signed on the leaf: an elegant, narrow calligraphic hand (so longer names fit), then
+    // the handwriting fonts Windows has, then the browser's own; handwriting has small letters, so a little
+    // larger (14.5% of the leaf).
+    font: `700 64px "Monotype Corsiva", "Segoe Script", "Lucida Handwriting", cursive`, lineHeight: 0.0145,
+  },
+  natural: {
+    fragment: VEIN_FRAGMENT, cacheKey: 'feedback-leaf-veins', aura: false, saturation: 0,
+    font: '700 64px Inter, "Segoe UI", Arial, sans-serif', lineHeight: 0.012, // white bold, 12% of the leaf
+  },
+};
+let leafLook = LEAF_LOOKS.glow;
+
 // A flat normal, for a leaf model without a normal map.
 function flatNormalTexture() {
   const texture = new T.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1);
@@ -83,8 +143,8 @@ function flatNormalTexture() {
 // Measured from the leaf's outline: the middle of the blade (without the thin stem and tip) is at
 // x -0.0034, z -0.0011, and every name is centred exactly there. A text box centred on that middle fits
 // inside the blade at these widths for one, two and three lines (as LEAF_NAME_MIDRIB_WIDTHS on the 2D
-// tree), with a little margin. Every name uses the same font size, so the same line height.
-const NAME_LINE_HEIGHT = 0.012;  // 12% of the leaf
+// tree), with a little margin. Every name uses the same font size, so the same line height (the look's
+// lineHeight, LEAF_LOOKS).
 const NAME_CENTRE_X = -0.0034;
 const NAME_CENTRE_Z = -0.0011;
 const NAME_BOXES = [            // lines -> widest box inside the blade, centred on its middle
@@ -171,13 +231,13 @@ function flightEase(t) {
   return bez(y1, y2, s);
 }
 
-// A leaf colour as shown: the chosen green or gold, lifted to at least MIN_LIGHTNESS so a dark green
-// leaf still stands out against the tree's own dark foliage.
+// A leaf colour as shown: the chosen colour, lifted to at least MIN_LIGHTNESS so a dark leaf still stands
+// out against the tree's own dark foliage (and, in the glowing look, to at least NEON_SATURATION).
 function displayColour(hex) {
   const colour = new T.Color(hex);
   const hsl = {};
   colour.getHSL(hsl, T.SRGBColorSpace);
-  colour.setHSL(hsl.h, hsl.s, Math.max(hsl.l, MIN_LIGHTNESS), T.SRGBColorSpace);
+  colour.setHSL(hsl.h, Math.max(hsl.s, leafLook.saturation), Math.max(hsl.l, MIN_LIGHTNESS), T.SRGBColorSpace);
   return colour.multiplyScalar(TINT_BOOST);
 }
 
@@ -193,14 +253,13 @@ function badgeShade(hex, light) {
 }
 
 // Fits a name inside the leaf as the 2D tree does (fitLeafName): whole words, as few lines as fit (up to
-// three), and when even three do not fit, the last line shortened with "…".
-const NAME_FONT = `700 ${NAME_FONT_PX}px Inter, "Segoe UI", Arial, sans-serif`;
+// three), and when even three do not fit, the last line shortened with "…". In the look's font (LEAF_LOOKS).
 const measureContext = document.createElement('canvas').getContext('2d');
 function fitName(name) {
-  measureContext.font = NAME_FONT;
+  measureContext.font = leafLook.font;
   const words = String(name || '').trim().split(/\s+/).filter(Boolean);
   if (!words.length) words.push('Anonymous');
-  const pxPerUnit = NAME_FONT_PX / (NAME_LINE_HEIGHT / 1.1); // canvas px per leaf unit
+  const pxPerUnit = NAME_FONT_PX / (leafLook.lineHeight / 1.1); // canvas px per leaf unit
   const widthOf = text => measureContext.measureText(text).width / pxPerUnit;
   const shorten = (text, width) => {
     if (widthOf(text) <= width) return text;
@@ -238,26 +297,41 @@ function fitName(name) {
   return { lines: lines.slice(0, box.lines).map(text => shorten(text, box.width)), box, pxPerUnit };
 }
 
-// The name drawn for the leaf: white bold with a dark edge, readable on any leaf colour (2D: white bold
-// with a text shadow), on a canvas the size of its box in the blade.
+// The name drawn for the leaf, on a canvas the size of its box in the blade. Glowing look: white handwriting
+// glowing softly over a soft dark shadow, so it reads clearly on the bright leaf. Natural look: white bold
+// with a dark edge, readable on any leaf colour (2D: white bold with a text shadow).
 function nameLabel(name) {
   const { lines, box, pxPerUnit } = fitName(name);
-  const height = lines.length * NAME_LINE_HEIGHT;
+  const height = lines.length * leafLook.lineHeight;
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(box.width * pxPerUnit);
   canvas.height = Math.ceil(height * pxPerUnit);
   const context = canvas.getContext('2d');
-  context.font = NAME_FONT;
+  context.font = leafLook.font;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.lineJoin = 'round';
-  context.lineWidth = NAME_FONT_PX * 0.16;
-  context.strokeStyle = 'rgba(8, 28, 14, 0.85)';
-  context.fillStyle = '#ffffff';
   const linePx = canvas.height / lines.length;
   lines.forEach((line, i) => {
-    context.strokeText(line, canvas.width / 2, linePx * (i + 0.5));
-    context.fillText(line, canvas.width / 2, linePx * (i + 0.5));
+    const y = linePx * (i + 0.5);
+    if (!leafLook.aura) {
+      context.lineWidth = NAME_FONT_PX * 0.16;
+      context.strokeStyle = 'rgba(8, 28, 14, 0.85)';
+      context.fillStyle = '#ffffff';
+      context.strokeText(line, canvas.width / 2, y);
+      context.fillText(line, canvas.width / 2, y);
+      return;
+    }
+    // A soft dark shadow behind the letters, then the white letters with a white glow.
+    context.shadowColor = 'rgba(0, 16, 10, 0.75)';
+    context.shadowBlur = NAME_FONT_PX * 0.14;
+    context.fillStyle = 'rgba(0, 16, 10, 0.45)';
+    context.fillText(line, canvas.width / 2, y);
+    context.shadowColor = 'rgba(255, 255, 255, 0.9)';
+    context.shadowBlur = NAME_FONT_PX * 0.2;
+    context.fillStyle = '#ffffff';
+    context.fillText(line, canvas.width / 2, y);
+    context.shadowBlur = 0;
   });
   const texture = new T.CanvasTexture(canvas);
   texture.colorSpace = T.SRGBColorSpace;
@@ -272,8 +346,9 @@ function glowTexture() {
   canvas.width = canvas.height = 128;
   const context = canvas.getContext('2d');
   const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gradient.addColorStop(0, 'rgba(255,255,255,0.9)');
-  gradient.addColorStop(0.35, 'rgba(255,255,255,0.35)');
+  gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+  gradient.addColorStop(0.4, 'rgba(255,255,255,0.5)');
+  gradient.addColorStop(0.7, 'rgba(255,255,255,0.14)');
   gradient.addColorStop(1, 'rgba(255,255,255,0)');
   context.fillStyle = gradient;
   context.fillRect(0, 0, 128, 128);
@@ -314,7 +389,9 @@ function canopyAnchors(tree) {
   return { anchors, centre };
 }
 
-export function addFeedbackLeaves({ scene, tree, clock, camera, renderer }) {
+// glow: the admin's "Glowing look" (glowing leaves with handwritten names) or false for natural leaves.
+export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow = true }) {
+  leafLook = glow ? LEAF_LOOKS.glow : LEAF_LOOKS.natural;
   const group = new T.Group();
   group.name = 'Feedback leaves';
   scene.add(group);
@@ -667,13 +744,17 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer }) {
     const material = new T.MeshBasicMaterial({
       map: model.texture, alphaTest: 0.02, side: T.DoubleSide, transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
     });
-    // The veins: relief from the leaf's normal map and its strengthened vein lines (VEIN_FRAGMENT).
+    // Glowing look: a leaf of light, vivid colour, glowing veins and a bright rim, with a light sweeping
+    // across it now and then (GLOW_FRAGMENT; its shimmer is moved in update). Natural look: its veins shown
+    // (VEIN_FRAGMENT).
+    material.userData.shimmer = { value: -1 };
     material.onBeforeCompile = shader => {
       shader.uniforms.veinNormal = { value: model.normalMap };
-      shader.fragmentShader = 'uniform sampler2D veinNormal;\n'
-        + shader.fragmentShader.replace('#include <map_fragment>', VEIN_FRAGMENT);
+      shader.uniforms.shimmer = material.userData.shimmer;
+      shader.fragmentShader = 'uniform sampler2D veinNormal;\nuniform float shimmer;\n'
+        + shader.fragmentShader.replace('#include <map_fragment>', leafLook.fragment);
     };
-    material.customProgramCacheKey = () => 'feedback-leaf-veins';
+    material.customProgramCacheKey = () => leafLook.cacheKey;
     const mesh = new T.Mesh(model.geometry, material);
     mesh.name = `Feedback leaf ${key}`;
     mesh.renderOrder = 2;
@@ -1159,12 +1240,20 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer }) {
         : 0;
       leaf.material.color.copy(leaf.colour).lerp(NEON, glow * 0.35).multiplyScalar(1 + gold * 0.18);
       placeName(leaf);
-      leaf.halo.visible = glow > 0.01 || gold > 0;
+      // Glowing look: every leaf glows in its own colour (AURA), breathing gently, each at its own pace, with
+      // a light sweeping across it now and then. In both looks a new visitor's leaf glows green, and a VIP's
+      // pulses gold.
+      const sweep = ((time / 1000 + leaf.spot.phase * 2) % SHIMMER_EVERY) / SHIMMER_SWEEP;
+      leaf.material.userData.shimmer.value = leafLook.aura && sweep <= 1 ? sweep : -1;
+      leaf.halo.visible = leaf.material.opacity > 0.01 && (leafLook.aura || glow > 0.01 || gold > 0);
       if (leaf.halo.visible) {
-        leaf.halo.material.color.copy(glow > 0.01 ? NEON : GOLD_GLOW);
+        const breathe = leafLook.aura ? AURA * (0.8 + 0.2 * Math.sin(time / 1400 + leaf.spot.phase)) : 0;
+        if (glow > 0.01) leaf.halo.material.color.copy(NEON);
+        else if (gold > 0) leaf.halo.material.color.copy(GOLD_GLOW);
+        else leaf.halo.material.color.copy(leaf.colour).multiplyScalar(1 / TINT_BOOST).lerp(WHITE, 0.15);
         leaf.halo.position.copy(leaf.mesh.position);
-        leaf.halo.scale.copy(haloSize.setScalar(leaf.scale * MODEL_SIZE * (gold ? 2.1 : 2.4)));
-        leaf.halo.material.opacity = (glow > 0.01 ? glow * 0.75 : gold * 0.7) * leaf.material.opacity;
+        leaf.halo.scale.copy(haloSize.setScalar(leaf.scale * MODEL_SIZE * (glow > 0.01 ? 2.6 : 2.5)));
+        leaf.halo.material.opacity = Math.max(breathe, glow > 0.01 ? glow * 0.75 : gold * 0.7) * leaf.material.opacity;
       }
     }
     orderByDistance();
