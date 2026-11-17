@@ -1316,7 +1316,7 @@
                                     <div>
                                         <label for="tree3d-maxVisibleLeaves" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Maximum Visible Leaves</label>
                                         <input type="number" id="tree3d-maxVisibleLeaves" min="1" max="500" step="1" value="15" style="width:120px;">
-                                        <p style="font-size:12px; color:#666; margin-top:6px;">First in, first out, shared with the 2D tree: at 100, the 101st leaf makes the oldest fall and the new one joins. Many leaves are made smaller on the 3D tree so they all fit.</p>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">First in, first out once the tree is fully grown (Stage 4), shared with the 2D tree: at 100, the 101st leaf makes the oldest fall and the new one joins. No leaf falls because the tree changes stage. While the tree is still growing (Stages 1 to 3) every leaf stays; when it reaches Stage 4 (Full Canopy) it keeps all the leaves it has; from then on, once it has more than this many, each new leaf makes the oldest fall. Many leaves are made smaller on the 3D tree so they all fit.</p>
                                     </div>
                                     <div>
                                         <label for="tree3d-leafAppearMs" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf appear duration (milliseconds)</label>
@@ -1469,7 +1469,7 @@
                                 <label style="display:flex; align-items:center; gap:10px; font-weight:600; color:#334155; margin-bottom:6px;">
                                     <input type="checkbox" id="tree3d-showLeafNames"> Show the visitor's name on each leaf (as the 2D tree)
                                 </label>
-                                <p style="font-size:12px; color:#666; margin:0 0 16px;">The leaf is the RainTree leaf model. The 3D tree shows the same leaves as the 2D tree: a new feedback's leaf flies in, a new visitor's leaf glows for a minute, and past the 2D tree's Maximum Visible Leaves the oldest leaf falls.</p>
+                                <p style="font-size:12px; color:#666; margin:0 0 16px;">The leaf is the RainTree leaf model. The 3D tree shows the same leaves as the 2D tree: a new feedback's leaf flies in, a new visitor's leaf glows for a minute, and once the tree is fully grown (Stage 4), past the 2D tree's Maximum Visible Leaves each new leaf makes the oldest fall (no leaf falls because the stage changes).</p>
                                 <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start;">
                                     <div style="flex:1; min-width:300px;">
                                         <div style="margin-bottom:16px;">
@@ -1505,7 +1505,7 @@
                                             <div>
                                                 <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaves on the tree</span>
                                                 <p style="margin:0; color:#334155;">Same as the 2D tree: <strong id="tree3d-leafCount2d">15</strong> leaves</p>
-                                                <p style="font-size:12px; color:#666; margin-top:4px;">Set by Maximum Visible Leaves in the 2D Tree Parameters Settings. Past it, the oldest leaf falls on both trees; at growth stage 0 neither shows leaves.</p>
+                                                <p style="font-size:12px; color:#666; margin-top:4px;">Set by Maximum Visible Leaves in the 2D Tree Parameters Settings. Once the tree is fully grown (Stage 4), past it each new leaf makes the oldest fall on both trees; no leaf falls because the stage changes, and while the tree is growing every leaf stays; at growth stage 0 neither shows leaves.</p>
                                             </div>
                                             <div>
                                                 <label for="tree3d-leafScale" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf scale</label>
@@ -1716,7 +1716,7 @@
                         <div class="form-group">
                             <label for="param-leafFallThreshold">Maximum Visible Leaves</label>
                             <input type="number" id="param-leafFallThreshold" min="1" max="500" step="1" placeholder="15">
-                            <small class="text-muted">Keep this many live leaves; when a new leaf exceeds the limit, the oldest falls first</small>
+                            <small class="text-muted">Once the tree is fully grown (Stage 4), keep this many live leaves: when a new leaf goes over the limit, the oldest falls first. No leaf falls because the tree changes stage. While the tree is still growing (Stages 1 to 3) every leaf stays; when it reaches Stage 4 (Full Canopy) it keeps all the leaves it has; from then on, once it has more than this many, each new leaf makes the oldest fall.</small>
                         </div>
 
                         <div class="form-group">

@@ -250,6 +250,9 @@ async function refresh() {
     latest.tree2d = {
       leafFallThreshold: Math.max(1, Number(tree2d.leafFallThreshold) || 15),
       treeStage: Math.round(Number(tree2d.treeStage) || 0),
+      // Stage 4's number of leaves (the admin's leaf count thresholds), for how many leaves the fully grown
+      // tree keeps (feedback-leaves.js liveLeafLimit).
+      fullCanopyLeaves: Math.max(0, Math.round(Number(tree2d.leafThresholds?.stage4) || 50)),
       // In Auto, how far the tree has grown through its stage (0 to 1), so it grows a little with every leaf
       // (tree-growth.js); null in Manual (the stage's tree shows full). As tree-stage.js growthProgress.
       growth: tree2d.treeStageMode === 'auto' && tree2d.treeStageAuto && Number.isFinite(progress)

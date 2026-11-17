@@ -99,6 +99,33 @@
 // Leaf name font size at Leaf Display Scale 1; the same for every leaf.
 const LEAF_GLOW_FADE_MS = 900; // how long a just-landed leaf takes to fade its neon glow in
 const LANDING_STAGE_CLEAR_MS = 2500; // the next new leaf appears at the bottom middle this long after the one before takes off
+const GROWING_LEAF_LIMIT = 500; // a growing tree (stages 1 to 3) keeps every leaf, up to the highest Maximum Visible Leaves
+
+// The leaves the fully grown tree keeps from when it reached stage 4 (liveLeafLimit), saved in this browser for
+// the year and shared with the 3D tree (frontend/3dTree/feedback-leaves.js, the same key and rule).
+const FULL_CANOPY_KEY = 'esg-tree-full-canopy';
+function savedFullCanopy() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(FULL_CANOPY_KEY) || 'null');
+        return saved && saved.year === new Date().getFullYear() && Number.isFinite(saved.keep) ? saved.keep : null;
+    } catch {
+        return null; // no storage: worked out again from the settings
+    }
+}
+function saveFullCanopy(keep) {
+    try {
+        localStorage.setItem(FULL_CANOPY_KEY, JSON.stringify({ year: new Date().getFullYear(), keep }));
+    } catch {
+        // no storage: worked out again from the settings
+    }
+}
+function forgetFullCanopy() {
+    try {
+        localStorage.removeItem(FULL_CANOPY_KEY);
+    } catch {
+        // no storage: nothing saved
+    }
+}
 
 // The landing flight's easing, cubic-bezier(0.4, 0, 0.3, 1): a slow start and a long, gentle arrival.
 // Worked into the flight's keyframes (planLeafLandingFlight), so time at the bottom middle can come first.
@@ -250,6 +277,8 @@ class TreeManager {
         this.leafOpacity = 0.9;
         this.leafAnimationDuration = 500;
         this.leafFallThreshold = 15;
+        this.fullCanopyLeaves = 50;    // Stage 4's number of leaves (leafThresholds.stage4), for liveLeafLimit
+        this.stageBeforeLimit = null;  // the stage at the last liveLeafLimit, to see the tree reach stage 4
         this.leafFallDuration = 4200;
         this.leafDisplayScale = 1;
         this.vipLeafDisplayScale = 1;
@@ -467,6 +496,7 @@ class TreeManager {
             this.leafOpacity = Number(tree.leafOpacity) || this.leafOpacity;
             this.leafAnimationDuration = Number(tree.leafAnimationDuration) || this.leafAnimationDuration;
             this.leafFallThreshold = Number(tree.leafFallThreshold) || this.leafFallThreshold;
+            this.fullCanopyLeaves = Number(tree.leafThresholds?.stage4) || this.fullCanopyLeaves; // Stage 4's number
             this.leafFallDuration = Number(tree.leafFallDuration) || this.leafFallDuration;
             const showcaseSeconds = Number(tree.leafShowcaseSeconds);
             if (tree.leafShowcaseSeconds !== undefined && tree.leafShowcaseSeconds !== '' && Number.isFinite(showcaseSeconds)) {
@@ -1488,18 +1518,21 @@ class TreeManager {
             };
         }
 
-        const overflowCount = Math.max(0, visitors.length - threshold);
-        let clearedOverflow = this.getClearedLeafOverflow(threshold);
+        // How many leaves the live tree keeps (liveLeafLimit): no leaf falls because the stage changes; once
+        // the tree is fully grown, past Maximum Visible Leaves the oldest falls as each new one joins.
+        const limit = this.liveLeafLimit(visitors.length, threshold);
+        const overflowCount = Math.max(0, visitors.length - limit);
+        let clearedOverflow = this.getClearedLeafOverflow(limit);
 
         // A fresh browser starts from the current live tree instead of replaying historical falls.
         if (clearedOverflow === null) {
             clearedOverflow = overflowCount;
-            this.setClearedLeafOverflow(threshold, clearedOverflow);
+            this.setClearedLeafOverflow(limit, clearedOverflow);
         }
 
         if (clearedOverflow > overflowCount) {
             clearedOverflow = overflowCount;
-            this.setClearedLeafOverflow(threshold, clearedOverflow);
+            this.setClearedLeafOverflow(limit, clearedOverflow);
         }
 
         const fallingVisitors = visitors.slice(clearedOverflow, overflowCount);
@@ -1510,7 +1543,7 @@ class TreeManager {
             visibleVisitors,
             shouldFallAway: fallingVisitors.length > 0,
             cycleNumber: overflowCount,
-            threshold,
+            threshold: limit,
             overflowCount,
             fallingLeafKeys: new Set(
                 fallingVisitors.map((visitor, index) => this.getLeafKey(visitor, clearedOverflow + index))
@@ -1519,6 +1552,28 @@ class TreeManager {
             fallingLeafCount: fallingVisitors.length,
             isDemoCycle: false
         };
+    }
+
+    // How many leaves the live tree keeps, the same rule as the 3D tree's (frontend/3dTree/feedback-leaves.js
+    // liveLeafLimit, with the same saved count, FULL_CANOPY_KEY). No leaf ever falls because the tree changes
+    // stage. A growing tree (stages 1 to 3) keeps every leaf (up to GROWING_LEAF_LIMIT). On reaching stage 4
+    // it keeps every leaf it has (saved in this browser for the year, so a reload keeps them too; a browser
+    // opening on a fully grown tree takes the larger of Maximum Visible Leaves and Stage 4's number). From
+    // then on, once it has more than Maximum Visible Leaves, each new leaf makes the oldest fall.
+    liveLeafLimit(total, maxVisible) {
+        const stage = this.normalizeTreeStage(this.treeStage);
+        const grewBefore = this.stageBeforeLimit !== null && this.stageBeforeLimit < 4;
+        this.stageBeforeLimit = stage;
+        if (stage < 4) {
+            forgetFullCanopy();
+            return Math.max(maxVisible, GROWING_LEAF_LIMIT);
+        }
+        let keep = savedFullCanopy();
+        if (keep === null) {
+            keep = grewBefore ? Math.min(total, GROWING_LEAF_LIMIT) : Math.max(maxVisible, Number(this.fullCanopyLeaves) || 0);
+            saveFullCanopy(keep);
+        }
+        return Math.max(maxVisible, keep);
     }
 
     sortVisitorsOldestFirst(visitors) {
