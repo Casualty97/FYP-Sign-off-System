@@ -11,10 +11,8 @@
 //   - leaves are placed where the viewer sees them: on screen, and not under the title box; while the tree
 //     is growing (tree-growth.js) only on the foliage grown in so far, new ones further out as it spreads;
 //   - a new visitor's leaf glows green for the first minute;
-//   - the same leaves as the 2D tree (liveLeafLimit): none at growth stage 0 (bare trunk); no leaf ever
-//     falls because the stage changes; every leaf while the tree is growing (stages 1 to 3); once it is
-//     fully grown (stage 4) it keeps the leaves it has, and past its "Maximum Visible Leaves"
-//     (leafFallThreshold) each new leaf makes the oldest fall; all of a reviewed year's;
+//   - the same leaves as the 2D tree: its "Maximum Visible Leaves" (leafFallThreshold) newest leaves, the
+//     oldest falling when a new one arrives; none at growth stage 0 (bare trunk); all of a reviewed year's;
 //   - Year Review's "View Tree" shows that year's leaves, "Live" the current ones;
 //   - each leaf shows its visitor's name, as on the 2D tree: on the leaf itself, along its midrib so it turns
 //     with the leaf, wrapped inside the blade (up to three lines, whole words, "…" when too long), the same
@@ -44,33 +42,6 @@ const LEAF_MODEL = '/assets/Tree/3dTreeLeaves/RainTree_Leaf_Final12.glb';
 const MODEL_SIZE = 0.1;          // the leaf model is 10 cm across
 const BASE_SIZE = 1.8;           // metres across at scale 1, so a leaf and the name on it read from across the room
 const POLL_MS = 5000;            // as the 2D tree's live refresh
-const GROWING_LEAF_LIMIT = 500;  // a growing tree (stages 1 to 3) keeps every leaf, up to the highest Maximum Visible Leaves
-
-// The leaves the fully grown tree keeps from when it reached stage 4 (liveLeafLimit), saved in this browser for
-// the year and shared with the 2D tree (frontend/tree/tree.js, the same key and rule).
-const FULL_CANOPY_KEY = 'esg-tree-full-canopy';
-function savedFullCanopy() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(FULL_CANOPY_KEY) || 'null');
-    return saved && saved.year === new Date().getFullYear() && Number.isFinite(saved.keep) ? saved.keep : null;
-  } catch {
-    return null; // no storage: worked out again from the settings
-  }
-}
-function saveFullCanopy(keep) {
-  try {
-    localStorage.setItem(FULL_CANOPY_KEY, JSON.stringify({ year: new Date().getFullYear(), keep }));
-  } catch {
-    // no storage: worked out again from the settings
-  }
-}
-function forgetFullCanopy() {
-  try {
-    localStorage.removeItem(FULL_CANOPY_KEY);
-  } catch {
-    // no storage: nothing saved
-  }
-}
 const RECENT_LANDING_MS = 2 * 60 * 1000; // on opening, leaves this recent fly in (2D: recentLandingWindowMs)
 const GLOW_MS = 60 * 1000;       // a new visitor's leaf glows for a minute (2D: leafGlowDurationMs)
 const GLOW_FADE_MS = 900;
@@ -202,7 +173,7 @@ const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldCol
   leafAreaWidth: 100, leafAreaHeight: 100, leafAreaOffset: 0, leafRefreshMs: POLL_MS, leafOpacity: 1,
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
-  tree2d: { leafFallThreshold: 15, treeStage: 4, fullCanopyLeaves: 50 },
+  tree2d: { leafFallThreshold: 15, treeStage: 4 },
   vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true };
 
 const normaliseName = name => String(name || '').trim().toLowerCase();
@@ -545,37 +516,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   // As the 2D tree: VIP when /api/tree marks the visitor, or the name is on the VIP list.
   const isVipVisitor = visitor => visitor?.isVip === true || vipNames.has(normaliseName(visitor?.name));
 
-  // How many leaves the live tree keeps, the same rule as the 2D tree's (frontend/tree/tree.js liveLeafLimit,
-  // with the same saved count, FULL_CANOPY_KEY). No leaf ever falls because the tree changes stage. A growing
-  // tree (stages 1 to 3) keeps every leaf (up to GROWING_LEAF_LIMIT). On reaching stage 4 it keeps every leaf
-  // it has (saved in this browser for the year, so a reload keeps them too; a browser opening on a fully grown
-  // tree takes the larger of Maximum Visible Leaves and Stage 4's number). From then on, once it has more
-  // than Maximum Visible Leaves, each new leaf makes the oldest fall.
-  let stageBeforeLimit = null;
-  function liveLeafLimit(total) {
-    const stage = settings.tree2d.treeStage;
-    const maxVisible = Math.max(1, Number(settings.tree2d.leafFallThreshold) || 15);
-    const grewBefore = stageBeforeLimit !== null && stageBeforeLimit < 4;
-    stageBeforeLimit = stage;
-    if (stage < 4) {
-      forgetFullCanopy();
-      return Math.max(maxVisible, GROWING_LEAF_LIMIT);
-    }
-    let keep = savedFullCanopy();
-    if (keep === null) {
-      keep = grewBefore ? Math.min(total, GROWING_LEAF_LIMIT) : Math.max(maxVisible, Number(settings.tree2d.fullCanopyLeaves) || 0);
-      saveFullCanopy(keep);
-    }
-    return Math.max(maxVisible, keep);
-  }
-
   function showVisitors(list) {
     const visitors = sortOldestFirst(list);
     const keys = visitors.map((visitor, index) => leafKey(visitor, index));
     // The same leaves as the 2D tree: none on a bare trunk (stage 0), every leaf of a reviewed year,
-    // otherwise as many as liveLeafLimit keeps (the newest).
+    // otherwise the newest "Maximum Visible Leaves".
     const bare = settings.tree2d.treeStage <= 0;
-    const max = mode.live ? liveLeafLimit(keys.length) : keys.length;
+    const max = mode.live ? Math.max(1, Number(settings.tree2d.leafFallThreshold) || 15) : keys.length;
     const visible = new Set(bare ? [] : keys.slice(-max));
     const all = new Set(bare ? [] : keys);
     fitScale = leavesFit(visible.size);

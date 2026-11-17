@@ -461,7 +461,17 @@ function showTree3dMaxLeaves(count) {
     if (tree3dField('leafCount2d')) tree3dField('leafCount2d').textContent = String(value);
     const field2d = document.getElementById('param-leafFallThreshold');
     if (field2d) field2d.value = value;
+    showTree3dMaxLeavesExample();
     return value;
+}
+
+// The help under Maximum Visible Leaves, with the number set (as typed): "at 21, the 22nd leaf makes the oldest fall".
+function showTree3dMaxLeavesExample() {
+    const value = Math.min(500, Math.max(1, Math.round(Number(tree3dField('maxVisibleLeaves')?.value)) || 15));
+    const tens = (value + 1) % 100;
+    const suffix = tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[(value + 1) % 10] || 'th';
+    if (tree3dField('maxLeavesExample')) tree3dField('maxLeavesExample').textContent = String(value);
+    if (tree3dField('maxLeavesNext')) tree3dField('maxLeavesNext').textContent = `${value + 1}${suffix}`;
 }
 
 async function saveTree3dVisualization() {
