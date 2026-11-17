@@ -24,8 +24,8 @@ const router = express.Router();
 const all = (sql, params) => new Promise((resolve, reject) => db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows))));
 
 const FORECAST_BUCKET_SECONDS = 600;
-// above a week the forecast works on daily averages; they barely move within minutes, so the answer is kept a while
-const LONG_HORIZON_HOURS = 168;
+// more than 2 days ahead the forecast works on daily averages (forecast.usesDailyAverages); they barely move within
+// minutes, so the answer is kept a while
 const LONG_CACHE_MS = 10 * 60 * 1000;
 let longCache = { key: null, at: 0, value: null };
 const NUMBER_KEYS = ['cpu', 'memory', 'disk', 'gpu', 'diskUsedGb', 'diskTotalGb', 'memoryUsedMb', 'gpuMemoryUsedMb'];
@@ -86,7 +86,7 @@ async function stepForecast(horizonHours) {
     };
 }
 
-// More than a week ahead: one average per day that has at least an hour of samples (closed days are left out)
+// More than 2 days ahead: one average per day that has at least an hour of samples (closed days are left out)
 async function dailyForecast(current) {
     const key = [current.forecastHours, current.retentionDays, current.intervalSeconds].join('|');
     if (longCache.key === key && Date.now() - longCache.at < LONG_CACHE_MS) return longCache.value;
@@ -114,7 +114,7 @@ async function dailyForecast(current) {
     return value;
 }
 
-// How far back the stored samples go, and with the daily summaries (what a forecast longer than a week uses)
+// How far back the stored samples go, and with the daily summaries (what a forecast more than 2 days ahead uses)
 async function sampleHistory() {
     const rows = await all('SELECT UNIX_TIMESTAMP(MIN(sampled_at)) * 1000 AS oldest FROM hardware_samples', []);
     const oldest = rows[0] && rows[0].oldest !== null && rows[0].oldest !== undefined ? Number(rows[0].oldest) : null;
@@ -127,9 +127,9 @@ async function sampleHistory() {
 }
 
 // The horizon check plus the dates the page shows: the oldest sample and when the forecast becomes dependable
-// A forecast longer than a week reads the daily summaries, which are never deleted: only waiting makes it dependable
+// A forecast more than 2 days ahead reads the daily summaries, which are never deleted: only waiting makes it dependable
 function describeCheck(current, history) {
-    const long = current.forecastHours > LONG_HORIZON_HOURS;
+    const long = forecast.usesDailyAverages(current.forecastHours);
     const oldest = long ? history.longOldest : history.oldest;
     const check = forecast.horizonCheck({ horizonHours: current.forecastHours, historyHours: long ? history.longHours : history.hours, retentionDays: current.retentionDays, keptForGood: long });
     const start = oldest === null ? Date.now() : oldest;
@@ -152,7 +152,7 @@ function readHorizon(value, saved) {
 // <Jun Kai end>
 
 async function buildForecast(current) {
-    const body = current.forecastHours > LONG_HORIZON_HOURS ? await dailyForecast(current) : await stepForecast(current.forecastHours);
+    const body = forecast.usesDailyAverages(current.forecastHours) ? await dailyForecast(current) : await stepForecast(current.forecastHours);
     return { ...body, horizonHours: current.forecastHours, check: describeCheck(current, await sampleHistory()) };
 }
 

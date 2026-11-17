@@ -1,7 +1,7 @@
 // Owner: Role 3, Jun Kai.
 // Usage forecasting for the Hardware page, statistics only (no AI, as agreed with the supervisor):
 // Holt's damped trend (double exponential smoothing) for CPU, memory and GPU, a straight-line fit for
-// the disk, daily averages for forecasts longer than a week, and the check that tells a dependable forecast from
+// the disk, daily averages for forecasts more than 2 days ahead, and the check that tells a dependable forecast from
 // a rough guide. Pure functions, unit-tested in tests/unit/forecast.test.js.
 // <Jun Kai start>
 const ALPHAS = [0.2, 0.35, 0.5, 0.65, 0.8];
@@ -134,7 +134,12 @@ function bucketAverage(rows, bucketMs, keys) {
     });
 }
 
-// Forecasts longer than a week work on one average per day instead of 10-minute steps.
+// Forecasts more than DAILY_AFTER_HOURS (2 days) ahead work on one average per day instead of 10 minute steps. Until
+// 18 Nov 2026 the steps went up to 7 days, but they carry on from the current level: a forecast 7 days ahead made at
+// night showed tonight's low CPU, while 30 days ahead on the daily averages showed the usual level.
+const DAILY_AFTER_HOURS = 48;
+const usesDailyAverages = (hours) => Number(hours) > DAILY_AFTER_HOURS;
+
 // values: daily averages, oldest first, only the days that have samples; days: how far ahead.
 // Returns the Holt result with at most maxPoints points, each { day (1 = tomorrow), value, low, high }, or null
 // with fewer than 6 days. The damped trend fades within weeks, so far ahead this is the usual level and range.
@@ -152,7 +157,7 @@ function dailyForecast(values, days, maxPoints = 200) {
 // rough: the history is shorter than the horizon. reason 'history': it gets there by waiting (waitHours);
 // reason 'retention': samples are deleted before it can (neededRetentionDays is the keep period that would do).
 const HISTORY_TOLERANCE = 0.95;
-// keptForGood: a forecast longer than a week reads the daily summaries, which are never deleted (no 'retention' reason)
+// keptForGood: a forecast more than 2 days ahead reads the daily summaries, which are never deleted (no 'retention' reason)
 function horizonCheck({ horizonHours, historyHours, retentionDays, keptForGood = false }) {
     const keptHours = keptForGood ? Infinity : retentionDays * 24;
     const history = Math.max(0, Math.min(Number(historyHours) || 0, keptHours));
@@ -164,5 +169,5 @@ function horizonCheck({ horizonHours, historyHours, retentionDays, keptForGood =
 
 function round1(n) { return Math.round(n * 10) / 10; }
 
-module.exports = { holt, fitHolt, holtForecast, dailyForecast, horizonCheck, linearTrend, diskForecast, bucketAverage, clamp, dampingFor };
+module.exports = { holt, fitHolt, holtForecast, dailyForecast, horizonCheck, linearTrend, diskForecast, bucketAverage, clamp, dampingFor, DAILY_AFTER_HOURS, usesDailyAverages };
 // <Jun Kai end>

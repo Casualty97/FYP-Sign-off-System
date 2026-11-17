@@ -143,6 +143,12 @@ test('a forecast a year ahead of a steady load stays at its usual level', () => 
     assert.ok(end.low < end.value && end.high > end.value, 'with a range around it');
 });
 
+test('up to 2 days ahead the forecast works on 10 minute steps, further ahead on daily averages', () => {
+    assert.equal(forecast.DAILY_AFTER_HOURS, 48);
+    for (const hours of [1, 6, 24, 48]) assert.equal(forecast.usesDailyAverages(hours), false, `${hours} h on steps`);
+    for (const hours of [49, 72, 168, 720, 8760]) assert.equal(forecast.usesDailyAverages(hours), true, `${hours} h on daily averages`);
+});
+
 test('horizonCheck: dependable once the samples go back as far as the forecast looks ahead', () => {
     const week = forecast.horizonCheck({ horizonHours: 24, historyHours: 200, retentionDays: 30 });
     assert.deepEqual([week.rough, week.reason], [false, null]);

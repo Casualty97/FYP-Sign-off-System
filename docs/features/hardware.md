@@ -15,7 +15,7 @@ backend/server.js starts the sampler after boot. Every N seconds (default 60, se
 
 Live cards (16 Nov 2026): while the Hardware page is open and its browser tab is visible, the page asks `GET /api/admin/hardware/live` every second and puts the answer on the four part cards, their Normal / High / Critical pills, the "Now" line under each graph and the "now" in the forecast hints. The server (backend/features/hardware/live.js) reads the CPU with its own meter (the busy share of the last second; two pages asking at once share one reading, and after 2 s without a request it measures a fresh quarter second), memory and disk on the spot, and the GPU in the background every 2 s with nvidia-smi or every 5 s with the Windows counters (each GPU read starts a program; until the first answer the last stored sample's GPU is shown). Nothing is stored: the samples, the graphs and the forecast keep the Sampling interval. A GPU read already running is shared with the sampler, so a stored sample never loses its GPU value while the page is open.
 
-Forecast length (11 Nov 2026, supervisor meeting 04; the field, the Forecast card, the reminder and `GET /forecast-check` were replaced on 17 Nov 2026 by the Past / Forecast switch described at the end): "Forecast ahead" goes from 1 hour to 1 year (presets 6 hours to 7 days, 1, 3 and 6 months, 1 year; Custom in hours, days, months of 30 days or years of 365 days). Up to 7 days the forecast works on the 10-minute steps described above. Beyond that it works on one average per day (only days with at least an hour of samples, so closed days are left out; it needs 6 such days), looks back twice the forecast length (at least 30 days, at most the keep period), is thinned to at most 200 points and is kept for 10 minutes; this far ahead the damped trend has faded, so CPU, memory and GPU show their usual level and range, not a prediction for one day, and only the disk line really extrapolates. A forecast counts as dependable when the stored samples go back about as far as it looks ahead (`forecast.horizonCheck`, 5 % short still counts). Otherwise it is a rough guide: the Forecast card says so in an amber note with the reason (waiting is enough, or samples are deleted before the history can get that long), and saving such a choice first opens a reminder with "Go back" and "Save anyway". The reminder appears when the forecast length changes or the keep period is shortened, for presets and Custom values alike; `GET /api/admin/hardware/forecast-check?forecastHours=&retentionDays=` answers the question for the values in the form. The Sampler details show the oldest sample. A disk that is not growing is drawn level instead of continuing a clean-up downwards. `PORT` in backend/.env runs the HTTPS server on another port, handy for testing a branch next to a live copy.
+Forecast length (11 Nov 2026, supervisor meeting 04; the field, the Forecast card, the reminder and `GET /forecast-check` were replaced on 17 Nov 2026 by the Past / Forecast switch described at the end, and since 18 Nov 2026 the steps stop at 2 days): "Forecast ahead" goes from 1 hour to 1 year (presets 6 hours to 7 days, 1, 3 and 6 months, 1 year; Custom in hours, days, months of 30 days or years of 365 days). Up to 7 days the forecast works on the 10-minute steps described above. Beyond that it works on one average per day (only days with at least an hour of samples, so closed days are left out; it needs 6 such days), looks back twice the forecast length (at least 30 days, at most the keep period), is thinned to at most 200 points and is kept for 10 minutes; this far ahead the damped trend has faded, so CPU, memory and GPU show their usual level and range, not a prediction for one day, and only the disk line really extrapolates. A forecast counts as dependable when the stored samples go back about as far as it looks ahead (`forecast.horizonCheck`, 5 % short still counts). Otherwise it is a rough guide: the Forecast card says so in an amber note with the reason (waiting is enough, or samples are deleted before the history can get that long), and saving such a choice first opens a reminder with "Go back" and "Save anyway". The reminder appears when the forecast length changes or the keep period is shortened, for presets and Custom values alike; `GET /api/admin/hardware/forecast-check?forecastHours=&retentionDays=` answers the question for the values in the form. The Sampler details show the oldest sample. A disk that is not growing is drawn level instead of continuing a clean-up downwards. `PORT` in backend/.env runs the HTTPS server on another port, handy for testing a branch next to a live copy.
 
 Look (9 Nov 2026): the time range is a segmented control with the chosen range raised on a grey track. The graphs break the line where there are no samples for more than three periods (the PC hibernating overnight) instead of drawing straight across the gap, the time axis follows the span actually drawn (with dates once it passes a day), and a range longer than the samples are kept starts at the oldest sample, with the note under the toolbar saying so. The Forecast card explains itself in one plain line; the method sits in a small line under the numbers.
 
@@ -41,7 +41,7 @@ On "All parts" each line carries its name at its right end (where its forecast o
 **Known issues**
 
 - GPU memory total is only known with nvidia-smi; with the Windows counters the tile shows memory in use only.
-- The forecast needs about an hour of samples (six 10-minute averages) before it shows anything; a forecast longer than 7 days needs 6 days with samples.
+- The forecast needs about an hour of samples (six 10-minute averages) before it shows anything; a forecast more than 2 days ahead (more than 7 days before 18 Nov 2026) needs 6 days with samples.
 - A yearly forecast only becomes dependable after a year of samples with "Keep samples for" set to 1 year (about 525,000 rows at one sample a minute). A small table of daily summaries kept for good would make that cheaper; not built yet.
 - Reading the Windows GPU counters takes about 2 s per sample; the sampler runs it in a child process so the page is not affected.
 - A custom range longer than "Keep samples for" (at most 1 year) is partly empty; the note under the graphs says how long samples are kept.
@@ -57,9 +57,10 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
   every day whose samples are still there. A day is summed up once.
 - A graph range longer than "Keep samples for" (or one that needs buckets of a day or more) comes from the summaries,
   one point per day or more, with today taken from the samples (`source: "daily"` in `GET /series`).
-- A forecast longer than a week reads the summaries too, so "Keep samples for" no longer limits it: the forecast check
-  says only "wait" (`keptForGood: true`, reason `history`) until the summaries reach back as far as the forecast looks
-  ahead. Forecasts up to a week still use the samples and still get the `retention` reason.
+- A forecast more than 2 days ahead (more than a week before 18 Nov 2026) reads the summaries too, so "Keep samples for"
+  no longer limits it: the forecast check says only "wait" (`keptForGood: true`, reason `history`) until the summaries
+  reach back as far as the forecast looks ahead. Forecasts up to 2 days ahead still use the samples and still get the
+  `retention` reason.
 - Before `npm run db:migrate` adds the table the page keeps working on the samples alone, and Sampling shows
   "table missing".
 
@@ -107,8 +108,8 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
   range, and when the disk is full (what the Forecast card used to show). Under one part: now, the value at the end,
   the likely range (the shaded band) and what it is based on; for the disk: where it will be, when it is full and how
   fast it grows. The rough guide note and the method line sit under the graph in this mode only.
-- While a forecast is not ready (up to 7 days ahead it needs an hour of samples without a break; further ahead it needs 6
-  days with samples) the graph still runs to the end of the length picked and says why in the empty space after "now".
+- While a forecast is not ready (up to 2 days ahead it needs an hour of samples without a break; further ahead it needs 6
+  days with samples; the boundary was 7 days until 18 Nov 2026) the graph still runs to the end of the length picked and says why in the empty space after "now".
 - The page asks for `GET /series?range=<half the length in hours>&horizon=<hours>`. `horizon` (1 to 8760) is new; when
   it is left out the saved `forecastHours` is used, which is how the first visit picks up the length saved before. The
   page sends the length in Past mode too, because the part cards keep their short forecast line ("36% in 24 hours").
@@ -128,3 +129,16 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
   the same data). Runs shorter than 12 hours behave as before. The daily forecast gets the same cap in days (36 days).
 - tests/unit/forecast.test.js: a steady rise keeps its slope at first and the rise halves 36 steps later; 12.5 days of a
   steady rise no longer push the value 7 days ahead up by about 7 points.
+
+## Daily averages from 2 days ahead, 18 Nov 2026
+- Up to 2 days ahead the forecast still works on the 10 minute steps; more than 2 days ahead it uses the daily averages
+  that 30 days and 1 year already used (`DAILY_AFTER_HOURS` and `usesDailyAverages` in backend/features/hardware/forecast.js,
+  used by `buildForecast` and `describeCheck` in routes.js). The steps carry on from the current level, so a forecast 7
+  days ahead made at night showed tonight's low CPU, while 30 days ahead showed the usual level. Now 7 days shows the
+  usual level and range too.
+- The cost: a forecast more than 2 days ahead needs 6 days with at least an hour of samples before it shows anything (the
+  graph says "Needs 6 days with samples"), where the steps need one hour. Its rough guide check counts the daily summaries,
+  which are kept for good, so only waiting makes it dependable.
+- The trend cap above now matters for 1 hour to 2 days ahead.
+- Tests: forecast.test.js checks the boundary (48 hours on steps, 49 hours and more on daily averages); the smoke test asks
+  horizon=48 (steps) and horizon=168 (daily).

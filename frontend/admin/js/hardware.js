@@ -904,7 +904,7 @@ function hardwareForecastInfo(forecast, latest) {
         else if (end.t <= now) reason = 'Waiting for new samples';
         parts[key] = { ready: !reason, end: reason ? null : end, reason };
     }
-    // the disk fits a line through hourly averages (up to 7 days ahead) or daily ones (further ahead): it needs two of them
+    // the disk fits a line through hourly averages (up to 2 days ahead) or daily ones (further ahead): it needs two of them
     parts.disk = { ready: !!f.disk, disk: f.disk || null, reason: f.disk ? '' : daily ? 'Needs 2 days with samples' : 'Needs a few hours of samples' };
     return { hours, words: hardwareHorizonWords(hours), daily, parts, basedOn: f.basedOnPoints || 0, method: f.method || '', check: f.check || null };
 }
