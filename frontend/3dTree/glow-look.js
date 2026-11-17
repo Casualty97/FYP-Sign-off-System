@@ -76,8 +76,10 @@ function glowMaterial(material, uniforms, done) {
   material.onBeforeCompile = (shader, renderer) => {
     before?.call(material, shader, renderer); // the leaves' wind (matte-tree.js)
     Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = 'varying vec3 vGlowPos;\n' + shader.vertexShader.replace('#include <project_vertex>',
-      '#include <project_vertex>\n  vGlowPos = ( modelMatrix * vec4( transformed, 1. ) ).xyz;');
+    // Where on the tree, as at its full size (glowUnscale), so its colours hold still while it grows.
+    shader.vertexShader = 'uniform vec3 glowCentre;\nuniform float glowUnscale;\nvarying vec3 vGlowPos;\n'
+      + shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n'
+        + '  vGlowPos = glowCentre + ( ( modelMatrix * vec4( transformed, 1. ) ).xyz - glowCentre ) * glowUnscale;');
     shader.fragmentShader = GLOW_COMMON + shader.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>\n${leaf ? LEAF_GLOW : BARK_GLOW}`);
   };
@@ -170,19 +172,22 @@ function sparkles(clock, box, renderer) {
   return { points, material };
 }
 
+// addTree(tree): the next stage's tree, made to glow before it is shown (scene.js); update(tree) takes the
+// tree shown now.
 export function addGlowLook({ scene, renderer, tree, clock, lights }) {
   tree.updateMatrixWorld(true);
   const base = new T.Vector3().setFromMatrixPosition(tree.matrixWorld);
-  const uniforms = { glowTime: clock.time, glowCentre: { value: base } };
+  const uniforms = { glowTime: clock.time, glowCentre: { value: base }, glowUnscale: { value: 1 } };
   const done = new Set();
   const foliage = new T.Box3();
-  tree.traverse(object => {
+  const addTree = next => next.traverse(object => {
     if (!object.isMesh) return;
     for (const material of [object.material].flat()) {
       glowMaterial(material, uniforms, done);
-      if (material?.alphaTest > 0) foliage.expandByObject(object);
+      if (next === tree && material?.alphaTest > 0) foliage.expandByObject(object);
     }
   });
+  addTree(tree);
 
   const wood = new T.Box3().setFromObject(tree);
   const reach = Math.max(4.5, Math.min(9, Math.max(wood.max.x - wood.min.x, wood.max.z - wood.min.z) * 0.32));
@@ -191,8 +196,10 @@ export function addGlowLook({ scene, renderer, tree, clock, lights }) {
   scene.add(specks.points);
 
   return {
+    addTree,
     // After the weather's update: night, in cool moonlight, whatever the weather or the time of day.
-    update() {
+    update(shown = tree) {
+      uniforms.glowUnscale.value = 1 / Math.max(0.05, shown.scale.x); // a tree growing into its next stage
       clock.night.value = 1;
       clock.dusk.value = 0;
       lights.sun.intensity = 0.28;

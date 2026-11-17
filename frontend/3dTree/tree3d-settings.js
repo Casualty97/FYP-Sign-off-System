@@ -246,9 +246,14 @@ async function refresh() {
     // The 3D tree shows the same leaves as the 2D tree (feedback-leaves.js): its "Maximum Visible Leaves"
     // and growth stage come from the 2D tree's settings.
     const tree2d = data.parameters?.treeParameters || {};
+    const progress = Number(tree2d.treeStageAuto?.progress);
     latest.tree2d = {
       leafFallThreshold: Math.max(1, Number(tree2d.leafFallThreshold) || 15),
       treeStage: Math.round(Number(tree2d.treeStage) || 0),
+      // In Auto, how far the tree has grown through its stage (0 to 1), so it grows a little with every leaf
+      // (tree-growth.js); null in Manual (the stage's tree shows full). As tree-stage.js growthProgress.
+      growth: tree2d.treeStageMode === 'auto' && tree2d.treeStageAuto && Number.isFinite(progress)
+        ? Math.max(0, Math.min(1, progress)) : null,
       // The 2D tree's badge colours (Badge Leaf Styling), for any badge the 3D settings leave as built in.
       badgeColors: { ...(data.parameters?.badgeLeafStyles?.colors || {}) },
     };

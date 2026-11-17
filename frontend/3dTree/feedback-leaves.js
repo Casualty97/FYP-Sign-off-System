@@ -8,7 +8,8 @@
 //     12 seconds (SHOWCASE_MS), drifting gently with its name level; then it slowly floats up to its place
 //     on the tree like a falling leaf in reverse: swinging gently from side to side and rocking like a
 //     cradle, the swings dying away as it shrinks and settles onto its twig. Several new leaves take turns;
-//   - leaves are placed where the viewer sees them: on screen, and not under the title box;
+//   - leaves are placed where the viewer sees them: on screen, and not under the title box; while the tree
+//     is growing (tree-growth.js) only on the foliage grown in so far, new ones further out as it spreads;
 //   - a new visitor's leaf glows green for the first minute;
 //   - the same leaves as the 2D tree: its "Maximum Visible Leaves" (leafFallThreshold) newest leaves, the
 //     oldest falling when a new one arrives; none at growth stage 0 (bare trunk); all of a reviewed year's;
@@ -35,6 +36,7 @@
 import { THREE as T, GLTFLoader } from './vendor/three-runtime.js';
 import { onTree3dSettings } from './tree3d-settings.js';
 import { createLeafDetail } from './leaf-detail.js';
+import { isGrown } from './tree-growth.js';
 
 const LEAF_MODEL = '/assets/Tree/3dTreeLeaves/RainTree_Leaf_Final12.glb';
 const MODEL_SIZE = 0.1;          // the leaf model is 10 cm across
@@ -359,8 +361,11 @@ function glowTexture() {
 
 // ---------- where leaves can sit: the outer canopy of the tree ----------
 
-function canopyAnchors(tree) {
+// While the tree is growing (tree-growth.js), only the foliage grown in so far: the outer shell of that
+// (all of the foliage if hardly any has grown in yet).
+function canopyAnchors(tree, grownOnly = true) {
   tree.updateMatrixWorld(true);
+  const shown = tree.userData.foliageShown ?? 1;
   const points = [];
   const point = new T.Vector3();
   tree.traverse(object => {
@@ -369,9 +374,11 @@ function canopyAnchors(tree) {
     const positions = object.geometry.attributes.position;
     const step = Math.max(1, Math.floor(positions.count / 3000));
     for (let i = 0; i < positions.count; i += step) {
+      if (grownOnly && !isGrown(object.geometry, i, shown)) continue;
       points.push(point.fromBufferAttribute(positions, i).applyMatrix4(object.matrixWorld).clone());
     }
   });
+  if (grownOnly && points.length < 60) return canopyAnchors(tree, false);
   if (!points.length) return { anchors: [], centre: new T.Vector3() };
 
   const box = new T.Box3().setFromPoints(points);
@@ -1259,5 +1266,20 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     orderByDistance();
   }
 
-  return { update };
+  // The tree has grown (tree-growth.js): new leaves get spots on the canopy as it is now. Leaves already on
+  // the tree stay where they are (the canopy has grown out round them).
+  function canopyGrew() {
+    if (!model) return;
+    anchors = canopyAnchors(tree).anchors;
+    canopyBox = anchors.length ? new T.Box3().setFromPoints(anchors.map(anchor => anchor.position)) : null;
+  }
+
+  // The tree has grown into its next stage, in place (scene.js): the leaves stay where they are; new spots
+  // come from the new tree once it has grown (canopyGrew), or at once if there were none (a bare trunk).
+  function setTree(next) {
+    tree = next;
+    if (!anchors.length) canopyGrew();
+  }
+
+  return { update, canopyGrew, setTree };
 }

@@ -11,10 +11,11 @@ export function createFallingLeaves(scene,model,data,random,waterRise,onWaterEnt
   const group=new T.Group();
   group.name='Ketapang leaves | canopy, island and river';
   scene.add(group);
-  const routes=data.map(route=>({
+  const makeRoutes=list=>list.map(route=>({
     start:new T.Vector3(...route.start),land:new T.Vector3(...route.land),
     lift:curve(route.lift),current:curve(route.current),entry:new T.Vector3(...route.current[0]),
   }));
+  let routes=makeRoutes(data);
   const prototypes=['OrangeLeaf1','DryLeaf1','Leaf1','YellowLeaf1'].map(name=>model.getObjectByName(name));
   const pool=Array.from({length:10},(_,i)=>{
     const mesh=prototypes[i%prototypes.length].clone();
@@ -41,8 +42,12 @@ export function createFallingLeaves(scene,model,data,random,waterRise,onWaterEnt
     onWaterEntry?.(leaf.mesh.position,time);
   }
   return {
+    // New routes, from a tree that has grown into its next stage (scene.js); leaves already falling keep theirs.
+    setRoutes(list) {
+      routes=makeRoutes(list);
+    },
     gust(time) {
-      if (time-lastGust<2.6) return;
+      if (time-lastGust<2.6 || !routes.length) return;
       lastGust=time;
       let lifted=0;
       for (const leaf of pool) {

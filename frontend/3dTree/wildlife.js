@@ -194,7 +194,7 @@ export function createBirds(scene, source, bounds, soil, seats, lowQuality) {
             first:a.duration+a.rest, offset, phase:rng()*TAU};
   });
   const dir=new T.Vector3(), nextDir=new T.Vector3();
-  return time=>{
+  const update=time=>{
     for (const hawk of birds) {
       const cycle=(time+hawk.offset)%hawk.span;
       const index=cycle<hawk.first?0:1;
@@ -227,4 +227,7 @@ export function createBirds(scene, source, bounds, soil, seats, lowQuality) {
     }
     return birds[Math.floor(time/12)%birds.length].object.position;
   };
+  // Takes the birds away (scene.js, when the tree has grown into its next stage and new perches are made).
+  update.remove=()=>birds.forEach(hawk=>hawk.object.removeFromParent());
+  return update;
 }

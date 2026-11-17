@@ -530,7 +530,8 @@ async function triggerTree3dAction(action) {
 // the same way. Manual: the chosen stage. Auto: the tree grows by itself, the stage following the leaf count
 // and the thresholds (worked out by the server for /api/parameters, backend/features/parameters/
 // treeStage.js; previewed here with getCurrentLeafCount and getStageFromLeafCount from tree.js). The
-// /3dTree screen shows the Ketapang Stage 0 to 4 model for it (frontend/3dTree/tree-stage.js).
+// /3dTree screen shows the Ketapang Stage 0 to 4 model for it (frontend/3dTree/tree-stage.js), and in Auto
+// grows it a little with every leaf until the next stage (frontend/3dTree/tree-growth.js; the growth line).
 const TREE3D_STAGE_NAMES = ['Bare Trunk', 'Early Growth', 'Young Canopy', 'Mature Canopy', 'Full Canopy'];
 
 function tree3dStageThresholds() {
@@ -542,14 +543,28 @@ function tree3dStageIsAuto() {
     return document.querySelector('input[name="tree3dStageMode"]:checked')?.value !== 'manual';
 }
 
+// How far the 3D tree has grown through its stage, as the server works it out for the 3D tree's growth
+// (backend/features/parameters/treeStage.js stageProgress): "60% grown towards Stage 3 (6 more leaves)".
+function tree3dGrowthText(leafCount, thresholds, stage) {
+    if (stage >= 4) return 'fully grown';
+    const from = stage === 0 ? 0 : Number(thresholds[`stage${stage}`]) || 0;
+    const to = Number(thresholds[`stage${stage + 1}`]) || 0;
+    const share = to > from ? Math.min(1, Math.max(0, (leafCount - from) / (to - from))) : 1;
+    const more = Math.max(0, to - leafCount);
+    return `${Math.round(share * 100)}% grown towards Stage ${stage + 1} (${more} more ${more === 1 ? 'leaf' : 'leaves'})`;
+}
+
 async function updateTree3dAutoStage() {
     const countLabel = tree3dField('currentLeafCount');
     const preview = tree3dField('autoStagePreview');
     if (!countLabel || !preview) return null;
     const leafCount = await getCurrentLeafCount();
-    const stage = getStageFromLeafCount(leafCount, tree3dStageThresholds());
+    const thresholds = tree3dStageThresholds();
+    const stage = getStageFromLeafCount(leafCount, thresholds);
     countLabel.textContent = String(leafCount);
     preview.textContent = `${stage} (${TREE3D_STAGE_NAMES[stage]})`;
+    const growth = tree3dField('growthPreview');
+    if (growth) growth.textContent = tree3dGrowthText(leafCount, thresholds, stage);
     if (tree3dStageIsAuto()) tree3dField('treeStage').value = String(stage);
     return stage;
 }

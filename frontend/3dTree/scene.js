@@ -14,7 +14,8 @@ import { createFallingLeaves } from './falling-leaves.js';
 import { refineSceneMaterials, drawingRatio, createFrameBudget } from './render-quality.js';
 import { createTreeView } from './tree-view.js';
 import { addFeedbackLeaves } from './feedback-leaves.js';
-import { startingStage, stageModelUrl, prepareStageTree, perchSeats, canopyDriftRoutes, normaliseStage } from './tree-stage.js';
+import { startingStage, stageModelUrl, prepareStageTree, perchSeats, canopyDriftRoutes, normaliseStage, loadStageTree, removeTree } from './tree-stage.js';
+import { growTree, matchingScale, previewGrowth } from './tree-growth.js';
 import { onTree3dSettings } from './tree3d-settings.js';
 import { addGlowLook, startingLook } from './glow-look.js';
 
@@ -95,11 +96,11 @@ async function start() {
   updateSize();
   // The tree's growth stage, the same as the 2D tree's (tree-stage.js).
   // ... and the look: glowing or the daylight river valley (the admin's "Glowing look", glow-look.js).
-  const [{stage,fixed},look]=await Promise.all([startingStage(),startingLook()]);
+  const [{stage,fixed,growth:startingGrowth},look]=await Promise.all([startingStage(),startingLook()]);
   const assets = await loadEnvironment((count,total)=>{
     loadingDetail.textContent = `Loading Stage ${stage} and the river assets · ${count}/${total}`;
   },lowQuality,stageModelUrl(stage));
-  const shownStage=assets.tree.userData.stageFallback?4:stage;
+  let shownStage=assets.tree.userData.stageFallback?4:stage;
   const stageLabel=document.getElementById('tree-stage-label');
   if (stageLabel) stageLabel.textContent=`STAGE ${shownStage}`;
   loadingDetail.textContent = 'Lighting the river valley';
@@ -112,21 +113,21 @@ async function start() {
   }
   const water=addLandscape(scene,assets,clock,lowQuality);
   const updateRiverLevel=installRiverLevel(clock.rain,water.setRise);
-  const tree=addMatteTree(scene,prepareStageTree(assets.tree,shownStage),clock,shownStage);
+  let tree=addMatteTree(scene,prepareStageTree(assets.tree,shownStage),clock,shownStage);
   const treeBounds=new T.Box3().setFromObject(tree);
   if (treeBounds.isEmpty()) throw new Error(`The Stage ${shownStage} tree has no renderable geometry.`);
+  // In the admin's Auto growth stage the tree grows a little with every leaf: its foliage fills in from the
+  // middle of the canopy outwards until the next stage (tree-growth.js). Before anything uses the foliage.
+  // (?stage=3&growFrom=2 shows stage 3 as just grown from stage 2.)
+  let latestGrowth=startingGrowth;
+  let growth=growTree(tree,shownStage,startingGrowth,previewGrowth(shownStage));
   // The wind drops leaves from this stage's canopy; a bare trunk (stage 0) drops none.
-  const driftRoutes=canopyDriftRoutes(tree,assets.leafDrifts,shownStage);
+  let driftRoutes=canopyDriftRoutes(tree,assets.leafDrifts,shownStage);
   const leaves=createFallingLeaves(scene,assets.driftLeaves,driftRoutes,seeded(7741),clock.waterRise,(position,time)=>{
     water.splash(position,time);
     if (ambient.enabled) ambient.leafSplash(soundPan(position),camera.position.distanceTo(position));
   });
   const dropLeaves=time=>{ if (driftRoutes.length) leaves.gust(time); };
-  // A different stage or look saved in the admin: reload into it (unless ?stage= or ?look= fixes it).
-  onTree3dSettings(next=>{
-    if (!fixed && next?.tree2d && normaliseStage(next.tree2d.treeStage)!==stage) location.reload();
-    if (!look.fixed && next && (next.glowLook!==false)!==look.glow) location.reload();
-  });
   // One leaf per feedback on the tree, with the 2D tree's leaf animations (feedback-leaves.js).
   const feedbackLeaves=addFeedbackLeaves({scene,tree,clock,camera,renderer,glow:look.glow});
 
@@ -136,8 +137,8 @@ async function start() {
   updateHabitat(0);
   updateForestWildlife(0);
   const updateWildlife=createSwimmers(scene,assets,clock,lowQuality);
-  const seats=perchSeats(tree,[[-4.822,4.776,1.032],[4.414,4.893,.617],[-4.057,7.364,.104],[4.227,7.372,-.568]],shownStage);
-  const updateBirds=createBirds(scene,assets.hawk,treeBounds,clock.soil.value,seats,lowQuality);
+  const perches=[[-4.822,4.776,1.032],[4.414,4.893,.617],[-4.057,7.364,.104],[4.227,7.372,-.568]];
+  let updateBirds=createBirds(scene,assets.hawk,treeBounds,clock.soil.value,perchSeats(tree,perches,shownStage),lowQuality);
   updateWildlife(0);
   updateBirds(0);
   let finishSunset;
@@ -155,7 +156,65 @@ async function start() {
   weather.update(0,camera);
   // The glowing tree at night (glow-look.js), when the admin's "Glowing look" is on.
   const glowLook=look.glow?addGlowLook({scene,renderer,tree,clock,lights:{sun,hemi,fill,rim}}):null;
-  glowLook?.update();
+  glowLook?.update(tree);
+
+  // The tree growing into another stage in place, without reloading the page (tree-stage.js, tree-growth.js).
+  // The new stage's model loads in the background while the tree stays on show. Then it takes the tree's
+  // place at the tree's size and with the foliage the tree had, and grows to its own size with a growth spurt
+  // of fresh foliage. The visitors' leaves stay where they are; once it has grown, the birds' perches, the
+  // wind's falling leaves and the spots for new leaves come from the new tree. Several changes in a row are
+  // taken in turn; a model that cannot be loaded is tried again after a minute.
+  let wantedStage=shownStage, changingStage=false, settleNewTree=false, stageFailedAt=0;
+  const nextFrame=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+  async function changeStage(next) {
+    wantedStage=next;
+    if (changingStage || Date.now()-stageFailedAt<60000) return;
+    changingStage=true;
+    try {
+      while (wantedStage!==shownStage) {
+        const target=wantedStage;
+        const loaded=await loadStageTree(target);
+        await nextFrame(); // the work is spread over frames, so the scene keeps moving
+        const grown=addMatteTree(scene,prepareStageTree(loaded,target),clock,target);
+        grown.visible=false; // not shown until it is ready to take the tree's place
+        refineSceneMaterials(grown,renderer);
+        await nextFrame();
+        const nextGrowth=growTree(grown,target,latestGrowth,{justReached:target>shownStage,startScale:matchingScale(tree,grown)});
+        glowLook?.addTree(grown);
+        await renderer.compileAsync(grown,camera,scene);
+        removeTree(tree);
+        grown.visible=true;
+        [tree,growth,shownStage]=[grown,nextGrowth,target];
+        if (stageLabel) stageLabel.textContent=`STAGE ${shownStage}`;
+        feedbackLeaves.setTree(tree);
+        settleNewTree=true;
+      }
+    } catch (error) {
+      stageFailedAt=Date.now();
+      console.warn(`The Stage ${wantedStage} tree could not be loaded; the tree stays at Stage ${shownStage} for now.`,error);
+    } finally {
+      changingStage=false;
+    }
+  }
+  // Once the new stage's tree has grown: the birds perch on its branches and the wind drops its leaves.
+  function settleIntoNewTree() {
+    driftRoutes=canopyDriftRoutes(tree,assets.leafDrifts,shownStage);
+    leaves.setRoutes(driftRoutes);
+    updateBirds.remove();
+    updateBirds=createBirds(scene,assets.hawk,new T.Box3().setFromObject(tree),clock.soil.value,perchSeats(tree,perches,shownStage),lowQuality);
+  }
+  // A different stage (in Auto as the leaves come in, or saved in the admin): the tree grows into it, in place
+  // (unless ?stage= fixes it). The same stage grown further (Auto, a new leaf): it grows on, slowly. A
+  // different look saved in the admin: the page reloads into it (unless ?look= fixes it).
+  onTree3dSettings(next=>{
+    if (!fixed && next?.tree2d) {
+      latestGrowth=next.tree2d.growth;
+      const nextStage=normaliseStage(next.tree2d.treeStage);
+      if (nextStage!==shownStage || changingStage) changeStage(nextStage);
+      else growth.grow(latestGrowth);
+    }
+    if (!look.fixed && next && (next.glowLook!==false)!==look.glow) location.reload();
+  });
 
   volume.addEventListener('input',()=>ambient.setLevel(Number(volume.value)/100));
   const soundLabel=buttons.sound.querySelector('span');
@@ -228,9 +287,13 @@ async function start() {
     }
     treeView.update(dt,frameSeconds);
     weather.update(dt,camera);
-    glowLook?.update();
+    glowLook?.update(tree);
     updateRiverLevel(dt);
     leaves.update(elapsed);
+    if (growth.update(dt)) {
+      feedbackLeaves.canopyGrew(); // new spots for leaves on the grown canopy
+      if (settleNewTree) { settleNewTree=false; settleIntoNewTree(); }
+    }
     feedbackLeaves.update(dt,elapsed);
     updateHabitat(elapsed);
     updateForestWildlife(elapsed);
