@@ -195,7 +195,8 @@ body {
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
     background-blend-mode: color, normal;
-    /* Lifts the dark photo so light colours (amber, sky blue) stay bright, and sharpens the veins. */
+    /* Lifts the dark photo so light colours (amber, sky blue) stay bright, and sharpens the veins.
+       The same as LEAF_TINT_LIGHT_FILTER in tree.js, which fades it into the dark shade below. */
     filter: brightness(1.42) contrast(1.12) saturate(1.12);
     -webkit-mask-image: var(--leaf-image-url);
     mask-image: var(--leaf-image-url);
@@ -207,7 +208,8 @@ body {
     mask-position: center;
 }
 
-/* After its first day (the tint window) a leaf keeps its badge colour, in a darker shade. */
+/* After its light time (the tint window, "A leaf stays light for") a leaf keeps its badge colour, in a darker
+   shade; tree.js fades it in smoothly (playLeafTintFade, LEAF_TINT_DARK_FILTER: the same filter). */
 .leaf.leaf-tinted.leaf-tint-aged:not(.vip)::before {
     filter: brightness(0.98) contrast(1.16) saturate(1.32);
 }

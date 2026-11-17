@@ -99,6 +99,12 @@
 // Leaf name font size at Leaf Display Scale 1; the same for every leaf.
 const LEAF_GLOW_FADE_MS = 900; // how long a just-landed leaf takes to fade its neon glow in
 const LANDING_STAGE_CLEAR_MS = 2500; // the next new leaf appears at the bottom middle this long after the one before takes off
+// A new leaf's light shade fades into the dark shade of its badge colour over this long, once its light time
+// ("A leaf stays light for") is over (playLeafTintFade). The two shades are tree.css's .leaf-tinted::before
+// filter (light) and .leaf-tint-aged::before filter (dark): keep them the same as there.
+const TINT_FADE_MS = 10000;
+const LEAF_TINT_LIGHT_FILTER = 'brightness(1.42) contrast(1.12) saturate(1.12)';
+const LEAF_TINT_DARK_FILTER = 'brightness(0.98) contrast(1.16) saturate(1.32)';
 
 // The landing flight's easing, cubic-bezier(0.4, 0, 0.3, 1): a slow start and a long, gentle arrival.
 // Worked into the flight's keyframes (planLeafLandingFlight), so time at the bottom middle can come first.
@@ -1807,15 +1813,15 @@ class TreeManager {
         const now = new Date();
         const diffInMinutes = (now - visitTime) / 60000;
 
-        const isWithinTintWindow = !Number.isNaN(visitTime.getTime())
-            && (Date.now() - visitTime.getTime()) >= 0
-            && (Date.now() - visitTime.getTime()) <= this.badgeTintDurationMs;
-
         // Every leaf (not a VIP's) shows its badge's colour from the admin's Badge Leaf Styling: a light
-        // shade while new (the tint window, 24 hours by default), then a darker shade of it, as on the 3D tree.
+        // shade while new (the tint window, "A leaf stays light for", 24 hours by default), then it fades
+        // smoothly to a darker shade of it over TINT_FADE_MS (playLeafTintFade), as on the 3D tree. A leaf
+        // past its fade is dark at once (leaf-tint-aged).
+        const darkFrom = Number.isNaN(visitTime.getTime()) ? null : visitTime.getTime() + this.badgeTintDurationMs;
+        const tintFadeDone = darkFrom === null || Date.now() >= darkFrom + TINT_FADE_MS;
         if (!isVip) {
             leaf.classList.add('leaf-tinted');
-            leaf.classList.toggle('leaf-tint-aged', !isWithinTintWindow);
+            leaf.classList.toggle('leaf-tint-aged', tintFadeDone);
             leaf.style.setProperty('--leaf-badge-color', badgeLeafColor);
         }
         
@@ -1996,6 +2002,33 @@ class TreeManager {
         this.leavesContainer.appendChild(leaf);
         // A refresh right after a landing carries on the glow fade-in where it was.
         if (!isLanding) this.playLeafGlowFadeIn(leaf, leafKey);
+        if (!isVip && !tintFadeDone) this.playLeafTintFade(leaf, darkFrom);
+    }
+
+    // A new leaf's light shade fades smoothly into the dark shade of its badge colour: from the end of its
+    // light time (darkFrom) over TINT_FADE_MS, holding the light shade until then. Timed by the clock, so the
+    // leaves rebuilt at every refresh carry on the fade where it was. With the Web Animations API, so the
+    // leaf's own CSS animations (appearing, flying in, falling) neither stop it nor are stopped by it.
+    playLeafTintFade(leaf, darkFrom) {
+        if (typeof leaf.animate !== 'function') {
+            leaf.classList.toggle('leaf-tint-aged', Date.now() >= darkFrom); // no fade: the shade changes at its time
+            return;
+        }
+        try {
+            leaf.animate(
+                [{ filter: LEAF_TINT_LIGHT_FILTER }, { filter: LEAF_TINT_DARK_FILTER }],
+                {
+                    pseudoElement: '::before',
+                    duration: TINT_FADE_MS,
+                    delay: darkFrom - Date.now(), // below 0 when the fade has begun: it carries on from there
+                    easing: 'ease-in-out',
+                    fill: 'both'
+                }
+            );
+        } catch (error) {
+            console.warn('Leaf colour fade unavailable; the shade changes at its time.', error);
+            leaf.classList.toggle('leaf-tint-aged', Date.now() >= darkFrom);
+        }
     }
 
     // Plans the arrival of a new leaf. It first appears at the bottom middle of the wall at twice its
