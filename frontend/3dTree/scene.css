@@ -76,6 +76,15 @@ h1 { font: 500 clamp(2.1rem, 5.2vw, 5.25rem)/.98 Georgia, serif; letter-spacing:
   box-shadow: 0 14px 46px #11201c66;
 }
 .loading[hidden] { display: none; }
+/* Until the whole scene is ready (scene.js sets data-ready), only the loading card shows; then the tree, the
+   title box, Year Review and the panels appear together, from behind a curtain that fades away. */
+.reserve:not([data-ready="true"]) > :not(.loading) { visibility: hidden; }
+.reserve::after {
+  content: ""; position: absolute; inset: 0; z-index: 300; pointer-events: none;
+  background: #172d26; transition: opacity .9s ease;
+}
+.reserve[data-ready="true"]::after { opacity: 0; }
+.loading { z-index: 301; }
 .loading strong { display: block; margin-bottom: 5px; }
 .loading div span { display: block; color: #dce9ce; font-size: .82rem; line-height: 1.4; }
 .loader { flex: none; width: 23px; height: 23px; border: 2px solid #d7e4bd37; border-top-color: #d4e6ae; border-radius: 50%; animation: spin 1s linear infinite; }

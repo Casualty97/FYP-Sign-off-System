@@ -418,6 +418,10 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   let requestId = 0;
   let vipNames = new Set();         // names on the admin's VIP Management list
   const glowMap = glowTexture();
+  // ready: resolves once the leaves are first on the tree (or could not be loaded), so the page can show the
+  // whole scene at once (scene.js).
+  let markReady;
+  const ready = new Promise(resolve => { markReady = resolve; });
   const now = () => performance.now();
 
   // ---------- leaf model ----------
@@ -438,7 +442,10 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     // Checks for new feedback every leafRefreshMs (the admin's Leaf Refresh Interval; 5 seconds by default).
     const poll = () => window.setTimeout(() => { if (mode.live) refresh(); poll(); }, timing().refresh);
     poll();
-  }).catch(error => console.warn('Feedback leaves could not be loaded; the tree shows without them.', error));
+  }).catch(error => {
+    console.warn('Feedback leaves could not be loaded; the tree shows without them.', error);
+    markReady();
+  });
 
   // The timings from the admin's 3D Tree Visualization Parameters, within safe limits.
   const within = (value, fallback, min, max) => {
@@ -503,10 +510,12 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       if (Array.isArray(vipData?.vipNames)) vipNames = new Set(vipData.vipNames.map(normaliseName));
     } catch (error) {
       console.warn('Feedback leaves: could not check for new feedback.', error);
+      markReady(); // the scene shows without them
       return;
     }
     if (id !== requestId) return; // a newer check (or a year change) took over
     showVisitors(visitors);
+    markReady();
   }
 
   // VIP Management signals a changed VIP list (same browser): check at once, as the 2D tree does.
@@ -1287,5 +1296,5 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     if (!anchors.length) canopyGrew();
   }
 
-  return { update, canopyGrew, setTree };
+  return { update, canopyGrew, setTree, ready };
 }

@@ -25,6 +25,7 @@ const config = {
   gustDurationSeconds: 6.5,
   pixelBudget: 20000000,    // Native display pixels; no automatic blur in the default mode.
 };
+const REVEAL_WAIT_MS = 20000; // the longest the scene waits for its last parts before it shows (start)
 
 const params = new URLSearchParams(location.search);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -257,6 +258,21 @@ async function start() {
   });
   buttons.sound.disabled = buttons.gust.disabled = buttons['slow-orbit'].disabled = false;
 
+  // The whole scene appears at once (scene.css hides the tree, the title box, Year Review and the panels until
+  // root's data-ready): once the shaders are compiled (no stutter as it appears), the admin's settings are
+  // applied (the title box's own text), the visitors' leaves are on the tree and the fonts are loaded. It keeps
+  // rendering behind the loading card meanwhile; after REVEAL_WAIT_MS it shows whatever is ready.
+  let readyToReveal=false;
+  loadingDetail.textContent='Placing the visitors\' leaves';
+  const settingsApplied=new Promise(resolve=>{
+    const stop=onTree3dSettings(()=>{ resolve(); queueMicrotask(()=>stop?.()); });
+  });
+  Promise.race([
+    Promise.all([renderer.compileAsync(scene,camera),settingsApplied,feedbackLeaves.ready,document.fonts?.ready]),
+    new Promise(resolve=>setTimeout(resolve,REVEAL_WAIT_MS)),
+  ]).catch(error=>console.warn('Part of the scene was not ready; showing it anyway.',error))
+    .finally(()=>{ readyToReveal=true; });
+
   let lastFrame = null, elapsed = 0, label = '', gustCycle=0;
   document.addEventListener('visibilitychange',() => {lastFrame=null;});
   renderer.setAnimationLoop(now => {
@@ -304,7 +320,7 @@ async function start() {
     }
     renderer.render(scene,camera);
     updateSoilView(dt);
-    if (!loading.hidden) {
+    if (!loading.hidden && readyToReveal) {
       loading.hidden = true;
       root.dataset.ready = 'true';
     }
