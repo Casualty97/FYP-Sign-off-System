@@ -9,10 +9,14 @@ const BETAS = [0.02, 0.05, 0.1, 0.2, 0.3];
 // An undamped trend runs on for the whole horizon, so two hours of the PC settling after a wake-up became
 // "memory 0 % tomorrow". A trend is now trusted for about as long as it has been seen: it fades by half over
 // half the unbroken run (at least 6 steps), and a run shorter than TRUST_STEPS (6 hours of 10-minute steps)
-// counts for less.
+// counts for less. Since 18 Nov 2026 it also fades by half within TRUST_STEPS at the latest: on a PC that ran for
+// days without a break, half the run was days, so a small trend of the last hour carried on for days (on the test
+// data memory 7 days ahead came out at 92.7 % instead of 81.6 %). The forecast still continues from the current
+// level, so a steep fall in the last hour can still reach 0 % within hours. For the daily forecast the cap is 36 days.
 const MIN_HALF_LIFE_STEPS = 6;
 const TRUST_STEPS = 36;
-const dampingFor = (steps) => 0.5 ** (1 / Math.max(MIN_HALF_LIFE_STEPS, steps / 2));
+const MAX_HALF_LIFE_STEPS = TRUST_STEPS;
+const dampingFor = (steps) => 0.5 ** (1 / Math.min(MAX_HALF_LIFE_STEPS, Math.max(MIN_HALF_LIFE_STEPS, steps / 2)));
 const DAMPING = dampingFor(24);
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));

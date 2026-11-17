@@ -117,3 +117,14 @@ Hand-written on 2026-11-03. Update this page when you change the feature.
   the forecast are built from these samples. A save sends the saved `forecastHours` back unchanged. The reminder dialog
   before saving a long forecast and `GET /forecast-check` are gone, because the rough guide note under the graph says the
   same thing whenever it applies.
+
+## A trend lasts 6 hours at most, 18 Nov 2026
+- A trend was trusted for about half the unbroken run of samples (`dampingFor` in backend/features/hardware/forecast.js).
+  On a PC that runs for days without a break that was days, so a small trend of the last hour carried on for days: a
+  forecast 7 days ahead of memory came out at 92.7 % on the test data while memory was at 80 %. The trend now fades by
+  half within 36 steps at the latest (`MAX_HALF_LIFE_STEPS`, 6 hours of 10 minute steps), so it fades within about a day
+  instead of days: on the same data memory 7 days ahead is 81.6 % and GPU 1.9 % instead of 0 %. The value settles at the
+  current level plus about 50 steps of trend, so a steep fall in the last hour can still reach 0 % within hours (CPU on
+  the same data). Runs shorter than 12 hours behave as before. The daily forecast gets the same cap in days (36 days).
+- tests/unit/forecast.test.js: a steady rise keeps its slope at first and the rise halves 36 steps later; 12.5 days of a
+  steady rise no longer push the value 7 days ahead up by about 7 points.
