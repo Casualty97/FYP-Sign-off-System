@@ -490,7 +490,8 @@ function populateParameterForm(config) {
                 : `/assets/Tree/leaf/${assets.leafImage}`;
             previewBox.style.backgroundImage = `url('${leafPreviewPath}')`;
         } else {
-            previewBox.style.backgroundImage = '';
+            // None chosen: the 2D tree's own leaf pictures from /assets/Tree/leaf (New/Old Left/Right Leaf).
+            previewBox.style.backgroundImage = "url('/assets/Tree/leaf/NewLeftLeaf.png')";
         }
         // apply scale to preview
         previewBox.style.transform = `scale(${leafScale})`;
@@ -503,7 +504,8 @@ function populateParameterForm(config) {
                 : `/assets/Tree/vip-leaf/${assets.vipLeafImage}`;
             vipPreviewBox.style.backgroundImage = `url('${vipLeafPreviewPath}')`;
         } else {
-            vipPreviewBox.style.backgroundImage = '';
+            // None chosen: the 2D tree's own VIP leaf pictures from /assets/Tree/vip-leaf (Gold Left/Right Leaf).
+            vipPreviewBox.style.backgroundImage = "url('/assets/Tree/vip-leaf/GoldLeftLeaf.png')";
         }
         vipPreviewBox.style.transform = `scale(${vipLeafScale})`;
     }
@@ -516,6 +518,9 @@ function populateParameterForm(config) {
     if (revertVipBtn) {
         revertVipBtn.style.display = assets.previousVipLeafImage ? 'block' : 'none';
     }
+    // The pickers hide Revert again if that previous picture has since been deleted (loadAvailableLeafImages).
+    window.previousLeafImagePath = assets.previousLeafImage || '';
+    window.previousVipLeafImagePath = assets.previousVipLeafImage || '';
     // Load available leaf images from server - Done by Yu Kang
     window.currentLeafImagePath = assets.leafImage || '';
     loadAvailableLeafImages(window.currentLeafImagePath);

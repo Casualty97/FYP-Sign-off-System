@@ -6435,6 +6435,13 @@ router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('l
 });
 
 // POST /api/admin/parameters/leaf/revert - Revert to previous leaf image
+// Whether a saved leaf picture (such as /assets/Tree/leaf/NewLeftLeaf.png) is still in its folder
+// (assets/Tree/leaf or assets/Tree/vip-leaf), by its file name only, so no other folder can be reached.
+function leafPictureExists(picturePath, folder) {
+    const fileName = path.basename(String(picturePath || ''));
+    return Boolean(fileName) && fs.existsSync(path.join(paths.ASSETS, 'Tree', folder, fileName));
+}
+
 router.post('/parameters/leaf/revert', auth.requireAdmin, (req, res) => {
     try {
         console.debug('🔄 Leaf revert endpoint hit');
@@ -6445,6 +6452,10 @@ router.post('/parameters/leaf/revert', auth.requireAdmin, (req, res) => {
         if (!assets.previousLeafImage) {
             console.debug('❌ No previous leaf image to revert to');
             return res.status(400).json({ success: false, error: 'No previous leaf image to revert to' });
+        }
+        // A previous picture since deleted from the leaf folder would leave every 2D leaf without a picture.
+        if (!leafPictureExists(assets.previousLeafImage, 'leaf')) {
+            return res.status(400).json({ success: false, error: 'The previous leaf picture is no longer in /assets/Tree/leaf, so it cannot be restored. Choose a leaf from the list instead.' });
         }
         
         // Swap current and previous
@@ -7778,6 +7789,9 @@ router.post('/parameters/vip-leaf/revert', auth.requireAdmin, (req, res) => {
 
         if (!assets.previousVipLeafImage) {
             return res.status(400).json({ success: false, error: 'No previous VIP leaf image to revert to' });
+        }
+        if (!leafPictureExists(assets.previousVipLeafImage, 'vip-leaf')) {
+            return res.status(400).json({ success: false, error: 'The previous VIP leaf picture is no longer in /assets/Tree/vip-leaf, so it cannot be restored. Choose a VIP leaf from the list instead.' });
         }
 
         const currentVipLeafImage = assets.vipLeafImage;

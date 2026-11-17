@@ -376,6 +376,9 @@ async function saveTreeStageSelection() {
 }
 
 
+// The 2D tree's own background when none is chosen (frontend/tree/tree.css body background).
+const DEFAULT_TREE_BACKGROUND = '/assets/Tree/background/2dTreeBackground.jpeg';
+
 async function loadAvailableTreeBackgrounds() {
     try {
         const response = await fetch('/api/admin/parameters/tree-background/list', {
@@ -399,9 +402,12 @@ async function loadAvailableTreeBackgrounds() {
             throw new Error(errorMsg);
         }
 
+        // With no background chosen, the 2D tree shows its default (DEFAULT_TREE_BACKGROUND, from tree.css):
+        // the preview shows it and its tile is marked, so the admin sees what the tree shows.
         const currentTreeBackground = data.currentTreeBackground || '';
-        if (preview && currentTreeBackground) {
-            preview.style.backgroundImage = `url('${currentTreeBackground}')`;
+        const shownTreeBackground = currentTreeBackground || DEFAULT_TREE_BACKGROUND;
+        if (preview) {
+            preview.style.backgroundImage = `url('${shownTreeBackground}')`;
         }
 
         const backgrounds = Array.isArray(data.backgroundImages) ? data.backgroundImages : [];
@@ -425,7 +431,8 @@ async function loadAvailableTreeBackgrounds() {
             thumb.style.cssText = `width:100%;height:84px;border-radius:6px;background:url('${background.path}') center/cover no-repeat;border:1px solid #e2e8f0;`;
 
             const label = document.createElement('span');
-            label.textContent = background.name;
+            const isDefaultBackground = DEFAULT_TREE_BACKGROUND.endsWith('/' + background.filename);
+            label.textContent = isDefaultBackground ? `${background.name} (default)` : background.name;
             label.style.cssText = 'font-size:12px;color:#1f2937;word-break:break-word;';
 
             tile.appendChild(thumb);
@@ -454,14 +461,16 @@ async function loadAvailableTreeBackgrounds() {
                 console.log('🎯 Selected background:', background.filename);
             };
 
-            if (currentTreeBackground && currentTreeBackground.endsWith('/' + background.filename)) {
+            if (shownTreeBackground.endsWith('/' + background.filename)) {
                 tile.dataset.selected = 'true';
                 tile.style.borderColor = '#2563eb';
                 tile.style.background = '#eff6ff';
                 tile.style.boxShadow = '0 0 0 2px rgba(37,99,235,0.12)';
                 window.selectedTreeBackground = background.filename;
                 if (status) {
-                    status.textContent = `Current: ${background.name}.`;
+                    status.textContent = currentTreeBackground
+                        ? `Current: ${background.name}.`
+                        : `Current: ${background.name}, the default background.`;
                 }
             }
 
@@ -812,9 +821,19 @@ async function loadAvailableLeafImages(currentLeafImagePath = '') {
         } else {
             picker.innerHTML = '<div style="grid-column:1 / -1;padding:16px;text-align:center;color:#64748b;">No existing leaf images found.</div>';
         }
+        hideRevertIfPictureGone('revert-leaf-btn', window.previousLeafImagePath, data.leafImages || []);
     } catch (error) {
         console.error('Error loading available leaf images:', error);
     }
+}
+
+// Revert goes back to the previous leaf picture: hidden when that picture has since been deleted from its folder
+// (it is not in the list), as reverting to it would leave the 2D tree's leaves without a picture.
+function hideRevertIfPictureGone(buttonId, previousPath, pictures) {
+    const button = document.getElementById(buttonId);
+    if (!button || !previousPath) return;
+    const fileName = String(previousPath).split('/').pop();
+    if (!pictures.some(picture => picture.filename === fileName)) button.style.display = 'none';
 }
 
 async function loadAvailableVipLeafImages(currentVipLeafImagePath = '') {
@@ -899,6 +918,7 @@ async function loadAvailableVipLeafImages(currentVipLeafImagePath = '') {
                 { filename: 'GoldRightLeaf.png', path: '/assets/Tree/vip-leaf/GoldRightLeaf.png', name: 'GoldRightLeaf' }
             ]);
         }
+        hideRevertIfPictureGone('revert-vip-leaf-btn', window.previousVipLeafImagePath, data.vipLeafImages || []);
     } catch (error) {
         console.error('Error loading available VIP leaf images:', error);
     }
