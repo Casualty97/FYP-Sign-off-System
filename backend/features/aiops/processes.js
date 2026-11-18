@@ -10,7 +10,7 @@ const os = require('os');
 
 const CACHE_MS = 15 * 1000;
 const TIMEOUT_MS = 10 * 1000;
-const KEEP = { node: 'the kiosk', mysqld: "the kiosk's database", ollama: 'the local AI advisor', 'ollama app': 'the local AI advisor', ollama_llama_server: 'the local AI advisor' };
+const KEEP = { node: 'the kiosk', mysqld: "the kiosk's database", ollama: 'the local AI', 'ollama app': 'the local AI', ollama_llama_server: 'the local AI' };
 const FRIENDLY = {
     node: 'Node.js', ollama_llama_server: 'Ollama',
     chrome: 'Google Chrome', msedge: 'Microsoft Edge', firefox: 'Firefox', teams: 'Microsoft Teams', 'ms-teams': 'Microsoft Teams',
@@ -97,5 +97,10 @@ async function top(by = 'cpu', { reader } = {}) {
     return list;
 }
 
-module.exports = { top, summarise, friendly };
+// With the Local AI models switch off nothing in the app uses Ollama, so it is listed like any other programme
+function withoutAiKeep(list) {
+    return list.map((p) => (p.keep && p.name === 'Ollama' ? { name: p.name, cpu: p.cpu, memoryMb: p.memoryMb } : p));
+}
+
+module.exports = { top, summarise, friendly, withoutAiKeep };
 // <Jun Kai end>

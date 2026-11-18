@@ -44,11 +44,15 @@ window.addEventListener('DOMContentLoaded', function() {
         document.getElementById('admin-dashboard').style.display = 'block';
         // <Jun Kai start> the count of incidents that need a look, next to Incidents in the sidebar
         if (typeof refreshIncidentsBadge === 'function') refreshIncidentsBadge(true);
+        // a link that asks for the History of the Server Schedule (core.js)
+        openAdminLinkTarget();
         // <Jun Kai end>
     } else {
         console.log('No user logged in');
         // <Jun Kai start> why the page signed out by itself, if it did (core.js), then a remembered sign-in
         showAdminSignOutNote();
+        const loginNote = document.getElementById('login-note');
+        if (location.hash === ADMIN_HISTORY_LINK && loginNote && loginNote.hidden) showLoginNote('Sign in to open the History of the Server Schedule.');
         tryRememberedSignIn();
         // <Jun Kai end>
     }

@@ -75,11 +75,17 @@ function orphanGuard(criteria, collectedAt) {
     return criteria.feedbackBefore && criteria.feedbackBefore < recent ? criteria.feedbackBefore : recent;
 }
 
+// VIP leaves stay out of the archive (supervisor, 18 Nov 2026): a submission the tree draws in gold is never saved to a
+// zip or deleted, so the leaf stays on the tree with its name. Returns the ids of those submissions made before `before`
+// (the lookup itself is archivedLeaves.vipLeafIds, which Permanent Data Deletion uses too).
+const vipLeafIds = (before) => archivedLeaves.vipLeafIds('f.created_at < ?', [before]);
+
 // Rows of one archive. With `only`, a run is limited to those ids and a missing list means none of that type.
+// vipLeaves: how many submissions matched but stay out because they are VIP leaves.
 async function collectRows(criteria, collectedAt) {
     const types = criteria.types || [];
     const only = criteria.only;
-    const raw = { feedback: [], answers: [], likes: [], users: [], userTotals: new Map(), orphanIds: [], lostFound: [], questions: [], options: [], guard: recentGuard(collectedAt) };
+    const raw = { feedback: [], answers: [], likes: [], users: [], userTotals: new Map(), orphanIds: [], lostFound: [], questions: [], options: [], guard: recentGuard(collectedAt), vipLeaves: 0 };
 
     if (types.includes('feedback') && criteria.feedbackBefore) {
         if (only) {
@@ -87,6 +93,10 @@ async function collectRows(criteria, collectedAt) {
         } else {
             raw.feedback = await query('SELECT * FROM feedback WHERE created_at < ? ORDER BY id', [criteria.feedbackBefore]);
         }
+        const vip = new Set(await vipLeafIds(criteria.feedbackBefore));
+        const matched = raw.feedback.length;
+        raw.feedback = raw.feedback.filter((f) => !vip.has(f.id));
+        raw.vipLeaves = matched - raw.feedback.length;
     }
     for (const part of chunks(raw.feedback.map((f) => f.id))) {
         raw.answers.push(...await query(
@@ -132,14 +142,17 @@ async function collectRows(criteria, collectedAt) {
 async function collect(criteria, encrypt, collectedAt = new Date()) {
     const raw = await collectRows(criteria, collectedAt);
     const plan = await files.planPhotos(raw.feedback, raw.lostFound, criteria.includePhotos !== false);
-    return writer.buildSelection(raw, plan, { encrypt: encrypt ? auth.encryptEmail : null });
+    const selection = writer.buildSelection(raw, plan, { encrypt: encrypt ? auth.encryptEmail : null });
+    selection.vipLeaves = raw.vipLeaves;
+    return selection;
 }
 
 const isEmpty = (counts) => !counts.feedback && !counts.lostFound && !counts.visitors;
 
 // photos / photoBytes: the photo files of the selected records (all of them go with the records);
 // photosArchived: how many of those are written into the zip (none when photos are switched off);
-// leaves / leavesNamed: the submissions the digital tree draws, and how many of those show a name there
+// leaves / leavesNamed: the submissions the digital tree draws, and how many of those show a name there;
+// vipLeaves: submissions that match the dates but are VIP leaves, so they are not in any of the other counts
 async function preview(criteria) {
     const s = await collect(criteria, false);
     const c = s.counts;
@@ -148,7 +161,7 @@ async function preview(criteria) {
         counts: {
             feedback: c.feedback, visitors: c.visitors, visitorsKept: c.visitorsKept, visitorsDeleted: c.visitorsDeleted, answers: c.answers,
             likes: c.likes, lostFound: c.lostFound, photos: s.photosOnDisk, photosArchived: c.photos, missingPhotos: c.missingPhotos,
-            leaves: drawn.leaves, leavesNamed: drawn.named
+            leaves: drawn.leaves, leavesNamed: drawn.named, vipLeaves: s.vipLeaves
         },
         photoBytes: s.photoBytesOnDisk,
         estimatedBytes: s.estimatedBytes,
@@ -209,7 +222,11 @@ async function startRun({ trigger, startedBy = null, criteria, deleteAfter, fold
         // whole seconds, like the TIMESTAMP columns it is compared with before the delete
         const collectedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
         const selection = await collect(criteria, true, collectedAt);
-        if (isEmpty(selection.counts)) throw httpError(400, 'Nothing to archive: no records match these dates.');
+        if (isEmpty(selection.counts)) {
+            throw httpError(400, selection.vipLeaves
+                ? 'Nothing to archive: the only records that match these dates are VIP leaves, and VIP leaves stay on the tree.'
+                : 'Nothing to archive: no records match these dates.');
+        }
         const target = await prepareTarget(folder, selection.estimatedBytes);
         const startedAt = new Date();
         const used = (await query('SELECT file_name FROM visitor_archives WHERE folder = ? AND file_name IS NOT NULL', [target])).map((r) => r.file_name);
@@ -600,10 +617,11 @@ async function overview() {
     const now = new Date();
     const feedbackBefore = schedule.cutoffFor(s.feedback.keep, now);
     const lostFoundBefore = schedule.cutoffFor(s.lostFound.keep, now);
+    const vip = await vipLeafIds(feedbackBefore); // never archived, so not counted as ready
     const [fb] = await query(
         `SELECT COUNT(*) AS n, MIN(created_at) AS oldest, COUNT(DISTINCT user_id) AS visitors,
                 SUM(photo_path IS NOT NULL AND photo_path <> '') + SUM(processed_photo_path IS NOT NULL AND processed_photo_path <> '') AS photos
-         FROM feedback WHERE created_at < ?`, [feedbackBefore]);
+         FROM feedback WHERE created_at < ?${vip.length ? ' AND id NOT IN (?)' : ''}`, vip.length ? [feedbackBefore, vip] : [feedbackBefore]);
     const [orphans] = await query('SELECT COUNT(*) AS n FROM users u WHERE COALESCE(u.last_visit, u.created_at) < ? AND NOT EXISTS (SELECT 1 FROM feedback f WHERE f.user_id = u.id)', [feedbackBefore]);
     const [lf] = await query(
         `SELECT COUNT(*) AS n, MIN(created_at) AS oldest, SUM(item_photo_path IS NOT NULL AND item_photo_path <> '') AS photos
@@ -623,7 +641,7 @@ async function overview() {
         defaults: { folder: files.DEFAULT_FOLDER },
         folder: await files.checkFolder(s.folder),
         due: {
-            feedback: { enabled: s.feedback.enabled, before: feedbackBefore.toISOString(), beforeDay: schedule.toSgtDay(feedbackBefore), count: Number(fb.n), oldest: isoOf(fb.oldest) },
+            feedback: { enabled: s.feedback.enabled, before: feedbackBefore.toISOString(), beforeDay: schedule.toSgtDay(feedbackBefore), count: Number(fb.n), oldest: isoOf(fb.oldest), vipLeaves: vip.length },
             lostFound: { enabled: s.lostFound.enabled, before: lostFoundBefore.toISOString(), beforeDay: schedule.toSgtDay(lostFoundBefore), count: Number(lf.n), oldest: isoOf(lf.oldest) },
             visitors: s.feedback.enabled ? Number(fb.visitors) + Number(orphans.n) : 0,
             orphanVisitors: s.feedback.enabled ? Number(orphans.n) : 0,

@@ -90,12 +90,23 @@ test('a steady load with noise forecasts close to its average, with a band that 
     assert.ok(end.low < end.value && end.value < end.high);
 });
 
-test('a noisy rising line keeps its slope', () => {
+test('a noisy rising line keeps its slope at first, then the rise halves within 6 hours', () => {
     const rnd = noise(11);
     const values = Array.from({ length: 144 }, (_, i) => 30 + i * 0.2 + rnd() * 2);
-    const result = forecast.holtForecast(values, 60);
-    const slope = (result.points[59].value - result.points[0].value) / 59;
-    assert.ok(Math.abs(slope - 0.2) < 0.08, `slope ${slope} should be close to 0.2`);
+    const p = forecast.holtForecast(values, 60).points.map((point) => point.value);
+    const early = (p[5] - p[0]) / 5;
+    assert.ok(Math.abs(early - 0.2) < 0.05, `slope ${early} should be close to 0.2`);
+    const later = (p[41] - p[35]) / 6;
+    assert.ok(later > 0 && later / early > 0.3 && later / early < 0.7, `36 steps later the rise is about half (${early} then ${later})`);
+});
+
+test('a trend seen for days is still trusted for 6 hours at most', () => {
+    // 12.5 days of 10-minute averages without a break, rising 0.01 per step: before the cap, half the run (6 days)
+    // decided how long the trend lasted, and 7 days ahead came out about 7 points higher
+    const values = Array.from({ length: 1800 }, (_, i) => 10 + i * 0.01);
+    assert.ok(Math.abs(forecast.dampingFor(1800) ** 36 - 0.5) < 1e-9, 'the trend halves within 36 steps');
+    const week = forecast.holtForecast(values, 1008).points.at(-1).value;
+    assert.ok(week - values.at(-1) < 1.5, `7 days ahead ${week} should stay near the last reading ${values.at(-1)}`);
 });
 
 test('holtForecast uses only the unbroken run of readings after a gap', () => {
@@ -130,6 +141,12 @@ test('a forecast a year ahead of a steady load stays at its usual level', () => 
     const end = forecast.dailyForecast(days, 365).points.pop();
     assert.ok(end.value > 27 && end.value < 37, `${end.value} should stay near 32`);
     assert.ok(end.low < end.value && end.high > end.value, 'with a range around it');
+});
+
+test('up to 2 days ahead the forecast works on 10 minute steps, further ahead on daily averages', () => {
+    assert.equal(forecast.DAILY_AFTER_HOURS, 48);
+    for (const hours of [1, 6, 24, 48]) assert.equal(forecast.usesDailyAverages(hours), false, `${hours} h on steps`);
+    for (const hours of [49, 72, 168, 720, 8760]) assert.equal(forecast.usesDailyAverages(hours), true, `${hours} h on daily averages`);
 });
 
 test('horizonCheck: dependable once the samples go back as far as the forecast looks ahead', () => {

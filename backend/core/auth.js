@@ -250,7 +250,9 @@ function loginUser(username, password, callback) {
         return callback(new Error('Username and password are required'), null);
     }
 
-    const query = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
+    // <Jun Kai start> an account moved to Deleted Users no longer signs in. A row with no value there was never deleted
+    const query = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND (is_deleted = 0 OR is_deleted IS NULL)';
+    // <Jun Kai end>
     
     db.get(query, [username], async (err, row) => {
         if (err) {

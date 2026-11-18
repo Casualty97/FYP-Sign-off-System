@@ -38,6 +38,9 @@ const DEFAULTS = {
     offerFixes: true,
     // "Ask, then automatic": how long a fix waits for an approval after its incident opens or opens again
     fixDelayMinutes: 5,
+    // every local AI model of the app: Ollama (the advisor; Feedback Reports' Qwen, Gemma and LocalGPT) and Xenova
+    // (Feedback Reports' Xenova AI). Off: none of them is used, whatever the advisor switch says (localAiOn)
+    localAi: true,
     detectors: Object.fromEntries(DETECTORS.map((d) => [d.key, { enabled: true, sensitivity: 3 }])),
     // AIOps part 2: the local LLM that explains each incident and suggests one step (advisor.js)
     advisor: { enabled: true, model: 'qwen2.5:3b' },
@@ -158,5 +161,8 @@ function write(settings) {
     return settings;
 }
 
-module.exports = { read, validate, write, repair, FILE_NAME, DETECTORS, DEFAULTS, LIMITS };
+// the Local AI models switch, for the features outside AIOps that run a model (Feedback Reports, System Health)
+const localAiOn = (settings = read()) => !settings || settings.localAi !== false;
+
+module.exports = { read, validate, write, repair, localAiOn, FILE_NAME, DETECTORS, DEFAULTS, LIMITS };
 // <Jun Kai end>

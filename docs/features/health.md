@@ -5,12 +5,12 @@
 **Where the code is**
 
 - backend/features/health/checks.js (the checks), routes.js (GET /api/admin/health, GET and PUT /api/admin/health/layout), layout.js (each admin's chosen checks, backend/data/health-layout.json), tabletNames.js (the names admins give the tablets, backend/data/tablet-names.json), publicRoutes.js (POST /api/health/heartbeat, mounted on both servers)
-- frontend/admin/js/health.js and the System Health page in admin.html; frontend/feedback/js/heartbeat.js posts the tablet heartbeat (Role 3 file inside the kiosk folder)
+- frontend/admin/js/health.js and the System Health page in admin.html; frontend/feedback/js/heartbeat.js posts the tablet heartbeat (Role 3 file inside the kiosk folder; since 19 Nov 2026 it also shows the kiosk page's offline and closed screens and brings the page back by itself, see serverControl.md)
 - table device_heartbeats (database/migrations/001_device_heartbeats.sql, then 003_drop_heartbeat_battery.sql)
 
 **What it does**
 
-One page with a card per check: MySQL (version, latency), kiosk server (:3003 probe), Ollama (models, latency; OLLAMA_URL), email (SMTP login, cached 5 minutes, "Check now" forces it), disk space of the project drive, the server PC (CPU and memory load, uptime, app memory), the schedule automation (mode, next stop and start) and the tablets. Every kiosk screen posts a heartbeat once a minute (device id kept in localStorage); one row per device is kept. Refreshes every 30 seconds while open.
+One page with a card per check: MySQL (version, latency), kiosk server (:3003 probe), Ollama (models, latency; OLLAMA_URL), email (SMTP login, cached 5 minutes, "Check now" forces it), disk space of the project drive, the server PC (CPU and memory load, uptime, app memory), the schedule automation (mode, next stop and start) and the tablets. Every kiosk screen posts a heartbeat once a minute (device id kept in localStorage); one row per device is kept. Refreshes every 30 seconds while open. While the Local AI models switch of the incident settings is off (17 Nov 2026) the Ollama card says Off instead of being checked: a fifth status, `off`, that never counts as a problem and is listed last under Switched off.
 
 Customise (supervisor meeting 03): every check is shown by default; an admin removes the ones they do not need with the switches under Customise and adds them back the same way or with Show all (the cross on each card was taken out on 9 Nov 2026). The choice is saved per admin account on the server, hidden checks are not run for the page (the background recorder behind the anomaly detection still runs them, see Incidents below), the top pill counts only the checks on the page, and the Tablets panel follows its card. Placeholder cards hold the layout while the checks run, so the page does not jump. The Monitoring options panel closes with its close button or the Escape key.
 
@@ -33,7 +33,7 @@ Incidents (11 Nov 2026, moved 13 Nov 2026): the incidents the anomaly detection 
 | GET | `/api/admin/health/settings` | backend/features/health/routes.js |
 | PUT | `/api/admin/health/settings` | backend/features/health/routes.js |
 | PUT | `/api/admin/health/tablets/:deviceId/name` | backend/features/health/routes.js |
-| POST | `/api/health/heartbeat` | backend/features/health/publicRoutes.js |
+| POST | `/api/health/heartbeat` | backend/features/health/publicRoutes.js (new devices are limited, backend/features/health/heartbeatLimit.js: 5 an hour from one address, 200 in the table; a known device is never limited) |
 | GET | `/api/network-interfaces` | backend/kioskServer.js |
 | GET | `/api/server-info` | backend/kioskServer.js |
 | GET | `/api/status` | backend/kioskServer.js |

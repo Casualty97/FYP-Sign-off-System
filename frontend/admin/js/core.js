@@ -1030,6 +1030,18 @@ async function finishAdminSignIn(user, rememberUntil) {
     document.getElementById('admin-dashboard').style.display = 'block';
     // the count of incidents that need a look, next to Incidents in the sidebar (incidents.js)
     if (typeof refreshIncidentsBadge === 'function') refreshIncidentsBadge(true);
+    openAdminLinkTarget();
+}
+
+// A link to the admin page that ends with #schedule-history (the page that opens after the PC was off has one) goes
+// to the History of the Server Schedule page once the admin is signed in. The mark is taken off the address after.
+const ADMIN_HISTORY_LINK = '#schedule-history';
+function openAdminLinkTarget() {
+    if (location.hash !== ADMIN_HISTORY_LINK) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    if (typeof showPage !== 'function' || typeof openScheduleHistory !== 'function') return;
+    showPage('server-schedule');
+    openScheduleHistory();
 }
 
 // the time "keep me signed in" ends in this tab, or null

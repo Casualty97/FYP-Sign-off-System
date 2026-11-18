@@ -112,6 +112,58 @@ test('a kept leaf: badge keys from the pledge topic, VIP and initials only for a
     assert.ok(leaves.leafRow(record({ name: `${'A'.repeat(60)} ${'B'.repeat(60)}` }), options('initials')).label.length <= 40);
 });
 
+test('a VIP leaf is a name on the VIP list that the tree shows: the rule that keeps a submission out of the archive', () => {
+    const vipNames = leaves.vipNameSet([{ name: ' Grace Lim ' }, { name: 'PRESIDENT' }, { name: '' }, { name: null }, {}]);
+    assert.deepEqual([...vipNames], ['grace lim', 'president'], 'names are trimmed and lower-cased, empty ones dropped');
+    assert.equal(leaves.vipNameSet(null).size, 0);
+    assert.equal(leaves.isVipLeaf('Grace Lim', 'longterm', vipNames), true);
+    assert.equal(leaves.isVipLeaf('  grace LIM ', 'INDEFINITE', vipNames), true, 'no case, no outer spaces, like the tree');
+    assert.equal(leaves.isVipLeaf('Grace Lim', 'temporary', vipNames), false, 'the tree hides this name, so the leaf is not gold');
+    assert.equal(leaves.isVipLeaf('Grace Lim', null, vipNames), false);
+    assert.equal(leaves.isVipLeaf('Grace Lim Tan', 'longterm', vipNames), false, 'a longer name is another visitor');
+    assert.equal(leaves.isVipLeaf('Grace', 'longterm', vipNames), false, 'part of a name is another visitor');
+    assert.equal(leaves.isVipLeaf('', 'longterm', vipNames), false);
+    assert.equal(leaves.isVipLeaf(null, 'longterm', vipNames), false);
+    assert.equal(leaves.isVipLeaf('Grace Lim', 'longterm', new Set()), false, 'an empty VIP list has no VIP leaves');
+});
+
+test('finding the VIP leaves among some rows: the SQL narrows by name, the rule of the tree decides', async () => {
+    const dbPath = require.resolve('../../backend/core/db');
+    const asked = [];
+    let vipRows = [{ name: 'Grace Lim' }, { name: '50%_off' }];
+    let found = [
+        { id: 1, name: 'Grace Lim', data_retention: 'longterm' },
+        { id: 2, name: 'Grace Lim Tan', data_retention: 'longterm' },   // a longer name: someone else
+        { id: 3, name: ' GRACE LIM ', data_retention: 'indefinite' },
+        { id: 4, name: 'Grace Lim', data_retention: 'temporary' }       // the tree hides this name
+    ];
+    const fake = { pool: { promise: () => ({ query: async (sql, values) => {
+        asked.push({ sql: sql.replace(/\s+/g, ' ').trim(), values });
+        if (/FROM vip_management/.test(sql)) { if (vipRows instanceof Error) throw vipRows; return [vipRows]; }
+        return [found];
+    } }) } };
+    const had = require.cache[dbPath];
+    require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fake };
+    try {
+        assert.deepEqual(await leaves.vipLeafIds('f.created_at < ?', ['2025-01-01']), [1, 3]);
+        assert.equal(asked[1].sql, 'SELECT f.id, f.data_retention, u.name FROM feedback f JOIN users u ON u.id = f.user_id WHERE (f.created_at < ?) AND (u.name LIKE ? OR u.name LIKE ?)');
+        assert.deepEqual(asked[1].values, ['2025-01-01', '%grace lim%', '%50\\%\\_off%'], 'the values of the caller first, then one pattern per VIP name with % and _ escaped');
+        asked.length = 0;
+        vipRows = [];
+        assert.deepEqual(await leaves.vipLeafIds('f.id IN (?)', [[1, 2]]), [], 'an empty VIP list has no VIP leaves');
+        assert.equal(asked.length, 1, 'and the submissions are not even read');
+        vipRows = Object.assign(new Error('no table'), { code: 'ER_NO_SUCH_TABLE' });
+        assert.deepEqual(await leaves.vipLeafIds('f.id IN (?)', [[1]]), [], 'a database without the VIP table has no VIP leaves');
+        vipRows = Object.assign(new Error('gone away'), { code: 'PROTOCOL_CONNECTION_LOST' });
+        await assert.rejects(leaves.vipLeafIds('f.id IN (?)', [[1]]), /gone away/, 'any other error is passed on: a delete must not go ahead without the check');
+    } finally {
+        if (had) require.cache[dbPath] = had; else delete require.cache[dbPath];
+    }
+    assert.equal(leaves.vipKeptText(0), '');
+    assert.equal(leaves.vipKeptText(1), '1 VIP leaf was kept: a VIP leaf stays on the tree. To delete one, take the name off the VIP list first.');
+    assert.match(leaves.vipKeptText(2), /^2 VIP leaves were kept:/);
+});
+
 // what the delete step locks for each feedback row: three leaves on the tree, one flagged, one hidden by an admin
 const LOCKED = [
     { id: 1, created_at: at('2024-03-05T04:00:00Z'), is_active: 1, comment: 'I pledge to recycle' },

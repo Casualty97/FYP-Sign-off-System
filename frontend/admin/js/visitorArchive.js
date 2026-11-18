@@ -172,6 +172,12 @@ function vaLeavesText(kept, initials) {
     return named === n ? `${start} with initials` : `${start}, ${vaNum(named)} with initials`;
 }
 
+// "1 VIP leaf is not archived and stays on the tree as it is"; '' when no VIP leaf matched
+function vaVipText(n) {
+    const count = Number(n || 0);
+    return count ? `${vaNum(count)} VIP ${count === 1 ? 'leaf is' : 'leaves are'} not archived and ${count === 1 ? 'stays' : 'stay'} on the tree as ${count === 1 ? 'it is' : 'they are'}` : '';
+}
+
 // the leaves of the previewed submissions under the saved "Leaves on the tree" choice; '' when nothing changes on the tree
 function vaLeavesPlan(c, mode, deleting) {
     const leaves = Number(c.leaves || 0);
@@ -342,6 +348,7 @@ function vaRenderSummary() {
     const on = [fb, lf].filter((x) => x.enabled);
     const total = on.reduce((sum, x) => sum + Number(x.count || 0), 0);
     const orphans = fb.enabled ? Number(due.orphanVisitors || 0) : 0;
+    const vip = fb.enabled ? vaVipText(fb.vipLeaves) : '';
     if (!on.length) {
         vaSetText('va-due-value', 'Off');
         vaSetText('va-due-hint', 'No record type is switched on', '');
@@ -357,8 +364,10 @@ function vaRenderSummary() {
         const tip = [
             fb.enabled ? `${vaPlural(fb.count, 'feedback submission')} before ${vaDayText(fb.beforeDay)}` : '',
             lf.enabled ? `${vaPlural(lf.count, 'lost & found report')} before ${vaDayText(lf.beforeDay)}` : '',
-            orphans ? `${vaPlural(orphans, 'visitor')} with no feedback left` : ''
+            orphans ? `${vaPlural(orphans, 'visitor')} with no feedback left` : '',
+            vip
         ].filter(Boolean).join(', ');
+        if (vip && !total && !orphans) hint = vip;
         vaSetText('va-due-value', value);
         vaSetText('va-due-hint', hint, tip);
     }
@@ -1528,7 +1537,7 @@ function vaRenderPreview() {
     const photos = vaPhotoParts(c, d, deleting);
     document.getElementById('va-sum-photos').innerHTML = photos.join(', ');
     document.getElementById('va-sum-photos-row').hidden = !photos.length;
-    const leaves = types.includes('feedback') ? vaLeavesPlan(c, s.leaves, deleting) : '';
+    const leaves = types.includes('feedback') ? [vaLeavesPlan(c, s.leaves, deleting), vaVipText(c.vipLeaves)].filter(Boolean).join('. ') : '';
     vaSetText('va-sum-leaves', leaves);
     document.getElementById('va-sum-leaves-row').hidden = !leaves;
     document.getElementById('va-sum-file').innerHTML = escapeHtmlSafe(`About ${vaBytes(d.estimatedBytes)}, ${vaBytes(d.freeBytes)} free`)

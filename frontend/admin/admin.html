@@ -816,6 +816,9 @@
                                     <button id="analyze-feedback-btn" class="btn-primary" onclick="analyzeFeedbackData()">Analyze Feedback</button>
                                 </div>
                             </div>
+                            <!-- <Jun Kai start> shown while the Local AI models switch is off (analysis.js refreshAnalysisModes) -->
+                            <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are off because Local AI models is switched off in the incident settings (Incidents page, Settings, Local AI advisor). Rule-Based Analysis still works.</div>
+                            <!-- <Jun Kai end> -->
 
                             <div id="feedback-analysis-results" style="display: none; margin-top: 20px;">
                                 <!-- AI Insight Summary (Done by Yu Kang) -->
@@ -3542,13 +3545,19 @@
                                     <div class="inc-drawer-title">Local AI advisor</div>
                                     <label class="inc-toggle-row">
                                         <span class="ui-switch"><input type="checkbox" id="incidents-advisor"><span class="ui-switch-track"></span></span>
-                                        <span class="inc-toggle-text"><strong>Advisor</strong><small>Explains each incident and says which help fits, using the model below on this PC (Ollama). It only suggests. When Ollama is not running it gives rule-based advice.</small></span>
+                                        <span class="inc-toggle-text"><strong>Advisor</strong><small>Explains each incident and says which help fits, using the model below on this PC (Ollama). It only suggests. When Local AI models is off or Ollama is not running, it gives rule-based advice. Anomaly detection does not switch it off.</small></span>
                                     </label>
                                     <div class="ui-field inc-drawer-field">
                                         <label class="ui-label" for="incidents-advisor-model">Model</label>
                                         <select class="ui-select" id="incidents-advisor-model"></select>
                                         <span class="ui-fact-hint" id="incidents-advisor-help"></span>
                                     </div>
+                                    <!-- every local AI model of the app; with it off no AI model runs on this PC for the admin pages -->
+                                    <label class="inc-toggle-row">
+                                        <span class="ui-switch"><input type="checkbox" id="incidents-local-ai"><span class="ui-switch-track"></span></span>
+                                        <span class="inc-toggle-text"><strong>Local AI models (Ollama and Xenova)</strong><small id="incidents-local-ai-text">The AI models that run on this PC. Ollama runs the advisor above and the Qwen AI, Gemma AI and LocalGPT modes in Feedback Reports. Xenova runs the Xenova AI mode there. Off: none of them runs. The advisor gives rule-based advice, Feedback Reports offers Rule-Based Analysis only, and System Health shows Ollama as off.</small></span>
+                                    </label>
+                                    <div class="inc-drawer-callout inc-drawer-callout-quiet" id="incidents-ai-all-off" hidden>The advisor and the local AI models are both off, so no AI model runs on this PC for the admin pages. Not covered here: the kiosk's pledge check and face detection keep their own models, and Translate to English uses Google's online service.</div>
                                 </section>
                                 <section class="inc-drawer-section">
                                     <div class="inc-drawer-title">Timing and keeping</div>
@@ -3689,16 +3698,19 @@
                                     </details>
                                 </section>
                                 <section class="inc-drawer-section">
-                                    <div class="inc-drawer-title">Example incidents</div>
-                                    <div class="inc-examples">
-                                        <div class="inc-examples-text" id="incidents-examples-text">Seven made-up incidents that show every part of this panel: a chart, the advice, step-by-step help, a fix waiting for approval, an acknowledged one and two resolved ones. They are labelled Example, never run anything and never tune a detector.</div>
-                                        <button type="button" class="ui-btn ui-btn-secondary" id="incidents-examples-btn" onclick="toggleIncidentExamples()">Show example incidents</button>
+                                    <div class="inc-drawer-title">Test incident</div>
+                                    <div class="inc-test">
+                                        <div class="inc-test-text">Send one incident with made up numbers to see how this page handles it: the chart, the advisor's answer, the steps and, for Kiosk server down while Offer fixes on incidents is on, the fix to approve (approving only writes to its history). It is labelled Test, closes by itself after 10 minutes and tunes nothing.</div>
+                                        <div class="inc-test-row">
+                                            <label class="ui-sr-only" for="incidents-test-kind">Kind of test incident</label>
+                                            <select class="ui-select" id="incidents-test-kind"></select>
+                                            <button type="button" class="ui-btn ui-btn-secondary" id="incidents-test-btn" onclick="raiseTestIncident()">Send test incident</button>
+                                        </div>
                                     </div>
-                                    <div class="inc-drawer-result" id="incidents-examples-result" role="status"></div>
+                                    <div class="inc-drawer-result" id="incidents-test-result" role="status"></div>
                                 </section>
                             </div>
                             <div class="inc-drawer-foot">
-                                <button type="button" class="health-card-link" id="incidents-test-btn" onclick="raiseTestIncident()">Send a test incident</button>
                                 <span class="inc-drawer-status" id="incidents-settings-help" role="status"></span>
                                 <div class="ui-row">
                                     <button type="button" class="ui-btn ui-btn-secondary" id="incidents-settings-cancel" onclick="closeIncidentSettings()">Cancel</button>
@@ -3740,12 +3752,19 @@
                         </div>
                         <div class="ui-row">
                             <span id="hardware-sampler-pill" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Loading</span>
+                            <!-- <Jun Kai start> -->
+                            <button type="button" class="ui-btn ui-btn-secondary" id="hardware-settings-btn" onclick="openHardwareSettings()" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Settings</button>
+                            <!-- <Jun Kai end> -->
                             <button class="ui-btn ui-btn-secondary" id="hardware-refresh-btn" onclick="loadHardware()">Refresh</button>
                         </div>
                     </div>
                     <!-- the open CPU, memory, GPU or disk incident, or a quiet link to the Incidents page (incidents.js) -->
                     <div class="hw-inc" id="hardware-incidents-note" hidden></div>
                     <div class="hw-room">
+                        <!-- <Jun Kai start> the cards' column: how fresh the numbers are, then the cards -->
+                        <div class="hw-side">
+                        <div class="hw-live" id="hardware-live-note"><span class="hw-live-dot" aria-hidden="true"></span><span id="hardware-live-text">Loading</span></div>
+                        <!-- <Jun Kai end> -->
                         <div class="hw-keys" role="group" aria-label="Part of the PC to show">
                             <button type="button" class="hw-key hw-key-all" data-part="all" aria-pressed="true" onclick="setHardwarePart('all')">
                                 <span class="hw-key-name"><span class="hw-swatches" aria-hidden="true"><span class="hw-c-cpu"></span><span class="hw-c-memory"></span><span class="hw-c-gpu"></span><span class="hw-c-disk"></span></span>All parts</span>
@@ -3780,6 +3799,7 @@
                                 <span class="hw-key-hint" id="hardware-disk-hint"></span>
                             </button>
                         </div>
+                        <!-- <Jun Kai start> --></div><!-- <Jun Kai end> -->
                         <div class="ui-card hw-main">
                             <div class="ui-card-header">
                                 <div>
@@ -3789,34 +3809,43 @@
                                 <button type="button" class="ui-btn ui-btn-secondary" id="hardware-table-btn" onclick="toggleHardwareTable()">Table view</button>
                             </div>
                             <div class="hw-toolbar">
-                                <div class="hw-range" id="hardware-range-wrap">
-                            <div class="hw-segment" id="hardware-range" role="group" aria-label="Time range">
-                                <button type="button" class="hw-seg-btn" data-range="1h" onclick="setHardwareRange('1h')">1 hour</button>
-                                <button type="button" class="hw-seg-btn" data-range="6h" onclick="setHardwareRange('6h')">6 hours</button>
-                                <button type="button" class="hw-seg-btn active" data-range="24h" onclick="setHardwareRange('24h')">24 hours</button>
-                                <button type="button" class="hw-seg-btn" data-range="7d" onclick="setHardwareRange('7d')">7 days</button>
-                                <button type="button" class="hw-seg-btn" data-range="30d" onclick="setHardwareRange('30d')">30 days</button>
-                                <button type="button" class="hw-seg-btn" data-range="custom" id="hardware-range-custom-btn" onclick="toggleHardwareRangeForm()" aria-expanded="false" aria-controls="hardware-range-form">Custom</button>
-                            </div>
-                            <form class="hw-range-form" id="hardware-range-form" hidden novalidate onsubmit="applyHardwareCustomRange(event)">
-                                <label class="ui-label" for="hardware-range-amount">Show the last</label>
-                                <div class="hw-range-inputs">
-                                    <input class="ui-input" type="number" id="hardware-range-amount" min="1" step="1" inputmode="numeric" aria-describedby="hardware-range-hint">
-                                    <select class="ui-select" id="hardware-range-unit" aria-label="Unit of the time range">
-                                        <option value="h">hours</option>
-                                        <option value="d">days</option>
-                                        <option value="w">weeks</option>
-                                        <option value="mo">months</option>
-                                        <option value="y">years</option>
-                                    </select>
+                                <!-- <Jun Kai start> Past or Forecast, then the same chips: the last 24 hours, or the next 24 hours -->
+                                <div class="hw-toolbar-left">
+                                    <div class="hw-segment" id="hardware-mode" role="group" aria-label="What the graph shows">
+                                        <button type="button" class="hw-seg-btn active" data-mode="past" aria-pressed="true" onclick="setHardwareMode('past')">Past</button>
+                                        <button type="button" class="hw-seg-btn" data-mode="forecast" aria-pressed="false" onclick="setHardwareMode('forecast')">Forecast</button>
+                                    </div>
+                                    <span class="hw-range-word" id="hardware-range-word" aria-hidden="true">Last</span>
+                                    <div class="hw-range" id="hardware-range-wrap">
+                                        <div class="hw-segment" id="hardware-range" role="group" aria-label="Show the last">
+                                            <button type="button" class="hw-seg-btn" data-range="1h" aria-pressed="false" onclick="setHardwareRange('1h')">1 hour</button>
+                                            <button type="button" class="hw-seg-btn" data-range="6h" aria-pressed="false" onclick="setHardwareRange('6h')">6 hours</button>
+                                            <button type="button" class="hw-seg-btn active" data-range="24h" aria-pressed="true" onclick="setHardwareRange('24h')">24 hours</button>
+                                            <button type="button" class="hw-seg-btn" data-range="7d" aria-pressed="false" onclick="setHardwareRange('7d')">7 days</button>
+                                            <button type="button" class="hw-seg-btn" data-range="30d" aria-pressed="false" onclick="setHardwareRange('30d')">30 days</button>
+                                            <button type="button" class="hw-seg-btn" data-range="custom" id="hardware-range-custom-btn" onclick="toggleHardwareRangeForm()" aria-expanded="false" aria-controls="hardware-range-form">Custom</button>
+                                        </div>
+                                        <form class="hw-range-form" id="hardware-range-form" hidden novalidate onsubmit="applyHardwareCustomRange(event)">
+                                            <label class="ui-label" for="hardware-range-amount" id="hardware-range-label">Show the last</label>
+                                            <div class="hw-range-inputs">
+                                                <input class="ui-input" type="number" id="hardware-range-amount" min="1" step="1" inputmode="numeric" aria-describedby="hardware-range-hint">
+                                                <select class="ui-select" id="hardware-range-unit" aria-label="Unit of the time range">
+                                                    <option value="h">hours</option>
+                                                    <option value="d">days</option>
+                                                    <option value="w">weeks</option>
+                                                    <option value="mo">months</option>
+                                                    <option value="y">years</option>
+                                                </select>
+                                            </div>
+                                            <div class="ui-help" id="hardware-range-hint">From 1 hour to 5 years.</div>
+                                            <div class="hw-range-actions">
+                                                <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHardwareRangeForm(true)">Cancel</button>
+                                                <button type="submit" class="ui-btn ui-btn-primary">Show</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
-                                <p class="ui-help" id="hardware-range-hint">From 1 hour to 5 years.</p>
-                                <div class="hw-range-actions">
-                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="closeHardwareRangeForm(true)">Cancel</button>
-                                    <button type="submit" class="ui-btn ui-btn-primary">Show</button>
-                                </div>
-                            </form>
-                        </div>
+                                <!-- <Jun Kai end> -->
                                 <span class="ui-fact-hint" id="hardware-series-note">Averages per 10 minutes, last 24 hours</span>
                             </div>
                             <div class="hw-plots" id="hardware-charts">
@@ -3825,6 +3854,9 @@
                                         <canvas id="hardware-all-chart" aria-label="CPU, memory, GPU and disk usage on one graph" role="img"></canvas>
                                         <div class="hw-chart-empty" id="hardware-all-empty">Waiting for samples</div>
                                     </div>
+                                    <!-- <Jun Kai start> Forecast: where each part is heading (the Forecast card used to say it) -->
+                                    <div class="ui-facts hw-part-facts" id="hardware-forecast-facts" hidden></div>
+                                    <!-- <Jun Kai end> -->
                                 </div>
                                 <div class="hw-plot" data-part-panel="cpu" hidden>
                                     <div class="hw-chart hw-chart-big">
@@ -3854,12 +3886,16 @@
                                     </div>
                                     <div class="ui-facts hw-part-facts" id="hardware-disk-facts"></div>
                                 </div>
+                                <!-- <Jun Kai start> Forecast: why it is only a rough guide, when it is one -->
+                                <div class="ui-note ui-note-warn" id="hardware-forecast-rough" role="note" hidden></div>
+                                <!-- <Jun Kai end> -->
                                 <div class="hw-legend">
                                     <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line></svg>Measured</span>
-                                    <span><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"></line></svg>Forecast, with its typical error shaded</span>
+                                    <span id="hardware-legend-forecast" hidden><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"></line></svg>Forecast, with its typical error shaded</span>
                                     <span><span class="hw-legend-gap" aria-hidden="true"></span>No samples (PC asleep or server stopped)</span>
                                     <span class="hw-legend-limit"><svg width="26" height="8" aria-hidden="true"><line x1="1" x2="25" y1="4" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"></line></svg><!-- <Jun Kai start> --><span id="hardware-legend-limit-text">Amber from 85%, red from 95%</span><!-- <Jun Kai end> --></span>
                                 </div>
+                                <!-- <Jun Kai start> --><div class="ui-help hw-forecast-method" id="hardware-forecast-method"></div><!-- <Jun Kai end> -->
                             </div>
                             <div class="hw-table" id="hardware-table-card" hidden>
                                 <div class="ui-table-wrap">
@@ -3871,152 +3907,93 @@
                             </div>
                         </div>
                     </div>
-                    <div class="ui-grid-2">
-                        <div class="ui-card">
-                            <div class="ui-card-header">
+                    <!-- <Jun Kai start> the settings: a drawer from the right, like the incident settings (Esc or Cancel discards the changes) -->
+                    <dialog class="inc-drawer" id="hardware-drawer" aria-labelledby="hardware-drawer-title" aria-describedby="hardware-drawer-sub">
+                        <div class="inc-drawer-inner">
+                            <div class="inc-drawer-head">
                                 <div>
-                                    <h3>Forecast</h3>
-                                    <p>Where each value is heading if the recent trend carries on. Statistics only, no AI.</p>
+                                    <h3 id="hardware-drawer-title">Hardware settings</h3>
+                                    <div class="inc-drawer-sub" id="hardware-drawer-sub">How often to measure and how long to keep the samples, and when each part counts as high or critical. How far ahead to forecast is picked on the graph, under Forecast.</div>
                                 </div>
+                                <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeHardwareSettings()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             </div>
-                            <div class="ui-card-body">
-                                <div class="ui-facts">
-                                    <div><span class="ui-fact-label" id="hardware-fc-cpu-label">CPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-cpu">–</span><span class="ui-fact-hint" id="hardware-fc-cpu-hint"></span></div>
-                                    <div><span class="ui-fact-label" id="hardware-fc-memory-label">Memory in 1 day</span><span class="ui-fact-value" id="hardware-fc-memory">–</span><span class="ui-fact-hint" id="hardware-fc-memory-hint"></span></div>
-                                    <div><span class="ui-fact-label" id="hardware-fc-gpu-label">GPU in 1 day</span><span class="ui-fact-value" id="hardware-fc-gpu">–</span><span class="ui-fact-hint" id="hardware-fc-gpu-hint"></span></div>
-                                    <div><span class="ui-fact-label">Disk full in</span><span class="ui-fact-value" id="hardware-fc-disk">–</span><span class="ui-fact-hint" id="hardware-fc-disk-hint"></span></div>
-                                </div>
-                                <div class="ui-note ui-note-warn" id="hardware-forecast-rough" role="note" hidden></div>
-                                <p class="ui-help hw-forecast-method" id="hardware-forecast-method"></p>
-                            </div>
-                        </div>
-                        <div class="ui-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Sampling</h3>
-                                    <p>How often to measure, how long to keep the samples and how far ahead to forecast.</p>
-                                </div>
-                                <button class="ui-btn ui-btn-primary" id="hardware-settings-save" onclick="saveHardwareSettings()">Save</button>
-                            </div>
-                            <div class="ui-card-body">
-                                <div class="ui-form-grid">
-                                    <div class="ui-field">
-                                        <label class="ui-label" for="hardware-interval">Sample every</label>
-                                        <select class="ui-select" id="hardware-interval" onchange="hardwareSettingChanged('interval')">
-                                            <option value="15">15 seconds</option>
-                                            <option value="30">30 seconds</option>
-                                            <option value="60">1 minute</option>
-                                            <option value="120">2 minutes</option>
-                                            <option value="300">5 minutes</option>
-                                            <option value="600">10 minutes</option>
-                                            <option value="custom">Custom</option>
-                                        </select>
-                                        <div class="hw-custom" id="hardware-interval-custom" hidden>
-                                            <input class="ui-input" type="number" id="hardware-interval-amount" min="1" step="1" inputmode="numeric" aria-label="Custom sampling interval" aria-describedby="hardware-interval-hint">
-                                            <select class="ui-select" id="hardware-interval-unit" aria-label="Unit of the sampling interval">
-                                                <option value="1">seconds</option>
-                                                <option value="60">minutes</option>
+                            <div class="inc-drawer-body" id="hardware-drawer-body">
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Forecast sampling</div>
+                                    <div class="hw-drawer-text">The graphs and the forecast are built from these samples. A forecast is dependable for about as far ahead as the samples go back. Forecasts more than 2 days ahead also use the daily summaries, which are kept for good.</div>
+                                    <div class="hw-drawer-fields">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="hardware-interval">Sample every</label>
+                                            <select class="ui-select" id="hardware-interval" onchange="hardwareSettingChanged('interval')">
+                                                <option value="15">15 seconds</option>
+                                                <option value="30">30 seconds</option>
+                                                <option value="60">1 minute</option>
+                                                <option value="120">2 minutes</option>
+                                                <option value="300">5 minutes</option>
+                                                <option value="600">10 minutes</option>
+                                                <option value="custom">Custom</option>
                                             </select>
+                                            <div class="hw-custom" id="hardware-interval-custom" hidden>
+                                                <input class="ui-input" type="number" id="hardware-interval-amount" min="1" step="1" inputmode="numeric" aria-label="Custom sampling interval" aria-describedby="hardware-interval-hint">
+                                                <select class="ui-select" id="hardware-interval-unit" aria-label="Unit of the sampling interval">
+                                                    <option value="1">seconds</option>
+                                                    <option value="60">minutes</option>
+                                                </select>
+                                            </div>
+                                            <p class="ui-help hw-custom-hint" id="hardware-interval-hint" hidden></p>
                                         </div>
-                                        <p class="ui-help hw-custom-hint" id="hardware-interval-hint" hidden></p>
-                                    </div>
-                                    <div class="ui-field">
-                                        <label class="ui-label" for="hardware-retention">Keep samples for</label>
-                                        <select class="ui-select" id="hardware-retention" onchange="hardwareSettingChanged('retention')">
-                                            <option value="7">7 days</option>
-                                            <option value="14">14 days</option>
-                                            <option value="30">30 days</option>
-                                            <option value="60">60 days</option>
-                                            <option value="90">90 days</option>
-                                            <option value="180">180 days</option>
-                                            <option value="365">1 year</option>
-                                            <option value="custom">Custom</option>
-                                        </select>
-                                        <div class="hw-custom" id="hardware-retention-custom" hidden>
-                                            <input class="ui-input" type="number" id="hardware-retention-amount" min="1" step="1" inputmode="numeric" aria-label="Custom number of days to keep samples" aria-describedby="hardware-retention-hint">
-                                            <span class="hw-custom-unit" aria-hidden="true">days</span>
-                                        </div>
-                                        <p class="ui-help hw-custom-hint" id="hardware-retention-hint" hidden></p>
-                                    </div>
-                                    <div class="ui-field">
-                                        <label class="ui-label" for="hardware-horizon">Forecast ahead</label>
-                                        <select class="ui-select" id="hardware-horizon" onchange="hardwareSettingChanged('horizon')">
-                                            <option value="6">6 hours</option>
-                                            <option value="12">12 hours</option>
-                                            <option value="24">1 day</option>
-                                            <option value="48">2 days</option>
-                                            <option value="72">3 days</option>
-                                            <option value="168">7 days</option>
-                                            <option value="720">1 month</option>
-                                            <option value="2160">3 months</option>
-                                            <option value="4320">6 months</option>
-                                            <option value="8760">1 year</option>
-                                            <option value="custom">Custom</option>
-                                        </select>
-                                        <div class="hw-custom" id="hardware-horizon-custom" hidden>
-                                            <input class="ui-input" type="number" id="hardware-horizon-amount" min="1" step="1" inputmode="numeric" aria-label="Custom forecast length" aria-describedby="hardware-horizon-hint">
-                                            <select class="ui-select" id="hardware-horizon-unit" aria-label="Unit of the forecast length">
-                                                <option value="1">hours</option>
-                                                <option value="24">days</option>
-                                                <option value="720">months</option>
-                                                <option value="8760">years</option>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="hardware-retention">Keep samples for</label>
+                                            <select class="ui-select" id="hardware-retention" onchange="hardwareSettingChanged('retention')">
+                                                <option value="7">7 days</option>
+                                                <option value="14">14 days</option>
+                                                <option value="30">30 days</option>
+                                                <option value="60">60 days</option>
+                                                <option value="90">90 days</option>
+                                                <option value="180">180 days</option>
+                                                <option value="365">1 year</option>
+                                                <option value="custom">Custom</option>
                                             </select>
+                                            <div class="hw-custom" id="hardware-retention-custom" hidden>
+                                                <input class="ui-input" type="number" id="hardware-retention-amount" min="1" step="1" inputmode="numeric" aria-label="Custom number of days to keep samples" aria-describedby="hardware-retention-hint">
+                                                <span class="hw-custom-unit" aria-hidden="true">days</span>
+                                            </div>
+                                            <p class="ui-help hw-custom-hint" id="hardware-retention-hint" hidden></p>
                                         </div>
-                                        <p class="ui-help hw-custom-hint" id="hardware-horizon-hint" hidden></p>
                                     </div>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Alert lines</div>
+                                    <div class="hw-drawer-text">When each part counts as high or critical.</div>
+                                    <div class="ui-note hw-drawer-note" id="hardware-alerts-admin" hidden>Only a System Admin can change the alert lines.</div>
+                                    <table class="hw-alerts-table">
+                                        <thead><tr><th scope="col">Part</th><th scope="col">Amber from</th><th scope="col">Red from</th></tr></thead>
+                                        <tbody id="hardware-alerts-rows"></tbody>
+                                    </table>
+                                    <div class="hw-alerts-foot">
+                                        <button type="button" class="health-card-link" id="hardware-alerts-defaults" onclick="useHardwareAlertDefaults()">Use the defaults</button>
+                                    </div>
+                                    <dl class="hw-alerts-legend">
+                                        <div><dt><span class="hw-alerts-swatch is-amber" aria-hidden="true"></span>Amber</dt><dd>The part's card says High and its graph shows the amber line. On System Health the Server PC card (CPU and memory) or the Disk card turns amber.</dd></div>
+                                        <div><dt><span class="hw-alerts-swatch is-red" aria-hidden="true"></span>Red</dt><dd>The card says Critical, the graph shows the red line, and the System Health card turns red.</dd></div>
+                                        <div><dt>GPU</dt><dd>Only on this page: System Health has no GPU card.</dd></div>
+                                    </dl>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="inc-drawer-title">Sampler</div>
+                                    <dl class="ui-kv hw-drawer-kv" id="hardware-sampler-details"></dl>
+                                </section>
+                            </div>
+                            <div class="inc-drawer-foot">
+                                <span class="inc-drawer-status" id="hardware-drawer-status" role="status"></span>
+                                <div class="ui-row">
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="hardware-settings-cancel" onclick="closeHardwareSettings()">Cancel</button>
+                                    <button type="button" class="ui-btn ui-btn-primary" id="hardware-settings-save" onclick="saveHardwareSettings()">Save</button>
                                 </div>
-                            </div>
-                            <div class="ui-card-body"><dl class="ui-kv" id="hardware-sampler-details"></dl></div>
-                        </div>
-                    </div>
-                    <!-- <Jun Kai start> the alert lines of each part: the graphs, the part cards and System Health's Server PC and Disk cards -->
-                    <div class="ui-card" id="hardware-alerts-card">
-                        <div class="ui-card-header">
-                            <div>
-                                <h3>Alert lines</h3>
-                                <p>When each part counts as high or critical.</p>
-                            </div>
-                            <button class="ui-btn ui-btn-primary" id="hardware-alerts-save" onclick="saveHardwareAlerts()">Save</button>
-                        </div>
-                        <div class="ui-card-body hw-alerts">
-                            <div class="hw-alerts-main">
-                                <div class="ui-note" id="hardware-alerts-admin" hidden>Only a System Admin can change the alert lines.</div>
-                                <table class="hw-alerts-table">
-                                    <thead><tr><th scope="col">Part</th><th scope="col">Amber from</th><th scope="col">Red from</th></tr></thead>
-                                    <tbody id="hardware-alerts-rows"></tbody>
-                                </table>
-                                <div class="hw-alerts-foot">
-                                    <button type="button" class="health-card-link" id="hardware-alerts-defaults" onclick="useHardwareAlertDefaults()">Use the defaults</button>
-                                    <span class="hw-alerts-status" id="hardware-alerts-status" role="status"></span>
-                                </div>
-                            </div>
-                            <dl class="hw-alerts-legend">
-                                <div><dt><span class="hw-alerts-swatch is-amber" aria-hidden="true"></span>Amber</dt><dd>The part's card says High and its graph shows the amber line. On System Health the Server PC card (CPU and memory) or the Disk card turns amber.</dd></div>
-                                <div><dt><span class="hw-alerts-swatch is-red" aria-hidden="true"></span>Red</dt><dd>The card says Critical, the graph shows the red line, and the System Health card turns red.</dd></div>
-                                <div><dt>GPU</dt><dd>Only on this page: System Health has no GPU card.</dd></div>
-                            </dl>
-                        </div>
-                    </div>
-                    <!-- <Jun Kai end> -->
-                    <!-- shown before a forecast longer than the stored history is saved -->
-                    <dialog class="va-dialog va-dialog-small" id="hardware-horizon-dialog" aria-labelledby="hardware-horizon-title" aria-describedby="hardware-horizon-sub">
-                        <div class="va-dialog-inner">
-                            <div class="va-dialog-head">
-                                <div>
-                                    <h3 id="hardware-horizon-title">This forecast will be a rough guide</h3>
-                                    <div class="va-dialog-sub" id="hardware-horizon-sub">You can still save it. Here is what to expect.</div>
-                                </div>
-                                <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="closeHardwareHorizonDialog()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-                            </div>
-                            <div class="va-dialog-body">
-                                <ul class="hw-check-list" id="hardware-horizon-list"></ul>
-                            </div>
-                            <div class="va-dialog-foot">
-                                <button type="button" class="ui-btn ui-btn-secondary" id="hardware-horizon-back" onclick="closeHardwareHorizonDialog()">Go back</button>
-                                <button type="button" class="ui-btn ui-btn-primary" id="hardware-horizon-save" onclick="confirmHardwareHorizon()">Save anyway</button>
                             </div>
                         </div>
                     </dialog>
+                    <!-- <Jun Kai end> -->
                 </div>
                 <!-- <Jun Kai end> -->
 
@@ -4200,7 +4177,7 @@
                                                 <option value="initials">Keep the leaf, with initials</option>
                                                 <option value="remove">Remove the leaf</option>
                                             </select>
-                                            <p class="ui-help" id="va-leaves-help">What happens to a visitor's leaf on the digital tree when their feedback is archived and deleted. A change only affects later archives.</p>
+                                            <p class="ui-help" id="va-leaves-help">What happens to a visitor's leaf on the digital tree when their feedback is archived and deleted. A change only affects later archives. A VIP's gold leaf is never archived: it stays on the tree with its name.</p>
                                         </div>
                                         <ul class="va-leaves-choices" id="va-leaves-choices">
                                             <li><strong>Keep the leaf, without a name.</strong> The leaf stays and shows "Visitor". Only its date, its badge and whether it was a VIP leaf are kept. No name, email, pledge or photo.</li>
@@ -4536,9 +4513,14 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Operating hours</h2>
-                            <p>Policies decide when the kiosk runs. In automatic mode each switch-off is recorded and the kiosk server is started when a policy needs it. Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</p>
+                            <p>Policies decide when the kiosk runs. In automatic mode each switch-off is recorded and the kiosk server is started when a policy needs it. History also says when the kiosk stopped and started, and why. Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</p>
                         </div>
-                        <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New policy</button>
+                        <!-- <Jun Kai start> what the automation did: a drawer from the right -->
+                        <div class="ui-row">
+                            <button type="button" class="ui-btn ui-btn-secondary" id="schedule-history-btn" onclick="openScheduleHistory()" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>History</button>
+                            <button class="ui-btn ui-btn-primary" onclick="showAddScheduleModal()">New policy</button>
+                        </div>
+                        <!-- <Jun Kai end> -->
                     </div>
 
                     <!-- <Jun Kai start> -->
@@ -4656,30 +4638,59 @@
                         </div>
                     </div>
 
-                    <div class="ui-card" id="automation-card">
-                        <div class="ui-card-header">
-                            <div>
-                                <h3>Automation</h3>
-                                <p id="automation-summary">Checking</p>
+                    <!-- <Jun Kai start> History (17 Nov 2026): the automation state and what it did, behind the button at the top.
+                         The ids are the ones of the old Automation card, so loadAutomationStatus fills them as before. -->
+                    <dialog class="inc-drawer" id="schedule-history-drawer" aria-labelledby="schedule-history-title" aria-describedby="schedule-history-sub">
+                        <div class="inc-drawer-inner">
+                            <div class="inc-drawer-head">
+                                <div>
+                                    <h3 id="schedule-history-title">History</h3>
+                                    <div class="inc-drawer-sub" id="schedule-history-sub">When the kiosk started and stopped and why, and what the schedule did. Newest first.</div>
+                                </div>
+                                <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeScheduleHistory()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             </div>
-                            <span id="automation-state" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
-                        </div>
-                        <div class="ui-card-body">
-                            <div class="ui-facts">
-                                <div class="ui-fact">
-                                    <span class="ui-fact-label">Scheduler</span>
-                                    <span class="ui-fact-value" id="automation-last-tick">–</span>
-                                    <span class="ui-fact-hint" id="automation-mode-hint">Checks once a minute</span>
+                            <div class="inc-drawer-body" id="automation-card">
+                                <section class="inc-drawer-section">
+                                    <div class="schedule-history-head">
+                                        <div class="inc-drawer-title">Automation</div>
+                                        <span id="automation-state" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking</span>
+                                    </div>
+                                    <div class="schedule-history-summary" id="automation-summary">Checking</div>
+                                    <div class="ui-facts schedule-history-facts">
+                                        <div class="ui-fact">
+                                            <span class="ui-fact-label">Scheduler</span>
+                                            <span class="ui-fact-value" id="automation-last-tick">–</span>
+                                            <span class="ui-fact-hint" id="automation-mode-hint">Checks once a minute</span>
+                                        </div>
+                                    </div>
+                                </section>
+                                <section class="inc-drawer-section">
+                                    <div class="schedule-history-head">
+                                        <div class="inc-drawer-title">Activity</div>
+                                        <div class="hw-segment" id="schedule-history-filter" role="group" aria-label="Which lines to show">
+                                            <button type="button" class="hw-seg-btn active" data-filter="all" aria-pressed="true" onclick="setScheduleHistoryFilter('all')">All</button>
+                                            <button type="button" class="hw-seg-btn" data-filter="power" aria-pressed="false" onclick="setScheduleHistoryFilter('power')">Starts and stops</button>
+                                            <button type="button" class="hw-seg-btn" data-filter="schedule" aria-pressed="false" onclick="setScheduleHistoryFilter('schedule')">Schedule</button>
+                                        </div>
+                                    </div>
+                                    <ul class="ui-events" id="automation-events" aria-live="polite">
+                                        <li class="ui-empty">Nothing recorded yet</li>
+                                    </ul>
+                                    <div class="schedule-history-more" id="schedule-history-more" hidden>
+                                        <span class="ui-fact-hint" id="schedule-history-count"></span>
+                                        <button type="button" class="ui-btn ui-btn-secondary" onclick="showMoreScheduleHistory()">Show more</button>
+                                    </div>
+                                </section>
+                            </div>
+                            <div class="inc-drawer-foot">
+                                <span class="inc-drawer-status">Updated every minute while this page is open.</span>
+                                <div class="ui-row">
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="closeScheduleHistory()">Close</button>
                                 </div>
                             </div>
                         </div>
-                        <div class="ui-card-body">
-                            <p class="ui-section-title">Recent automatic actions</p>
-                            <ul class="ui-events" id="automation-events">
-                                <li class="ui-empty">No automatic actions recorded yet</li>
-                            </ul>
-                        </div>
-                    </div>
+                    </dialog>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- <Jun Kai start> -->
@@ -4891,6 +4902,9 @@
     <script src="/admin/js/email.js"></script>
     <script src="/admin/js/parameters.js"></script>
     <script src="/admin/js/countdown.js"></script>
+    <!-- <Jun Kai start> the names and rows of the History lines, shared with recovery.html -->
+    <script src="/admin/js/historyLines.js"></script>
+    <!-- <Jun Kai end> -->
     <script src="/admin/js/serverControl.js"></script>
     <script src="/admin/js/health.js"></script>
     <!-- <Jun Kai start> -->

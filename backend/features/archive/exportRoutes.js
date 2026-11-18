@@ -56,6 +56,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../../core/auth');
+const { csvCell } = require('../../core/csv'); // <Jun Kai/> one CSV cell: 0 is kept, dates in Singapore time, no formulas
 const db = require('../../core/db');
 const fs = require('fs');
 const path = require('path');
@@ -120,8 +121,12 @@ function requireDataExportUnlocked(req, res, next) {
 
 // POST /api/admin/data-export/unlock
 // Verify password and unlock data export for 30 minutes
-router.post('/unlock', async (req, res) => {
-    const { username, password } = req.body;
+// <Jun Kai start> signed-in admins only, and the password of the signed-in admin. Without a sign-in this route was a
+// password check for any account that anyone could try without the limit of the sign-in
+router.post('/unlock', auth.requireAuth, async (req, res) => {
+    const { password } = req.body;
+    const username = req.session.user.username;
+// <Jun Kai end>
     
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password required' });
@@ -986,7 +991,7 @@ function convertToCSV(data) {
     if (Array.isArray(data[0])) {
         return data.map(row => 
             row.map(cell => 
-                `"${String(cell || '').replace(/"/g, '""')}"`
+                csvCell(cell) // <Jun Kai/> backend/core/csv.js
             ).join(',')
         ).join('\n');
     }
@@ -995,7 +1000,7 @@ function convertToCSV(data) {
     const headers = Object.keys(data[0]);
     const rows = data.map(row => 
         headers.map(header => 
-            `"${String(row[header] || '').replace(/"/g, '""')}"`
+            csvCell(row[header]) // <Jun Kai/>
         ).join(',')
     );
     

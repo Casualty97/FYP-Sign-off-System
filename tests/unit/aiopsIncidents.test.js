@@ -414,26 +414,22 @@ test('a verdict outside the three allowed values is refused with status 400', as
     assert.equal(audits.length, 0);
 });
 
-test('openTest opens a sample incident that resolves itself after 10 minutes whatever clearAfterMinutes says', async () => {
+test('openTest opens a CPU incident with made up numbers (the default kind) that resolves itself after 10 minutes whatever clearAfterMinutes says', async () => {
     const { engine, store, audits, advance } = setup({ clearAfterMinutes: 120 });
     const incident = await engine.openTest('systemadmin');
-    assert.equal(incident.detector, 'test');
-    assert.equal(incident.kind, 'sample');
-    assert.equal(incident.subject, null);
-    assert.equal(incident.severity, 'info');
-    assert.equal(incident.status, 'open');
-    assert.equal(incident.title, 'Test incident');
-    assert.equal(incident.explanation, 'Opened by systemadmin to show how an incident looks; its numbers are made up. It resolves itself after 10 minutes.');
-    assert.equal(incident.evidence.metric, 'sample');
-    assert.ok(incident.evidence.value > incident.evidence.baseline, 'the sample reads above its usual level, like a real spike');
-    assert.ok(incident.fingerprint.startsWith('test:sample:'));
+    assert.deepEqual([incident.detector, incident.kind, incident.subject, incident.severity, incident.status], ['spike', 'high', 'cpu', 'warn', 'open']);
+    assert.equal(incident.title, 'CPU at 82 %, far above the usual 31 %');
+    assert.ok(incident.explanation.startsWith('Test opened by systemadmin: the numbers are made up, and it closes by itself after 10 minutes. CPU use averaged 82 %'));
+    assert.ok(incident.evidence.value > incident.evidence.baseline, 'it reads above its usual level, like a real spike');
+    assert.ok(incident.fingerprint.startsWith('test:cpu:'));
+    assert.equal(incident.evidence.test, true);
     assert.equal(incident.evidence.unit, '%');
-    assert.equal(incident.evidence.points.length, 30);
+    assert.equal(incident.evidence.points.length, 60);
     assert.ok(incident.evidence.points.every((p) => Number.isFinite(p.t) && Number.isFinite(p.v)));
     assert.equal(incident.evidence.points.at(-1).t, START);
     assert.equal(incident.opened_at, at(0));
     assert.deepEqual(audits, [{ action: 'AIOPS_TEST_INCIDENT', by: 'systemadmin', id: incident.id }]);
-    assert.deepEqual((await store.events(incident.id)).map((e) => [e.type, e.detail]), [['opened', { by: 'systemadmin', test: true }]]);
+    assert.deepEqual((await store.events(incident.id)).map((e) => [e.type, e.detail]), [['opened', { by: 'systemadmin', test: true, severity: 'warn' }]]);
 
     const second = await engine.openTest('systemadmin');
     assert.notEqual(second.fingerprint, incident.fingerprint, 'every test incident is its own');

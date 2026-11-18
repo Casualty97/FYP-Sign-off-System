@@ -13,6 +13,7 @@
   "clearAfterMinutes": 10,
   "offerFixes": true,
   "fixDelayMinutes": 5,
+  "localAi": true,
   "detectors": {
     "spike": { "enabled": true, "sensitivity": 3 },
     "timeOfDay": { "enabled": true, "sensitivity": 3 },

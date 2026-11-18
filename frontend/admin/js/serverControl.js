@@ -1241,14 +1241,17 @@ let lastAutomationStatus = null;
 async function loadAutomationStatus() {
     if (!document.getElementById('automation-card')) return;
     try {
-        const response = await fetch('/api/admin/server/automation');
+        // <Jun Kai start> the whole History list only while its drawer is open; the tiles need none of it
+        const drawer = document.getElementById('schedule-history-drawer');
+        const response = await fetch(`/api/admin/server/automation?limit=${drawer && drawer.open ? 500 : 1}`);
+        // <Jun Kai end>
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load automation status');
         // <Jun Kai start>
         const a = data.automation;
         const acting = a.enabled && !a.dryRun && a.mode === 'auto';
         if (acting && lastAutomationStatus && lastAutomationStatus.currentWindow && !a.currentWindow) {
-            showNotification('Off hours have started. The switch-off is recorded; the kiosk server keeps running.', 'info');
+            showNotification('Off hours have started. The kiosk page shows the closed screen; the kiosk server keeps running.', 'info');
         }
         lastAutomationStatus = a;
         // <Jun Kai end>
@@ -1257,6 +1260,9 @@ async function loadAutomationStatus() {
         console.error('❌ Error loading automation status:', error);
         setAutomationText('automation-summary', 'Automation status is not available right now.');
         setAutomationState('Unavailable', 'down');
+        // <Jun Kai start> on the page too: the History drawer is closed most of the time
+        setAutomationText('policy-mode-hint', 'Automation status is not available right now.');
+        // <Jun Kai end>
     }
 }
 
@@ -1288,8 +1294,8 @@ function renderAutomationStatus(a) {
                 : `The kiosk runs and no policy stops it within a year. "${a.currentWindow.schedule}" is in force now.`;
         } else if (a.stoppedBy) {
             summary = a.stoppedBy.until
-                ? `Off hours until ${formatPlannedTime(a.stoppedBy.until)} (Stop policy "${a.stoppedBy.schedule}"). The switch-off is only recorded: the kiosk server keeps running.`
-                : `Off hours (Stop policy "${a.stoppedBy.schedule}"), and no policy starts the kiosk within a year. The switch-off is only recorded: the kiosk server keeps running.`;
+                ? `Off hours until ${formatPlannedTime(a.stoppedBy.until)} (Stop policy "${a.stoppedBy.schedule}"). The kiosk page shows the closed screen; the kiosk server keeps running.`
+                : `Off hours (Stop policy "${a.stoppedBy.schedule}"), and no policy starts the kiosk within a year. The kiosk page shows the closed screen; the kiosk server keeps running.`;
         }
         setAutomationText('automation-summary', summary);
     }
@@ -1303,7 +1309,8 @@ function renderAutomationStatus(a) {
     setAutomationText('automation-next-stop-hint', off || (a.nextStop ? `Off hours begin. ${policyIn(a.nextStop)}.` : 'No policy stops the kiosk soon'));
     setAutomationText('automation-next-start-hint', off || (a.nextStart ? 'The kiosk server starts if needed.' : 'No policy starts the kiosk soon'));
     setAutomationText('policy-mode', isAuto ? 'Automatic' : 'Manual');
-    setAutomationText('policy-mode-hint', !a.enabled ? 'Automation is switched off on this machine, so nothing runs the policies.' : isAuto ? 'Policies are followed.' : 'Policies are paused. Switch back under Controls.');
+    // a dry run is said here as well, since the History drawer that also says it is closed most of the time
+    setAutomationText('policy-mode-hint', !a.enabled ? 'Automation is switched off on this machine, so nothing runs the policies.' : !isAuto ? 'Policies are paused. Switch back under Controls.' : a.dryRun ? 'Dry run: the policies are followed, but their actions are only logged.' : 'Policies are followed.');
     setAutomationText('policy-now-hint', !planned ? (!a.enabled ? 'Automation is off on this machine' : 'You start and stop it under Controls')
         : a.currentWindow ? `By the policy "${a.currentWindow.schedule}"` : a.stoppedBy ? `Off hours: "${a.stoppedBy.schedule}"` : 'No policy covers this moment');
     // <Jun Kai end>
@@ -1313,19 +1320,87 @@ function renderAutomationStatus(a) {
     setAutomationText('automation-mode-hint', isAuto ? 'Automatic mode: policies apply' : 'Manual mode: policies paused');
     // <Jun Kai end>
 
+    // <Jun Kai start>
+    scheduleHistory.events = Array.isArray(a.events) ? a.events : [];
+    scheduleHistory.total = Number(a.eventsTotal) || scheduleHistory.events.length;
+    renderScheduleHistory();
+    // <Jun Kai end>
+}
+
+// <Jun Kai start>
+// History list (18 Nov 2026): when the kiosk stopped and started and why, beside what the schedule did.
+// One line: the time, what happened (with a dot: green = running again, amber = stopped in a normal way, red = stopped
+// in a way nobody asked for) and the sentence the server wrote. The filter and "Show more" work on the lines already here.
+const scheduleHistory = { events: [], total: 0, filter: 'all', shown: 30 };
+const HISTORY_STEP = 30;
+// What a line is called, its dot and its row: historyLines.js (shared with the page that opens after the PC was off)
+
+function renderScheduleHistory() {
     const list = document.getElementById('automation-events');
     if (!list) return;
-    const labels = { hibernate: 'Hibernated the PC (Stop button)', off: 'Off hours started (recorded)', start: 'Starting the kiosk', 'start-ok': 'Kiosk started', 'start-failed': 'Kiosk start failed' }; // <Jun Kai/> off: a policy switch-off
-    if (!a.events || !a.events.length) {
-        list.innerHTML = '<li class="ui-empty">No automatic actions recorded yet</li>';
+    const lines = scheduleHistory.events.map((event) => ({ event, ...scheduleHistoryLine(event) }))
+        .filter((line) => scheduleHistory.filter === 'all' || line.group === scheduleHistory.filter);
+    const more = document.getElementById('schedule-history-more');
+    if (!lines.length) {
+        const none = { all: 'Nothing recorded yet', power: 'No start or stop recorded yet', schedule: 'Nothing recorded for the schedule yet' };
+        list.innerHTML = `<li class="ui-empty">${none[scheduleHistory.filter]}</li>`;
+        if (more) more.hidden = true;
         return;
     }
-    list.innerHTML = a.events.map((event) => {
-        const when = new Date(event.at).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
-        return `<li>
-                    <span class="ui-time">${escapeHtmlSafe(when)}</span>
-                    <span class="ui-type">${escapeHtmlSafe(labels[event.type] || event.type)}${event.dryRun ? ' (dry run)' : ''}</span>
-                    <span class="ui-detail">${escapeHtmlSafe(event.detail || '')}</span>
-                </li>`;
-    }).join('');
+    list.innerHTML = lines.slice(0, scheduleHistory.shown).map(({ event }) => scheduleHistoryRow(event)).join('');
+    if (more) {
+        const shown = Math.min(scheduleHistory.shown, lines.length);
+        more.hidden = lines.length <= shown;
+        setAutomationText('schedule-history-count', `Showing ${shown} of ${lines.length}`);
+    }
 }
+
+function setScheduleHistoryFilter(filter) {
+    scheduleHistory.filter = ['power', 'schedule'].includes(filter) ? filter : 'all';
+    scheduleHistory.shown = HISTORY_STEP;
+    document.querySelectorAll('#schedule-history-filter .hw-seg-btn').forEach((button) => {
+        const active = button.dataset.filter === scheduleHistory.filter;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    renderScheduleHistory();
+}
+
+function showMoreScheduleHistory() {
+    scheduleHistory.shown += HISTORY_STEP;
+    renderScheduleHistory();
+}
+// <Jun Kai end>
+
+// <Jun Kai start>
+// History (17 Nov 2026): the automation state and its recent actions in a drawer from the right, opened from the button
+// at the top of the page (the same drawer as the incident and hardware settings). It is refreshed when it opens.
+function bindScheduleHistory(drawer) {
+    if (drawer.dataset.bound) return;
+    drawer.dataset.bound = '1';
+    drawer.addEventListener('cancel', (event) => { event.preventDefault(); closeScheduleHistory(); });
+    drawer.addEventListener('click', (event) => { if (event.target === drawer) closeScheduleHistory(); });
+    drawer.addEventListener('close', () => { drawer.classList.remove('is-closing'); });
+}
+
+function openScheduleHistory() {
+    const drawer = document.getElementById('schedule-history-drawer');
+    if (!drawer || typeof drawer.showModal !== 'function') return;
+    bindScheduleHistory(drawer);
+    drawer.classList.remove('is-closing');
+    if (!drawer.open) drawer.showModal();
+    scheduleHistory.shown = HISTORY_STEP;
+    loadAutomationStatus();
+}
+
+function closeScheduleHistory() {
+    const drawer = document.getElementById('schedule-history-drawer');
+    if (!drawer || !drawer.open || drawer.classList.contains('is-closing')) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        drawer.close();
+        return;
+    }
+    drawer.classList.add('is-closing');
+    setTimeout(() => { if (drawer.open) drawer.close(); }, 180);
+}
+// <Jun Kai end>

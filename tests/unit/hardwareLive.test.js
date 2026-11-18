@@ -63,4 +63,15 @@ test('the GPU is read in the background at most every 2 s; the last stored sampl
     await live.read(status);
     assert.equal(gpuCalls, 1, 'no second GPU read within 2 s');
 });
+
+test('the CPU card names the processor without the trade marks or the clock, and counts its logical processors', () => {
+    const cpus = (model, n) => Array.from({ length: n }, () => ({ model }));
+    assert.deepEqual(collect.cpuInfo(cpus('11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz', 8)), { model: '11th Gen Intel Core i7-1165G7', logicalProcessors: 8 });
+    assert.deepEqual(collect.cpuInfo(cpus('Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz', 2)), { model: 'Intel Xeon E5-2680 v4', logicalProcessors: 2 });
+    assert.deepEqual(collect.cpuInfo(cpus('AMD Ryzen 7 5800H with Radeon Graphics         ', 16)), { model: 'AMD Ryzen 7 5800H with Radeon Graphics', logicalProcessors: 16 });
+    assert.equal(collect.cpuInfo([]), null, 'no processor listed: nothing to show');
+    assert.deepEqual(collect.cpuInfo(cpus('', 4)), { model: null, logicalProcessors: 4 });
+    const here = collect.cpuInfo();
+    assert.ok(here === null || here.logicalProcessors >= 1, 'this PC answers too');
+});
 // <Jun Kai end>

@@ -135,7 +135,8 @@ test('switched off it asks nothing; "Ask again" waits 30 s; a resolved incident 
     assert.equal(await off.sweep(), 0);
     assert.deepEqual(off.request(id, { force: true }), { queued: false, reason: 'off' });
     const masterOff = advisor.createAdvisor({ store, settings: () => ({ enabled: false, advisor: { enabled: true } }), now: () => now, ask: async () => GOOD });
-    assert.equal(masterOff.request(id).reason, 'off', 'the master switch turns the advisor off too');
+    assert.equal(masterOff.request(id).queued, true, 'Anomaly detection off leaves the advisor on: it has its own switch');
+    await idle(masterOff);
 
     const a = advisor.createAdvisor({ store, settings: ON, now: () => now, ask: async () => GOOD });
     assert.equal(a.request(id, { force: true }).queued, true);
@@ -152,6 +153,22 @@ test('switched off it asks nothing; "Ask again" waits 30 s; a resolved incident 
     a.request(id, { force: true });
     await idle(a);
     assert.equal((await store.events(id)).length, before, 'nothing added to a resolved incident');
+});
+
+test('with Local AI models off Ollama is never asked: the advice is rule-based and says why', async () => {
+    const store = memoryStore();
+    let asked = 0;
+    const a = advisor.createAdvisor({ store, settings: () => ({ enabled: true, localAi: false, advisor: { enabled: true, model: 'qwen2.5:3b' } }), now: () => NOW, ask: async () => { asked++; return GOOD; } });
+    assert.equal(a.getStatus().localAi, false);
+    assert.equal(a.getStatus().on, true, 'the advisor itself stays on');
+    const id = await openIncident(store);
+    assert.equal(await a.sweep(), 1);
+    await idle(a);
+    const advice = (await store.events(id)).filter((e) => e.type === 'advice');
+    assert.equal(asked, 0, 'the model was not asked');
+    assert.deepEqual([advice[0].detail.source, advice[0].detail.model, advice[0].detail.localAiOff, advice[0].detail.fallbackReason], ['rules', null, true, advisor.LOCAL_AI_OFF]);
+    assert.equal(advice[0].detail.action, 'run-archive-now', 'the rule-based step for a filling disk');
+    assert.equal(advisor.createAdvisor({ store, settings: ON, ask: async () => GOOD }).getStatus().localAi, true, 'on unless exactly false');
 });
 
 test('the stores hand the advisor confirmed examples and the newest advice per incident', async () => {

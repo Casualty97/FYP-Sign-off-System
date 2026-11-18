@@ -104,7 +104,16 @@ additively and you tell Jun Kai. Your own folders are yours.
    cd FYP-Sign-off-System
    npm ci
    ```
-3. Create the database (it asks for your MySQL root password, and it drops `dp_kiosk_db` if it exists):
+3. Quickest way (Windows): run the installer. It checks the programs, runs `npm ci`, fills the empty keys of
+   `backend\.env` (`ENCRYPTION_KEY`, `SESSION_SECRET`, `KIOSK_AUTOMATION=off`), creates the database if it is
+   missing (asking once for the MySQL root password) and applies the migrations. It never drops a table, so it is safe
+   to run again. Then skip to `node startAll.js` in step 5. Details: [docs/features/install.md](features/install.md).
+   ```powershell
+   .\install.cmd -Role Laptop
+   .\install.cmd -Check
+   ```
+   The manual way (the rest of step 3, then steps 4 and 5) does the same by hand.
+   Create the database (it asks for your MySQL root password, and it drops `dp_kiosk_db` if it exists):
    ```powershell
    node scripts/setup/Datastore_Assembly.js
    ```
@@ -192,8 +201,11 @@ Two labels exist for special cases: `big-change` for a PR over 1500 changed line
 The contract checks catch the mistakes that are easy to make in a page with shared scope: every `fetch('/api/...')`
 points to a route that exists, every `onclick="..."` names a function that exists, every `getElementById('...')`
 has a matching element, no function is declared twice across the admin page, every `process.env.X` is listed in
-`.env.example`, every table name exists in `schema.sql` or a migration, CDN scripts are pinned to a version, and the
-route table matches `tests/contracts/routes.snapshot.txt`. After adding or renaming a route run
+`.env.example`, every table name exists in `schema.sql` or a migration, CDN scripts are pinned to a version, every
+route in `backend/features/admin/routes.js` and every `/admin` route in `backend/features/pledgeboard/routes.js`
+starts with a sign-in check (`auth.requireAuth`, or `auth.requireAuth, auth.requireAdmin` for system admins only),
+and the route table matches
+`tests/contracts/routes.snapshot.txt`. After adding or renaming a route run
 `npm run routes:update` and commit the snapshot with your change, and add a line for it in `tests/smoke.js`.
 
 Fix problems, never silence them (no `eslint-disable`, no skipping a check). If a check is wrong, say so in the PR.
