@@ -10,7 +10,6 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $SetupJs = Join-Path $PSScriptRoot 'setup.js'
 $FirewallGroup = 'ESG Kiosk'
 $FirewallName = 'ESG Kiosk - tablets to the kiosk server'
-$KioskPorts = @('3000', '3003')
 $StartupLink = Join-Path ([Environment]::GetFolderPath('Startup')) 'ESG Kiosk.lnk'
 $DesktopLink = Join-Path ([Environment]::GetFolderPath('Desktop')) 'ESG Kiosk Admin.url'
 
@@ -55,5 +54,30 @@ function Get-KioskProcesses {
 
 function Get-FirewallRules {
     return @(Get-NetFirewallRule -Group $FirewallGroup -ErrorAction SilentlyContinue)
+}
+
+# The ports the kiosk's firewall rule opens now, as text; nothing when there is no rule. Reading needs no administrator.
+function Get-FirewallPorts {
+    $ports = @()
+    foreach ($rule in @(Get-FirewallRules)) {
+        $filter = $rule | Get-NetFirewallPortFilter -ErrorAction SilentlyContinue
+        if ($filter) { $ports += @($filter.LocalPort | ForEach-Object { "$_" }) }
+    }
+    return @($ports | Sort-Object -Unique)
+}
+
+# True when the rule is there and opens exactly this port
+function Test-FirewallRule([string]$Port) {
+    $ports = @(Get-FirewallPorts)
+    return ($ports.Count -eq 1 -and $ports[0] -eq $Port)
+}
+
+# The rule applies on Private and Domain networks only: say so when Windows counts this PC's network as Public
+function Show-NetworkNote {
+    $public = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { "$($_.NetworkCategory)" -eq 'Public' })
+    if ($public.Count -eq 0) { return }
+    Write-Note "Windows treats the network `"$($public[0].Name)`" as Public, and the firewall rule does not apply on Public networks."
+    Write-Info 'Tablets cannot reach the kiosk until that network is set to Private in Windows (Settings, Network and internet,'
+    Write-Info 'the connection, Network profile type). The installer does not change that setting.'
 }
 # <Jun Kai end>

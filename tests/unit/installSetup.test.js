@@ -99,6 +99,21 @@ test('a fresh copy without packages gets null for mysql2, any other loading erro
     assert.throws(() => setup.loadMysql(() => { throw new Error('broken file'); }), /broken file/);
 });
 
+test('Node.js 22.12 or newer is asked for, like package.json', () => {
+    assert.equal(require('../../package.json').engines.node, '>=22.12.0');
+    for (const version of ['22.12.0', '22.17.0', 'v22.12.1', '24.1.0']) assert.equal(setup.nodeOk(version), true, version);
+    for (const version of ['22.11.9', '22.0.0', '20.18.0', '18.20.4']) assert.equal(setup.nodeOk(version), false, version);
+});
+
+test('the firewall rule opens the main server port only: the kiosk server on 3003 listens on this PC only', () => {
+    const install = fs.readFileSync(path.join(ROOT, 'scripts/install/install.ps1'), 'utf8');
+    const common = fs.readFileSync(path.join(ROOT, 'scripts/install/common.ps1'), 'utf8');
+    assert.match(install, /New-NetFirewallRule [^\n]*-LocalPort \$Port /);
+    assert.equal(/LocalPort[^\n]*3003|KioskPorts/.test(install + common), false, 'no rule for 3003');
+    const kiosk = fs.readFileSync(path.join(ROOT, 'backend/kioskServer.js'), 'utf8');
+    assert.match(kiosk, /\['127\.0\.0\.1', '::1'\]\.forEach\(\(host\) =>/, 'the kiosk server still listens on this PC only');
+});
+
 test('the Windows files are plain ASCII, and the .cmd files keep CRLF endings', () => {
     const files = ['scripts/install/install.ps1', 'scripts/install/uninstall.ps1', 'scripts/install/common.ps1', 'install.cmd', 'uninstall.cmd'];
     for (const file of files) {

@@ -41,6 +41,11 @@ function loadMysql(load = require) {
 }
 
 const randomHex = () => crypto.randomBytes(32).toString('hex');
+// package.json asks for Node.js 22.12 or newer ("engines")
+function nodeOk(version = process.versions.node) {
+    const [major, minor] = String(version).replace(/^v/, '').split('.').map(Number);
+    return major > 22 || (major === 22 && minor >= 12);
+}
 const today = () => new Date().toISOString().slice(0, 10);
 
 // KEY=value lines, read the way dotenv reads them: the last line of a key wins, quotes and a # note are dropped
@@ -335,9 +340,8 @@ async function install(opts) {
 async function check() {
     const mysql = loadMysql();
     let problems = 0;
-    const major = Number(process.versions.node.split('.')[0]);
-    if (major >= 22) say.ok(`Node.js ${process.version}`);
-    else { say.bad(`Node.js ${process.version} is too old: install Node.js 22 LTS`); problems++; }
+    if (nodeOk()) say.ok(`Node.js ${process.version}`);
+    else { say.bad(`Node.js ${process.version} is too old: install Node.js 22 LTS (22.12 or newer)`); problems++; }
     if (mysql) say.ok('packages installed (node_modules)');
     else { say.bad('packages missing: run install.cmd (or npm ci)'); problems++; }
 
@@ -428,5 +432,5 @@ if (require.main === module) {
     run(opts).then((code) => process.exit(code), (e) => { say.bad(e.message); process.exit(1); });
 }
 
-module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, loadMysql, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
+module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, loadMysql, nodeOk, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
 // <Jun Kai end>

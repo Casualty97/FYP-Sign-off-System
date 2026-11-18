@@ -40,15 +40,23 @@ function Get-Port {
 function Test-Programs {
     $script:ProgramsOk = $true
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-        Write-Bad 'Node.js is not installed. Install Node.js 22 LTS (winget install OpenJS.NodeJS.LTS, or https://nodejs.org),'
+        Write-Bad 'Node.js is not installed. Install Node.js 22 (winget install OpenJS.NodeJS.22, or https://nodejs.org),'
         Write-Info 'then open a new window and run install.cmd again.'
         $script:ProgramsOk = $false
     } else {
         $version = ((& node --version) | Out-String).Trim()
+        $parts = $version.TrimStart('v').Split('.')
         $major = 0
-        [void][int]::TryParse($version.TrimStart('v').Split('.')[0], [ref]$major)
-        if ($major -lt 22) { Write-Bad "Node.js $version is too old: install Node.js 22 LTS"; $script:ProgramsOk = $false }
-        else { Write-Ok "Node.js $version" }
+        $minor = 0
+        [void][int]::TryParse($parts[0], [ref]$major)
+        if ($parts.Count -gt 1) { [void][int]::TryParse($parts[1], [ref]$minor) }
+        # package.json asks for 22.12 or newer
+        if ($major -lt 22 -or ($major -eq 22 -and $minor -lt 12)) { Write-Bad "Node.js $version is too old: install Node.js 22 LTS (22.12 or newer)"; $script:ProgramsOk = $false }
+        else {
+            Write-Ok "Node.js $version"
+            # winget's "LTS" package moved on to newer versions; the project and its CI run on 22 (.nvmrc)
+            if ($major -gt 22) { Write-Note "Node.js $major is newer than the version this project is tested with (22). If npm ci or the start fails, install Node.js 22 (winget install OpenJS.NodeJS.22)." }
+        }
         if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) { Write-Bad 'npm is missing (it comes with Node.js: reinstall Node.js)'; $script:ProgramsOk = $false }
     }
     $services = @(Get-Service -Name 'MySQL*' -ErrorAction SilentlyContinue)
@@ -116,17 +124,28 @@ function Install-DesktopLink([string]$Port) {
     }
 }
 
-# The administrator part of the Wall PC: the firewall rule the tablets need
-function Install-AdminSteps {
-    if (@(Get-FirewallRules).Count -gt 0) { Write-Ok "the firewall rule `"$FirewallName`" is already there"; return }
-    Invoke-Change "let tablets on this network reach the kiosk (firewall rule, TCP $($KioskPorts -join ' and '), Private and Domain networks only)" {
-        New-NetFirewallRule -DisplayName $FirewallName -Group $FirewallGroup -Direction Inbound -Protocol TCP -LocalPort $KioskPorts -Action Allow -Profile Private, Domain -ErrorAction Stop | Out-Null
+# The administrator part of the Wall PC: the firewall rule the tablets need. They only talk to the main server (PORT in
+# backend\.env, 3000 unless changed). The kiosk server on 3003 listens on this PC only, so it gets no rule. A rule of
+# an earlier install that opened other ports is replaced.
+function Install-AdminSteps([string]$Port) {
+    if (Test-FirewallRule $Port) { Write-Ok "the firewall rule `"$FirewallName`" is already there (TCP $Port)"; return }
+    if (@(Get-FirewallRules).Count -gt 0) {
+        $old = @(Get-FirewallPorts) -join ' and '
+        Invoke-Change "remove the firewall rule of an earlier install (it opened TCP $old)" { Remove-NetFirewallRule -Group $FirewallGroup -ErrorAction Stop }
+    }
+    Invoke-Change "let tablets on this network reach the kiosk (firewall rule, TCP $Port, Private and Domain networks only)" {
+        New-NetFirewallRule -DisplayName $FirewallName -Group $FirewallGroup -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow -Profile Private, Domain -ErrorAction Stop | Out-Null
     }
 }
 
 function Show-WindowsStatus {
-    if (@(Get-FirewallRules).Count -gt 0) { Write-Ok "firewall rule `"$FirewallName`": tablets can reach TCP $($KioskPorts -join ' and ')" }
-    else { Write-Info 'no firewall rule for the kiosk (only the Wall PC needs it)' }
+    $serverPort = Get-Port
+    $open = @(Get-FirewallPorts)
+    if ($open.Count -eq 0) { Write-Info 'no firewall rule for the kiosk (only the Wall PC needs it)' }
+    elseif (Test-FirewallRule $serverPort) {
+        Write-Ok "firewall rule `"$FirewallName`": tablets can reach TCP $serverPort"
+        Show-NetworkNote
+    } else { Write-Note "the firewall rule opens TCP $($open -join ' and '), but the server uses TCP $serverPort (install.cmd -Role WallPC replaces the rule)" }
     if (Test-Path $StartupLink) { Write-Ok 'starts at logon (Startup folder shortcut)' }
     else { Write-Info 'does not start at logon (only the Wall PC does)' }
     if (Test-Path $DesktopLink) { Write-Ok 'desktop link to the admin page' }
@@ -136,7 +155,8 @@ function Show-WindowsStatus {
 if ($AdminSteps) {
     Write-Step 'Wall PC: firewall rule (administrator)'
     if (-not (Test-Admin)) { Stop-Install 'this part needs administrator rights' }
-    Install-AdminSteps
+    # this window closes by itself, so an error stays on screen long enough to read
+    try { Install-AdminSteps (Get-Port) } catch { Write-Bad $_.Exception.Message; Start-Sleep -Seconds 10; exit 1 }
     Start-Sleep -Seconds 3
     exit 0
 }
@@ -189,32 +209,40 @@ if ($NonInteractive) { $setupArgs += '--non-interactive' }
 if ($LASTEXITCODE -ne 0) { Stop-Install 'the settings or database step did not finish (see above); fix it and run install.cmd again' }
 
 $port = Get-Port
+$firewallFailed = $false
 if ($Role -eq 'WallPC') {
     Write-Step 'Wall PC: start at logon and a desktop link'
     Install-StartupLink
     Install-DesktopLink $port
 
     Write-Step 'Wall PC: firewall rule (administrator)'
-    if ($DryRun -or (Test-Admin)) { Install-AdminSteps }
+    # a rule that is already right needs no administrator, so running the installer again does not ask for one
+    if (Test-FirewallRule $port) { Write-Ok "the firewall rule `"$FirewallName`" is already there (TCP $port)" }
+    elseif ($DryRun -or (Test-Admin)) {
+        try { Install-AdminSteps $port } catch { Write-Bad "the firewall rule could not be made: $($_.Exception.Message)"; $firewallFailed = $true }
+    }
     elseif ($NonInteractive) { Write-Note 'not running as administrator: the firewall rule is skipped (run install.cmd -Role WallPC as administrator)' }
     else {
         Write-Info 'Windows now asks for administrator rights for this step.'
         $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"", '-Role', 'WallPC', '-AdminSteps', '-NonInteractive')
         try {
             $elevated = Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Verb RunAs -Wait -PassThru -ErrorAction Stop
-            if ($elevated.ExitCode -ne 0) { Write-Bad "the administrator step failed (exit code $($elevated.ExitCode))" }
+            if ($elevated.ExitCode -ne 0) { Write-Bad "the administrator step failed (exit code $($elevated.ExitCode))"; $firewallFailed = $true }
+            elseif (Test-FirewallRule $port) { Write-Ok "firewall rule added: tablets can reach TCP $port" }
+            else { Write-Bad 'the firewall rule is still missing (run install.cmd -Role WallPC again)'; $firewallFailed = $true }
         } catch {
             Write-Note 'administrator rights were not given: the firewall rule is skipped (run install.cmd again to retry)'
         }
-        Show-WindowsStatus
     }
+    Show-NetworkNote
     Write-Info 'Hibernate and wake timers are not set up by this installer; they belong to the system-level setup of the PC.'
 }
 
 Write-Step 'Done'
 if ($DryRun) { Write-Host '   Dry run finished: nothing was changed.' }
 else {
-    Write-Ok 'installed'
+    if ($firewallFailed) { Write-Bad 'installed, but the firewall rule is missing: tablets cannot reach the kiosk until install.cmd -Role WallPC has made it' }
+    else { Write-Ok 'installed' }
     if ($Role -eq 'WallPC') { Write-Info 'The kiosk starts by itself at the next logon. To start it now: node startAll.js (in this folder).' }
     else { Write-Info 'Start it with: node startAll.js   (Ctrl+C stops it)' }
     Write-Info "Admin page: https://localhost:$port/admin (the browser warns once about the self-signed certificate)"
@@ -225,5 +253,6 @@ else {
     }
 }
 Write-Host ''
+if ($firewallFailed) { exit 1 }
 exit 0
 # <Jun Kai end>

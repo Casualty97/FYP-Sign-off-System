@@ -33,7 +33,9 @@ gets the matching step (the user's rule of 12 Nov 2026: keep the installer in st
 
 ## What install does, in order
 
-1. **Programs.** Node.js 22 or newer, npm, a running MySQL service. Git and Ollama (with `qwen2.5:3b`) are optional
+1. **Programs.** Node.js 22.12 or newer (what `package.json` asks for), npm, a running MySQL service. The project
+   and its CI run on Node.js 22 (`.nvmrc`); a newer Node.js is accepted with a note, and the hint for a missing one
+   is `winget install OpenJS.NodeJS.22`, because winget's `OpenJS.NodeJS.LTS` now installs a newer version. Git and Ollama (with `qwen2.5:3b`) are optional
    and only reported. Anything missing stops the install with what to install.
 2. **Packages.** `npm ci`. Skipped with `-SkipNpm`, or when `node_modules` is a link to another folder (so that
    folder is never emptied). If the kiosk is running from this folder it asks to stop it first (npm cannot replace
@@ -51,7 +53,12 @@ gets the matching step (the user's rule of 12 Nov 2026: keep the installer in st
 5. **Wall PC, as the user:** a shortcut in the Startup folder starts `node startAll.js` at logon (minimised window), and
    an "ESG Kiosk Admin" link to `https://localhost:<PORT>/admin` goes on the desktop.
 6. **Wall PC, as administrator** (Windows asks; a second, elevated window does only this part): a firewall rule
-   "ESG Kiosk - tablets to the kiosk server" for TCP 3000 and 3003 on Private and Domain networks (never Public).
+   "ESG Kiosk - tablets to the kiosk server" for the main server's port (`PORT` in `backend\.env`, 3000 unless changed)
+   on Private and Domain networks (never Public). Tablets only talk to the main server; the kiosk server on 3003
+   listens on this PC only (`backend/kioskServer.js`), so it gets no rule. When the rule is already right, nothing asks
+   for administrator rights; a rule of an earlier install that opened other ports is replaced. If Windows counts the
+   PC's network as Public, the installer says that tablets cannot reach the kiosk until the network is set to Private
+   (it does not change that setting itself).
 
 ## What uninstall does, in order
 
@@ -80,6 +87,12 @@ no archive; otherwise it leaves the key empty and says so, because a new key wou
   installer reminds you at the end.
 - `setup.js` exit codes: 0 done, 1 failed, 2 the root password is needed but there was no way to ask (set
   `ESG_MYSQL_ROOT_PASSWORD`, or `--root-password-empty` for a root without a password).
+- 18 Nov 2026 review: the rule used to open TCP 3000 and 3003 whatever `PORT` was, and every run of the Wall PC
+  install asked for administrator rights again even with the rule in place. Both are fixed as described above, and
+  the Node.js check follows `package.json` (22.12, not any 22). A Wall PC install whose firewall rule could not be
+  made ends with an error and exit code 1 instead of "installed". The release notes (`.github/workflows/release.yml`)
+  name `install.cmd` instead of the manual steps; the release zip leaves `backend/.env` out, so a copy from a release
+  gets its settings file and keys made fresh.
 - CI: the Windows smoke job runs `install.ps1 -Check`, a Wall PC dry run and an uninstall dry run under Windows
   PowerShell 5.1.
 
