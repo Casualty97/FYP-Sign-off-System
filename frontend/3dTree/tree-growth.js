@@ -88,8 +88,8 @@ export function isGrown(geometry, index, shown = 1) {
 const isFoliage = object => object.isMesh && [object.material].flat().some(material => material?.alphaTest > 0);
 
 // The sprigs of a mesh: each connected piece of its triangles (one sprig of leaves), as a sprig number
-// for every vertex.
-function sprigsOf(geometry) {
+// for every vertex (also used to shape the canopy, canopy-shape.js).
+export function sprigsOf(geometry) {
   const count = geometry.attributes.position.count;
   const parent = new Int32Array(count);
   for (let i = 0; i < count; i++) parent[i] = i;

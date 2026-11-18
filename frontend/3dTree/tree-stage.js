@@ -8,6 +8,7 @@
 // also grows a little with every leaf between the stages (tree-growth.js).
 import { THREE as T, GLTFLoader, MeshoptDecoder } from './vendor/three-runtime.js';
 import { isGrown } from './tree-growth.js';
+import { shapeCanopy } from './canopy-shape.js';
 
 export const FULL_STAGE = 4;
 export const STAGE_NAMES = ['Bare Trunk', 'Early Growth', 'Young Canopy', 'Mature Canopy', 'Full Canopy'];
@@ -90,8 +91,10 @@ export function removeTree(tree) {
 // Readies a stage's model for the scene. A young stage is scaled up to the scene's size in the geometry
 // itself, so the wind in its leaves and the feedback leaves work in metres as on stage 4, and its own patch
 // of soil is left out (the island has its own ground, as under the stage 4 tree). Every stage's trunk is
-// then made round (roundTrunk).
-export function prepareStageTree(tree, stage) {
+// then made round (roundTrunk) and its canopy shaped to look right from every side (canopy-shape.js).
+// pause: awaited between the steps (scene.js passes the next frame while the scene runs, so the work is
+// spread over frames and the scene keeps moving).
+export async function prepareStageTree(tree, stage, pause = async () => {}) {
   if (stage < FULL_STAGE) {
     const scaled = new Set();
     const soil = [];
@@ -109,7 +112,9 @@ export function prepareStageTree(tree, stage) {
     });
     soil.forEach(object => object.removeFromParent());
   }
+  await pause();
   roundTrunk(tree);
+  await shapeCanopy(tree, pause);
   return tree;
 }
 

@@ -114,7 +114,7 @@ async function start() {
   }
   const water=addLandscape(scene,assets,clock,lowQuality);
   const updateRiverLevel=installRiverLevel(clock.rain,water.setRise);
-  let tree=addMatteTree(scene,prepareStageTree(assets.tree,shownStage),clock,shownStage);
+  let tree=addMatteTree(scene,await prepareStageTree(assets.tree,shownStage),clock,shownStage);
   const treeBounds=new T.Box3().setFromObject(tree);
   if (treeBounds.isEmpty()) throw new Error(`The Stage ${shownStage} tree has no renderable geometry.`);
   // In the admin's Auto growth stage the tree grows a little with every leaf: its foliage fills in from the
@@ -176,7 +176,7 @@ async function start() {
         const target=wantedStage;
         const loaded=await loadStageTree(target);
         await nextFrame(); // the work is spread over frames, so the scene keeps moving
-        const grown=addMatteTree(scene,prepareStageTree(loaded,target),clock,target);
+        const grown=addMatteTree(scene,await prepareStageTree(loaded,target,nextFrame),clock,target);
         grown.visible=false; // not shown until it is ready to take the tree's place
         refineSceneMaterials(grown,renderer);
         await nextFrame();
