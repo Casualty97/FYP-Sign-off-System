@@ -422,6 +422,7 @@ const { restore: rememberRestore, router: rememberRoutes } = require('./core/rem
 // an admin account that was deleted or changed while signed in is signed out at its next request, on every path.
 // It stands before the restore below, so a kept sign-in comes back with the account as it is now, or not at all
 const adminSessions = require('./core/adminSessions');
+const { signedInOrThisPc } = require('./core/localPc'); // for the routes that tell about the server itself
 app.use(adminSessions.dropEnded);
 app.use('/api/admin', rememberRestore);
 app.use('/api/pledgeboard/admin', rememberRestore); // the admin page's pledge routes ask for a sign-in too
@@ -443,8 +444,13 @@ app.get(['/admin', '/admin/'], (req, res) => {
 });
 
 // Serve static files
+// <Jun Kai start> the two tree pages go through their gated routes, not out as plain files (backend/core/pageGates.js)
+app.use(require('./core/pageGates').middleware(paths.FRONTEND));
+// <Jun Kai end>
 app.use(express.static(paths.FRONTEND));
-app.use('/uploads', express.static(paths.UPLOADS));
+// <Jun Kai start> visitor files: for a signed-in admin, or the browser that just made the file (backend/core/uploadsGate.js)
+app.use('/uploads', require('./core/uploadsGate').gate, express.static(paths.UPLOADS));
+// <Jun Kai end>
 app.use('/assets', express.static(paths.ASSETS));
 
 // Wire the shared DB into the tree routes
@@ -481,7 +487,7 @@ app.get('/api/parameters', (req, res) => {
 });
 
 // API endpoint to get all network interfaces
-app.get('/api/network-interfaces', (req, res) => {
+app.get('/api/network-interfaces', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     const interfaces = getAllNetworkIPs();
     res.json({
         interfaces: interfaces,
@@ -494,7 +500,7 @@ app.get('/api/network-interfaces', (req, res) => {
 });
 
 // API endpoint to get server info (IP, protocol, QR code)
-app.get('/api/server-info', (req, res) => {
+app.get('/api/server-info', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     const protocol = sslOptions ? 'https' : 'http';
     const url = `${protocol}://${localIP}:${PORT}/feedback`;
     
@@ -547,7 +553,7 @@ app.get('/api/generate-qr', async (req, res) => {
 });
 
 // Test route
-app.get('/api/test-db', (req, res) => {
+app.get('/api/test-db', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     db.query(
         "SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ?",
         [process.env.DB_NAME || 'dp_kiosk_db'],
@@ -767,7 +773,7 @@ try {
 // ==================== 8. SERVER STARTUP & INITIALIZATION ====================
 
 // Email test endpoint
-app.get('/api/test-email-service', (req, res) => {
+app.get('/api/test-email-service', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     const emailInitialized = emailService.initEmailService();
     if (emailInitialized) {
         res.json({ 

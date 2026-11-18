@@ -375,6 +375,14 @@ async function archiveStep(cookie) {
     await expect('GET /api/pledgeboard/admin/pledges without a session is refused', `${BASE}/api/pledgeboard/admin/pledges`, (r) => r.status === 401);
     await expect('PUT /api/pledgeboard/admin/topics without a session is refused', `${BASE}/api/pledgeboard/admin/topics`, (r) => r.status === 401,
       { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topics: [] }) });
+    await expect('GET /api/pledgeboard/admin/pledges on the kiosk server is refused (nobody signs in there)', `${KIOSK}/api/pledgeboard/admin/pledges`, (r) => r.status === 401);
+    // 19 Nov 2026: visitor files ask for a sign-in or the visitor's own session on both servers, the tree page is not a plain
+    // file, and the export unlock is not a password check for anyone
+    await expect('GET /uploads/photos/<file> without a session is refused', `${BASE}/uploads/photos/smoke-nobody.png`, (r) => r.status === 401);
+    await expect('GET /uploads/photos/<file> on the kiosk server without a session is refused', `${KIOSK}/uploads/photos/smoke-nobody.png`, (r) => r.status === 401);
+    await expect('GET /tree/tree.html is sent to the gated /tree route', `${BASE}/tree/tree.html`, (r) => r.status === 302 && r.headers.get('location') === '/tree' || `location ${r.headers.get('location')}`, { redirect: 'manual' });
+    await expect('POST /api/admin/data-export/unlock without a session is refused', `${BASE}/api/admin/data-export/unlock`, (r) => r.status === 401, json({ username: ADMIN_USER, password: ADMIN_PASS }));
+    await expect('GET /api/test-db answers a request made on the PC itself', `${BASE}/api/test-db`, (r) => r.status === 200 && r.body && Array.isArray(r.body.tables) || 'db test failed');
     await expect('PUT /api/admin/sign-in-settings without a session is refused', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     // <Jun Kai end>
     let cookie = '';
@@ -453,6 +461,19 @@ async function archiveStep(cookie) {
     if (!ARGS.has('--no-submit')) {
       // <Jun Kai start>
       await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', page: 'feedback' }));
+      // a visitor's browser opens the photo it just saved (the download on the thank-you page); another browser does not
+      try {
+        const saved = await fetch(`${BASE}/api/feedback/save-photo`, json({ photo: tinyPng(), userName: 'Smoke Visitor', device: 'kiosk' }));
+        const visitor = (saved.headers.get('set-cookie') || '').split(';')[0];
+        const photoId = ((await saved.json().catch(() => ({}))) || {}).photoId;
+        if (!photoId || !visitor) fail(`POST /api/feedback/save-photo gives the visitor a session (${saved.status}, photo ${photoId ? 'saved' : 'missing'}, cookie ${visitor ? 'set' : 'missing'})`);
+        else {
+          await expect('GET /uploads/photos/<own photo> with the visitor session', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie: visitor } });
+          await expect('GET /uploads/photos/<that photo> from another browser is refused', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 401);
+          if (cookie) await expect('GET /uploads/photos/<that photo> with the admin session', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie } });
+          try { fs.unlinkSync(path.join(ROOT, 'uploads', 'photos', photoId)); } catch { /* already gone */ }
+        }
+      } catch (e) { fail(`a visitor opens its own photo: ${e.message}`); }
       // a failing tablets query only turns the card to unknown, so check the row really comes back
       if (cookie) {
         await expect('GET /api/admin/health lists the smoke tablet', `${BASE}/api/admin/health?all=1`, (r) => {

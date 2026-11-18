@@ -11,6 +11,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const control = require('./control');
+const { isThisPc } = require('../../core/localPc');
 
 const LIFETIME_MS = 24 * 60 * 60 * 1000;
 const LINES = 60;
@@ -29,11 +30,6 @@ function issue(now = Date.now()) {
 function valid(token, now = Date.now()) {
     if (!link || !token || now >= link.expiresAt) return false;
     return crypto.timingSafeEqual(sha256(token), link.hash);
-}
-
-// The address the request really came from (not a header a sender can set): only the PC itself
-function isThisPc(address) {
-    return ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(String(address || ''));
 }
 
 // for the tests

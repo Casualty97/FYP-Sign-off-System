@@ -117,6 +117,10 @@ const parametersConfigStore = require('./features/parameters/store');
 const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features/tree/routes');
 const dataRetentionCleanup = require('./features/archive/retention');
 const QRCode = require('qrcode');
+// <Jun Kai start>
+const { signedInOrThisPc } = require('./core/localPc'); // for the routes that tell about the server itself
+const uploadsGate = require('./core/uploadsGate'); // visitor files: only for the browser that just made the file
+// <Jun Kai end>
 
 const app = express();
 const PORT = 3003; // CHANGED: Now runs on 3003 (behind gateway on 3001)
@@ -255,7 +259,7 @@ app.use(
 
 // Static files
 app.use(express.static(paths.FRONTEND));
-app.use('/uploads', express.static(paths.UPLOADS));
+app.use('/uploads', uploadsGate.gate, express.static(paths.UPLOADS)); // <Jun Kai/>
 app.use('/assets', express.static(paths.ASSETS));
 
 // Wire DB into tree routes
@@ -279,7 +283,7 @@ app.get('/api/parameters', (req, res) => {
 });
 
 // Network info
-app.get('/api/network-interfaces', (req, res) => {
+app.get('/api/network-interfaces', signedInOrThisPc, (req, res) => { // <Jun Kai/> a request made on this PC (nobody signs in on the kiosk server)
   res.json({
     interfaces: getAllNetworkIPs(),
     current: { ip: localIP, interface: interfaceName, port: PORT },
@@ -287,7 +291,7 @@ app.get('/api/network-interfaces', (req, res) => {
 });
 
 // Server info
-app.get('/api/server-info', (req, res) => {
+app.get('/api/server-info', signedInOrThisPc, (req, res) => { // <Jun Kai/> a request made on this PC (nobody signs in on the kiosk server)
   const protocol = sslOptions ? 'https' : 'http';
   const url = `${protocol}://${localIP}:${PORT}/feedback`;
 
@@ -325,7 +329,7 @@ app.get('/api/generate-qr', async (req, res) => {
 });
 
 // Test database connection
-app.get('/api/test-db', (req, res) => {
+app.get('/api/test-db', signedInOrThisPc, (req, res) => { // <Jun Kai/> a request made on this PC (nobody signs in on the kiosk server)
   db.query(
     'SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ?',
     [process.env.DB_NAME || 'dp_kiosk_db'],
@@ -341,7 +345,7 @@ app.get('/api/test-db', (req, res) => {
 });
 
 // Email test endpoint
-app.get('/api/test-email-service', (req, res) => {
+app.get('/api/test-email-service', signedInOrThisPc, (req, res) => { // <Jun Kai/> a request made on this PC (nobody signs in on the kiosk server)
   const emailInitialized = emailService.initEmailService();
   if (emailInitialized) {
     res.json({

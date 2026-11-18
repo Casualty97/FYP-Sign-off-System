@@ -33,7 +33,7 @@ Incidents (11 Nov 2026, moved 13 Nov 2026): the incidents the anomaly detection 
 | GET | `/api/admin/health/settings` | backend/features/health/routes.js |
 | PUT | `/api/admin/health/settings` | backend/features/health/routes.js |
 | PUT | `/api/admin/health/tablets/:deviceId/name` | backend/features/health/routes.js |
-| POST | `/api/health/heartbeat` | backend/features/health/publicRoutes.js |
+| POST | `/api/health/heartbeat` | backend/features/health/publicRoutes.js (new devices are limited, backend/features/health/heartbeatLimit.js: 5 an hour from one address, 200 in the table; a known device is never limited) |
 | GET | `/api/network-interfaces` | backend/kioskServer.js |
 | GET | `/api/server-info` | backend/kioskServer.js |
 | GET | `/api/status` | backend/kioskServer.js |

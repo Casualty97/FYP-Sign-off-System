@@ -254,6 +254,8 @@ const auth = require('../../core/auth');
 // <Jun Kai start>
 const rememberMe = require('../../core/rememberMe');
 const adminSessions = require('../../core/adminSessions'); // <Jun Kai/> ends the sign-ins of a deleted or changed account
+const loginLimit = require('../../core/loginLimit'); // a limit on wrong passwords at the sign-in
+const { csvCell } = require('../../core/csv'); // one CSV cell: 0 is kept, dates in Singapore time, no formulas
 // <Jun Kai end>
 const bcrypt = require('bcrypt');
 const lostFoundStore = require('../lostFound/store'); // changes made by nick
@@ -910,11 +912,19 @@ const uploadTreeBackground = multer({
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
     
+    // <Jun Kai start> a limit on wrong passwords (backend/core/loginLimit.js), asked before the password is looked at
+    const loginLimited = loginLimit.check(username, req.ip);
+    if (loginLimited.blocked) return res.status(429).json({ error: loginLimit.message(loginLimited.retryAfterMs) });
+    // <Jun Kai end>
     auth.loginUser(username, password, (err, user) => {
         if (err) {
             logAudit('LOGIN_FAILED', username, null, null, req);
+            // <Jun Kai start> a wrong password counts; a database error (it carries a code) does not
+            if (!err.code && loginLimit.fail(username, req.ip)) logAudit('LOGIN_LOCKED', username, null, null, req);
+            // <Jun Kai end>
             return res.status(401).json({ error: err.message });
         }
+        loginLimit.success(username, req.ip); // <Jun Kai/>
         
         // Store user in session
         req.session.user = {
@@ -1402,7 +1412,7 @@ router.get('/test-db', auth.requireAuth, auth.requireAdmin, (req, res) => { // <
         users: 'SELECT COUNT(*) as count FROM users',
         feedback: 'SELECT COUNT(*) as count FROM feedback WHERE is_active = 1',
         admin_users: 'SELECT COUNT(*) as count FROM admin_users',
-        feedback_with_rating: 'SELECT COUNT(*) as count FROM feedback WHERE rating IS NOT NULL AND is_active = 1',
+        // <Jun Kai/> a count by feedback.rating stood here: the feedback table has no such column, so it always failed
         users_today: "SELECT COUNT(*) as count FROM users WHERE DATE(CONVERT_TZ(last_visit, '+00:00', '+08:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))"
     };
     
@@ -3907,7 +3917,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
     const { id } = req.params;
     const { username, full_name, role, password } = req.body;
     const currentUsername = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
-    logAudit('EDIT_USER', username, 'user', id, req);
+    logAudit('EDIT_USER', currentUsername, 'user', id, req); // <Jun Kai/> the admin who made the edit, not the account that was edited
     
     console.debug('✏️ Updating admin user:', { id, username, full_name, role, currentUsername });
     
@@ -4242,7 +4252,6 @@ router.get('/download-excel', auth.requireAuth, auth.requireAdmin, (req, res) =>
                 Name: row.name || '',
                 Email: row.email || '',
                 Visits: row.visits || 0,
-                Rating: row.rating || '',
                 Feedback: row.feedback || '',
                 'Data Retention (Days)': row.data_retention || 'Forever',
                 'Photo Path': row.photo_path || '',
@@ -4335,7 +4344,6 @@ router.get('/download-archive-excel', auth.requireAuth, auth.requireAdmin, (req,
                 Name: row.name || '',
                 Email: row.email || '',
                 Visits: row.visits || 0,
-                Rating: row.rating || '',
                 Feedback: row.feedback || '',
                 'Data Retention (Days)': row.data_retention || 'Forever',
                 'Photo Path': row.photo_path || '',
@@ -5425,7 +5433,7 @@ function convertToCSV(data) {
     const headers = Object.keys(data[0]).join(',');
     const rows = data.map(row => 
         Object.values(row).map(field => 
-            `"${String(field || '').replace(/"/g, '""')}"`
+            csvCell(field) // <Jun Kai/> backend/core/csv.js
         ).join(',')
     );
     
@@ -6002,7 +6010,7 @@ router.put('/form-ui', auth.requireAuth, (req, res) => {
 // ==================== 20B. FEEDBACK ANALYSIS CACHE STORAGE ====================
 // Admin control for where feedback analysis cache is persisted.
 
-router.get('/feedback-analysis-cache-storage', auth.requireAdmin, async (req, res) => {
+router.get('/feedback-analysis-cache-storage', auth.requireAuth, async (req, res) => { // <Jun Kai/> any signed-in admin: the Feedback Report page of every role reads it (saving stays with the system admin)
   try {
     await feedbackAnalysisCacheStore.ensureReady();
 
@@ -6682,7 +6690,7 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
 });
 
 // GET /api/admin/parameters/tree-background/list - List available tree background images
-router.get('/parameters/tree-background/list', auth.requireAdmin, (req, res) => {
+router.get('/parameters/tree-background/list', auth.requireAuth, (req, res) => { // <Jun Kai/> any signed-in admin: the Digital Tree page of every role reads it (choosing one stays with the system admin)
     try {
         const backgroundDir = path.join(paths.ASSETS, 'Tree', 'background');
         const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];

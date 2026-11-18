@@ -20,7 +20,7 @@ Every admin action is logged and listed with filters and CSV export (since 31 Oc
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- Several routes write the audit row before the role or password check succeeds (old 3545, 3647, 4182, 4368, 4516, 4738, 5090), and EDIT_USER names the target instead of the actor (old 3850). Since 19 Nov 2026 these routes ask for a sign-in first, so the row is only written for a signed-in admin and carries the name of the session, not a name sent by the browser.
+- Several routes write the audit row before the role or password check succeeds (old 3545, 3647, 4182, 4368, 4516, 4738, 5090), and EDIT_USER named the target instead of the actor (old 3850; fixed 19 Nov 2026, it names the admin who made the edit). Since 19 Nov 2026 these routes ask for a sign-in first, so the row is only written for a signed-in admin and carries the name of the session, not a name sent by the browser.
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.
