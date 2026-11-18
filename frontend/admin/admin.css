@@ -8706,6 +8706,14 @@ html[data-theme="dark"] #hardware-series-note.is-error { color: #f87171; }
 #schedule-history-drawer .ui-events li { grid-template-columns: 104px minmax(0, 1fr); gap: 2px 12px; padding: 9px 0; }
 #schedule-history-drawer .ui-events li.ui-empty { display: block; color: var(--color-dark-gray); }
 #schedule-history-drawer .ui-events .ui-detail { grid-column: 2; font-size: 13px; }
+/* History list (18 Nov 2026): a dot says how a line ended for the kiosk, and Show more sits under the list */
+.history-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #94a3b8; vertical-align: 1px; }
+.history-dot.is-ok { background: #16a34a; }
+.history-dot.is-warn { background: #d97706; }
+.history-dot.is-down { background: #dc2626; }
+.schedule-history-more { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 12px; }
+.schedule-history-more[hidden] { display: none; }
+#schedule-history-drawer .schedule-history-head { flex-wrap: wrap; }
 @media (max-width: 980px) {
     .hw-room { grid-template-columns: 1fr; }
     .hw-keys { grid-template-columns: repeat(2, minmax(0, 1fr)); }

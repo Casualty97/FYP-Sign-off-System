@@ -12,7 +12,7 @@ const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
 const SCHEDULE_CONFIG_PATH = process.env.SCHEDULE_CONFIG_PATH || paths.dataFile('kiosk-schedules.json');
 const MODE_FILE = paths.dataFile('server-control-mode.json');
 const AUTOMATION_FILE = paths.dataFile('server-automation.json');
-const MAX_EVENTS = 50;
+const MAX_EVENTS = 500; // <Jun Kai/> starts, stops and their causes are kept here too, so the list is longer than 50
 
 const kioskControlConfig = {
     windowsPidFile: path.join(paths.BACKEND, 'kioskServer.pid'),
@@ -86,13 +86,25 @@ function saveAutomation(data) {
     try { writeJsonAtomic(AUTOMATION_FILE, data); } catch (error) { console.error('⚠️ Could not write the automation log:', error.message); }
 }
 
-function recordEvent(type, detail, dryRun = false) {
+// <Jun Kai start>
+// extra.at: when it happened, for something that is only known later (a stop is written down at the next start);
+// extra.cause: a short key the page uses for its label, for example 'power-lost'
+function recordEvent(type, detail, dryRun = false, extra = {}) {
     const data = readAutomation();
-    data.events.push({ at: new Date().toISOString(), type, detail, dryRun: !!dryRun });
-    if (data.events.length > MAX_EVENTS) data.events = data.events.slice(-MAX_EVENTS);
+    const event = { at: extra.at || new Date().toISOString(), type, detail, dryRun: !!dryRun };
+    if (extra.cause) event.cause = extra.cause;
+    data.events.push(event);
+    data.events = byTime(data.events).slice(-MAX_EVENTS);
     saveAutomation(data);
     console.log(`🤖 Automation ${dryRun ? '[dry run] ' : ''}${type}: ${detail}`);
 }
+
+// oldest first; lines of the same moment stay in the order they were written
+function byTime(events) {
+    return events.map((event, index) => ({ event, index, at: new Date(event.at).getTime() || 0 }))
+        .sort((a, b) => (a.at - b.at) || (a.index - b.index)).map((item) => item.event);
+}
+// <Jun Kai end>
 
 function setLastHibernateKey(key) {
     const data = readAutomation();
@@ -232,7 +244,7 @@ const lastStartAttempt = () => lastStartAttemptMs;
 module.exports = {
     SCHEDULE_CONFIG_PATH, MODE_FILE, AUTOMATION_FILE, kioskControlConfig,
     readSchedulesConfig, writeSchedulesConfig, onSchedulesChanged, readModeConfig, writeModeConfig,
-    readAutomation, recordEvent, setLastHibernateKey,
+    readAutomation, recordEvent, byTime, MAX_EVENTS, setLastHibernateKey,
     resolveKioskStatus, logKioskStatusIfNeeded, startKiosk, hibernateNow, noteStartAttempt, lastStartAttempt, START_GAP_MS
 };
 // <Jun Kai end>

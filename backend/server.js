@@ -154,6 +154,7 @@ const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features
 // Import cleanup module
 const dataRetentionCleanup = require('./features/archive/retention');
 const kioskScheduler = require('./features/serverControl/scheduler');
+const kioskRunLog = require('./features/serverControl/runLog'); // <Jun Kai/> why the kiosk stopped and started
 const healthRoutes = require('./features/health/routes');
 const healthPublicRoutes = require('./features/health/publicRoutes');
 // <Jun Kai start>
@@ -734,6 +735,8 @@ function printServerInfo(isHttps) {
     // Schedules (record each switch-off, start the kiosk server when a policy needs it); off with KIOSK_AUTOMATION=off
     kioskScheduler.start();
     // <Jun Kai start>
+    // why the last run ended and this one began, and the policy check after the PC was off (History on Server Schedule)
+    kioskRunLog.begin({ port: PORT, https: isHttps });
     hardwareSampler.start();
     aiopsEngine.start(); // anomaly detection: health recorder, log reader and the incident checks (System Health page)
     visitorArchiveScheduler.start(); // finishes interrupted archives, then automatic archiving and file expiry

@@ -416,6 +416,15 @@ async function archiveStep(cookie) {
       await expect('GET /api/admin/aiops/incidents?status=all with the session', `${BASE}/api/admin/aiops/incidents?status=all`, (r) => r.body && r.body.success === true && Array.isArray(r.body.incidents) || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai end>
       await expect('GET /api/admin/server/automation with the session', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.success === true && r.body.automation && r.body.automation.enabled === false || `automation=${JSON.stringify(r.body && r.body.automation).slice(0, 120)}`, { headers: { cookie } });
+      // <Jun Kai start> the History list: this start is in it, newest first, and the list is only as long as asked for
+      await expect('GET /api/admin/server/automation?limit=50 has this start in the History, newest first', `${BASE}/api/admin/server/automation?limit=50`, (r) => {
+        const a = (r.body && r.body.automation) || {};
+        const events = Array.isArray(a.events) ? a.events : [];
+        const ordered = events.every((e, i) => i === 0 || new Date(e.at) <= new Date(events[i - 1].at));
+        return events.some((e) => e.type === 'started' && !!e.detail) && ordered && a.eventsTotal >= events.length || `events=${JSON.stringify(events).slice(0, 200)}`;
+      }, { headers: { cookie } });
+      await expect('GET /api/admin/server/automation sends at most 10 History lines without a limit', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.automation && Array.isArray(r.body.automation.events) && r.body.automation.events.length <= 10 || r.text.slice(0, 160), { headers: { cookie } });
+      // <Jun Kai end>
     }
 
     // These write rows, so not in --no-submit mode: one tablet heartbeat, then one visitor submission end to end

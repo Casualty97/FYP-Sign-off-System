@@ -50,7 +50,8 @@ gets the matching step (the user's rule of 12 Nov 2026: keep the installer in st
    database; then every migration is applied. A database that has tables is never dropped: running install again only
    applies new migrations. It ends with a check: at least 14 tables, an admin account, no migration pending. On a fresh
    database it prints the first login (`systemadmin`, change the password in User Management).
-5. **Wall PC, as the user:** a shortcut in the Startup folder starts `node startAll.js` at logon (minimised window), and
+5. **Wall PC, as the user:** a shortcut in the Startup folder starts `node startAll.js --logon` at logon (minimised
+   window; `--logon` makes the History list on Server Schedule say "Started: Windows sign-in"), and
    an "ESG Kiosk Admin" link to `https://localhost:<PORT>/admin` goes on the desktop.
 6. **Wall PC, as administrator** (Windows asks; a second, elevated window does only this part): a firewall rule
    "ESG Kiosk - tablets to the kiosk server" for the main server's port (`PORT` in `backend\.env`, 3000 unless changed)
@@ -93,6 +94,10 @@ no archive; otherwise it leaves the key empty and says so, because a new key wou
   made ends with an error and exit code 1 instead of "installed". The release notes (`.github/workflows/release.yml`)
   name `install.cmd` instead of the manual steps; the release zip leaves `backend/.env` out, so a copy from a release
   gets its settings file and keys made fresh.
+- Starting by itself after a power cut (18 Nov 2026, see "After the PC was off" in [serverControl.md](serverControl.md))
+  needs two settings the installer does not touch: the PC's firmware must switch it on when power returns, and Windows
+  must sign in by itself (the logon shortcut only runs in a signed-in session). A PC installed before 18 Nov 2026 gets
+  the `--logon` shortcut when `install.cmd -Role WallPC` is run again.
 - CI: the Windows smoke job runs `install.ps1 -Check`, a Wall PC dry run and an uninstall dry run under Windows
   PowerShell 5.1.
 

@@ -4513,7 +4513,7 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Operating hours</h2>
-                            <p>Policies decide when the kiosk runs. In automatic mode each switch-off is recorded and the kiosk server is started when a policy needs it. Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</p>
+                            <p>Policies decide when the kiosk runs. In automatic mode each switch-off is recorded and the kiosk server is started when a policy needs it. History also says when the kiosk stopped and started, and why. Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</p>
                         </div>
                         <!-- <Jun Kai start> what the automation did: a drawer from the right -->
                         <div class="ui-row">
@@ -4645,7 +4645,7 @@
                             <div class="inc-drawer-head">
                                 <div>
                                     <h3 id="schedule-history-title">History</h3>
-                                    <div class="inc-drawer-sub" id="schedule-history-sub">What the schedule automation did, newest first, and how it stands now.</div>
+                                    <div class="inc-drawer-sub" id="schedule-history-sub">When the kiosk started and stopped and why, and what the schedule did. Newest first.</div>
                                 </div>
                                 <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeScheduleHistory()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             </div>
@@ -4665,10 +4665,21 @@
                                     </div>
                                 </section>
                                 <section class="inc-drawer-section">
-                                    <div class="inc-drawer-title">Recent automatic actions</div>
-                                    <ul class="ui-events" id="automation-events">
-                                        <li class="ui-empty">No automatic actions recorded yet</li>
+                                    <div class="schedule-history-head">
+                                        <div class="inc-drawer-title">Activity</div>
+                                        <div class="hw-segment" id="schedule-history-filter" role="group" aria-label="Which lines to show">
+                                            <button type="button" class="hw-seg-btn active" data-filter="all" aria-pressed="true" onclick="setScheduleHistoryFilter('all')">All</button>
+                                            <button type="button" class="hw-seg-btn" data-filter="power" aria-pressed="false" onclick="setScheduleHistoryFilter('power')">Starts and stops</button>
+                                            <button type="button" class="hw-seg-btn" data-filter="schedule" aria-pressed="false" onclick="setScheduleHistoryFilter('schedule')">Schedule</button>
+                                        </div>
+                                    </div>
+                                    <ul class="ui-events" id="automation-events" aria-live="polite">
+                                        <li class="ui-empty">Nothing recorded yet</li>
                                     </ul>
+                                    <div class="schedule-history-more" id="schedule-history-more" hidden>
+                                        <span class="ui-fact-hint" id="schedule-history-count"></span>
+                                        <button type="button" class="ui-btn ui-btn-secondary" onclick="showMoreScheduleHistory()">Show more</button>
+                                    </div>
                                 </section>
                             </div>
                             <div class="inc-drawer-foot">

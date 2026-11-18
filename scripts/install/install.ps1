@@ -110,7 +110,8 @@ function Install-StartupLink {
     Invoke-Change 'start the kiosk at logon (a shortcut in the Startup folder)' {
         $link = (New-Object -ComObject WScript.Shell).CreateShortcut($StartupLink)
         $link.TargetPath = Join-Path $env:SystemRoot 'System32\cmd.exe'
-        $link.Arguments = "/k title ESG Kiosk server & `"$node`" `"$start`""
+        # --logon: the History list then says "started at Windows sign-in" (startAll.js passes it on)
+        $link.Arguments = "/k title ESG Kiosk server & `"$node`" `"$start`" --logon"
         $link.WorkingDirectory = $Root
         $link.WindowStyle = 7
         $link.Description = 'Starts the ESG Kiosk servers (added by install.cmd, removed by uninstall.cmd)'

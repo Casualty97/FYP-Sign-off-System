@@ -7944,7 +7944,14 @@ router.delete('/assets/:bluetoothId', auth.requireAdmin, (req, res) => {
 // Manually start the kiosk service
 router.post('/server/start', auth.requireAuth, (req, res) => {
     console.log('▶️  Manual server start requested');
-    serverControl.startKiosk((result) => res.status(result.success ? 200 : 500).json(result));
+    // <Jun Kai start> a start by hand goes into the History list too, with who pressed it
+    const username = (req.session.user && req.session.user.username) || 'unknown';
+    serverControl.recordEvent('start', `Start kiosk was pressed on the admin page by ${username}`);
+    serverControl.startKiosk((result) => {
+        serverControl.recordEvent(result.success ? 'start-ok' : 'start-failed', result.message || result.error);
+        res.status(result.success ? 200 : 500).json(result);
+    });
+    // <Jun Kai end>
 });
 
 
@@ -7963,6 +7970,9 @@ router.post('/server/restart', auth.requireAuth, (req, res) => {
 
         fs.mkdirSync(logsDir, { recursive: true });
         console.log('🔄 Restart requested from admin panel');
+        // <Jun Kai start> the reason of this stop, for the History list after the restart
+        require('../serverControl/runLog').noteStop('restart-request', `Restart application was pressed on the admin page by ${(req.session.user && req.session.user.username) || 'unknown'}.`);
+        // <Jun Kai end>
 
         const child = spawn('cmd.exe', ['/c', batchFile], {
             cwd: rootDir,
@@ -8049,6 +8059,7 @@ router.post('/server/mode', auth.requireAuth, (req, res) => {
     
     // <Jun Kai start>
     console.log(`✅ Server mode changed to ${mode.toUpperCase()} by ${config.updated_by}`);
+    serverControl.recordEvent('mode', mode === 'auto' ? `Automatic mode was switched on by ${config.updated_by}: the policies decide when the kiosk runs` : `Manual mode was switched on by ${config.updated_by}: the policies are paused`);
     // <Jun Kai end>
     
     res.json({
@@ -8087,7 +8098,10 @@ router.get('/server/status', auth.requireAuth, (req, res) => {
 // GET /api/admin/server/automation
 // What the scheduler will do next: mode, next stop and start, wake timer state, recent automatic actions
 router.get('/server/automation', auth.requireAuth, (req, res) => {
-    scheduler.getStatus((automation) => res.json({ success: true, automation }));
+    // <Jun Kai start> ?limit= how many History lines, 1 to 500 (10 without it)
+    const limit = Math.min(500, Math.max(1, Math.floor(Number(req.query.limit)) || 10));
+    scheduler.getStatus((automation) => res.json({ success: true, automation }), { limit });
+    // <Jun Kai end>
 });
 
 // GET /api/admin/kiosk-status
