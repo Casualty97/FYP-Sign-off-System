@@ -26,6 +26,7 @@ const control = require('./control');
 const policies = require('./policies');
 const powerEvents = require('./powerEvents');
 const recoveryView = require('./recoveryView');
+const openState = require('./openState');
 
 const STATE_FILE = paths.dataFile('run-state.json');
 const BEAT_MS = 20 * 1000;
@@ -196,9 +197,11 @@ function waitForKiosk(deps, waitMs, done, startedMs = Date.now()) {
 }
 
 // The check after the PC was off. Writes one History line that says what was decided and done. done() when finished.
-// url: the page that is opened, as the History line names it. openTarget(): the address the browser really gets (the
-// page with its link), made only when the browser is opened and never written down.
-function recover({ url, openTarget = () => url, deps, kioskWasUp, env = process.env, done = () => {} }) {
+// url: the page that is opened, as the History line names it; a function is asked only when the browser is about to
+// be opened, because the PC's network address may not be there yet right after the power came back.
+// openTarget(page): the address the browser really gets (the page with its link), never written down.
+function recover({ url, openTarget = (page) => page, deps, kioskWasUp, env = process.env, done = () => {} }) {
+    const pageNow = () => (typeof url === 'function' ? url() : url);
     const automation = automationSetting(env);
     const plan = recoveryPlan({
         automation,
@@ -207,18 +210,21 @@ function recover({ url, openTarget = () => url, deps, kioskWasUp, env = process.
         kioskWasUp
     });
     if (!plan.act) {
-        deps.record('recovery', `The PC was off. Nothing was started or opened: ${plan.reason}.`, false, { cause: 'left' });
+        // in off hours the kiosk page shows its closed screen by itself (openState.js): the line says so
+        const closed = deps.kioskOpen && !deps.kioskOpen();
+        deps.record('recovery', `The PC was off. Nothing was started or opened: ${plan.reason}.${closed ? ' The kiosk page shows the closed screen.' : ''}`, false, { cause: 'left' });
         return done(plan);
     }
     if (automation === 'dry-run') {
-        deps.record('recovery', `The PC was off and ${plan.reason}. The kiosk server would be checked and the History opened (${url}).`, true, { cause: 'acted' });
+        deps.record('recovery', `The PC was off and ${plan.reason}. The kiosk server would be checked and the History opened (${pageNow()}).`, true, { cause: 'acted' });
         return done(plan);
     }
     deps.noteStartAttempt(); // the scheduler leaves the kiosk start of the next minutes to this check
     waitForKiosk(deps, deps.waitMs === undefined ? KIOSK_WAIT_MS : deps.waitMs, (up) => {
         const finish = (kioskText) => {
-            const opened = deps.openUrl(openTarget());
-            deps.record('recovery', `The PC was off and ${plan.reason}. ${kioskText} ${opened ? `The History was opened in the default browser (${url}).` : `The History could not be opened in the default browser (${url}).`}`, false, { cause: 'acted' });
+            const page = pageNow();
+            const opened = deps.openUrl(openTarget(page));
+            deps.record('recovery', `The PC was off and ${plan.reason}. ${kioskText} ${opened ? `The History was opened in the default browser (${page}).` : `The History could not be opened in the default browser (${page}).`}`, false, { cause: 'acted' });
             done(plan);
         };
         if (up) return finish('The kiosk server is running.');
@@ -283,9 +289,18 @@ function noteExits(proc = process) {
     proc.on('exit', (code) => stopNote.write('exit', `exit code ${code}`));
 }
 
+// The page that opens after the PC was off. host: the PC's network address, or a function that gives it when asked
+// (server.js passes the address the QR code uses). Without one, or when asking fails, the page opens on localhost,
+// which always works on the PC itself.
+function recoveryPage({ port, https = true, host }) {
+    let name = 'localhost';
+    try { name = (typeof host === 'function' ? host() : host) || 'localhost'; } catch { name = 'localhost'; }
+    return `${https ? 'https' : 'http'}://${name}:${port}/admin/recovery.html`;
+}
+
 // Called once by server.js when it is listening. deps is only passed by the tests.
 // startedBy: 'logon' when the logon shortcut started the programs (startAll.js passes its --logon on)
-function begin({ port, https = true, startedBy = process.argv.includes('--logon') ? 'logon' : '', deps: given = {}, env = process.env, done = () => {} } = {}) {
+function begin({ port, https = true, host, startedBy = process.argv.includes('--logon') ? 'logon' : '', deps: given = {}, env = process.env, done = () => {} } = {}) {
     if (run.begun) return;
     run.begun = true;
     const deps = {
@@ -298,6 +313,7 @@ function begin({ port, https = true, startedBy = process.argv.includes('--logon'
         readMode: () => control.readModeConfig().mode,
         readPolicies: () => control.readSchedulesConfig().schedules,
         openUrl,
+        kioskOpen: () => openState.work({ env }).open,
         bootMs: () => Date.now() - os.uptime() * 1000, // when Windows started, by its uptime
         ...given
     };
@@ -326,8 +342,11 @@ function begin({ port, https = true, startedBy = process.argv.includes('--logon'
         const start = describeStart({ stop, summary, startedBy });
         deps.record('started', start.detail, false, { at: run.startedAt.toISOString(), cause: start.cause });
         if (!stop || !stop.pcWasOff) return done({ stop, start, plan: null });
-        const url = `${https ? 'https' : 'http'}://localhost:${port}/admin/recovery.html`;
-        recover({ url, openTarget: () => `${url}#${recoveryView.issue()}`, deps, kioskWasUp: stop.kioskWasUp, env, done: (plan) => done({ stop, start, plan }) });
+        recover({
+            url: () => recoveryPage({ port, https, host }),
+            openTarget: (page) => `${page}#${recoveryView.issue()}`,
+            deps, kioskWasUp: stop.kioskWasUp, env, done: (plan) => done({ stop, start, plan })
+        });
     };
     if (state) deps.readEvents(new Date(ms(state.aliveAt) - MARGIN_MS), finish);
     else finish(null);
@@ -340,7 +359,7 @@ function reset() {
 }
 
 module.exports = {
-    STATE_FILE, BEAT_MS, GAP_MS, begin, beat, watchKiosk, reset, noteStop: stopNote.write, readState, classifyStop, describeStart, recoveryPlan, recover, openUrl,
+    STATE_FILE, BEAT_MS, GAP_MS, begin, beat, watchKiosk, reset, noteStop: stopNote.write, readState, classifyStop, describeStart, recoveryPlan, recover, recoveryPage, openUrl,
     waitForKiosk, automationSetting, duration, stopDetail
 };
 // <Jun Kai end>

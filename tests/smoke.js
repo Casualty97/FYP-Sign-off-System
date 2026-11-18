@@ -382,6 +382,11 @@ async function archiveStep(cookie) {
     await expect('GET /uploads/photos/<file> on the kiosk server without a session is refused', `${KIOSK}/uploads/photos/smoke-nobody.png`, (r) => r.status === 401);
     await expect('GET /tree/tree.html is sent to the gated /tree route', `${BASE}/tree/tree.html`, (r) => r.status === 302 && r.headers.get('location') === '/tree' || `location ${r.headers.get('location')}`, { redirect: 'manual' });
     await expect('POST /api/admin/data-export/unlock without a session is refused', `${BASE}/api/admin/data-export/unlock`, (r) => r.status === 401, json({ username: ADMIN_USER, password: ADMIN_PASS }));
+    // the kiosk page asks this every 10 seconds: when the server started, and whether the policies have the kiosk open
+    // (the automation is off here, so the kiosk is open)
+    for (const [where, server] of [['', BASE], [' on the kiosk server', KIOSK]]) {
+      await expect(`GET /api/status${where} says when the server started and that the kiosk is open`, `${server}/api/status`, (r) => r.body && r.body.online === true && r.body.open === true && !Number.isNaN(Date.parse(r.body.startedAt)) || r.text.slice(0, 160));
+    }
     await expect('GET /api/test-db answers a request made on the PC itself', `${BASE}/api/test-db`, (r) => r.status === 200 && r.body && Array.isArray(r.body.tables) || 'db test failed');
     await expect('PUT /api/admin/sign-in-settings without a session is refused', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     // <Jun Kai end>

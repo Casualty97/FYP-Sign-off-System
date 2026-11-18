@@ -5,13 +5,14 @@
 // way into the admin page: switching the PC off and on would then be enough to get in. So:
 //  - the server makes a link when it opens the browser (issue). The link is random, kept in memory only and ends with
 //    this run of the server, or after 24 hours;
-//  - the History lines are given only to that link, and only to a browser on the PC itself (isThisPc);
+//  - the History lines are given only to that link, and only to a browser on the PC itself (isOwnAddress: the page is
+//    opened through the PC's network address, so the connection comes from that address and not from 127.0.0.1);
 //  - the link is not a sign-in: it opens these lines and nothing else, so it adds no way into any other route.
 // The link is never written down: the History line of the recovery names the page without it (runLog.js).
 const crypto = require('crypto');
 const express = require('express');
 const control = require('./control');
-const { isThisPc } = require('../../core/localPc');
+const { isThisPc, isOwnAddress } = require('../../core/localPc');
 
 const LIFETIME_MS = 24 * 60 * 60 * 1000;
 const LINES = 60;
@@ -41,11 +42,11 @@ function reset() {
 const router = express.Router();
 router.get('/', (req, res) => {
     res.set('Cache-Control', 'no-store');
-    if (!isThisPc(req.socket.remoteAddress)) return res.status(403).json({ success: false, error: 'This view only opens on the kiosk PC itself.' });
+    if (!isOwnAddress(req.socket.remoteAddress)) return res.status(403).json({ success: false, error: 'This view only opens on the kiosk PC itself.' });
     if (!valid(req.get(HEADER))) return res.status(401).json({ success: false, error: 'This view has ended. Sign in to see the History.' });
     const events = control.byTime(control.readAutomation().events || []).slice(-LINES).reverse();
     res.json({ success: true, events });
 });
 
-module.exports = { issue, valid, isThisPc, reset, router, HEADER, LIFETIME_MS, LINES };
+module.exports = { issue, valid, isThisPc, isOwnAddress, reset, router, HEADER, LIFETIME_MS, LINES };
 // <Jun Kai end>

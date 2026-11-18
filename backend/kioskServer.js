@@ -118,7 +118,9 @@ const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features
 const dataRetentionCleanup = require('./features/archive/retention');
 const QRCode = require('qrcode');
 // <Jun Kai start>
-const { signedInOrThisPc } = require('./core/localPc'); // for the routes that tell about the server itself
+const { signedInOrThisPc, hasAddress } = require('./core/localPc'); // for the routes that tell about the server itself
+const kioskOpenState = require('./features/serverControl/openState'); // whether the policies have the kiosk open now
+const STARTED_AT = new Date().toISOString(); // a kiosk page reloads itself when this changed (heartbeat.js)
 const uploadsGate = require('./core/uploadsGate'); // visitor files: only for the browser that just made the file
 // <Jun Kai end>
 
@@ -315,7 +317,9 @@ app.get('/api/server-info', signedInOrThisPc, (req, res) => { // <Jun Kai/> a re
 app.get('/api/generate-qr', async (req, res) => {
   try {
     // Phones must use the HTTPS server on port 3000 (the 3001 gateway is not started on Windows)
-    const url = `https://${localIP}:3000/feedback`;
+    // <Jun Kai start> the address the PC has now: right after a power cut the network can come up after this server
+    const url = `https://${hasAddress(localIP) ? localIP : getSelectedIP()}:3000/feedback`;
+    // <Jun Kai end>
 
     const qrSvg = await QRCode.toString(url, {
       type: 'svg',
@@ -373,7 +377,12 @@ app.get('/api/status', (req, res) => {
     online: true,
     status: 'running',
     message: 'Kiosk server is online',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    // <Jun Kai start> for the kiosk page (frontend/feedback/js/heartbeat.js): when this server started, and whether
+    // the policies have the kiosk open now ({ open, opensAt, closedBy })
+    startedAt: STARTED_AT,
+    ...kioskOpenState.current()
+    // <Jun Kai end>
   });
 });
 

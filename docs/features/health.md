@@ -5,7 +5,7 @@
 **Where the code is**
 
 - backend/features/health/checks.js (the checks), routes.js (GET /api/admin/health, GET and PUT /api/admin/health/layout), layout.js (each admin's chosen checks, backend/data/health-layout.json), tabletNames.js (the names admins give the tablets, backend/data/tablet-names.json), publicRoutes.js (POST /api/health/heartbeat, mounted on both servers)
-- frontend/admin/js/health.js and the System Health page in admin.html; frontend/feedback/js/heartbeat.js posts the tablet heartbeat (Role 3 file inside the kiosk folder)
+- frontend/admin/js/health.js and the System Health page in admin.html; frontend/feedback/js/heartbeat.js posts the tablet heartbeat (Role 3 file inside the kiosk folder; since 19 Nov 2026 it also shows the kiosk page's offline and closed screens and brings the page back by itself, see serverControl.md)
 - table device_heartbeats (database/migrations/001_device_heartbeats.sql, then 003_drop_heartbeat_battery.sql)
 
 **What it does**

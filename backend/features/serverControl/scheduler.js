@@ -1,9 +1,10 @@
 // Owner: Role 3, Jun Kai.
 // Runs the saved policies. Started by backend/server.js only. Once a minute, in AUTO mode:
 //  - the policies have just switched the kiosk off (an Active policy ended or a Stop policy began) -> the switch-off
-//    is only recorded in the automation log (once per switch); the kiosk server keeps running (the user's choice B,
-//    12 Nov 2026). Putting the PC itself to sleep and waking it again is the system-level hibernation scheduling of
-//    Role 4 (Ryan); policies.status and policies.wakeTimes give that part the stop and start times
+//    is recorded in the automation log (once per switch) and the kiosk page shows its closed screen (openState.js,
+//    19 Nov 2026); the kiosk server keeps running (the user's choice B, 12 Nov 2026). Putting the PC itself to sleep
+//    and waking it again is the system-level hibernation scheduling of Role 4 (Ryan); policies.status and
+//    policies.wakeTimes give that part the stop and start times
 //  - the policies say the kiosk runs and the kiosk server is not reachable -> start it
 //  - the policies have just switched the kiosk on -> recorded too ("on hours started"), so the History list has both ends
 // KIOSK_AUTOMATION=off disables everything (CI, laptops); KIOSK_AUTOMATION=dry-run logs instead of acting.
@@ -37,7 +38,7 @@ function tick(now = new Date()) {
     if (decision.switchedOff) {
         // lastHibernateKey (name kept for saved files) marks this switch-off as recorded
         control.setLastHibernateKey(decision.key);
-        control.recordEvent('off', `off hours started: ${policies.offReason(decision.due)} (recorded only, the kiosk server keeps running)`, state.dryRun);
+        control.recordEvent('off', `off hours started: ${policies.offReason(decision.due)} (the kiosk page shows the closed screen; the kiosk server keeps running)`, state.dryRun);
         return;
     }
 

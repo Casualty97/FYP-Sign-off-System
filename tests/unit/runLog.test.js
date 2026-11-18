@@ -304,6 +304,38 @@ test('after the PC was off: the browser gets the page with its link, and the His
     assert.equal(made, 1, 'a dry run makes no link either');
 });
 
+test('after the PC was off: the page opens at the address the PC has when the browser is opened', async () => {
+    assert.equal(runLog.recoveryPage({ port: 3000, https: true, host: '192.168.1.50' }), 'https://192.168.1.50:3000/admin/recovery.html');
+    assert.equal(runLog.recoveryPage({ port: 3100, https: false, host: () => '10.0.0.8' }), 'http://10.0.0.8:3100/admin/recovery.html');
+    assert.equal(runLog.recoveryPage({ port: 3000 }), URL, 'no address given: localhost, which always works on the PC itself');
+    assert.equal(runLog.recoveryPage({ port: 3000, host: () => '' }), URL);
+    assert.equal(runLog.recoveryPage({ port: 3000, host: () => { throw new Error('no network yet'); } }), URL);
+
+    // the address is asked for when the browser is opened, not before the wait for the kiosk server
+    const s = standIns({ probe: [false, false, true] });
+    let asked = 0;
+    let probesWhenAsked = null;
+    const page = 'https://192.168.1.50:3000/admin/recovery.html';
+    await recover(s, { url: () => { asked++; probesWhenAsked = s.calls.probes; return page; }, openTarget: (address) => `${address}#${'cd'.repeat(24)}` });
+    assert.deepEqual([asked, probesWhenAsked], [1, 3], 'asked once, after the kiosk server answered');
+    assert.deepEqual(s.calls.opened, [`${page}#${'cd'.repeat(24)}`]);
+    assert.match(s.calls.record[0].detail, /The History was opened in the default browser \(https:\/\/192\.168\.1\.50:3000\/admin\/recovery\.html\)\.$/);
+
+    const off = standIns({ policies: [STOP_POLICY] });
+    await recover(off, { url: () => { asked++; return page; } });
+    assert.equal(asked, 1, 'nothing is opened in off hours, so no address is asked for');
+});
+
+test('after the PC was off in off hours: the line says the kiosk page shows the closed screen', async () => {
+    const closed = standIns({ policies: [STOP_POLICY], deps: { kioskOpen: () => false } });
+    await recover(closed);
+    assert.match(closed.calls.record[0].detail, /^The PC was off\. Nothing was started or opened: .*\. The kiosk page shows the closed screen\.$/);
+    assert.deepEqual([closed.calls.opened.length, closed.calls.kioskStarts], [0, 0]);
+    const open = standIns({ policies: [STOP_POLICY], deps: { kioskOpen: () => true } });
+    await recover(open);
+    assert.ok(!open.calls.record[0].detail.includes('closed screen'), 'not when the kiosk counts as open (automation off, manual mode)');
+});
+
 test('after the PC was off: a kiosk server that never answers is started, and a failed start is said', async () => {
     const s = standIns({ probe: [false], waitMs: 5 });
     await recover(s);

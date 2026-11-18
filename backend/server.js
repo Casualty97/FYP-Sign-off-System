@@ -422,7 +422,12 @@ const { restore: rememberRestore, router: rememberRoutes } = require('./core/rem
 // an admin account that was deleted or changed while signed in is signed out at its next request, on every path.
 // It stands before the restore below, so a kept sign-in comes back with the account as it is now, or not at all
 const adminSessions = require('./core/adminSessions');
-const { signedInOrThisPc } = require('./core/localPc'); // for the routes that tell about the server itself
+const { signedInOrThisPc, hasAddress } = require('./core/localPc'); // for the routes that tell about the server itself
+const kioskOpenState = require('./features/serverControl/openState'); // whether the policies have the kiosk open now
+const STARTED_AT = new Date().toISOString(); // a kiosk page reloads itself when this changed (heartbeat.js)
+// The address to hand out now (the QR code, the page after the PC was off): the one picked at the start while a
+// network adapter still has it, else picked again. Right after a power cut the network can come up after the server.
+const addressNow = () => (hasAddress(localIP) ? localIP : getSelectedIP());
 app.use(adminSessions.dropEnded);
 app.use('/api/admin', rememberRestore);
 app.use('/api/pledgeboard/admin', rememberRestore); // the admin page's pledge routes ask for a sign-in too
@@ -521,7 +526,7 @@ app.get('/api/server-info', signedInOrThisPc, (req, res) => { // <Jun Kai/> a si
 app.get('/api/generate-qr', async (req, res) => {
     try {
         const protocol = sslOptions ? 'https' : 'http';
-        const url = `${protocol}://${localIP}:${PORT}/feedback`;
+        const url = `${protocol}://${addressNow()}:${PORT}/feedback`; // <Jun Kai/> the address the PC has now
         
         
         const qrSvg = await QRCode.toString(url, {
@@ -579,7 +584,12 @@ app.get('/api/status', (req, res) => {
         mode: 'standalone',
         server: 'kiosk',
         message: 'Server is running (standalone mode)',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        // <Jun Kai start> for the kiosk page (frontend/feedback/js/heartbeat.js): when this server started, and whether
+        // the policies have the kiosk open now ({ open, opensAt, closedBy })
+        startedAt: STARTED_AT,
+        ...kioskOpenState.current()
+        // <Jun Kai end>
     });
 });
 
@@ -750,7 +760,7 @@ function printServerInfo(isHttps) {
     kioskScheduler.start();
     // <Jun Kai start>
     // why the last run ended and this one began, and the policy check after the PC was off (History on Server Schedule)
-    kioskRunLog.begin({ port: PORT, https: isHttps });
+    kioskRunLog.begin({ port: PORT, https: isHttps, host: addressNow });
     hardwareSampler.start();
     aiopsEngine.start(); // anomaly detection: health recorder, log reader and the incident checks (System Health page)
     visitorArchiveScheduler.start(); // finishes interrupted archives, then automatic archiving and file expiry

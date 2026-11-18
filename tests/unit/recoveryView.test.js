@@ -38,6 +38,21 @@ test('only the PC itself counts as this PC', () => {
     }
 });
 
+test('a connection from one of the PC\'s own addresses is the PC itself, any other address is not', () => {
+    // the page after the PC was off is opened through the PC's network address: the connection then comes from it
+    const adapters = {
+        'Wi-Fi': [{ address: '192.168.1.50', family: 'IPv4', internal: false }, { address: 'fe80::1c2:3d4', family: 'IPv6', internal: false }],
+        Loopback: [{ address: '127.0.0.1', family: 'IPv4', internal: true }]
+    };
+    for (const address of ['192.168.1.50', '::ffff:192.168.1.50', 'fe80::1c2:3d4', 'fe80::1c2:3d4%12', '127.0.0.1', '::1']) {
+        assert.equal(recoveryView.isOwnAddress(address, adapters), true, address);
+    }
+    for (const address of ['192.168.1.51', '::ffff:192.168.1.51', '192.168.1.5', '192.168.1.500', '10.0.0.5', 'fe80::1c2:3d5', '', undefined, null]) {
+        assert.equal(recoveryView.isOwnAddress(address, adapters), false, String(address));
+    }
+    assert.equal(recoveryView.isOwnAddress('192.168.1.50', {}), false, 'an address the PC no longer has');
+});
+
 // the route on a real listener, asked from this PC
 function ask(port, headers = {}) {
     return new Promise((resolve, reject) => {

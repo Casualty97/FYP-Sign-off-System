@@ -1251,7 +1251,7 @@ async function loadAutomationStatus() {
         const a = data.automation;
         const acting = a.enabled && !a.dryRun && a.mode === 'auto';
         if (acting && lastAutomationStatus && lastAutomationStatus.currentWindow && !a.currentWindow) {
-            showNotification('Off hours have started. The switch-off is recorded; the kiosk server keeps running.', 'info');
+            showNotification('Off hours have started. The kiosk page shows the closed screen; the kiosk server keeps running.', 'info');
         }
         lastAutomationStatus = a;
         // <Jun Kai end>
@@ -1294,8 +1294,8 @@ function renderAutomationStatus(a) {
                 : `The kiosk runs and no policy stops it within a year. "${a.currentWindow.schedule}" is in force now.`;
         } else if (a.stoppedBy) {
             summary = a.stoppedBy.until
-                ? `Off hours until ${formatPlannedTime(a.stoppedBy.until)} (Stop policy "${a.stoppedBy.schedule}"). The switch-off is only recorded: the kiosk server keeps running.`
-                : `Off hours (Stop policy "${a.stoppedBy.schedule}"), and no policy starts the kiosk within a year. The switch-off is only recorded: the kiosk server keeps running.`;
+                ? `Off hours until ${formatPlannedTime(a.stoppedBy.until)} (Stop policy "${a.stoppedBy.schedule}"). The kiosk page shows the closed screen; the kiosk server keeps running.`
+                : `Off hours (Stop policy "${a.stoppedBy.schedule}"), and no policy starts the kiosk within a year. The kiosk page shows the closed screen; the kiosk server keeps running.`;
         }
         setAutomationText('automation-summary', summary);
     }
