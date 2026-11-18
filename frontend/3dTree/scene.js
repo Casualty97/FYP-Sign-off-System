@@ -319,6 +319,7 @@ async function start() {
       ambient.update(soundPan(bird),Math.max(0,camera.position.y-1.2),clock.gust.value,clock.rain.value,clock.night.value);
     }
     renderer.render(scene,camera);
+    glowLook?.afterRender(camera); // the glowing look: the glow round its lit leaves and light (bloom)
     updateSoilView(dt);
     if (!loading.hidden && readyToReveal) {
       loading.hidden = true;

@@ -24,11 +24,14 @@
 //     where it is on the tree, at its own angle, without turning or moving; a leaf the view leaves round the
 //     back of the tree fades away rather than showing through it, and comes back when the view returns;
 //   - every leaf stays easy to see on the canopy: it is never darker than a set lightness;
-//   - every leaf glows like a leaf of light: a vivid badge colour, brightest in its middle, with glowing veins,
-//     a bright outline, a soft glow around it in its own colour that breathes gently, and now and then a
-//     light sweeping across it (GLOW_FRAGMENT); its name is white handwriting with a soft glow;
+//   - in the glowing look every leaf glows like a leaf of light, green, blue or orange by its visitor's badge
+//     (Environmental, Social, Governance: ESG_GLOW_COLOURS), brightest in its middle, with glowing veins, a
+//     bright outline, a soft glow around it that breathes gently and spills round it (the bloom,
+//     glow-look.js), and now and then a light sweeping across it (GLOW_FRAGMENT); its name is white
+//     handwriting with a soft glow;
 //   - a VIP's leaf (a name on the admin's VIP Management list, as /api/tree marks it, or a name from
-//     /api/tree/vip-names) is gold, with the 2D tree's gold pulse, at its own VIP scale.
+//     /api/tree/vip-names) is gold, with the 2D tree's gold pulse, at its own VIP scale, and a star of light
+//     twinkling at its tip (in both looks).
 // Colours (light green new, dark green older), left or right leaves, size and how long a leaf counts as
 // new come from the admin's 3D Leaf
 // Adjustments (tree3d-settings.js). New feedback is checked every 5 seconds from /api/tree.
@@ -37,6 +40,7 @@ import { THREE as T, GLTFLoader } from './vendor/three-runtime.js';
 import { onTree3dSettings } from './tree3d-settings.js';
 import { createLeafDetail } from './leaf-detail.js';
 import { isGrown } from './tree-growth.js';
+import { GLOW_LAYER } from './glow-look.js';
 
 const LEAF_MODEL = '/assets/Tree/3dTreeLeaves/RainTree_Leaf_Final12.glb';
 const MODEL_SIZE = 0.1;          // the leaf model is 10 cm across
@@ -64,7 +68,7 @@ const OLD_MIN_LIGHTNESS = 0.24;  // an older leaf's dark shade may be this dark,
 // minus the blurred outline is high just inside the edge. The material's colour is the leaf colour boosted
 // by TINT_BOOST (displayColour).
 const VEIN_GLOW = 0.8;           // how brightly the veins glow
-const RIM_GLOW = 1.25;           // how brightly the leaf's outline glows
+const RIM_GLOW = 1.0;            // how brightly the leaf's outline glows
 const SHIMMER_EVERY = 7;         // seconds between the light sweeps across a leaf (each leaf at its own time)
 const SHIMMER_SWEEP = 1.3;       // seconds a sweep takes to cross the leaf
 const GLOW_FRAGMENT = `
@@ -82,18 +86,19 @@ const GLOW_FRAGMENT = `
   float rimGlow = 1. - texture2D( map, vMapUv, 3.5 ).a;
   float middle = texture2D( map, vMapUv, 5. ).a; // 1 in the middle of the blade, less towards its edge
   vec3 tint = diffuseColor.rgb / ${TINT_BOOST.toFixed(2)};
-  vec3 glow = mix( tint, vec3( 1. ), .45 );
-  vec3 hot = mix( tint, vec3( 1. ), .75 );
+  vec3 glow = mix( tint, vec3( 1. ), .2 );   // little white, so the colour stays vivid
+  vec3 hot = mix( tint, vec3( 1. ), .55 );
   // A light sweeping across the leaf now and then (shimmer: where the sweep is, from 0 to 1; off below 0).
   float sweep = shimmer < 0. ? 0. : exp( -pow( ( vMapUv.x * .8 + vMapUv.y * .6 - shimmer * 1.9 + .25 ) / .07, 2. ) );
   // Lit from within: brightest in the middle, deeper colour towards the edge, glowing veins and outline.
-  diffuseColor.rgb = tint * ( .55 + .85 * middle * middle )
-    + glow * ( ${VEIN_GLOW.toFixed(2)} * vein + .9 * rimGlow )
+  diffuseColor.rgb = tint * ( .6 + .7 * middle * middle )
+    + glow * ( ${VEIN_GLOW.toFixed(2)} * vein + .55 * rimGlow )
     + hot * ( ${RIM_GLOW.toFixed(2)} * rimLine + .7 * sweep );
   diffuseColor.a *= texel.a;
 #endif
 `;
-const AURA = 0.65;               // the soft glow every leaf has around it, in its own colour (it breathes gently)
+const AURA = 0.4;                // the soft glow every leaf has around it, in its own colour (it breathes gently;
+                                 // the bloom, glow-look.js, spreads its light further)
 const NEON_SATURATION = 0.85;    // leaf colours are shown at least this saturated, so they glow vividly
 
 // The natural leaf (with the admin's "Glowing look" off): the leaf picture in its colour, its veins shown.
@@ -150,6 +155,9 @@ function flatNormalTexture() {
 // lineHeight, LEAF_LOOKS).
 const NAME_CENTRE_X = -0.0034;
 const NAME_CENTRE_Z = -0.0011;
+// The leaf's tip, where a VIP's star of light shines: the model is a flat 0.1 card with the leaf's picture on
+// it, and the picture's outline ends at x 0.048 on the midrib (its stem at x -0.043).
+const LEAF_TIP = new T.Vector3(0.048, 0, 0.0004);
 const NAME_BOXES = [            // lines -> widest box inside the blade, centred on its middle
   { lines: 1, width: 0.054 },
   { lines: 2, width: 0.054 },
@@ -170,6 +178,15 @@ const BADGE_LEAF_COLOURS = { // the 2D tree's default badge colours
   'sustainable-living-advocate': '#16a34a', 'ocean-guardian': '#0284c7', 'governance-guardian': '#7c3aed',
   'social-champion': '#d97706',
 };
+// In the glowing look the feedback leaves glow in three colours, as the tree's own glowing leaves and the
+// ESG Centre's concept: green for Environmental, blue for Social, orange for Governance, by the visitor's
+// badge (Social Champion: Social; Governance Guardian: Governance; the climate, energy, living and ocean
+// badges and Feedback Contributor: Environmental). The vivid colour while new, a dark shade of it later.
+const ESG_GLOW_COLOURS = { environmental: '#2ee05a', social: '#2f8fff', governance: '#ff8a1f' };
+const BADGE_ESG = { 'social-champion': 'social', 'governance-guardian': 'governance' };
+// A VIP's leaf has a star of light twinkling at its tip (both looks), as the VIP leaf of the concept.
+const SPARKLE_SIZE = 1.4;        // the star's size (its rays tip to tip), as a share of the leaf's size
+const SPARKLE_EVERY = 2.4;       // seconds between its brightest twinkles
 const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24, leafScale: 1, showLeafNames: true,
   leafAreaWidth: 100, leafAreaHeight: 100, leafAreaOffset: 0, leafRefreshMs: POLL_MS, leafOpacity: 1,
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS,
@@ -364,6 +381,46 @@ function glowTexture() {
   return texture;
 }
 
+// The star of light at a VIP leaf's tip: a bright core with four long rays and four short ones between them,
+// fading out, white in the middle and warm gold at the edges.
+function sparkleTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 256;
+  const context = canvas.getContext('2d');
+  const centre = 128;
+  const core = context.createRadialGradient(centre, centre, 0, centre, centre, 70);
+  core.addColorStop(0, 'rgba(255,255,255,1)');
+  core.addColorStop(0.12, 'rgba(255,248,214,0.95)');
+  core.addColorStop(0.35, 'rgba(255,214,120,0.35)');
+  core.addColorStop(1, 'rgba(255,200,90,0)');
+  context.fillStyle = core;
+  context.fillRect(0, 0, 256, 256);
+  context.globalCompositeOperation = 'lighter';
+  const ray = (angle, length, width) => {
+    context.save();
+    context.translate(centre, centre);
+    context.rotate(angle);
+    const beam = context.createLinearGradient(-length, 0, length, 0);
+    beam.addColorStop(0, 'rgba(255,214,120,0)');
+    beam.addColorStop(0.5, 'rgba(255,255,255,1)');
+    beam.addColorStop(1, 'rgba(255,214,120,0)');
+    context.fillStyle = beam;
+    context.beginPath();
+    context.moveTo(-length, 0);
+    context.quadraticCurveTo(0, -width, length, 0);
+    context.quadraticCurveTo(0, width, -length, 0);
+    context.fill();
+    context.restore();
+  };
+  ray(0, 126, 7);
+  ray(Math.PI / 2, 126, 7);
+  ray(Math.PI / 4, 70, 4);
+  ray(-Math.PI / 4, 70, 4);
+  const texture = new T.CanvasTexture(canvas);
+  texture.colorSpace = T.SRGBColorSpace;
+  return texture;
+}
+
 // ---------- where leaves can sit: the outer canopy of the tree ----------
 
 // While the tree is growing (tree-growth.js), only the foliage grown in so far: the outer shell of that
@@ -420,6 +477,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   let requestId = 0;
   let vipNames = new Set();         // names on the admin's VIP Management list
   const glowMap = glowTexture();
+  const sparkleMap = sparkleTexture();
   // ready: resolves once the leaves are first on the tree (or could not be loaded), so the page can show the
   // whole scene at once (scene.js).
   let markReady;
@@ -780,6 +838,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const mesh = new T.Mesh(model.geometry, material);
     mesh.name = `Feedback leaf ${key}`;
     mesh.renderOrder = 2;
+    if (leafLook.aura) mesh.layers.enable(GLOW_LAYER); // glowing look: its light spills round it (bloom, glow-look.js)
     group.add(mesh);
     // The visitor's name, lying on the leaf along its midrib and inside the blade.
     const nameMesh = new T.Mesh(NAME_PLANE, new T.MeshBasicMaterial({
@@ -794,8 +853,14 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     }));
     halo.visible = false;
     group.add(halo);
+    // A VIP's star of light at the leaf's tip (shown in update while the leaf is a VIP's).
+    const sparkle = new T.Sprite(new T.SpriteMaterial({
+      map: sparkleMap, color: 0xfff1cc, blending: T.AdditiveBlending, transparent: true, depthTest: false, depthWrite: false, opacity: 0,
+    }));
+    sparkle.visible = false; // kept out of the bloom, so its rays stay sharp
+    group.add(sparkle);
     const isVip = isVipVisitor(visitor);
-    const leaf = { key, visitor, isVip, spot, mesh, material, nameLabel: nameMesh, halo, state: 'resting', scale: currentScale({ isVip }), colour: new T.Color() };
+    const leaf = { key, visitor, isVip, spot, mesh, material, nameLabel: nameMesh, halo, sparkle, state: 'resting', scale: currentScale({ isVip }), colour: new T.Color() };
     leaf.shown = { position: new T.Vector3(), quaternion: new T.Quaternion(), outward: new T.Vector3() };
     shownSpot(leaf, leaf.shown);
     tintLeaf(leaf, true);
@@ -805,11 +870,12 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   function removeLeaf(leaf) {
     if (leaf === selectedLeaf) details.close(); // its details card goes with it
-    group.remove(leaf.mesh, leaf.halo);
+    group.remove(leaf.mesh, leaf.halo, leaf.sparkle);
     leaf.material.dispose();
     leaf.nameLabel.material.map.dispose();
     leaf.nameLabel.material.dispose();
     leaf.halo.material.dispose();
+    leaf.sparkle.material.dispose();
   }
 
   // ---------- the name on the leaf (as the 2D tree) ----------
@@ -889,8 +955,10 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const newForMs = (Number(settings.leafNewHours) || 0) * 3600 * 1000;
     const isNew = created !== null && Date.now() - created <= newForMs;
     const plain = isNew ? settings.leafNewColor : settings.leafOldColor;
+    const esg = BADGE_ESG[leaf.visitor?.badgeKey] || 'environmental';
     const colour = leaf.isVip ? settings.vipLeafColor
-      : settings.badgeColours === true ? badgeShade(badgeColour(leaf.visitor), isNew) : plain;
+      : leafLook.aura ? (isNew ? ESG_GLOW_COLOURS[esg] : badgeShade(ESG_GLOW_COLOURS[esg], false)) // glowing look: green, blue or orange (ESG), vivid while new
+        : settings.badgeColours === true ? badgeShade(badgeColour(leaf.visitor), isNew) : plain;
     leaf.targetColour = displayColour(colour, isNew || leaf.isVip ? MIN_LIGHTNESS : OLD_MIN_LIGHTNESS);
     if (immediate) leaf.colour.copy(leaf.targetColour);
   }
@@ -1221,10 +1289,11 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       (a.state === 'landing') - (b.state === 'landing')
       || b.mesh.position.distanceToSquared(camera.position) - a.mesh.position.distanceToSquared(camera.position));
     ordered.forEach((leaf, i) => {
-      const base = 10 + i * 4;
+      const base = 10 + i * 5;
       leaf.halo.renderOrder = base;
       leaf.nameLabel.renderOrder = base + 3;
       leaf.mesh.renderOrder = base + 2;
+      leaf.sparkle.renderOrder = base + 4; // a VIP's star of light, over its leaf and name
     });
   }
 
@@ -1279,6 +1348,18 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         leaf.halo.position.copy(leaf.mesh.position);
         leaf.halo.scale.copy(haloSize.setScalar(leaf.scale * MODEL_SIZE * (glow > 0.01 ? 2.6 : 2.5)));
         leaf.halo.material.opacity = Math.max(breathe, glow > 0.01 ? glow * 0.75 : gold * 0.7) * leaf.material.opacity;
+      }
+      // A VIP's star of light at the leaf's tip: twinkling (brightest every SPARKLE_EVERY seconds, each leaf at
+      // its own time), turning slowly, with its leaf (shown as the leaf is, and not while it falls).
+      leaf.sparkle.visible = leaf.isVip && leaf.state !== 'falling' && leaf.material.opacity > 0.01;
+      if (leaf.sparkle.visible) {
+        const beat = (time / 1000 / SPARKLE_EVERY + leaf.spot.phase) % 1;
+        const twinkle = 0.55 + 0.45 * Math.pow(Math.max(0, Math.cos(beat * Math.PI * 2)), 6);
+        leaf.mesh.updateMatrixWorld();
+        leaf.sparkle.position.copy(LEAF_TIP).applyMatrix4(leaf.mesh.matrixWorld);
+        leaf.sparkle.scale.setScalar(leaf.scale * MODEL_SIZE * SPARKLE_SIZE * (0.7 + 0.5 * twinkle));
+        leaf.sparkle.material.rotation = time / 4000 + leaf.spot.phase;
+        leaf.sparkle.material.opacity = Math.min(1, twinkle * 1.1) * leaf.material.opacity;
       }
     }
     orderByDistance();
