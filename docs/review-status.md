@@ -60,12 +60,12 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | fixed | core | backend/.env was never loaded by startAll.js | server.js, kioskServer.js | 02240df |
 | open | themes | Save Theme always fails: it reads hex-* inputs that no longer exist; card swatches always grey | themes.js | |
 | fixed | users | soft-deleted admins could still log in, and one that was signed in stayed signed in. The login now refuses an account in Deleted Users, and `backend/core/adminSessions.js` signs an account out at its next request when it is deleted, or when another admin changes its username, role or password | core/auth.js, core/adminSessions.js | 19 Nov 2026 |
-| open | audit | several routes write the audit row before the auth or password check; EDIT_USER names the target as the actor | old 3545, 3647, 4182, 4368, 4516, 4738, 5090, 3850 | |
+| open | audit | several routes write the audit row before the role or password check (since 19 Nov 2026 only for a signed-in admin, under the session's name); EDIT_USER names the target as the actor | old 3545, 3647, 4182, 4368, 4516, 4738, 5090, 3850 | |
 | fixed | archive | archive hard-delete unlinks the photos before the SQL DELETE and has no transaction (now one transaction with its deleted counts; photos go after it, only for the rows deleted) | old 3053, 3203 | feat/role3-archive |
 | open | archive | /archive/delete-selected and the export downloads answer 401 on a wrong password (should be 403) | routes.js, exportRoutes.js | |
 | open | analysis | engine failures are cached as "neutral" forever; Ollama failures show nothing in the admin page | old 2426 | |
 | open | analysis | cacheStore never persists hit statistics and rewrites the whole JSON cache every run | analysis/cacheStore.js 404 | |
-| open | analysis | /feedback-sentiment-analysis downloads a 164 MB model and has no auth | routes.js | |
+| open | analysis | /feedback-sentiment-analysis downloads a 164 MB model (it asks for a system admin sign-in since 19 Nov 2026, and no page calls it) | routes.js | |
 | open | admin routes | three queries use a `feedback.rating` column that does not exist | old 1399, 4252, 4345 | |
 | fixed | archive | auto-archive never runs when the PC hibernates every night (now checked at start and every 15 minutes, once per Singapore day; shipped default off) | old 6466 | feat/role3-archive |
 | open | archive | temporary retention is dead end-to-end; the clean-up re-processes the same legacy rows from both servers | archive/retention.js 149 | |

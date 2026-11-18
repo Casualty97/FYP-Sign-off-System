@@ -31,7 +31,7 @@ The Xenova, Qwen, Gemma and LocalGPT modes follow the Local AI models switch of 
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- /feedback-sentiment-analysis downloads a 164 MB model and has no auth.
+- /feedback-sentiment-analysis downloads a 164 MB model. It asks for a system admin sign-in since 19 Nov 2026, and no page calls it.
 - Ollama calls fail to "neutral" with no sign in the admin page, and engine failures are cached as "neutral" forever (old 2426-2447).
 - cacheStore never persists hit statistics and rewrites the whole JSON cache on every run with no pruning (cacheStore.js 404-473).
 - pledgeSentiment retries a failed local-model load on every neutral pledge, before the feedback INSERT (pledgeSentiment.js 22, 70-75).
