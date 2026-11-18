@@ -1470,6 +1470,59 @@
                                     <input type="checkbox" id="tree3d-showLeafNames"> Show the visitor's name on each leaf (as the 2D tree)
                                 </label>
                                 <p style="font-size:12px; color:#666; margin:0 0 16px;">The leaf is the RainTree leaf model. The 3D tree shows the same leaves as the 2D tree: a new feedback's leaf flies in, a new visitor's leaf glows for a minute, and past the 2D tree's Maximum Visible Leaves the oldest leaf falls.</p>
+                                <!-- The visitors' names on the 3D leaves: font style, weight and colour (frontend/3dTree/feedback-leaves.js
+                                     NAME_FONTS and useNameStyle; checked by backend/features/parameters/tree3d.js). -->
+                                <div class="leaf3d-name-settings">
+                                    <div style="flex:1; min-width:300px;">
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:8px;">Names on the leaves</span>
+                                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px 20px;">
+                                            <div>
+                                                <label for="tree3d-leafNameFont" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font style</label>
+                                                <select id="tree3d-leafNameFont" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="auto">Match the look</option>
+                                                    <option value="elegant-script">Elegant script</option>
+                                                    <option value="handwriting">Handwriting</option>
+                                                    <option value="modern">Modern</option>
+                                                    <option value="rounded">Rounded</option>
+                                                    <option value="classic-serif">Classic serif</option>
+                                                    <option value="typewriter">Typewriter</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafNameWeight" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font weight</label>
+                                                <select id="tree3d-leafNameWeight" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="400">Regular</option>
+                                                    <option value="500">Medium</option>
+                                                    <option value="600">Semi-bold</option>
+                                                    <option value="700">Bold</option>
+                                                    <option value="800">Extra bold</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafNameSize" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font size</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-leafNameSize" min="0.7" max="1.4" step="0.05" value="1" oninput="updateTree3dNamePreview()" style="flex:1;">
+                                                    <span id="tree3d-leafNameSizeValue" style="min-width:42px; text-align:right;">100%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafNameColor" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Colour</label>
+                                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                                    <input type="color" id="tree3d-leafNameColor" value="#ffffff" oninput="updateTree3dNamePreview()" style="width:44px; height:32px; padding:0; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <div class="leaf3d-swatches" id="tree3d-leafNameSwatches" role="group" aria-label="Quick name colours"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:8px;">"Match the look" writes the names by hand with the glowing look and in clean letters with the natural look. Font size runs from 70% to 140% of the standard; larger names wrap onto more lines inside the leaf, and a long name ends with "…". A dark colour gets a light edge so it stays readable. VIP leaves use the same. The 3D screen writes the names again within about 5 seconds of saving.</p>
+                                    </div>
+                                    <div style="text-align:center;">
+                                        <div class="leaf3d-preview-frame leaf3d-name-frame" id="tree3d-leafNameFrame">
+                                            <div class="leaf3d-preview" id="tree3d-leafNamePreviewLeaf"></div>
+                                            <span class="leaf3d-name-sample" id="tree3d-leafNameSample">Jayson Tan</span>
+                                        </div>
+                                        <p id="tree3d-leafNameCaption" style="font-size:12px; color:#666; margin-top:6px;">Name preview</p>
+                                    </div>
+                                </div>
                                 <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start;">
                                     <div style="flex:1; min-width:300px;">
                                         <div style="margin-bottom:16px;">

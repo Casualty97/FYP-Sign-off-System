@@ -29,6 +29,9 @@
 //     bright outline, a soft glow around it that breathes gently and spills round it (the bloom,
 //     glow-look.js), and now and then a light sweeping across it (GLOW_FRAGMENT); its name is white
 //     handwriting with a soft glow;
+//   - the names' font style, weight, colour and size are the admin's (3D Leaf Adjustments: leafNameFont,
+//     leafNameWeight, leafNameColor, leafNameSize; NAME_FONTS, useNameStyle), written again within one check
+//     of a change;
 //   - a VIP's leaf (a name on the admin's VIP Management list, as /api/tree marks it, or a name from
 //     /api/tree/vip-names) is gold, with the 2D tree's gold pulse, at its own VIP scale, and a star of light
 //     twinkling at its tip (in both looks).
@@ -126,20 +129,51 @@ const VEIN_FRAGMENT = `
 
 // The two looks of the feedback leaves: glowing (the admin's "Glowing look", on by default) or natural.
 // Set once when the leaves are added (addFeedbackLeaves); the page reloads when the admin changes it.
+// The fonts the admin can choose for the visitors' names (3D Leaf Adjustments, leafNameFont; the same list in
+// backend/features/parameters/tree3d.js LEAF_NAME_FONTS and admin/js/tree3d.js), all fonts Windows has, then
+// the browser's own; each with its line height as a share of the leaf (handwriting has small letters, so a
+// little larger). 'auto' is the look's own font (LEAF_LOOKS name).
+const NAME_FONTS = {
+  // An elegant, narrow calligraphic hand, as signed on the leaf (so longer names fit).
+  'elegant-script': { family: '"Monotype Corsiva", "Segoe Script", "Lucida Handwriting", cursive', lineHeight: 0.0145 },
+  'handwriting': { family: '"Segoe Print", "Segoe Script", "Comic Sans MS", cursive', lineHeight: 0.0128 },
+  'modern': { family: 'Inter, "Segoe UI", Arial, sans-serif', lineHeight: 0.012 },
+  'rounded': { family: '"Trebuchet MS", Verdana, "Segoe UI", sans-serif', lineHeight: 0.012 },
+  'classic-serif': { family: 'Georgia, "Palatino Linotype", "Times New Roman", serif', lineHeight: 0.0125 },
+  'typewriter': { family: '"Courier New", Consolas, monospace', lineHeight: 0.012 },
+};
+const NAME_WEIGHTS = [400, 500, 600, 700, 800];
+
 const LEAF_LOOKS = {
   glow: {
     fragment: GLOW_FRAGMENT, cacheKey: 'feedback-leaf-glow', aura: true, saturation: NEON_SATURATION,
-    // Handwritten, as signed on the leaf: an elegant, narrow calligraphic hand (so longer names fit), then
-    // the handwriting fonts Windows has, then the browser's own; handwriting has small letters, so a little
-    // larger (14.5% of the leaf).
-    font: `700 64px "Monotype Corsiva", "Segoe Script", "Lucida Handwriting", cursive`, lineHeight: 0.0145,
+    name: NAME_FONTS['elegant-script'], // handwritten names, as signed on the leaf
   },
   natural: {
     fragment: VEIN_FRAGMENT, cacheKey: 'feedback-leaf-veins', aura: false, saturation: 0,
-    font: '700 64px Inter, "Segoe UI", Arial, sans-serif', lineHeight: 0.012, // white bold, 12% of the leaf
+    name: NAME_FONTS.modern, // clean bold names, 12% of the leaf (as the 2D tree's)
   },
 };
 let leafLook = LEAF_LOOKS.glow;
+
+// How the names are written, as the admin chose (leafNameFont, leafNameWeight, leafNameColor, leafNameSize;
+// useNameStyle): the canvas font, its line height on the leaf (the font's own times the admin's size, 0.7 to
+// 1.4: larger names wrap onto more lines and are shortened with "…" sooner, fitName), its colour, and whether
+// that colour is dark (then it gets a light edge instead of a dark one, so it stays readable).
+let nameStyle = { font: `700 64px ${NAME_FONTS.modern.family}`, lineHeight: NAME_FONTS.modern.lineHeight, colour: '#ffffff', dark: false };
+function useNameStyle(settings) {
+  const chosen = NAME_FONTS[settings.leafNameFont] || leafLook.name;
+  const weight = NAME_WEIGHTS.includes(Number(settings.leafNameWeight)) ? Number(settings.leafNameWeight) : 700;
+  const colour = /^#[0-9a-f]{6}$/i.test(String(settings.leafNameColor || '')) ? settings.leafNameColor.toLowerCase() : '#ffffff';
+  const asked = Number(settings.leafNameSize);
+  const size = Number.isFinite(asked) && asked > 0 ? Math.min(1.4, Math.max(0.7, asked)) : 1;
+  const { r, g, b } = new T.Color(colour);
+  nameStyle = {
+    font: `${weight} ${NAME_FONT_PX}px ${chosen.family}`, lineHeight: chosen.lineHeight * size, colour,
+    dark: 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25, // (linear light) darker than a mid grey
+  };
+  return [nameStyle.font, nameStyle.lineHeight, colour].join('|');
+}
 
 // A flat normal, for a leaf model without a normal map.
 function flatNormalTexture() {
@@ -192,7 +226,8 @@ const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldCol
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
   tree2d: { leafFallThreshold: 15, treeStage: 4, leafShowcaseSeconds: SHOWCASE_MS / 1000 },
-  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true };
+  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true,
+  leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1 }; // the names: the look's own font, bold, white, standard size
 
 const normaliseName = name => String(name || '').trim().toLowerCase();
 
@@ -277,13 +312,13 @@ function badgeShade(hex, light) {
 }
 
 // Fits a name inside the leaf as the 2D tree does (fitLeafName): whole words, as few lines as fit (up to
-// three), and when even three do not fit, the last line shortened with "…". In the look's font (LEAF_LOOKS).
+// three), and when even three do not fit, the last line shortened with "…". In the names' font (nameStyle).
 const measureContext = document.createElement('canvas').getContext('2d');
 function fitName(name) {
-  measureContext.font = leafLook.font;
+  measureContext.font = nameStyle.font;
   const words = String(name || '').trim().split(/\s+/).filter(Boolean);
   if (!words.length) words.push('Anonymous');
-  const pxPerUnit = NAME_FONT_PX / (leafLook.lineHeight / 1.1); // canvas px per leaf unit
+  const pxPerUnit = NAME_FONT_PX / (nameStyle.lineHeight / 1.1); // canvas px per leaf unit
   const widthOf = text => measureContext.measureText(text).width / pxPerUnit;
   const shorten = (text, width) => {
     if (widthOf(text) <= width) return text;
@@ -321,39 +356,45 @@ function fitName(name) {
   return { lines: lines.slice(0, box.lines).map(text => shorten(text, box.width)), box, pxPerUnit };
 }
 
-// The name drawn for the leaf, on a canvas the size of its box in the blade. Glowing look: white handwriting
-// glowing softly over a soft dark shadow, so it reads clearly on the bright leaf. Natural look: white bold
-// with a dark edge, readable on any leaf colour (2D: white bold with a text shadow).
+// The name drawn for the leaf, on a canvas the size of its box in the blade, in the admin's font, weight and
+// colour (nameStyle; white by default). Glowing look: the letters glowing softly in their own colour over a
+// soft dark shadow, so they read clearly on the bright leaf. Natural look, and dark letters in the glowing
+// look: crisp letters with an edge, readable on any leaf colour (2D: white bold with a text shadow); the edge is
+// dark, or light for dark letters.
 function nameLabel(name) {
   const { lines, box, pxPerUnit } = fitName(name);
-  const height = lines.length * leafLook.lineHeight;
+  const height = lines.length * nameStyle.lineHeight;
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(box.width * pxPerUnit);
   canvas.height = Math.ceil(height * pxPerUnit);
   const context = canvas.getContext('2d');
-  context.font = leafLook.font;
+  context.font = nameStyle.font;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.lineJoin = 'round';
+  const { colour, dark } = nameStyle;
+  const behind = dark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(8, 28, 14, 0.85)';
   const linePx = canvas.height / lines.length;
   lines.forEach((line, i) => {
     const y = linePx * (i + 0.5);
-    if (!leafLook.aura) {
-      context.lineWidth = NAME_FONT_PX * 0.16;
-      context.strokeStyle = 'rgba(8, 28, 14, 0.85)';
-      context.fillStyle = '#ffffff';
+    // Natural look, or dark letters on a glowing leaf: crisp letters with an edge (a glow would blur dark letters).
+    if (!leafLook.aura || dark) {
+      // A thin light edge round dark letters (a thick one would cover them, so they would look white).
+      context.lineWidth = NAME_FONT_PX * (dark ? 0.07 : 0.16);
+      context.strokeStyle = behind;
+      context.fillStyle = colour;
       context.strokeText(line, canvas.width / 2, y);
       context.fillText(line, canvas.width / 2, y);
       return;
     }
-    // A soft dark shadow behind the letters, then the white letters with a white glow.
+    // A soft dark shadow behind the letters, then the letters with a glow in their own colour.
     context.shadowColor = 'rgba(0, 16, 10, 0.75)';
     context.shadowBlur = NAME_FONT_PX * 0.14;
     context.fillStyle = 'rgba(0, 16, 10, 0.45)';
     context.fillText(line, canvas.width / 2, y);
-    context.shadowColor = 'rgba(255, 255, 255, 0.9)';
+    context.shadowColor = `${colour}e6`;
     context.shadowBlur = NAME_FONT_PX * 0.2;
-    context.fillStyle = '#ffffff';
+    context.fillStyle = colour;
     context.fillText(line, canvas.width / 2, y);
     context.shadowBlur = 0;
   });
@@ -461,6 +502,7 @@ function canopyAnchors(tree, grownOnly = true) {
 // glow: the admin's "Glowing look" (glowing leaves with handwritten names) or false for natural leaves.
 export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow = true }) {
   leafLook = glow ? LEAF_LOOKS.glow : LEAF_LOOKS.natural;
+  let nameKey = useNameStyle(DEFAULTS); // the names' font, weight and colour, until the admin's settings load
   const group = new T.Group();
   group.name = 'Feedback leaves';
   scene.add(group);
@@ -531,6 +573,15 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       badgeLeafColors: { ...BADGE_LEAF_COLOURS, ...(next.badgeLeafColors || {}) } };
     group.visible = settings.showFeedbackLeaves !== false;
     for (const leaf of leaves.values()) tintLeaf(leaf);
+    // The admin changed the names' font, weight or colour: every name is written again in it.
+    const nextNameKey = useNameStyle(settings);
+    if (nextNameKey !== nameKey) {
+      nameKey = nextNameKey;
+      for (const leaf of leaves.values()) {
+        leaf.nameLabel.material.map.dispose();
+        shapeNameLabel(leaf.nameLabel, leaf.visitor?.name || '');
+      }
+    }
     if (!model) return;
     if (placing(settings) !== sizeBefore) {
       // A new leaf size or leaf area: place the leaves again for it, so they fit and do not overlap.

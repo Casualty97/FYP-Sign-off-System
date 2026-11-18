@@ -41,8 +41,31 @@ const TREE3D_LEAF_DEFAULTS = {
     leafOldColor: '#1f5f2e',
     leafSide: 'both',
     leafNewHours: 24,
-    leafScale: 1
+    leafScale: 1,
+    // The names on the leaves: the look's own font, bold, white, standard size.
+    leafNameFont: 'auto',
+    leafNameWeight: 700,
+    leafNameColor: '#ffffff',
+    leafNameSize: 1
 };
+
+// The names' font styles (as frontend/3dTree/feedback-leaves.js NAME_FONTS, for the preview here); 'auto' is
+// the look's own: the elegant script with the glowing look, the modern letters with the natural look.
+const TREE3D_NAME_FONTS = {
+    'elegant-script': '"Monotype Corsiva", "Segoe Script", "Lucida Handwriting", cursive',
+    'handwriting': '"Segoe Print", "Segoe Script", "Comic Sans MS", cursive',
+    'modern': 'Inter, "Segoe UI", Arial, sans-serif',
+    'rounded': '"Trebuchet MS", Verdana, "Segoe UI", sans-serif',
+    'classic-serif': 'Georgia, "Palatino Linotype", "Times New Roman", serif',
+    'typewriter': '"Courier New", Consolas, monospace'
+};
+const TREE3D_NAME_COLOURS = [
+    ['White', '#ffffff'],
+    ['Warm gold', '#ffe08a'],
+    ['Soft mint', '#c8ffd8'],
+    ['Ice blue', '#d6ecff'],
+    ['Charcoal', '#1f2937']
+];
 
 // Greens only: light greens for new leaves, dark greens for older ones. The server accepts only these
 // (LEAF_NEW_COLOURS / LEAF_OLD_COLOURS in backend/features/parameters/tree3d.js).
@@ -185,6 +208,59 @@ function tree3dShownColour(hex) {
     return `#${[r, g, b].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('')}`;
 }
 
+// Names on the leaves: a sample name on a leaf in the chosen font, weight and colour, as the 3D screen writes
+// it (frontend/3dTree/feedback-leaves.js nameLabel): with the glowing look on the night sky, glowing in its own
+// colour; with the natural look on a daylight leaf, with an edge. A dark colour gets a light edge or glow.
+function updateTree3dNamePreview() {
+    const sample = tree3dField('leafNameSample');
+    if (!sample) return;
+    const glowing = tree3dField('glowLook')?.checked !== false;
+    const fontKey = tree3dField('leafNameFont')?.value || 'auto';
+    const family = TREE3D_NAME_FONTS[fontKey] || TREE3D_NAME_FONTS[glowing ? 'elegant-script' : 'modern'];
+    const weight = Number(tree3dField('leafNameWeight')?.value) || 700;
+    const colour = (tree3dField('leafNameColor')?.value || '#ffffff').toLowerCase();
+    const value = parseInt(colour.slice(1), 16);
+    const linear = c => { const v = c / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    const dark = 0.2126 * linear((value >> 16) & 255) + 0.7152 * linear((value >> 8) & 255) + 0.0722 * linear(value & 255) < 0.25;
+    const behind = dark ? 'rgba(255,255,255,0.85)' : 'rgba(8,28,14,0.85)';
+    sample.style.fontFamily = family;
+    sample.style.fontWeight = String(weight);
+    sample.style.color = colour;
+    const size = Math.min(1.4, Math.max(0.7, Number(tree3dField('leafNameSize')?.value) || 1));
+    if (tree3dField('leafNameSizeValue')) tree3dField('leafNameSizeValue').textContent = `${Math.round(size * 100)}%`;
+    const handwritten = (fontKey === 'auto' && glowing) || fontKey === 'elegant-script';
+    sample.style.fontSize = `${((handwritten ? 18 : 15) * size).toFixed(1)}px`;
+    sample.style.textShadow = glowing && !dark
+        ? `0 0 3px ${behind}, 0 0 8px ${colour}`
+        : `-1px -1px 0 ${behind}, 1px -1px 0 ${behind}, -1px 1px 0 ${behind}, 1px 1px 0 ${behind}`;
+    tree3dField('leafNameFrame')?.classList.toggle('glowing', glowing);
+    const leaf = tree3dField('leafNamePreviewLeaf');
+    if (leaf) leaf.style.setProperty('--leaf-colour', glowing ? '#2ee05a' : tree3dShownColour(tree3dField('leafNewColor')?.value || '#7cb342'));
+    if (tree3dField('leafNameCaption')) tree3dField('leafNameCaption').textContent = `Name preview, ${glowing ? 'glowing look' : 'natural look'}`;
+    for (const swatch of tree3dField('leafNameSwatches')?.children || []) {
+        swatch.setAttribute('aria-pressed', String(swatch.dataset.colour === colour));
+    }
+}
+
+function renderTree3dNameSwatches() {
+    const box = tree3dField('leafNameSwatches');
+    if (!box || box.childElementCount) return;
+    for (const [name, hex] of TREE3D_NAME_COLOURS) {
+        const swatch = document.createElement('button');
+        swatch.type = 'button';
+        swatch.className = 'leaf3d-swatch';
+        swatch.style.background = hex;
+        swatch.dataset.colour = hex;
+        swatch.title = name;
+        swatch.setAttribute('aria-label', `Name colour: ${name}`);
+        swatch.addEventListener('click', () => {
+            tree3dField('leafNameColor').value = hex;
+            updateTree3dNamePreview();
+        });
+        box.appendChild(swatch);
+    }
+}
+
 // The preview shows the RainTree leaf in the chosen colours and sides, sized with the leaf scale.
 // A left leaf is the leaf mirrored; with left and right mixed, the new leaf shows right and the older left.
 function updateTree3dLeafPreview() {
@@ -296,6 +372,12 @@ function fillTree3dForm(settings) {
     tree3dField('leafNewHours').value = inHours ? lightHours : Math.round(lightHours * 60);
     if (tree3dField('leafNewUnit')) tree3dField('leafNewUnit').value = inHours ? 'hours' : 'minutes';
     tree3dField('leafScale').value = leaves.leafScale;
+    if (tree3dField('leafNameFont')) {
+        tree3dField('leafNameFont').value = Object.hasOwn(TREE3D_NAME_FONTS, leaves.leafNameFont) ? leaves.leafNameFont : 'auto';
+        tree3dField('leafNameWeight').value = String([400, 500, 600, 700, 800].includes(Number(leaves.leafNameWeight)) ? Number(leaves.leafNameWeight) : 700);
+        tree3dField('leafNameColor').value = /^#[0-9a-f]{6}$/i.test(String(leaves.leafNameColor || '')) ? leaves.leafNameColor.toLowerCase() : '#ffffff';
+        if (tree3dField('leafNameSize')) tree3dField('leafNameSize').value = String(Math.min(1.4, Math.max(0.7, Number(leaves.leafNameSize) || 1)));
+    }
     const vip = { ...TREE3D_VIP_DEFAULTS, ...(settings || {}) };
     tree3dField('leafVipColor').value = offered('Vip', vip.vipLeafColor) ? vip.vipLeafColor.toLowerCase() : TREE3D_VIP_DEFAULTS.vipLeafColor;
     tree3dField('vipLeafScale').value = vip.vipLeafScale;
@@ -331,6 +413,8 @@ function fillTree3dForm(settings) {
     updateTree3dWeatherFields();
     renderTree3dLeafSwatches();
     updateTree3dLeafPreview();
+    renderTree3dNameSwatches();
+    updateTree3dNamePreview();
 }
 
 function collectTree3dSettings() {
@@ -360,6 +444,12 @@ function collectTree3dSettings() {
         leafSide: tree3dField('leafSide').value,
         leafNewHours: (Number(tree3dField('leafNewHours').value) || 0) / (tree3dField('leafNewUnit')?.value === 'minutes' ? 60 : 1),
         leafScale: Number(tree3dField('leafScale').value) || TREE3D_LEAF_DEFAULTS.leafScale,
+        ...(tree3dField('leafNameFont') ? {
+            leafNameFont: tree3dField('leafNameFont').value,
+            leafNameWeight: Number(tree3dField('leafNameWeight').value) || TREE3D_LEAF_DEFAULTS.leafNameWeight,
+            leafNameColor: tree3dField('leafNameColor').value,
+            leafNameSize: Number(tree3dField('leafNameSize')?.value) || TREE3D_LEAF_DEFAULTS.leafNameSize
+        } : {}),
         vipLeafColor: tree3dField('leafVipColor').value,
         vipLeafScale: Number(tree3dField('vipLeafScale').value) || TREE3D_VIP_DEFAULTS.vipLeafScale,
         vipGlow: tree3dField('vipGlow').checked,
@@ -703,4 +793,7 @@ async function loadTree3dSettings() {
 document.addEventListener('DOMContentLoaded', () => {
     showTreeSettingsForMode(document.getElementById('param-treeDisplayMode')?.value);
     loadTree3dSettings();
+    // The names' preview follows the look ("Match the look" writes by hand when glowing) and the new leaf colour.
+    tree3dField('glowLook')?.addEventListener('change', updateTree3dNamePreview);
+    tree3dField('leafNewSwatches')?.addEventListener('click', () => setTimeout(updateTree3dNamePreview));
 });

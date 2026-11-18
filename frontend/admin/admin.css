@@ -8109,6 +8109,46 @@ input:checked + .slider:before {
     mix-blend-mode: multiply;
 }
 
+/* 3D Leaf Adjustments, Names on the leaves (admin/js/tree3d.js updateTree3dNamePreview): a sample name on a
+   leaf in the chosen font, weight and colour, on the night sky with the glowing look. */
+.leaf3d-name-settings {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin: 0 0 18px;
+    padding: 14px;
+    border: 1px solid #e6e9ef;
+    border-radius: 8px;
+    background: #fbfcfe;
+}
+
+.leaf3d-name-frame {
+    position: relative;
+    width: 150px;
+    height: 120px;
+}
+
+.leaf3d-name-frame.glowing {
+    background: radial-gradient(circle at 50% 45%, #183a2c, #0b1712 75%);
+}
+
+.leaf3d-name-frame .leaf3d-preview {
+    width: 130px;
+    height: 86px;
+}
+
+.leaf3d-name-sample {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    line-height: 1.1;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
 /* 3D VIP Leaf Adjustments: the VIP preview pulses gold like the VIP leaves (2D: vipGoldPulse). */
 .leaf3d-vip-glow.glowing {
     animation: leaf3dVipPulse 2s ease-in-out infinite;

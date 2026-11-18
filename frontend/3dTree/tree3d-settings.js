@@ -19,6 +19,7 @@ const DEFAULTS = {
   gustRequestedAt: '', sunsetRequestedAt: '',
   showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24,
   vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true, leafScale: 1, showLeafNames: true,
+  leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1, // the names on the leaves (feedback-leaves.js)
   titleBox: {
     showTitleBox: true, titleText: 'ESG Tree', subtitleText: DEFAULT_SUBTITLE,
     opacity: 0.54, blur: 18, radius: 20, position: 'auto', paddingX: 22, paddingY: 12,

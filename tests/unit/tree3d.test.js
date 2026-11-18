@@ -124,3 +124,22 @@ test('the time a leaf stays light can be set in minutes', () => {
     assert.equal(normalizeTree3dParameters({ leafNewHours: 0.5 }).leafNewHours, 0.5);
     assert.equal(normalizeTree3dParameters({ leafNewHours: 500 }).leafNewHours, 168);
 });
+
+test('the names on the 3D leaves: a font style, weight and colour, checked', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafNameFont, 'auto', "the look's own font by default");
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafNameWeight, 700);
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafNameColor, '#ffffff');
+    assert.deepEqual(normalizeTree3dParameters({ leafNameFont: 'Classic-Serif', leafNameWeight: '500', leafNameColor: '#FFE08A' }),
+        { leafNameFont: 'classic-serif', leafNameWeight: 500, leafNameColor: '#ffe08a' });
+    assert.throws(() => normalizeTree3dParameters({ leafNameFont: 'comic' }), { statusCode: 400, message: /Name font style/ });
+    assert.throws(() => normalizeTree3dParameters({ leafNameWeight: 650 }), { statusCode: 400, message: /weight/ });
+    assert.throws(() => normalizeTree3dParameters({ leafNameColor: 'red' }), { statusCode: 400, message: /colour/ });
+    const merged = mergeTree3dParameters({ leafNameColor: '#000000' }, normalizeTree3dParameters({ leafNameWeight: 400 }));
+    assert.equal(merged.leafNameColor, '#000000', 'a weight change keeps the colour');
+    assert.equal(merged.leafNameFont, 'auto');
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafNameSize, 1, 'the standard size');
+    assert.equal(normalizeTree3dParameters({ leafNameSize: '1.234' }).leafNameSize, 1.23);
+    assert.equal(normalizeTree3dParameters({ leafNameSize: 3 }).leafNameSize, 1.4, 'kept to what fits in the leaf');
+    assert.equal(normalizeTree3dParameters({ leafNameSize: 0.2 }).leafNameSize, 0.7);
+    assert.throws(() => normalizeTree3dParameters({ leafNameSize: 'big' }), { statusCode: 400, message: /size/ });
+});

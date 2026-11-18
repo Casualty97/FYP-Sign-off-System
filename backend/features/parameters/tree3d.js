@@ -26,6 +26,11 @@
 //                      position (the page's own layout: top centre, top left on a wall-shaped screen)
 //   showFeedbackLeaves one leaf per feedback on the tree (the RainTree leaf model)
 //   showLeafNames      the visitor's name on each leaf, as on the 2D tree
+//   leafNameFont, leafNameWeight, leafNameColor, leafNameSize
+//                      how the names are written: a font style (LEAF_NAME_FONTS; 'auto' is the look's own,
+//                      handwriting when glowing, clean letters when natural), a weight (LEAF_NAME_WEIGHTS), any
+//                      colour (white by default) and a size, 0.7 to 1.4 times the standard (larger names wrap
+//                      onto more lines inside the leaf)
 //   leafNewColor, leafOldColor
 //                      leaf colours, greens only: a light green for new leaves and a dark green for older
 //                      ones (LEAF_NEW_COLOURS / LEAF_OLD_COLOURS); a leaf counts as new for leafNewHours
@@ -64,6 +69,9 @@ const RIVER_MODES = ['auto', 'normal', 'high', 'danger'];
 const LEAF_NEW_COLOURS = ['#7cb342', '#8bc34a', '#9ccc65', '#a4c639', '#66bb6a'];
 const LEAF_OLD_COLOURS = ['#1f5f2e', '#2e7d32', '#1b5e20', '#33691e', '#2d5a27'];
 const LEAF_SIDES = ['both', 'left', 'right'];
+// The names' font styles and weights the admin can choose (frontend/3dTree/feedback-leaves.js NAME_FONTS).
+const LEAF_NAME_FONTS = ['auto', 'elegant-script', 'handwriting', 'modern', 'rounded', 'classic-serif', 'typewriter'];
+const LEAF_NAME_WEIGHTS = [400, 500, 600, 700, 800];
 // Golds for VIP leaves.
 const VIP_LEAF_COLOURS = ['#d4af37', '#ffd700', '#e6b422', '#f0c75e', '#b8860b'];
 const TITLE_POSITIONS = ['auto', 'top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
@@ -111,6 +119,10 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   sunsetRequestedAt: '',
   showFeedbackLeaves: true,
   showLeafNames: true,
+  leafNameFont: 'auto',
+  leafNameWeight: 700,
+  leafNameColor: '#ffffff',
+  leafNameSize: 1,
   leafNewColor: '#7cb342',
   leafOldColor: '#1f5f2e',
   leafSide: 'both',
@@ -199,6 +211,18 @@ function normalizeTree3dParameters(updates) {
   if (has('sunsetRequestedAt')) out.sunsetRequestedAt = timestamp(updates.sunsetRequestedAt, 'Sunset time');
   if (has('showFeedbackLeaves')) out.showFeedbackLeaves = bool(updates.showFeedbackLeaves, 'Show leaves');
   if (has('showLeafNames')) out.showLeafNames = bool(updates.showLeafNames, 'Show names on leaves');
+  if (has('leafNameFont')) out.leafNameFont = oneOf(updates.leafNameFont, LEAF_NAME_FONTS, 'Name font style');
+  if (has('leafNameWeight')) {
+    const weight = Number(updates.leafNameWeight);
+    if (!LEAF_NAME_WEIGHTS.includes(weight)) throw badRequest(`Name font weight must be one of: ${LEAF_NAME_WEIGHTS.join(', ')}`);
+    out.leafNameWeight = weight;
+  }
+  if (has('leafNameColor')) {
+    const hex = String(updates.leafNameColor ?? '').trim().toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(hex)) throw badRequest('Name colour must be a colour like #ffffff');
+    out.leafNameColor = hex;
+  }
+  if (has('leafNameSize')) out.leafNameSize = Math.round(number(updates.leafNameSize, 0.7, 1.4, 'Name font size') * 100) / 100;
   if (has('leafNewColor')) out.leafNewColor = colour(updates.leafNewColor, LEAF_NEW_COLOURS, 'New leaf colour');
   if (has('leafOldColor')) out.leafOldColor = colour(updates.leafOldColor, LEAF_OLD_COLOURS, 'Older leaf colour');
   if (has('leafSide')) out.leafSide = oneOf(updates.leafSide, LEAF_SIDES, 'Leaf side');
@@ -268,6 +292,8 @@ module.exports = {
   LEAF_OLD_COLOURS,
   VIP_LEAF_COLOURS,
   BADGE_KEYS,
+  LEAF_NAME_FONTS,
+  LEAF_NAME_WEIGHTS,
   DEFAULT_BADGE_LEAF_COLORS,
   DEFAULT_TREE3D_PARAMETERS,
   DEFAULT_TITLE_BOX,
