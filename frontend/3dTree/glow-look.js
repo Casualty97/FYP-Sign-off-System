@@ -9,7 +9,6 @@
 //   - the tree's own leaves glow, each leaf in its own vivid colour, green, blue or orange, lit from within
 //     with a bright edge and glowing veins, and now and then one twinkles;
 //   - rings of light lie on the ground round the base of the tree, a pulse of light spreading out across them;
-//   - specks of light float and twinkle round the canopy;
 //   - their light spills round them in a soft glow (a bloom, createBloom).
 // The feedback leaves glow green, blue or orange by their visitor's badge, a VIP's gold with a star of light at
 // its tip (feedback-leaves.js). The admin turns the look on or off in
@@ -19,7 +18,6 @@ import { THREE as T } from './vendor/three-runtime.js';
 import { sprigsOf } from './tree-growth.js';
 
 const BARK_DIM = 0.4;            // how much of the bark's own colour shows under its light streams
-const SPARKLES = 380;            // specks of light round the canopy
 
 // Whether to show the glowing look: from the page address if it names one (fixed), otherwise the admin's
 // setting; the glowing look if the settings cannot be read.
@@ -157,55 +155,6 @@ function platform(clock, centre, radius) {
   return mesh;
 }
 
-// Specks of light round the canopy, each twinkling at its own pace and drifting gently.
-function sparkles(clock, box, renderer) {
-  const random = (() => { let seed = 92821; return () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296); })();
-  const size = box.getSize(new T.Vector3());
-  const positions = new Float32Array(SPARKLES * 3);
-  const phases = new Float32Array(SPARKLES);
-  for (let i = 0; i < SPARKLES; i++) {
-    positions[i * 3] = box.min.x + random() * size.x;
-    positions[i * 3 + 1] = box.min.y + random() * size.y * 1.08;
-    positions[i * 3 + 2] = box.min.z + random() * size.z;
-    phases[i] = random();
-  }
-  const geometry = new T.BufferGeometry();
-  geometry.setAttribute('position', new T.BufferAttribute(positions, 3));
-  geometry.setAttribute('phase', new T.BufferAttribute(phases, 1));
-  const material = new T.ShaderMaterial({
-    name: 'Specks of light',
-    transparent: true, depthWrite: false, blending: T.AdditiveBlending,
-    uniforms: { glowTime: clock.time, pixelRatio: { value: renderer.getPixelRatio() } },
-    vertexShader: /* glsl */`
-      uniform float glowTime, pixelRatio;
-      attribute float phase;
-      varying float twinkle;
-      varying vec3 speckColour;
-      void main() {
-        vec3 p = position;
-        p.y += sin( glowTime * .45 + phase * 40. ) * .35;
-        p.x += sin( glowTime * .3 + phase * 23. ) * .25;
-        vec4 view = modelViewMatrix * vec4( p, 1. );
-        twinkle = .25 + .75 * pow( .5 + .5 * sin( glowTime * ( 1.2 + phase * 2. ) + phase * 31. ), 3. );
-        speckColour = phase < .33 ? vec3( 1., .62, .28 ) : phase < .66 ? vec3( .45, .78, 1. ) : vec3( .55, 1., .55 );
-        gl_PointSize = ( 5.5 + 4. * twinkle ) * pixelRatio * ( 22. / -view.z );
-        gl_Position = projectionMatrix * view;
-      }`,
-    fragmentShader: /* glsl */`
-      varying float twinkle;
-      varying vec3 speckColour;
-      void main() {
-        float d = length( gl_PointCoord - .5 );
-        float glow = smoothstep( .5, .0, d );
-        gl_FragColor = vec4( speckColour * glow * glow * twinkle * 1.6, 1. );
-      }`,
-  });
-  const points = new T.Points(geometry, material);
-  points.name = 'Specks of light';
-  points.frustumCulled = false;
-  return { points, material };
-}
-
 // The glow round everything that lights itself (a bloom, as the light of the glowing-tree concept spills round
 // its leaves): the things on GLOW_LAYER (the tree's leaves and light streams, the rings, and the feedback
 // leaves, feedback-leaves.js) are drawn again, small (BLOOM_SCALE of the screen), on black; what is brighter
@@ -299,14 +248,12 @@ export function addGlowLook({ scene, renderer, tree, clock, lights }) {
   const base = new T.Vector3().setFromMatrixPosition(tree.matrixWorld);
   const uniforms = { glowTime: clock.time, glowCentre: { value: base }, glowUnscale: { value: 1 } };
   const done = new Set();
-  const foliage = new T.Box3();
   const addTree = next => next.traverse(object => {
     if (!object.isMesh) return;
     object.layers.enable(GLOW_LAYER); // its leaves and light streams glow (bloom)
     if ([object.material].flat().some(material => material?.alphaTest > 0)) pickLeaves(object.geometry);
     for (const material of [object.material].flat()) {
       glowMaterial(material, uniforms, done);
-      if (next === tree && material?.alphaTest > 0) foliage.expandByObject(object);
     }
   });
   addTree(tree);
@@ -316,8 +263,6 @@ export function addGlowLook({ scene, renderer, tree, clock, lights }) {
   const rings = platform(clock, base, reach);
   rings.layers.enable(GLOW_LAYER);
   scene.add(rings);
-  const specks = sparkles(clock, foliage.isEmpty() ? wood : foliage, renderer); // soft already: not in the bloom
-  scene.add(specks.points);
   const bloom = createBloom(renderer);
 
   return {
@@ -339,7 +284,6 @@ export function addGlowLook({ scene, renderer, tree, clock, lights }) {
       lights.rim.intensity = 0.35;
       lights.rim.color.set(0xffc27a);
       renderer.toneMappingExposure = 1;
-      specks.material.uniforms.pixelRatio.value = renderer.getPixelRatio();
     },
   };
 }
