@@ -20,9 +20,10 @@
 //   - feedback leaves are never covered by the tree's own leaves: they are drawn on top of the foliage (as
 //     the 2D leaves sit on top of the tree picture), nearer ones over farther ones, never overlapping each
 //     other as seen by the viewer;
-//   - when the view turns round the tree (dragging, the arrow keys or the slow 24h orbit), every leaf stays
-//     where it is on the tree, at its own angle, without turning or moving; a leaf the view leaves round the
-//     back of the tree fades away rather than showing through it, and comes back when the view returns;
+//   - the leaves stay on the side of the tree facing the viewer, and when the tree turns (the automatic turn,
+//     dragging or the arrow keys) they glide smoothly with it, keeping to the canopy and facing the viewer; a
+//     leaf that has glided to the edge (GLIDE_REACH) fades away and comes back in on the other side, so the
+//     front always has its leaves (shownSpot); with the view still, every leaf is exactly at its spot;
 //   - every leaf stays easy to see on the canopy: it is never darker than a set lightness;
 //   - in the glowing look every leaf glows like a leaf of light, green, blue or orange by its visitor's badge
 //     (Environmental, Social, Governance: ESG_GLOW_COLOURS), brightest in its middle, with glowing veins, a
@@ -44,6 +45,7 @@ import { onTree3dSettings } from './tree3d-settings.js';
 import { createLeafDetail } from './leaf-detail.js';
 import { isGrown } from './tree-growth.js';
 import { GLOW_LAYER } from './glow-look.js';
+import { orbitCentre } from './tree-view.js';
 
 const LEAF_MODEL = '/assets/Tree/3dTreeLeaves/RainTree_Leaf_Final12.glb';
 const MODEL_SIZE = 0.1;          // the leaf model is 10 cm across
@@ -681,7 +683,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         if (isVip !== existing.isVip) {
           // Made VIP (or no longer VIP): it now stays fixed (or turns with the view) from where it is shown.
           const shown = shownSpot(existing, existing.shown);
-          existing.spot = { ...existing.spot, position: shown.position.clone(), quaternion: shown.quaternion.clone(), outward: shown.outward.clone() };
+          existing.spot = { ...existing.spot, position: shown.position.clone(), quaternion: shown.quaternion.clone(), outward: shown.outward.clone(),
+            around: undefined, reach: undefined, view: undefined }; // its glide starts again from here (shownSpot)
           placed.set(key, existing.spot);
         }
         existing.isVip = isVip;
@@ -787,15 +790,50 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     return spot;
   }
 
-  // ---------- staying put on the tree ----------
+  // ---------- gliding with the turning tree ----------
 
-  // Where a leaf is shown: exactly its spot on the tree, at its own angle. Every leaf stays there when the
-  // view is turned round the tree; it does not turn or move with the view (a leaf round the back of the
-  // tree fades away, facingAmount).
+  // Where a leaf is shown. The leaves stay on the side of the tree facing the viewer, and when the tree turns
+  // (the automatic turn, a drag or the arrow keys) they glide with it, smoothly, at the tree's own pace: each
+  // moves round the trunk (orbitCentre, tree-view.js) with the tree, keeping to the canopy's surface (the
+  // canopy is oval from above, so its distance from the trunk follows the canopy's shape), turning with it.
+  // When a leaf has glided GLIDE_REACH to one side of the viewer, it fades away there and comes back, faded
+  // in, at the same distance on the other side (wrapping round), and glides on: the front of the tree always
+  // has its leaves, all moving with the tree. With the view still, every leaf is exactly at its own spot.
+  const GLIDE_REACH = (85 * Math.PI) / 180;   // how far to either side of the viewer a leaf glides
+  const GLIDE_FADE = (20 * Math.PI) / 180;    // over how much of that it fades out (and in, on the other side)
+  const glideTurn = new T.Quaternion();
+  const turnedTo = (angle, around) => Math.atan2(Math.sin(angle - around), Math.cos(angle - around)); // -pi to pi
+  // The canopy's distance from the trunk in a direction round it (its oval from above), for the leaves to keep
+  // to its surface; 1 without a measured canopy.
+  function canopyReach(angle) {
+    if (!canopyBox) return 1;
+    const size = canopyBox.getSize(new T.Vector3());
+    const across = Math.max(0.5, size.x / 2), deep = Math.max(0.5, size.z / 2);
+    return 1 / Math.hypot(Math.sin(angle) / across, Math.cos(angle) / deep);
+  }
   function shownSpot(leaf, out) {
-    out.position.copy(leaf.spot.position);
-    out.quaternion.copy(leaf.spot.quaternion);
-    out.outward.copy(leaf.spot.outward);
+    const spot = leaf.spot;
+    // Its angle round the trunk, and the viewer's.
+    spot.around ??= Math.atan2(spot.position.x - orbitCentre.x, spot.position.z - orbitCentre.z);
+    spot.reach ??= Math.hypot(spot.position.x - orbitCentre.x, spot.position.z - orbitCentre.z);
+    const view = Math.atan2(camera.position.x - orbitCentre.x, camera.position.z - orbitCentre.z);
+    // How far round from the viewer it is, kept within GLIDE_REACH either side (wrapping round).
+    const span = 2 * GLIDE_REACH;
+    const fromView = ((turnedTo(spot.around, view) + GLIDE_REACH) % span + span) % span - GLIDE_REACH;
+    const angle = view + fromView;
+    const moved = turnedTo(angle, spot.around); // 0 while at its own spot; a jump of 2 x GLIDE_REACH on wrapping
+    if (Math.abs(moved) < 1e-6) out.position.copy(spot.position);
+    else {
+      const reach = spot.reach * canopyReach(angle) / canopyReach(spot.around);
+      out.position.set(orbitCentre.x + Math.sin(angle) * reach, spot.position.y, orbitCentre.z + Math.cos(angle) * reach);
+    }
+    // It keeps facing the viewer as it did on its spot (turned as far as the view has turned since), so it
+    // stays readable all the way across, and fades only at the edges of its glide.
+    spot.view ??= view;
+    glideTurn.setFromAxisAngle(UP, turnedTo(view, spot.view));
+    out.quaternion.copy(glideTurn).multiply(spot.quaternion);
+    out.outward.copy(spot.outward).applyQuaternion(glideTurn);
+    out.glide = smoothstep(GLIDE_REACH, GLIDE_REACH - GLIDE_FADE, Math.abs(fromView)); // faded at the edges
     return out;
   }
 
@@ -1366,7 +1404,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       } else {
         leaf.restingSince ??= time;
         placeAtRest(leaf, elapsed);
-        leaf.material.opacity = facingAmount(leaf);
+        leaf.material.opacity = facingAmount(leaf) * (leaf.shown.glide ?? 1); // faded at the edges of its glide
       }
       leaf.material.opacity *= within(settings.leafOpacity, 1, 0.1, 1); // the admin's Leaf Opacity (2D: leafOpacity)
       if (leaf.appear !== undefined && leaf.appear < 1) { // moved clear of the title box: fades in at its new spot
