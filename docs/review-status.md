@@ -80,7 +80,7 @@ Commits so far: `a03bbeb` CI-flagged fixes, `02240df` dotenv, `4609ec9` admin ba
 | fixed | parameters | Save still sent the hidden email pattern as the default, overwriting a pattern changed in the JSON file | parameters.js | f7bfc32 |
 | fixed | admin page | the hibernation commit left a literal "$1" where the <title> tag was (text at the top of the page, no tab title) | admin.html 116 | 7f9d9cc |
 | open | server control | restart-app.bat and startup-monitor.bat can double-launch the servers | project root | |
-| open | core | only 39 of about 108 admin routes use auth.requireAuth; the router is mounted with no guard | server.js 409 | |
+| fixed | core | only 39 of about 108 admin routes used auth.requireAuth: 36 routes of the old admin router answered without a sign-in (the feedback list, the users list, add / edit / delete an admin, VIPs, questions, overlays, the audit log). Each of them now starts with a sign-in check, the handlers take the admin's name from the session and not from an `x-username` header (it defaulted to `systemadmin`), and the contract check "sign-in" fails when a route of that file has none. `/login` and `/logout-audit` stay open on purpose | admin/routes.js | 19 Nov 2026 |
 | open | core | static files are served before the page gates, so /tree/tree.html bypasses the 2D/3D and mobile gates | server.js 409 | |
 | fixed | core | getSelectedIP fell back to the first adapter (VMware) unless one was named "Wi-Fi 2"; virtual adapters are now skipped | server.js 227 | hibernation feature, 31 Oct |
 | open | core | kioskServer.js drifted from server.js (no page gates, different static handling) | kioskServer.js | |

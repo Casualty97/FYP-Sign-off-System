@@ -329,6 +329,33 @@ check('snapshot: the route table matches tests/contracts/routes.snapshot.txt', (
   return [...added.map((l) => `added:   ${l}`), ...removed.map((l) => `removed: ${l}`), 'If this change is intended, run `npm run routes:update` and commit the snapshot in the same change.'];
 });
 
+// <Jun Kai start>
+// ---------------------------------------------------------------- 12. admin routes ask for a sign-in
+// 36 routes of the old admin router answered without a sign-in until 19 Nov 2026. The check has to be the first thing
+// after the path, so that nothing (a file upload, for one) runs before it.
+const ADMIN_ROUTES_OPEN = new Map([
+  ['POST /login', 'the sign-in itself'],
+  ['POST /logout-audit', 'has to work after the session ended, to end "keep me signed in" on that browser'],
+]);
+check('sign-in: every route in backend/features/admin/routes.js starts with auth.requireAuth or auth.requireAdmin', () => {
+  const problems = [];
+  const file = 'backend/features/admin/routes.js';
+  const text = read(file);
+  const seen = new Set();
+  for (const m of text.matchAll(/^router\.(get|post|put|delete|patch|all)\(\s*(['"`])([^'"`]+)\2\s*,\s*([\w.]*)/gm)) {
+    const name = `${m[1].toUpperCase()} ${m[3]}`;
+    seen.add(name);
+    const guarded = m[4] === 'auth.requireAuth' || m[4] === 'auth.requireAdmin';
+    if (ADMIN_ROUTES_OPEN.has(name)) { if (guarded) problems.push(`${file}:${lineOf(text, m.index)} ${name} has a sign-in check now: take it off the open list in tests/contracts/run.js`); continue; }
+    if (!guarded) problems.push(`${file}:${lineOf(text, m.index)} ${name} answers without a sign-in: put auth.requireAuth (any admin role) or auth.requireAuth, auth.requireAdmin (system admin) right after the path`);
+  }
+  const all = [...text.matchAll(/^router\.(get|post|put|delete|patch|all)\(/gm)].length;
+  if (all !== seen.size) problems.push(`${file}: ${all} routes but ${seen.size} could be read by this check (a route written in a new shape, or the same route twice)`);
+  for (const name of ADMIN_ROUTES_OPEN.keys()) if (!seen.has(name)) problems.push(`${file}: ${name} is on the open list in tests/contracts/run.js but is not a route any more`);
+  return problems;
+});
+// <Jun Kai end>
+
 // ---------------------------------------------------------------- run
 const summary = [];
 let failed = 0;

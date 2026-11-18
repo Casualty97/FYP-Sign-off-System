@@ -46,7 +46,7 @@ Login, session timeout, navigation between the admin pages, the dashboard with i
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- Only 39 of about 108 admin routes use auth.requireAuth; the router is mounted with no guard (server.js 419).
+- Fixed 19 Nov 2026: 36 routes of `backend/features/admin/routes.js` answered without a sign-in ("only 39 of about 108 admin routes use auth.requireAuth"). Now every route of that file starts with `auth.requireAuth` (any signed-in admin role: the dashboard numbers, the feedback list, the overlay and question lists, the email decrypt) or `auth.requireAuth, auth.requireAdmin` (system admin: users, VIPs, archive, audit log, every change to overlays and questions, the old download routes). Only `/login` and `/logout-audit` have none. The handlers used to take "who is asking" from an `x-username` header that fell back to `systemadmin`; they now use the admin of the session. The contract check "sign-in" in `tests/contracts/run.js` fails when a route of that file has no check as its first argument. Routes in other files are not covered by that check: the pledgeboard moderation and topic routes still have none (see pledgeboard.md).
 - Three queries use a feedback.rating column that does not exist (old 1399, 4252, 4345).
 - Phones are always bounced off /pledgeboard: req.session.mobileAccessGranted is set by nothing (server.js 140).
 - getSelectedIP falls back to the first adapter unless one is literally named "Wi-Fi 2" (server.js 227); set SERVER_IP on the wall PC.

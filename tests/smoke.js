@@ -365,6 +365,12 @@ async function archiveStep(cookie) {
     await expect('POST /api/admin/aiops/test-incident without a session is refused', `${BASE}/api/admin/aiops/test-incident`, (r) => r.status === 401 || r.status === 403, { method: 'POST' });
     await expect('PUT /api/admin/hardware/alert-lines without a session is refused', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     await expect('PUT /api/admin/health/settings without a session is refused', `${BASE}/api/admin/health/settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    // routes of the old admin router that answered without a sign-in until 19 Nov 2026 (all of them: the contract check "sign-in")
+    await expect('GET /api/admin/feedback without a session is refused', `${BASE}/api/admin/feedback`, (r) => r.status === 401);
+    await expect('GET /api/admin/users without a session is refused', `${BASE}/api/admin/users`, (r) => r.status === 401);
+    await expect('GET /api/admin/audit-logs without a session is refused', `${BASE}/api/admin/audit-logs`, (r) => r.status === 401);
+    await expect('POST /api/admin/users without a session is refused, whatever the x-username header says', `${BASE}/api/admin/users`, (r) => r.status === 401,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': ADMIN_USER }, body: JSON.stringify({ username: 'smoke_nobody', full_name: 'Smoke Nobody', role: 'system_admin', password: 'SmokeNobody123!' }) });
     await expect('PUT /api/admin/sign-in-settings without a session is refused', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     // <Jun Kai end>
     let cookie = '';
