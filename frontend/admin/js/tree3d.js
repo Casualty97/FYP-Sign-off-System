@@ -12,6 +12,8 @@ const TREE3D_DEFAULTS = {
     rainArea: 'all',
     riverLevelMode: 'auto',
     autoOrbit: true,
+    orbitSeconds: 86400, // one full turn a day
+    orbitDirection: 'right',
     soundEnabled: false,
     soundVolume: 78,
     showSoilPanel: false,
@@ -302,6 +304,38 @@ function updateTree3dLeafPreview() {
 }
 
 // Rain area only applies to live weather; time of day and rain only to manual weather.
+// The automatic turn (Motion): one full turn every so many seconds, minutes or hours (30 seconds to 24 hours,
+// tree3dParameters.orbitSeconds), and which way (orbitDirection). frontend/3dTree/tree-view.js setOrbit.
+const TREE3D_TURN_UNITS = { seconds: 1, minutes: 60, hours: 3600 };
+
+function tree3dTurnSeconds() {
+    const amount = Number(tree3dField('orbitTime')?.value) || 0;
+    const unit = TREE3D_TURN_UNITS[tree3dField('orbitUnit')?.value] || 3600;
+    return Math.round(Math.min(86400, Math.max(30, amount * unit || TREE3D_DEFAULTS.orbitSeconds)));
+}
+
+function setTree3dTurnTime(amount, unit) {
+    tree3dField('orbitTime').value = amount;
+    tree3dField('orbitUnit').value = unit;
+    updateTree3dTurnFields();
+}
+
+// The turn fields show only with the automatic turn on; the help says how fast it is.
+function updateTree3dTurnFields() {
+    const fields = tree3dField('turnFields');
+    if (fields) fields.style.display = tree3dField('autoOrbit')?.checked ? '' : 'none';
+    const help = tree3dField('turnHelp');
+    if (!help) return;
+    const seconds = tree3dTurnSeconds();
+    const degreesPerSecond = 360 / seconds;
+    const pace = degreesPerSecond >= 1 ? `about ${Math.round(degreesPerSecond)}° a second`
+        : degreesPerSecond * 60 >= 1 ? `about ${Math.round(degreesPerSecond * 60)}° a minute`
+            : `about ${Math.round(degreesPerSecond * 3600)}° an hour`;
+    const asked = (Number(tree3dField('orbitTime')?.value) || 0) * (TREE3D_TURN_UNITS[tree3dField('orbitUnit')?.value] || 3600);
+    const kept = asked < 30 ? ' (30 seconds is the fastest)' : asked > 86400 ? ' (24 hours is the slowest)' : '';
+    help.textContent = `The tree turns ${pace}, to the ${tree3dField('orbitDirection')?.value === 'left' ? 'left' : 'right'}${kept}. Any time from 30 seconds to 24 hours a turn. Dragging the tree pauses the turn for a few seconds.`;
+}
+
 function updateTree3dWeatherFields() {
     const live = tree3dField('weatherSource')?.value !== 'manual';
     tree3dField('rainArea').disabled = !live;
@@ -351,6 +385,15 @@ function fillTree3dForm(settings) {
     setTree3dRainArea(s.rainArea);
     tree3dField('riverLevelMode').value = s.riverLevelMode;
     tree3dField('autoOrbit').checked = s.autoOrbit !== false;
+    if (tree3dField('orbitTime')) {
+        // Shown in the largest whole unit: 86400 as 24 hours, 300 as 5 minutes, 45 as 45 seconds.
+        const seconds = Math.min(86400, Math.max(30, Math.round(Number(s.orbitSeconds) || TREE3D_DEFAULTS.orbitSeconds)));
+        const unit = seconds % 3600 === 0 ? 'hours' : seconds % 60 === 0 ? 'minutes' : 'seconds';
+        tree3dField('orbitTime').value = seconds / TREE3D_TURN_UNITS[unit];
+        tree3dField('orbitUnit').value = unit;
+        tree3dField('orbitDirection').value = s.orbitDirection === 'left' ? 'left' : 'right';
+        updateTree3dTurnFields();
+    }
     tree3dField('showSoilPanel').checked = s.showSoilPanel === true;
     tree3dField('soundEnabled').checked = s.soundEnabled === true;
     tree3dField('soundVolume').value = s.soundVolume;
@@ -430,6 +473,10 @@ function collectTree3dSettings() {
         rainArea: tree3dField('rainArea').value || 'all',
         riverLevelMode: tree3dField('riverLevelMode').value,
         autoOrbit: tree3dField('autoOrbit').checked,
+        ...(tree3dField('orbitTime') ? {
+            orbitSeconds: tree3dTurnSeconds(),
+            orbitDirection: tree3dField('orbitDirection').value === 'left' ? 'left' : 'right'
+        } : {}),
         showSoilPanel: tree3dField('showSoilPanel').checked,
         soundEnabled: tree3dField('soundEnabled').checked,
         soundVolume: whole('soundVolume', TREE3D_DEFAULTS.soundVolume),

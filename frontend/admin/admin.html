@@ -1406,8 +1406,33 @@
                                     <div>
                                         <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Motion</span>
                                         <label style="display:flex; align-items:center; gap:8px; color:#334155;">
-                                            <input type="checkbox" id="tree3d-autoOrbit"> Slow automatic orbit (24h turn)
+                                            <input type="checkbox" id="tree3d-autoOrbit" onchange="updateTree3dTurnFields()"> Turn the tree automatically
                                         </label>
+                                        <!-- How fast and which way the tree turns (tree3dParameters.orbitSeconds, orbitDirection;
+                                             frontend/3dTree/tree-view.js setOrbit). -->
+                                        <div id="tree3d-turnFields" style="margin:8px 0 0 24px;">
+                                            <label for="tree3d-orbitTime" style="display:block; color:#334155; margin-bottom:4px;">One full turn every</label>
+                                            <div style="display:flex; gap:8px; align-items:center;">
+                                                <input type="number" id="tree3d-orbitTime" min="1" max="86400" step="1" value="24" oninput="updateTree3dTurnFields()" style="width:90px; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                <select id="tree3d-orbitUnit" aria-label="Seconds, minutes or hours" onchange="updateTree3dTurnFields()" style="width:auto; flex:0 0 auto; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="seconds">seconds</option>
+                                                    <option value="minutes">minutes</option>
+                                                    <option value="hours" selected>hours</option>
+                                                </select>
+                                            </div>
+                                            <div class="turn-presets" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(1, 'minutes')">1 min</button>
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(5, 'minutes')">5 min</button>
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(30, 'minutes')">30 min</button>
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(24, 'hours')">24 h</button>
+                                            </div>
+                                            <label for="tree3d-orbitDirection" style="display:block; color:#334155; margin:8px 0 4px;">Direction</label>
+                                            <select id="tree3d-orbitDirection" onchange="updateTree3dTurnFields()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                <option value="right">The tree turns to the right</option>
+                                                <option value="left">The tree turns to the left</option>
+                                            </select>
+                                            <p id="tree3d-turnHelp" style="font-size:12px; color:#666; margin-top:6px;">From 30 seconds to 24 hours a turn.</p>
+                                        </div>
                                         <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#334155;">
                                             <input type="checkbox" id="tree3d-showSoilPanel"> Show the soil life cutaway
                                         </label>

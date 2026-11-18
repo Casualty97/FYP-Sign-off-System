@@ -12,7 +12,7 @@ import { installSkyControls } from './singapore-weather.js';
 import { installRiverLevel } from './river-level.js';
 import { createFallingLeaves } from './falling-leaves.js';
 import { refineSceneMaterials, drawingRatio, createFrameBudget } from './render-quality.js';
-import { createTreeView } from './tree-view.js';
+import { createTreeView, TURN_SECONDS, TURN_SECONDS_MIN } from './tree-view.js';
 import { addFeedbackLeaves } from './feedback-leaves.js';
 import { startingStage, stageModelUrl, prepareStageTree, perchSeats, canopyDriftRoutes, normaliseStage, loadStageTree, removeTree } from './tree-stage.js';
 import { growTree, matchingScale, previewGrowth } from './tree-growth.js';
@@ -71,6 +71,15 @@ async function start() {
   const camera = new T.PerspectiveCamera(34,1,.19,landscapeFar);
   const treeView = createTreeView(camera,canvas,buttons['slow-orbit'],{
     autoOrbit:!reducedMotion && params.get('orbit')!=='off',reducedMotion,
+  });
+  // The admin's turning speed and direction (3D Scene Controls), shown on the turn button too.
+  const turnLabel=buttons['slow-orbit'].querySelector('span');
+  onTree3dSettings(next=>{
+    const seconds=Math.min(TURN_SECONDS,Math.max(TURN_SECONDS_MIN,Number(next?.orbitSeconds)||TURN_SECONDS));
+    treeView.setOrbit({seconds,direction:next?.orbitDirection});
+    const time=seconds%3600===0?`${seconds/3600}h`:seconds%60===0?`${seconds/60} min`:`${seconds}s`;
+    if (turnLabel) turnLabel.textContent=`${time} turn`;
+    buttons['slow-orbit'].title=`Turn the tree automatically: one full turn every ${time.replace('h',' h').replace(/s$/,' s')}, to the ${next?.orbitDirection==='left'?'left':'right'}`;
   });
   const sun = new T.DirectionalLight(0xffecd8,2.64);
   sun.position.copy(sunDirection).multiplyScalar(98);

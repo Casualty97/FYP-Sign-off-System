@@ -8109,6 +8109,28 @@ input:checked + .slider:before {
     mix-blend-mode: multiply;
 }
 
+/* 3D Scene Controls, Motion: quick choices for how long one full turn of the tree takes (admin/js/tree3d.js
+   setTree3dTurnTime). */
+.turn-preset {
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 3px 11px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.turn-preset:hover {
+    background: #e2e8f0;
+}
+
+.turn-preset:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
 /* 3D Leaf Adjustments, Names on the leaves (admin/js/tree3d.js updateTree3dNamePreview): a sample name on a
    leaf in the chosen font, weight and colour, on the night sky with the glowing look. */
 .leaf3d-name-settings {

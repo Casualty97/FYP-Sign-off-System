@@ -15,6 +15,7 @@ const DEFAULTS = {
   glowLook: true, // the glowing look (glow-look.js); scene.js reloads the page when it changes
   weatherSource: 'live', manualSky: 'day', manualRain: false, rainArea: 'all', riverLevelMode: 'auto',
   autoOrbit: true, soundEnabled: false, soundVolume: 78, showSoilPanel: false,
+  orbitSeconds: 24 * 60 * 60, orbitDirection: 'right', // one full turn a day, to the right (scene.js, tree-view.js)
   showWeatherPanel: true, showRiverPanel: true, showControlsBar: true, showYearReview: true,
   gustRequestedAt: '', sunsetRequestedAt: '',
   showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24,

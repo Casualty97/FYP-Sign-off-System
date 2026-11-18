@@ -12,7 +12,10 @@
 //   manualRain         rain and thunder in manual weather
 //   rainArea           live weather area: 'all' for all of Singapore, or an area name from the feed
 //   riverLevelMode     'auto' (follows the rain) or a fixed preview: normal, high or danger
-//   autoOrbit          the slow automatic orbit around the tree (15 degrees per hour)
+//   autoOrbit          the automatic turn round the tree
+//   orbitSeconds       how long one full turn takes, 30 seconds to 24 hours (86400, the default: 15 degrees an
+//                      hour)
+//   orbitDirection     which way the tree seems to turn: 'right' (the default) or 'left'
 //   soundEnabled       river, wind, bird and weather sounds (the browser may need a first touch or
 //                      Chrome's --autoplay-policy=no-user-gesture-required to start them)
 //   soundVolume        0 to 100
@@ -108,6 +111,8 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   rainArea: 'all',
   riverLevelMode: 'auto',
   autoOrbit: true,
+  orbitSeconds: 86400,
+  orbitDirection: 'right',
   soundEnabled: false,
   soundVolume: 78,
   showSoilPanel: false,
@@ -202,6 +207,8 @@ function normalizeTree3dParameters(updates) {
   if (has('rainArea')) out.rainArea = text(updates.rainArea, 80) || 'all';
   if (has('riverLevelMode')) out.riverLevelMode = oneOf(updates.riverLevelMode, RIVER_MODES, 'River level');
   if (has('autoOrbit')) out.autoOrbit = bool(updates.autoOrbit, 'Auto orbit');
+  if (has('orbitSeconds')) out.orbitSeconds = Math.round(number(updates.orbitSeconds, 30, 86400, 'Time for one full turn'));
+  if (has('orbitDirection')) out.orbitDirection = oneOf(updates.orbitDirection, ['right', 'left'], 'Turn direction');
   if (has('soundEnabled')) out.soundEnabled = bool(updates.soundEnabled, 'Sound');
   if (has('soundVolume')) out.soundVolume = Math.round(number(updates.soundVolume, 0, 100, 'Volume'));
   for (const key of ['showSoilPanel', 'showWeatherPanel', 'showRiverPanel', 'showControlsBar', 'showYearReview']) {

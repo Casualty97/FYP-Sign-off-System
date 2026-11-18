@@ -143,3 +143,14 @@ test('the names on the 3D leaves: a font style, weight and colour, checked', () 
     assert.equal(normalizeTree3dParameters({ leafNameSize: 0.2 }).leafNameSize, 0.7);
     assert.throws(() => normalizeTree3dParameters({ leafNameSize: 'big' }), { statusCode: 400, message: /size/ });
 });
+
+test('the automatic turn: one turn a day to the right by default; any time from 30 seconds to 24 hours', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.orbitSeconds, 86400);
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.orbitDirection, 'right');
+    assert.deepEqual(normalizeTree3dParameters({ orbitSeconds: '300', orbitDirection: 'LEFT' }), { orbitSeconds: 300, orbitDirection: 'left' });
+    assert.equal(normalizeTree3dParameters({ orbitSeconds: 5 }).orbitSeconds, 30, 'never faster than a turn in 30 seconds');
+    assert.equal(normalizeTree3dParameters({ orbitSeconds: 999999 }).orbitSeconds, 86400);
+    assert.equal(normalizeTree3dParameters({ orbitSeconds: 90.4 }).orbitSeconds, 90);
+    assert.throws(() => normalizeTree3dParameters({ orbitSeconds: 'fast' }), { statusCode: 400, message: /full turn/ });
+    assert.throws(() => normalizeTree3dParameters({ orbitDirection: 'up' }), { statusCode: 400, message: /Turn direction/ });
+});

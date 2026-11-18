@@ -43,7 +43,7 @@ The tree grows in the same five stages as the 2D tree: 0 Bare Trunk, 1 Early Gro
 
 The camera keeps one fixed, close framing with the tree as the main focus: on a laptop screen the canopy fills the width, and on the 3.5:1 wall the tree fills the height with the river and hills either side (frameHeight and frameWidth in `tree-view.js`). Zooming is off (no scroll, pinch or **+**/**−**), so every screen always shows the tree at this size. Drag on the scene or use the arrow keys to orbit the tree.
 
-**24h orbit** moves the camera at 15° per hour while the scene is visible. It pauses during camera input and resumes a few seconds afterward. It starts on unless reduced motion is enabled. Select the button to toggle it.
+The automatic turn moves the camera round the tree while the scene is visible: one full turn a day (15° per hour) by default, or as fast as the admin sets it in 3D Scene Controls > Motion ("One full turn every", 30 seconds to 24 hours: `tree3dParameters.orbitSeconds`; "Direction", the tree turning to the right or to the left: `orbitDirection`; `setOrbit` in `tree-view.js`, applied by `scene.js` within about 5 seconds). The turn button shows the time for one turn (for example **5 min turn**) and turns it off or on. It pauses during camera input and resumes a few seconds afterward. It starts on unless reduced motion is enabled. Select the button to toggle it.
 
 ## Weather and sky
 

@@ -3,7 +3,10 @@ import { THREE as T, OrbitControls } from './vendor/three-runtime.js';
 const centre = new T.Vector3(.14, 6.95, 0);
 export const orbitCentre = centre.clone(); // the point the view turns around (feedback-leaves.js turns with it)
 const front = new T.Vector3(.115, .171, 1).normalize();
-const secondsPerTurn = 24 * 60 * 60;
+// The automatic turn: one full turn every TURN_SECONDS by default (24 hours), or as the admin sets it
+// (3D Scene Controls: tree3dParameters.orbitSeconds, 30 seconds to 24 hours, and orbitDirection; setOrbit).
+export const TURN_SECONDS = 24 * 60 * 60;
+export const TURN_SECONDS_MIN = 30;
 // One fixed, close framing with the tree as the main focus: the canopy fills a laptop screen from side to
 // side, and on the 3.5:1 wall (7 m x 2 m) the tree fills the height with the river and hills either side.
 // Zooming is off, so every screen always shows the tree at this size.
@@ -19,7 +22,11 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
   controls.minPolarAngle = T.MathUtils.degToRad(60);
   controls.maxPolarAngle = T.MathUtils.degToRad(85);
   controls.rotateSpeed = .54;
-  controls.autoRotateSpeed = 60 / secondsPerTurn;
+  // OrbitControls turns autoRotateSpeed / 60 of a turn a second: 60 / seconds is one turn in that many seconds.
+  // A positive speed moves the view to its left round the tree, so the tree seems to turn to the right.
+  const turnSpeed = (seconds, direction) => (direction === 'left' ? -1 : 1) * 60
+    / Math.min(TURN_SECONDS, Math.max(TURN_SECONDS_MIN, Number(seconds) || TURN_SECONDS));
+  controls.autoRotateSpeed = turnSpeed(TURN_SECONDS, 'right');
 
   const offset = new T.Vector3();
   const focus = controls.target;
@@ -93,6 +100,10 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
       controls.dampingFactor = -Math.expm1(-dt * 9);
       controls.autoRotate = autoOrbit && !dragging && orbitStep > 0;
       controls.update(orbitStep);
+    },
+    // The admin's turning speed (one full turn every `seconds`) and direction ('right' or 'left').
+    setOrbit({ seconds, direction }) {
+      controls.autoRotateSpeed = turnSpeed(seconds, direction);
     },
   };
 }
