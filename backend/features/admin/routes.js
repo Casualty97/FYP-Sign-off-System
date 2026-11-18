@@ -276,6 +276,7 @@ const dataRetentionCleanup = require('../archive/retention');
 const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
 // <Jun Kai start>
 const deletedCounts = require('../archive/deletedCounts');
+const archivedLeaves = require('../archive/archivedLeaves'); // <Jun Kai/> VIP leaves are kept by Permanent Data Deletion
 const { toSgtDay } = require('../archive/visitorSchedule');
 const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
 // the Local AI models switch of the incident settings: off, the analysis modes that run a model are refused
@@ -2951,18 +2952,22 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
     
     let query;
     let params;
-    
+    // <Jun Kai start> the same rows again as SQL about f, to find the VIP leaves among them (they are not deleted)
+    let vipWhere;
+    // <Jun Kai end>
+
     if (feedbackIds && feedbackIds.length > 0) {
         // Preview for selected IDs
         const placeholders = feedbackIds.map(() => '?').join(',');
         query = `
             SELECT COUNT(*) as count
             FROM feedback
-            WHERE id IN (${placeholders}) 
+            WHERE id IN (${placeholders})
             AND archive_status = 'archived'
             AND is_active = 1
         `;
         params = feedbackIds;
+        vipWhere = `f.id IN (${placeholders}) AND f.archive_status = 'archived' AND f.is_active = 1`;
     } else if (dateRange && dateRange.before) {
         // Preview for date range
         query = `
@@ -2973,6 +2978,7 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
             AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')
         `;
         params = [dateRange.before];
+        vipWhere = "f.archive_status = 'archived' AND f.is_active = 1 AND f.created_at < CONVERT_TZ(?, '+08:00', '+00:00')";
     } else {
         return res.status(400).json({
             success: false,
@@ -2989,10 +2995,18 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
             });
         }
         
-        res.json({
-            success: true,
-            count: result.count
+        // <Jun Kai start> VIP leaves stay on the tree, so they are not part of what will be deleted
+        archivedLeaves.vipLeafIds(vipWhere, params).then((vipIds) => {
+            res.json({
+                success: true,
+                count: Math.max(0, result.count - vipIds.length),
+                vipKept: vipIds.length
+            });
+        }, (vipErr) => {
+            console.error('❌ Error previewing deletion (VIP leaves):', vipErr);
+            res.status(500).json({ success: false, error: 'Database error: ' + vipErr.message });
         });
+        // <Jun Kai end>
     });
 });
 
@@ -3049,7 +3063,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
             AND f.is_active = 1
         `;
         
-        db.all(selectQuery, feedbackIds, (selectErr, feedbackData) => {
+        db.all(selectQuery, feedbackIds, async (selectErr, feedbackData) => { // <Jun Kai/> async: the VIP check below
             if (selectErr) {
                 console.error('❌ Error fetching feedback for deletion:', selectErr);
                 return res.status(500).json({
@@ -3064,7 +3078,24 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                     error: 'No archived feedback found with the provided IDs'
                 });
             }
-            
+
+            // <Jun Kai start>
+            // VIP leaves stay on the tree (supervisor, 18 Nov 2026): they are taken out before anything is deleted
+            let vipIds;
+            try {
+                vipIds = new Set(await archivedLeaves.vipLeafIds('f.id IN (?)', [feedbackData.map((feedback) => feedback.id)]));
+            } catch (vipErr) {
+                console.error('❌ Error checking VIP leaves before deletion:', vipErr);
+                return res.status(500).json({ success: false, error: 'Database error: ' + vipErr.message });
+            }
+            const vipKept = feedbackData.filter((feedback) => vipIds.has(feedback.id)).length;
+            feedbackData = feedbackData.filter((feedback) => !vipIds.has(feedback.id));
+            if (feedbackData.length === 0) {
+                return res.status(409).json({ success: false, vipKept, error: `Nothing was deleted. ${archivedLeaves.vipKeptText(vipKept)}` });
+            }
+            const deleteIds = feedbackData.map((feedback) => feedback.id);
+            // <Jun Kai end>
+
             // Delete photos from filesystem
             // <Jun Kai start>
             // only once the rows are deleted, and only for the rows that went (the delete can now be refused)
@@ -3098,7 +3129,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
             // Hard delete feedback (CASCADE will delete feedback_answers)
             // <Jun Kai start>
             // one transaction with the deleted record counts, so running totals (visitor number, tree year book) keep counting them
-            deletedCounts.deleteWhere('feedback', "id IN (?) AND archive_status = 'archived'", [feedbackIds], (deleteErr, deletedCount, deletedIds) => {
+            deletedCounts.deleteWhere('feedback', "id IN (?) AND archive_status = 'archived'", [deleteIds], (deleteErr, deletedCount, deletedIds) => {
                 const refused = deletedCounts.deleteFailure(deleteErr);
                 if (refused) return res.status(refused.status).json({ success: false, error: refused.message });
             // <Jun Kai end>
@@ -3130,7 +3161,8 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                 res.json({
                     success: true,
                     deletedCount: deletedCount,
-                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}`
+                    vipKept, vipNote: archivedLeaves.vipKeptText(vipKept), // <Jun Kai/>
+                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}${vipKept ? `. ${archivedLeaves.vipKeptText(vipKept)}` : ''}`
                 });
             });
         });
@@ -3188,7 +3220,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             AND f.created_at < CONVERT_TZ(?, '+08:00', '+00:00')
         `;
         
-        db.all(selectQuery, [beforeDate], (selectErr, feedbackData) => {
+        db.all(selectQuery, [beforeDate], async (selectErr, feedbackData) => { // <Jun Kai/> async: the VIP check below
             if (selectErr) {
                 console.error('❌ Error fetching feedback for deletion:', selectErr);
                 return res.status(500).json({
@@ -3203,7 +3235,24 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                     error: 'No archived feedback found before the specified date'
                 });
             }
-            
+
+            // <Jun Kai start>
+            // VIP leaves stay on the tree (supervisor, 18 Nov 2026): they are taken out before anything is deleted
+            let vipIds;
+            try {
+                vipIds = new Set(await archivedLeaves.vipLeafIds('f.id IN (?)', [feedbackData.map((feedback) => feedback.id)]));
+            } catch (vipErr) {
+                console.error('❌ Error checking VIP leaves before deletion:', vipErr);
+                return res.status(500).json({ success: false, error: 'Database error: ' + vipErr.message });
+            }
+            const vipKept = feedbackData.filter((feedback) => vipIds.has(feedback.id)).length;
+            feedbackData = feedbackData.filter((feedback) => !vipIds.has(feedback.id));
+            if (feedbackData.length === 0) {
+                return res.status(409).json({ success: false, vipKept, error: `Nothing was deleted. ${archivedLeaves.vipKeptText(vipKept)}` });
+            }
+            const deleteIds = feedbackData.map((feedback) => feedback.id);
+            // <Jun Kai end>
+
             // Delete photos from filesystem
             let photosDeleted = 0;
             // <Jun Kai start>
@@ -3240,7 +3289,8 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             // Hard delete feedback
             // <Jun Kai start>
             // one transaction with the deleted record counts, so running totals (visitor number, tree year book) keep counting them
-            deletedCounts.deleteWhere('feedback', "archive_status = 'archived' AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')", [beforeDate], (deleteErr, deletedCount, deletedIds) => {
+            // by id, not by date again: the rows found above, without the VIP leaves
+            deletedCounts.deleteWhere('feedback', "id IN (?) AND archive_status = 'archived'", [deleteIds], (deleteErr, deletedCount, deletedIds) => {
                 const refused = deletedCounts.deleteFailure(deleteErr);
                 if (refused) return res.status(refused.status).json({ success: false, error: refused.message });
             // <Jun Kai end>
@@ -3275,7 +3325,8 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                     success: true,
                     deletedCount: deletedCount,
                     photosDeleted: photosDeleted,
-                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}`
+                    vipKept, vipNote: archivedLeaves.vipKeptText(vipKept), // <Jun Kai/>
+                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}${vipKept ? `. ${archivedLeaves.vipKeptText(vipKept)}` : ''}`
                 });
             });
         });

@@ -50,6 +50,34 @@ function isVipLeaf(name, retention, vipNames) {
 // rows of vip_management -> the names the way the tree compares them
 const vipNameSet = (rows) => new Set((rows || []).map((v) => String(v.name || '').trim().toLowerCase()).filter(Boolean));
 
+// The ids of the VIP leaves among the feedback rows that match `where` (SQL about the table as f, with its params).
+// Used by everything that archives or bulk-deletes submissions, so that a gold leaf never leaves the tree that way.
+// The SQL only narrows the rows down by name; isVipLeaf decides, with the tree's own rule.
+async function vipLeafIds(where, params = []) {
+    const query = async (sql, values) => (await db().pool.promise().query(sql, values))[0];
+    let listed;
+    try {
+        listed = await query('SELECT name FROM vip_management', []);
+    } catch (error) {
+        if (error.code === 'ER_NO_SUCH_TABLE') return []; // no VIP list in this database, so no VIP leaves
+        throw error;
+    }
+    const vipNames = vipNameSet(listed);
+    if (!vipNames.size) return [];
+    const names = [...vipNames];
+    const rows = await query(
+        `SELECT f.id, f.data_retention, u.name FROM feedback f JOIN users u ON u.id = f.user_id
+         WHERE (${where}) AND (${names.map(() => 'u.name LIKE ?').join(' OR ')})`,
+        [...params, ...names.map((name) => `%${name.replace(/[\\%_]/g, '\\$&')}%`)]);
+    return rows.filter((row) => isVipLeaf(row.name, row.data_retention, vipNames)).map((row) => row.id);
+}
+
+// "1 VIP leaf was kept: ..." for the answers of the delete routes; '' when none was kept
+function vipKeptText(count) {
+    if (!count) return '';
+    return `${count} VIP ${count === 1 ? 'leaf was' : 'leaves were'} kept: a VIP leaf stays on the tree. To delete one, take the name off the VIP list first.`;
+}
+
 // Initials only when the admin chose them and the tree was showing the name: archiving never shows more than before
 function labelFor(mode, name, shown) {
     return mode === 'initials' && shown ? initialsOf(name) : DEFAULT_LABEL;
@@ -249,7 +277,7 @@ async function countsForRuns(runIds) {
 }
 
 module.exports = {
-    DEFAULT_LABEL, DEFAULT_BADGE, PRIVACY_LABEL, COLUMNS, keeps, initialsOf, nameShown, isVipLeaf, vipNameSet, labelFor, leafRow, countDrawn, detailsOf, keeper,
+    DEFAULT_LABEL, DEFAULT_BADGE, PRIVACY_LABEL, COLUMNS, keeps, initialsOf, nameShown, isVipLeaf, vipNameSet, vipLeafIds, vipKeptText, labelFor, leafRow, countDrawn, detailsOf, keeper,
     treeLeaf, mergeLeaves, yearRange, forYear, withKept, byYear, mergeYearBook, addToYearBook, countsForRuns
 };
 // <Jun Kai end>

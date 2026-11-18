@@ -298,6 +298,12 @@ async function archiveStep(cookie) {
     const tallyAfterPerm = await tallyOf();
     const grewPerm = (kind) => (tallyAfterPerm[kind] || 0) - (tallyBeforePerm[kind] || 0);
     check(['feedback', 'pledge', 'leaf', 'visitor'].every((kind) => grewPerm(kind) === 1) && permUserLeft === 0, 'Permanent Data Deletion adds its deletes to deleted_record_counts too (1 feedback, 1 pledge, 1 leaf, 1 visitor)', JSON.stringify({ before: tallyBeforePerm, after: tallyAfterPerm, visitorLeft: permUserLeft }));
+    // Permanent Data Deletion keeps a VIP leaf: the seeded VIP's pledge is moved to Archived Feedback, then both delete ways are tried
+    await conn.query("UPDATE feedback SET archive_status = 'archived' WHERE id = ?", [vipFeedback.insertId]);
+    await expect('POST /api/admin/archive/preview-deletion leaves the VIP leaf out of the count', `${BASE}/api/admin/archive/preview-deletion`, (r) => r.body && r.body.success === true && r.body.count === 0 && r.body.vipKept === 1 || r.text.slice(0, 160), send({ feedbackIds: [vipFeedback.insertId] }));
+    await expect('POST /api/admin/archive/delete-selected refuses to delete only a VIP leaf', `${BASE}/api/admin/archive/delete-selected`, (r) => r.status === 409 && r.body && r.body.vipKept === 1 && /VIP leaf was kept/.test(r.body.error || '') || r.text.slice(0, 200), send({ feedbackIds: [vipFeedback.insertId], password: ADMIN_PASS }));
+    const [[vipStill]] = await conn.query('SELECT COUNT(*) AS n FROM feedback WHERE id = ?', [vipFeedback.insertId]);
+    check(Number(vipStill.n) === 1, 'the VIP pledge is still in the database after Permanent Data Deletion was asked to delete it');
     const [[permLeaf]] = await conn.query('SELECT COUNT(*) AS n FROM archived_leaves WHERE feedback_id = ?', [permFeedback.insertId]);
     check(Number(permLeaf.n) === 0, 'Permanent Data Deletion leaves no leaf on the tree (a deliberate removal)');
     check((await visitorsShown()) === visitorsBeforePerm && (await pledgesShown()) === pledgesBeforePerm, 'the kiosk visitor count and the all-time pledge total do not drop after Permanent Data Deletion');

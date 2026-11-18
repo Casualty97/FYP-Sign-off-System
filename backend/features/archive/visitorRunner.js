@@ -76,25 +76,9 @@ function orphanGuard(criteria, collectedAt) {
 }
 
 // VIP leaves stay out of the archive (supervisor, 18 Nov 2026): a submission the tree draws in gold is never saved to a
-// zip or deleted, so the leaf stays on the tree with its name. Returns the ids of those submissions made before `before`.
-// The SQL only narrows the rows down by name; archivedLeaves.isVipLeaf decides, with the tree's own rule.
-async function vipLeafIds(before) {
-    let listed;
-    try {
-        listed = await query('SELECT name FROM vip_management');
-    } catch (error) {
-        if (error.code === 'ER_NO_SUCH_TABLE') return []; // no VIP list in this database, so no VIP leaves
-        throw error;
-    }
-    const vipNames = archivedLeaves.vipNameSet(listed);
-    if (!vipNames.size) return [];
-    const names = [...vipNames];
-    const rows = await query(
-        `SELECT f.id, f.data_retention, u.name FROM feedback f JOIN users u ON u.id = f.user_id
-         WHERE f.created_at < ? AND (${names.map(() => 'u.name LIKE ?').join(' OR ')})`,
-        [before, ...names.map((name) => `%${name.replace(/[\\%_]/g, '\\$&')}%`)]);
-    return rows.filter((row) => archivedLeaves.isVipLeaf(row.name, row.data_retention, vipNames)).map((row) => row.id);
-}
+// zip or deleted, so the leaf stays on the tree with its name. Returns the ids of those submissions made before `before`
+// (the lookup itself is archivedLeaves.vipLeafIds, which Permanent Data Deletion uses too).
+const vipLeafIds = (before) => archivedLeaves.vipLeafIds('f.created_at < ?', [before]);
 
 // Rows of one archive. With `only`, a run is limited to those ids and a missing list means none of that type.
 // vipLeaves: how many submissions matched but stay out because they are VIP leaves.
