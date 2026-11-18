@@ -422,12 +422,17 @@ const { restore: rememberRestore, router: rememberRoutes } = require('./core/rem
 // an admin account that was deleted or changed while signed in is signed out at its next request, on every path.
 // It stands before the restore below, so a kept sign-in comes back with the account as it is now, or not at all
 const adminSessions = require('./core/adminSessions');
-const { signedInOrThisPc, hasAddress } = require('./core/localPc'); // for the routes that tell about the server itself
+const { signedInOrThisPc } = require('./core/localPc'); // for the routes that tell about the server itself
 const kioskOpenState = require('./features/serverControl/openState'); // whether the policies have the kiosk open now
 const STARTED_AT = new Date().toISOString(); // a kiosk page reloads itself when this changed (heartbeat.js)
-// The address to hand out now (the QR code, the page after the PC was off): the one picked at the start while a
-// network adapter still has it, else picked again. Right after a power cut the network can come up after the server.
-const addressNow = () => (hasAddress(localIP) ? localIP : getSelectedIP());
+// The address to hand out now (the QR code, the page after the PC was off): picked again each time, the way it is
+// picked at the start. Right after a power cut the network can come up after the server, and the address picked at
+// the start is then localhost or a virtual adapter's. getSelectedIP prints what it picks: not for every QR code.
+const addressNow = () => {
+    const say = console.log;
+    console.log = () => {};
+    try { return getSelectedIP(); } finally { console.log = say; }
+};
 app.use(adminSessions.dropEnded);
 app.use('/api/admin', rememberRestore);
 app.use('/api/pledgeboard/admin', rememberRestore); // the admin page's pledge routes ask for a sign-in too

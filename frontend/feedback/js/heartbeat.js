@@ -6,8 +6,9 @@
 //      and only uncovered when just the network was away, so a visitor's answers stay;
 //    - the policies have the kiosk closed (off hours in Automatic mode) -> a "closed" screen with the time it opens
 //      again. It comes back by itself when the kiosk opens.
-//    A visitor in the middle of the form is not cut off: the closed screen and a reload wait until nobody has touched
-//    the screen for 75 seconds (the page's own timer takes it back to the first page after 60).
+//    A visitor in the middle of the form is not cut off: the closed screen and a reload wait until nobody has used
+//    the screen for 75 seconds (the page's own timer takes it back to the first page after 60) and no answers are
+//    being sent.
 // <Jun Kai start>
 (function () {
     // ---------------------------------------------------------------- 1. the heartbeat
@@ -55,9 +56,12 @@
     let scrollBefore = '';        // the page's own scroll setting, put back when the cover goes
     let timer = null;
 
-    ['pointerdown', 'touchstart', 'keydown'].forEach((type) => {
+    // everything the kiosk page's own timer counts as "someone is here" (events.js), and a few more
+    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'mousemove', 'click', 'keydown', 'keypress', 'input', 'change', 'wheel'].forEach((type) => {
         window.addEventListener(type, () => { lastTouch = Date.now(); }, { capture: true, passive: true });
     });
+    // the page stops its own timer while a visit is being sent: that visitor is still here
+    const sending = () => document.body.classList.contains('submitting-feedback');
 
     // "at 9:00 am", "tomorrow at 9:00 am", "on Mon 23 Nov at 9:00 am"
     function when(iso) {
@@ -109,7 +113,7 @@
 
     function decide() {
         const now = Date.now();
-        const idle = now - lastTouch >= IDLE_MS;
+        const idle = now - lastTouch >= IDLE_MS && !sending();
         let next = ASK_MS;
 
         if (now - lastAnswer >= AWAY_MS) {

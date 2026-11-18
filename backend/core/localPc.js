@@ -14,11 +14,6 @@ function addressesNow(interfaces = os.networkInterfaces()) {
     return Object.values(interfaces || {}).flat().filter(Boolean);
 }
 
-// true while a network adapter of this PC has this IPv4 address (the loopback adapter does not count)
-function hasAddress(address, interfaces) {
-    return addressesNow(interfaces).some((a) => !a.internal && (a.family === 'IPv4' || a.family === 4) && a.address === address);
-}
-
 // A connection whose sender is the PC itself: the loopback address, or one of the PC's own addresses. A browser on the
 // PC that opens https://<the PC's address>:3000 connects from that address, not from 127.0.0.1. Another machine cannot
 // use the PC's address as its own: the answers would go to the PC, so its connection is never set up.
@@ -38,5 +33,5 @@ function signedInOrThisPc(req, res, next) {
     res.status(401).json({ error: 'Only for a signed-in admin or a request made on the PC itself' });
 }
 
-module.exports = { isThisPc, isOwnAddress, hasAddress, addressesNow, signedInOrThisPc };
+module.exports = { isThisPc, isOwnAddress, addressesNow, signedInOrThisPc };
 // <Jun Kai end>

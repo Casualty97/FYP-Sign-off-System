@@ -1,11 +1,9 @@
 // Owner: Role 3, Jun Kai.
-// Unit tests for "is the kiosk open now?" (backend/features/serverControl/openState.js) and for the PC's own addresses
-// (backend/core/localPc.js). Run: npm run test:unit
+// Unit tests for "is the kiosk open now?" (backend/features/serverControl/openState.js). Run: npm run test:unit
 // <Jun Kai start>
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const openState = require('../../backend/features/serverControl/openState');
-const localPc = require('../../backend/core/localPc');
 
 // Thursday 19 Nov 2026, 14:00 in Singapore
 const NOW = new Date(2026, 10, 19, 14, 0, 0);
@@ -49,18 +47,5 @@ test('the answer is kept for a few seconds, so many kiosk pages do not make the 
     assert.equal(openState.current(1000 + openState.CACHE_MS - 1), first, 'the same answer inside the time');
     assert.notEqual(openState.current(1000 + openState.CACHE_MS + 1), undefined);
     openState.reset();
-});
-
-test('the PC has an address only while a network adapter carries it', () => {
-    const adapters = {
-        'Wi-Fi': [{ address: '192.168.1.50', family: 'IPv4', internal: false }],
-        Loopback: [{ address: '127.0.0.1', family: 'IPv4', internal: true }]
-    };
-    assert.equal(localPc.hasAddress('192.168.1.50', adapters), true);
-    assert.equal(localPc.hasAddress('192.168.1.51', adapters), false);
-    assert.equal(localPc.hasAddress('127.0.0.1', adapters), false, 'the loopback adapter is not a network address');
-    assert.equal(localPc.hasAddress('localhost', adapters), false);
-    assert.equal(localPc.hasAddress('192.168.1.50', {}), false, 'no network yet, right after the power came back');
-    assert.equal(localPc.hasAddress('192.168.1.50', { 'Wi-Fi': [{ address: '192.168.1.50', family: 4, internal: false }] }), true, 'Node versions that write the family as a number');
 });
 // <Jun Kai end>

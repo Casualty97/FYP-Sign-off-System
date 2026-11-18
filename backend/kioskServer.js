@@ -118,7 +118,7 @@ const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features
 const dataRetentionCleanup = require('./features/archive/retention');
 const QRCode = require('qrcode');
 // <Jun Kai start>
-const { signedInOrThisPc, hasAddress } = require('./core/localPc'); // for the routes that tell about the server itself
+const { signedInOrThisPc } = require('./core/localPc'); // for the routes that tell about the server itself
 const kioskOpenState = require('./features/serverControl/openState'); // whether the policies have the kiosk open now
 const STARTED_AT = new Date().toISOString(); // a kiosk page reloads itself when this changed (heartbeat.js)
 const uploadsGate = require('./core/uploadsGate'); // visitor files: only for the browser that just made the file
@@ -317,8 +317,13 @@ app.get('/api/server-info', signedInOrThisPc, (req, res) => { // <Jun Kai/> a re
 app.get('/api/generate-qr', async (req, res) => {
   try {
     // Phones must use the HTTPS server on port 3000 (the 3001 gateway is not started on Windows)
-    // <Jun Kai start> the address the PC has now: right after a power cut the network can come up after this server
-    const url = `https://${hasAddress(localIP) ? localIP : getSelectedIP()}:3000/feedback`;
+    // <Jun Kai start> the address is picked again for each code: right after a power cut the network can come up after
+    // this server, and the address picked at the start is then localhost or a virtual adapter's
+    const say = console.log;
+    console.log = () => {}; // getSelectedIP prints what it picks
+    let addressNow = localIP;
+    try { addressNow = getSelectedIP(); } finally { console.log = say; }
+    const url = `https://${addressNow}:3000/feedback`;
     // <Jun Kai end>
 
     const qrSvg = await QRCode.toString(url, {
