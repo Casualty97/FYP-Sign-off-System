@@ -94,7 +94,7 @@ test('the History lines are given to the link on this PC only, newest first, and
         const wrong = await ask(port, { 'X-Recovery-View': 'f'.repeat(48) });
         assert.equal(wrong.body.events, undefined);
 
-        sender = '192.168.1.20';
+        sender = '203.0.113.9'; // an address kept for examples: no PC has it, so it is never one of this PC's own
         const tablet = await ask(port, { 'X-Recovery-View': link, 'X-Forwarded-For': '127.0.0.1' });
         assert.equal(tablet.status, 403, 'the right link from another machine is refused, whatever its headers say');
         assert.equal(tablet.body.events, undefined);
