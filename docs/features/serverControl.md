@@ -66,7 +66,7 @@ It is not a way into the admin page. A sign-in without a password after a power 
 - The server makes a link when it opens the browser (`issue` in `backend/features/serverControl/recoveryView.js`): 48 random hex characters after `#` in the address. The page takes it off the address at once and keeps it for that tab only.
 - `GET /api/admin/recovery-view` gives the newest 60 History lines only to a request that carries that link in the `X-Recovery-View` header and that comes from the PC itself (the address of the connection, `127.0.0.1` or `::1`, never a header). Another machine gets 403, a wrong or missing link 401.
 - The link is kept in memory only. It ends when the kiosk programs stop, when the next one is made, or after 24 hours. It is never written down: the History line names the page without it.
-- Every other admin route still needs a sign-in. The page has a "Sign in to the admin page" button that leads to `/admin#schedule-history`; after the sign-in the admin page opens the Server Schedule page with its History drawer (`openAdminLinkTarget` in core.js).
+- The link is not a sign-in: it opens these lines and nothing else, so it adds no way into any other route. The page has a "Sign in to the admin page" button that leads to `/admin#schedule-history`; after the sign-in the admin page opens the Server Schedule page with its History drawer (`openAdminLinkTarget` in core.js).
 - A browser that chose "Keep me signed in" and is still accepted by the server skips the read-only page and goes to the admin page with the History drawer open.
 
 The names and rows of the History lines are in `frontend/admin/js/historyLines.js`, shared by the drawer and this page.

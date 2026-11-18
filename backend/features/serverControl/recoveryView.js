@@ -6,7 +6,7 @@
 //  - the server makes a link when it opens the browser (issue). The link is random, kept in memory only and ends with
 //    this run of the server, or after 24 hours;
 //  - the History lines are given only to that link, and only to a browser on the PC itself (isThisPc);
-//  - nothing else is unlocked. Every other admin route still needs a sign-in.
+//  - the link is not a sign-in: it opens these lines and nothing else, so it adds no way into any other route.
 // The link is never written down: the History line of the recovery names the page without it (runLog.js).
 const crypto = require('crypto');
 const express = require('express');

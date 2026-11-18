@@ -2,7 +2,7 @@
 <!-- <Jun Kai start>
      The page the server opens by itself after the PC was off (backend/features/serverControl/runLog.js): the History of
      the Server Schedule, to read only and without a sign-in. It works only on the kiosk PC itself and only with the
-     link the server made for it (backend/features/serverControl/recoveryView.js). Everything else needs a sign-in. -->
+     link the server made for it (backend/features/serverControl/recoveryView.js). The link opens nothing else. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,7 +74,7 @@
             </div>
         </section>
 
-        <p class="recovery-foot">Read only. This view works on this PC only and ends when the kiosk programs stop or after 24 hours. Policies, controls and every other admin page need a sign-in.</p>
+        <p class="recovery-foot">Read only. This view works on this PC only and ends when the kiosk programs stop or after 24 hours. To change anything, sign in to the admin page.</p>
     </main>
 
     <script src="/admin/js/historyLines.js"></script>
