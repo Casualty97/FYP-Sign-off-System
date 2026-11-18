@@ -419,7 +419,12 @@ app.use(session({
 }));
 // <Jun Kai start> "Keep me signed in for 1 day": a valid token cookie signs the admin back in (backend/core/rememberMe.js)
 const { restore: rememberRestore, router: rememberRoutes } = require('./core/rememberMe');
+// an admin account that was deleted or changed while signed in is signed out at its next request, on every path.
+// It stands before the restore below, so a kept sign-in comes back with the account as it is now, or not at all
+const adminSessions = require('./core/adminSessions');
+app.use(adminSessions.dropEnded);
 app.use('/api/admin', rememberRestore);
+app.use('/api/pledgeboard/admin', rememberRestore); // the admin page's pledge routes ask for a sign-in too
 app.use('/api/admin/remember', rememberRoutes);
 // sign-out after no activity: the minutes every admin page counts (backend/core/idleSignOut.js)
 const { router: idleSignOutRoutes } = require('./core/idleSignOut');

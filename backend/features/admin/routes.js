@@ -253,6 +253,7 @@ const router = express.Router();
 const auth = require('../../core/auth');
 // <Jun Kai start>
 const rememberMe = require('../../core/rememberMe');
+const adminSessions = require('../../core/adminSessions'); // <Jun Kai/> ends the sign-ins of a deleted or changed account
 // <Jun Kai end>
 const bcrypt = require('bcrypt');
 const lostFoundStore = require('../lostFound/store'); // changes made by nick
@@ -921,6 +922,7 @@ router.post('/login', (req, res) => {
             username: user.username,
             role: user.role
         };
+        adminSessions.stamp(req.session); // <Jun Kai/> when this sign-in was made
         
         logAudit('LOGIN', username, null, null, req);
         // <Jun Kai start> "Keep me signed in for 1 day": a token cookie for this browser (backend/core/rememberMe.js)
@@ -3758,6 +3760,7 @@ router.delete('/users/:id', auth.requireAuth, auth.requireAdmin, (req, res) => {
                 if (this.changes === 0) {
                     return res.status(404).json({ error: 'User not found or already deleted' });
                 }
+                adminSessions.end(targetUser.id); // <Jun Kai/> a deleted admin is signed out wherever it is signed in
                 
                 res.json({ 
                     success: true, 
@@ -3876,6 +3879,7 @@ router.delete('/users/:id/permanent', auth.requireAuth, auth.requireAdmin, (req,
                 if (this.changes === 0) {
                     return res.status(404).json({ error: 'User not found or not deleted' });
                 }
+                adminSessions.end(deletedUser.id); // <Jun Kai/>
                 
                 console.debug('✅ User PERMANENTLY DELETED:', { 
                     userId: id,
@@ -4026,6 +4030,9 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                     }
                     
                     console.debug('✅ systemadmin account updated successfully:', { changes: this.changes, id });
+                    // <Jun Kai start> a new password signs the account out everywhere but on this browser
+                    adminSessions.accountChanged(req, targetUser, { passwordChanged: !!(password && password.trim() !== '') });
+                    // <Jun Kai end>
                     
                     // Get the updated user data
                     const getUpdatedUserQuery = 'SELECT * FROM admin_users WHERE id = ?';
@@ -4101,6 +4108,10 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                     }
                     
                     console.debug('✅ User updated successfully:', { changes: this.changes, id });
+                    // <Jun Kai start> a session holds the name and role from the sign-in: an account with a new name,
+                    // role or password signs in again; an admin who edited their own account stays signed in here
+                    adminSessions.accountChanged(req, targetUser, { username, role, passwordChanged: !!(password && password.trim() !== '') });
+                    // <Jun Kai end>
                     
                     // Get the updated user data
                     const getUpdatedUserQuery = 'SELECT * FROM admin_users WHERE id = ?';

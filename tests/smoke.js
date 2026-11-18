@@ -371,6 +371,10 @@ async function archiveStep(cookie) {
     await expect('GET /api/admin/audit-logs without a session is refused', `${BASE}/api/admin/audit-logs`, (r) => r.status === 401);
     await expect('POST /api/admin/users without a session is refused, whatever the x-username header says', `${BASE}/api/admin/users`, (r) => r.status === 401,
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': ADMIN_USER }, body: JSON.stringify({ username: 'smoke_nobody', full_name: 'Smoke Nobody', role: 'system_admin', password: 'SmokeNobody123!' }) });
+    // the admin page's pledge routes: the same router is on the kiosk server, where nobody signs in
+    await expect('GET /api/pledgeboard/admin/pledges without a session is refused', `${BASE}/api/pledgeboard/admin/pledges`, (r) => r.status === 401);
+    await expect('PUT /api/pledgeboard/admin/topics without a session is refused', `${BASE}/api/pledgeboard/admin/topics`, (r) => r.status === 401,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topics: [] }) });
     await expect('PUT /api/admin/sign-in-settings without a session is refused', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     // <Jun Kai end>
     let cookie = '';
@@ -400,6 +404,7 @@ async function archiveStep(cookie) {
     if (cookie) {
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
+      await expect('GET /api/pledgeboard/admin/pledges with the session', `${BASE}/api/pledgeboard/admin/pledges`, (r) => r.body && r.body.success === true && Array.isArray(r.body.pledges) || r.text.slice(0, 160), { headers: { cookie } }); // <Jun Kai/>
       await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai start>
       await expect('GET /api/admin/health/history with the session', `${BASE}/api/admin/health/history`, (r) => r.body && r.body.success === true && (r.body.history === null || (r.body.history.slots === 48 && typeof r.body.history.checks === 'object')) || r.text.slice(0, 160), { headers: { cookie } });

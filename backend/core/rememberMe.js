@@ -15,6 +15,7 @@ const LIFETIME_MS = 24 * 60 * 60 * 1000;
 const MAX_PER_USER = 10;
 const FILE_NAME = 'remember-tokens.json';
 const db = () => require('./db');
+const adminSessions = require('./adminSessions');
 
 const sha256 = (text) => crypto.createHash('sha256').update(String(text)).digest('hex');
 // a short fingerprint of the stored password hash: a new password ends every token made with the old one
@@ -120,6 +121,7 @@ function restore(req, res, next) {
         req.session.regenerate((regenErr) => {
             if (regenErr) return next();
             req.session.user = { id: user.id, username: user.username, role: user.role };
+            adminSessions.stamp(req.session);
             req.session.rememberUntil = record.expiresAt;
             next();
         });

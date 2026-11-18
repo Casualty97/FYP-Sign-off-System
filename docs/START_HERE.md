@@ -202,8 +202,9 @@ The contract checks catch the mistakes that are easy to make in a page with shar
 points to a route that exists, every `onclick="..."` names a function that exists, every `getElementById('...')`
 has a matching element, no function is declared twice across the admin page, every `process.env.X` is listed in
 `.env.example`, every table name exists in `schema.sql` or a migration, CDN scripts are pinned to a version, every
-route in `backend/features/admin/routes.js` starts with a sign-in check (`auth.requireAuth`, or
-`auth.requireAuth, auth.requireAdmin` for system admins only), and the route table matches
+route in `backend/features/admin/routes.js` and every `/admin` route in `backend/features/pledgeboard/routes.js`
+starts with a sign-in check (`auth.requireAuth`, or `auth.requireAuth, auth.requireAdmin` for system admins only),
+and the route table matches
 `tests/contracts/routes.snapshot.txt`. After adding or renaming a route run
 `npm run routes:update` and commit the snapshot with your change, and add a line for it in `tests/smoke.js`.
 
