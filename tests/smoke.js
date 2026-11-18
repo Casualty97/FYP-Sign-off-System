@@ -97,6 +97,8 @@ async function archiveStep(cookie) {
   const put = (body) => ({ ...send(body), method: 'PUT' });
   let savedLeaves = null; // the "Leaves on the tree" choice to put back
   let leafId = null;      // the seeded feedback id, whose kept leaf is removed at the end
+  let vipName = null;     // the seeded VIP: its name on the VIP list and its visitor row are removed at the end
+  let vipUserId = null;
   const plain = (text) => String(text).replace(/TypeError|ReferenceError/g, 'Error'); // those words fail the CI log check
   const check = (ok, name, detail) => (ok ? pass(name) : fail(detail ? `${name}: ${plain(detail)}` : name));
 
@@ -146,6 +148,12 @@ async function archiveStep(cookie) {
     const photoFiles = [path.join(ROOT, 'uploads', 'photos', photoId), path.join(ROOT, 'uploads', 'processed', processedPhotoId), path.join(ROOT, report.body.itemPhotoPath)];
     const onDisk = photoFiles.filter((f) => fs.existsSync(f)).length;
     check(onDisk === 3, `the 3 seeded photo files are in this checkout's uploads folder (${onDisk}/3)`);
+    // a VIP leaf of the same age: a name on the VIP list with long-term consent, which the archive must leave alone
+    vipName = `Vip Smoke ${stamp}`;
+    await conn.query('INSERT INTO vip_management (name) VALUES (?)', [vipName]);
+    const [vipUser] = await conn.query('INSERT INTO users (name, visit_count, created_at, last_visit) VALUES (?, 1, ?, ?)', [vipName, old, old]);
+    vipUserId = vipUser.insertId;
+    const [vipFeedback] = await conn.query("INSERT INTO feedback (user_id, comment, metadata, data_retention, created_at, is_active) VALUES (?, ?, '{}', 'longterm', ?, 1)", [vipUserId, `Vip smoke pledge ${stamp}`, old]);
 
     // running totals before the delete: the deleted rows go into deleted_record_counts, so the kiosk count must not drop
     const tallyOf = async () => Object.fromEntries((await conn.query('SELECT kind, SUM(record_count) AS n FROM deleted_record_counts GROUP BY kind'))[0].map((t) => [t.kind, Number(t.n)]));
@@ -172,11 +180,13 @@ async function archiveStep(cookie) {
     const leafLabel = nameShown ? 'A. S.' : 'Visitor';
     leafId = row.id;
     const before = new Date(Date.now() + 8 * 3600 * 1000 - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10); // a year ago, as a Singapore date
-    const criteria = { types: ['feedback', 'lostFound'], feedbackBefore: before, lostFoundBefore: before, onlyResolved: false, includePhotos: true, only: { feedbackIds: [row.id], lostFoundIds: [reportId] } };
-    await expect('POST /api/admin/visitor-archive/preview counts the seeded records', `${API}/preview`, (r) => {
+    const criteria = { types: ['feedback', 'lostFound'], feedbackBefore: before, lostFoundBefore: before, onlyResolved: false, includePhotos: true, only: { feedbackIds: [row.id, vipFeedback.insertId], lostFoundIds: [reportId] } };
+    await expect('POST /api/admin/visitor-archive/preview counts the seeded records and leaves the VIP leaf out', `${API}/preview`, (r) => {
       const c = (r.body && r.body.counts) || {};
-      return c.feedback === 1 && c.visitors === 1 && c.visitorsDeleted === 1 && c.answers === 1 && c.likes === 1 && c.lostFound === 1 && c.photos === 3 && c.missingPhotos === 0 && c.leaves === 1 && c.leavesNamed === (nameShown ? 1 : 0) || r.text.slice(0, 200);
+      return c.feedback === 1 && c.visitors === 1 && c.visitorsDeleted === 1 && c.answers === 1 && c.likes === 1 && c.lostFound === 1 && c.photos === 3 && c.missingPhotos === 0 && c.leaves === 1 && c.leavesNamed === (nameShown ? 1 : 0) && c.vipLeaves === 1 || r.text.slice(0, 200);
     }, send(criteria));
+    await expect('POST /api/admin/visitor-archive/runs with only the VIP leaf says there is nothing to archive', `${API}/runs`, (r) => r.status === 400 && /VIP leaves stay on the tree/.test((r.body && r.body.error) || '') || r.text.slice(0, 200),
+      send({ ...criteria, types: ['feedback'], only: { feedbackIds: [vipFeedback.insertId] }, password: ADMIN_PASS, deleteAfter: true }));
 
     archiveDir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'kiosk-archive-'));
     const started = await get(`${API}/runs`, send({ ...criteria, password: ADMIN_PASS, deleteAfter: true, folder: archiveDir }));
@@ -234,6 +244,9 @@ async function archiveStep(cookie) {
       if (Number(count.n)) left.push(`${table} ${count.n}`);
     }
     check(!left.length, 'the archived rows are gone from users, feedback, feedback_answers, pledge_likes and lost_found_reports', `still there: ${left.join(', ')}`);
+    const [[vipLeft]] = await conn.query('SELECT COUNT(*) AS n FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.id = ? AND u.id = ?', [vipFeedback.insertId, vipUserId]);
+    const [[vipKept]] = await conn.query('SELECT COUNT(*) AS n FROM archived_leaves WHERE feedback_id = ?', [vipFeedback.insertId]);
+    check(Number(vipLeft.n) === 1 && Number(vipKept.n) === 0, 'the VIP leaf of the same age was not archived: its submission and its visitor are still in the database');
     const tallyAfter = await tallyOf();
     const grew = (kind) => (tallyAfter[kind] || 0) - (tallyBefore[kind] || 0);
     check(['feedback', 'pledge', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1) && grew('leaf') === 0, 'the deleted rows were added to deleted_record_counts (1 feedback, 1 pledge, 1 visitor, 1 lost & found) and the leaf that stays was not counted', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
@@ -256,6 +269,10 @@ async function archiveStep(cookie) {
       const empty = Object.entries(leaf).filter(([, value]) => value === undefined || value === 'undefined').map(([key]) => key);
       return leaf.archived === true && leaf.name === leafLabel && leaf.pledgeSnippet === '' && leaf.pledgeTopic === '' && leaf.badgeKey === 'sustainable-living-advocate'
         && !!leaf.badgeName && !!leaf.privacyLabel && !empty.length && !text.includes(name) && !r.text.includes(pledge) && !r.text.includes(email) || text.slice(0, 300);
+    });
+    await expect(`GET /api/tree?year=${seededYear} still shows the VIP leaf in gold with its name`, `${BASE}/api/tree?year=${seededYear}`, (r) => {
+      const leaf = (Array.isArray(r.body) ? r.body : []).find((item) => item.id === vipFeedback.insertId);
+      return leaf && leaf.isVip === true && leaf.name === vipName && !leaf.archived || `leaf ${vipFeedback.insertId}: ${JSON.stringify(leaf || null).slice(0, 200)}`;
     });
     const [[keptLeaf]] = await conn.query('SELECT * FROM archived_leaves WHERE feedback_id = ?', [row.id]);
     check(keptLeaf && keptLeaf.label === leafLabel && keptLeaf.badge_key === 'sustainable-living-advocate' && Number(keptLeaf.is_vip) === 0 && keptLeaf.archive_id === runId
@@ -292,6 +309,8 @@ async function archiveStep(cookie) {
     // a step that stopped early still puts the setting back, and the seeded leaf never stays on a developer's tree
     if (savedLeaves) await get(`${API}/settings`, put({ leaves: savedLeaves })).catch(() => {});
     if (leafId) await conn.query('DELETE FROM archived_leaves WHERE feedback_id = ?', [leafId]).catch(() => {});
+    if (vipUserId) await conn.query('DELETE FROM feedback WHERE user_id = ?', [vipUserId]).then(() => conn.query('DELETE FROM users WHERE id = ?', [vipUserId])).catch(() => {});
+    if (vipName) await conn.query('DELETE FROM vip_management WHERE name = ?', [vipName]).catch(() => {});
     await conn.end().catch(() => {});
   }
 }

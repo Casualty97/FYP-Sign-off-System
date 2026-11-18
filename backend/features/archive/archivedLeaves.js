@@ -40,6 +40,16 @@ function nameShown(retention) {
     return value === 'longterm' || value === 'indefinite';
 }
 
+// The tree's rule for a gold leaf (mapRowsToVisitors in the tree routes): the name is on the VIP list and the tree
+// shows the name. vipNames: the lower-case names of vip_management (vipNameSet).
+function isVipLeaf(name, retention, vipNames) {
+    const shown = String(name || '').trim();
+    return nameShown(retention) && !!shown && vipNames.has(shown.toLowerCase());
+}
+
+// rows of vip_management -> the names the way the tree compares them
+const vipNameSet = (rows) => new Set((rows || []).map((v) => String(v.name || '').trim().toLowerCase()).filter(Boolean));
+
 // Initials only when the admin chose them and the tree was showing the name: archiving never shows more than before
 function labelFor(mode, name, shown) {
     return mode === 'initials' && shown ? initialsOf(name) : DEFAULT_LABEL;
@@ -73,7 +83,7 @@ function leafRow(record, { mode, vipNames, archiveId = null, archivedAt = new Da
         label: labelFor(mode, name, shown).slice(0, 40),
         badge_key: first,
         badge_keys: all.length > 1 ? all.join(',').slice(0, 255) : null,
-        is_vip: shown && !!name && vipNames.has(name.toLowerCase()) ? 1 : 0,
+        is_vip: isVipLeaf(name, record.data_retention, vipNames) ? 1 : 0,
         archive_id: archiveId,
         archived_at: archivedAt
     };
@@ -109,7 +119,7 @@ function keeper({ mode, details, archiveId, archivedAt = new Date(), badgeKeysOf
     return async (tx, rows, kindsOf) => {
         const drawn = rows.filter((row) => kindsOf(row).includes(deletedCounts.KINDS.leaf));
         if (!keeps(mode) || !drawn.length) return new Set();
-        if (!vipNames) vipNames = new Set((await tx.all('SELECT name FROM vip_management', [])).map((v) => String(v.name || '').trim().toLowerCase()).filter(Boolean));
+        if (!vipNames) vipNames = vipNameSet(await tx.all('SELECT name FROM vip_management', []));
         const leaves = drawn.map((row) => leafRow({ ...(details.get(row.id) || {}), id: row.id, created_at: row.created_at }, { mode, vipNames, archiveId, archivedAt, badgeKeysOf }));
         // a row left over from before a purge (the same id used again) is replaced, never an error
         await tx.run(
@@ -239,7 +249,7 @@ async function countsForRuns(runIds) {
 }
 
 module.exports = {
-    DEFAULT_LABEL, DEFAULT_BADGE, PRIVACY_LABEL, COLUMNS, keeps, initialsOf, nameShown, labelFor, leafRow, countDrawn, detailsOf, keeper,
+    DEFAULT_LABEL, DEFAULT_BADGE, PRIVACY_LABEL, COLUMNS, keeps, initialsOf, nameShown, isVipLeaf, vipNameSet, labelFor, leafRow, countDrawn, detailsOf, keeper,
     treeLeaf, mergeLeaves, yearRange, forYear, withKept, byYear, mergeYearBook, addToYearBook, countsForRuns
 };
 // <Jun Kai end>

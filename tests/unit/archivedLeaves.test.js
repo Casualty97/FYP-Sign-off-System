@@ -112,6 +112,21 @@ test('a kept leaf: badge keys from the pledge topic, VIP and initials only for a
     assert.ok(leaves.leafRow(record({ name: `${'A'.repeat(60)} ${'B'.repeat(60)}` }), options('initials')).label.length <= 40);
 });
 
+test('a VIP leaf is a name on the VIP list that the tree shows: the rule that keeps a submission out of the archive', () => {
+    const vipNames = leaves.vipNameSet([{ name: ' Grace Lim ' }, { name: 'PRESIDENT' }, { name: '' }, { name: null }, {}]);
+    assert.deepEqual([...vipNames], ['grace lim', 'president'], 'names are trimmed and lower-cased, empty ones dropped');
+    assert.equal(leaves.vipNameSet(null).size, 0);
+    assert.equal(leaves.isVipLeaf('Grace Lim', 'longterm', vipNames), true);
+    assert.equal(leaves.isVipLeaf('  grace LIM ', 'INDEFINITE', vipNames), true, 'no case, no outer spaces, like the tree');
+    assert.equal(leaves.isVipLeaf('Grace Lim', 'temporary', vipNames), false, 'the tree hides this name, so the leaf is not gold');
+    assert.equal(leaves.isVipLeaf('Grace Lim', null, vipNames), false);
+    assert.equal(leaves.isVipLeaf('Grace Lim Tan', 'longterm', vipNames), false, 'a longer name is another visitor');
+    assert.equal(leaves.isVipLeaf('Grace', 'longterm', vipNames), false, 'part of a name is another visitor');
+    assert.equal(leaves.isVipLeaf('', 'longterm', vipNames), false);
+    assert.equal(leaves.isVipLeaf(null, 'longterm', vipNames), false);
+    assert.equal(leaves.isVipLeaf('Grace Lim', 'longterm', new Set()), false, 'an empty VIP list has no VIP leaves');
+});
+
 // what the delete step locks for each feedback row: three leaves on the tree, one flagged, one hidden by an admin
 const LOCKED = [
     { id: 1, created_at: at('2024-03-05T04:00:00Z'), is_active: 1, comment: 'I pledge to recycle' },
