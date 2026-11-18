@@ -11,6 +11,7 @@ const path = require('path');
 const stopNote = require('../../backend/core/stopNote');
 const powerEvents = require('../../backend/features/serverControl/powerEvents');
 const runLog = require('../../backend/features/serverControl/runLog');
+const recoveryView = require('../../backend/features/serverControl/recoveryView');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kiosk-runlog-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -267,32 +268,50 @@ function standIns(over = {}) {
             startKiosk: (callback) => { calls.kioskStarts++; callback(over.startResult || { success: true, message: 'Server started successfully' }); },
             noteStartAttempt: () => { calls.startAttempts++; },
             openUrl: (url) => { calls.opened.push(url); return over.openFails ? false : true; },
+            bootMs: () => (over.bootMs === undefined ? T0 - 24 * 60 * MIN : over.bootMs), // Windows was running since the day before
             record: (type, detail, dryRun = false, extra = {}) => calls.record.push({ type, detail, dryRun, ...extra }),
             ...over.deps
         }
     };
 }
-const URL = 'https://localhost:3000/admin';
+const URL = 'https://localhost:3000/admin/recovery.html';
 const recover = (s, over = {}) => new Promise((resolve) => runLog.recover({ url: URL, deps: s.deps, kioskWasUp: true, env: {}, done: resolve, ...over }));
 
-test('after the PC was off: the kiosk server is waited for, then the admin page is opened', async () => {
+test('after the PC was off: the kiosk server is waited for, then the History is opened', async () => {
     const s = standIns({ probe: [false, false, true] });
     await recover(s);
     assert.deepEqual([s.calls.probes, s.calls.kioskStarts, s.calls.startAttempts], [3, 0, 1], 'startAll.js started the kiosk server, so no second one is started');
     assert.deepEqual(s.calls.opened, [URL]);
     assert.equal(s.calls.record.length, 1);
     assert.deepEqual([s.calls.record[0].type, s.calls.record[0].cause, s.calls.record[0].dryRun], ['recovery', 'acted', false]);
-    assert.equal(s.calls.record[0].detail, `The PC was off and the policy "Always on" says the kiosk runs now. The kiosk server is running. The admin page was opened in the default browser (${URL}).`);
+    assert.equal(s.calls.record[0].detail, `The PC was off and the policy "Always on" says the kiosk runs now. The kiosk server is running. The History was opened in the default browser (${URL}).`);
+});
+
+test('after the PC was off: the browser gets the page with its link, and the History line never holds the link', async () => {
+    const s = standIns();
+    let made = 0;
+    await recover(s, { openTarget: () => { made++; return `${URL}#${'ab'.repeat(24)}`; } });
+    assert.deepEqual(s.calls.opened, [`${URL}#${'ab'.repeat(24)}`]);
+    assert.equal(made, 1);
+    assert.ok(!JSON.stringify(s.calls.record).includes('abab'), 'the link is not written into the History');
+    assert.match(s.calls.record[0].detail, /The History was opened in the default browser \(https:\/\/localhost:3000\/admin\/recovery\.html\)\.$/);
+
+    const none = standIns({ policies: [STOP_POLICY] });
+    await recover(none, { openTarget: () => { made++; return URL; } });
+    assert.equal(made, 1, 'no link is made when nothing is opened');
+    const dry = standIns();
+    await recover(dry, { env: { KIOSK_AUTOMATION: 'dry-run' }, openTarget: () => { made++; return URL; } });
+    assert.equal(made, 1, 'a dry run makes no link either');
 });
 
 test('after the PC was off: a kiosk server that never answers is started, and a failed start is said', async () => {
     const s = standIns({ probe: [false], waitMs: 5 });
     await recover(s);
     assert.equal(s.calls.kioskStarts, 1);
-    assert.match(s.calls.record[0].detail, /The kiosk server was started\. The admin page was opened/);
+    assert.match(s.calls.record[0].detail, /The kiosk server was started\. The History was opened/);
     const failing = standIns({ probe: [false], waitMs: 5, startResult: { success: false, error: 'Kiosk server did not become reachable within 30 seconds of the start command' }, openFails: true });
     await recover(failing);
-    assert.match(failing.calls.record[0].detail, /The kiosk server did not start: Kiosk server did not become reachable within 30 seconds of the start command\. The admin page could not be opened/);
+    assert.match(failing.calls.record[0].detail, /The kiosk server did not start: Kiosk server did not become reachable within 30 seconds of the start command\. The History could not be opened in the default browser/);
 });
 
 test('after the PC was off: off hours, automation off and a dry run start and open nothing', async () => {
@@ -360,7 +379,11 @@ test('a start writes the stop of the last run with its own time, then the start,
     const cut = await beginWith({ previous: state(), events: POWER_CUT, startedBy: 'logon' });
     assert.equal(cut.asked.toISOString(), iso(-2 * MIN), 'the events are read from 2 minutes before the last "still alive"');
     assert.deepEqual(cut.calls.record.map((r) => [r.type, r.cause, r.at]), [['stopped', 'power-lost', iso(0)], ['started', 'pc-start', iso(10 * 60 * MIN)], ['recovery', 'acted', undefined]]);
-    assert.deepEqual(cut.calls.opened, [URL]);
+    assert.equal(cut.calls.opened.length, 1);
+    const [page, link] = cut.calls.opened[0].split('#');
+    assert.equal(page, URL, 'the browser gets the History page');
+    assert.equal(recoveryView.valid(link), true, 'with the link that this start made for it');
+    assert.ok(!JSON.stringify(cut.calls.record).includes(link), 'and the link is not in the History');
     assert.equal(cut.plan.act, true);
 
     const closed = await beginWith({ previous: state(), note: { at: iso(4000), reason: 'ctrl-c', detail: '' }, events: [] });
@@ -374,7 +397,9 @@ test('a start writes the stop of the last run with its own time, then the start,
 
     const noLog = await beginWith({ previous: state(), events: null });
     assert.deepEqual(noLog.calls.record.map((r) => r.type), ['stopped', 'started'], 'events that cannot be read never stop the start from being written');
-    assert.ok(['unknown', 'pc-off'].includes(noLog.calls.record[0].cause), 'and the stop does not claim to know more than it does');
+    assert.equal(noLog.calls.record[0].cause, 'unknown', 'and the stop does not claim to know more than it does');
+    const noLogOff = await beginWith({ previous: state(), events: null, over: { bootMs: T0 + 30 * MIN } });
+    assert.deepEqual(noLogOff.calls.record.map((r) => [r.type, r.cause]), [['stopped', 'pc-off'], ['started', 'pc-start'], ['recovery', 'acted']], 'without the events, a Windows that started after the last "still alive" still shows the PC was off');
     const half = await beginWith({ previous: '{"pid": 1, "aliveAt": "2026-1', events: [] });
     assert.deepEqual(half.calls.record.map((r) => [r.type, r.cause]), [['stopped', 'ended'], ['started', 'manual']], 'a half-written record does not throw');
     runLog.reset();

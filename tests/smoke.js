@@ -430,6 +430,11 @@ async function archiveStep(cookie) {
         return events.some((e) => e.type === 'started' && !!e.detail) && ordered && a.eventsTotal >= events.length || `events=${JSON.stringify(events).slice(0, 200)}`;
       }, { headers: { cookie } });
       await expect('GET /api/admin/server/automation sends at most 10 History lines without a limit', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.automation && Array.isArray(r.body.automation.events) && r.body.automation.events.length <= 10 || r.text.slice(0, 160), { headers: { cookie } });
+      // the page that opens after the PC was off: it is served without a sign-in, and its History lines need the link of that
+      // start (none was made here: automation is off), which a signed-in admin does not replace
+      await expect('GET /admin/recovery.html is served without a sign-in', `${BASE}/admin/recovery.html`, (r) => r.status === 200 && r.text.includes('id="recovery-story"') || r.text.slice(0, 120));
+      await expect('GET /api/admin/recovery-view without a link is refused', `${BASE}/api/admin/recovery-view`, (r) => r.status === 401 && !(r.body && r.body.events) || r.text.slice(0, 160));
+      await expect('GET /api/admin/recovery-view with a wrong link is refused, signed in or not', `${BASE}/api/admin/recovery-view`, (r) => r.status === 401 && !(r.body && r.body.events) || r.text.slice(0, 160), { headers: { cookie, 'X-Recovery-View': 'f'.repeat(48) } });
       // <Jun Kai end>
     }
 

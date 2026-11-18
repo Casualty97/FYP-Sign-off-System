@@ -6,10 +6,10 @@
 
 Look (12 Nov 2026, picked by the user from mock-ups; supervisor meeting 04 item 1): four tiles on top (Next stop, Next start, Right now, Mode), then the plan as a month calendar like a phone calendar: each day shows the policies that decide it as chips in their colours and the hours the kiosk runs, and clicking a day opens its week in the 7 days view (the bars now in the colour of each policy). Each policy has one of ten colours (field color, picked in its form; a new policy takes the first colour no other Active policy has; without one it gets a colour from its id); Stop policies are always grey. GET /api/admin/server-schedules/preview allows up to 42 days for the month. Then the policies, the controls and the automation details.
 
-- backend/features/serverControl/runLog.js (why the kiosk stopped and started, and the check after the PC was off), powerEvents.js (reads the Windows System event log), backend/core/stopNote.js (the note a program leaves when it is closed), startAll.js at the project root (writes that note too)
+- backend/features/serverControl/runLog.js (why the kiosk stopped and started, and the check after the PC was off), powerEvents.js (reads the Windows System event log), recoveryView.js (the History to read only, for the page that opens after the PC was off), backend/core/stopNote.js (the note a program leaves when it is closed), startAll.js at the project root (writes that note too)
 - backend/features/serverControl/policies.js (the policy rules: priority order, which policy decides a moment, the on/off timeline, wake times, the 7-day preview; unit tests in tests/unit/policies.test.js), control.js (schedule, mode and automation files, kiosk probe, start and hibernate actions), scheduler.js (the once-a-minute runner, started by server.js only), wakeTask.js (Windows "ESG Kiosk Wake" scheduled task)
 - routes still inside backend/features/admin/routes.js; files backend/data/kiosk-schedules.json, server-control-mode.json, server-automation.json
-- frontend/admin/js/serverControl.js, countdown.js, kioskReload.js
+- frontend/admin/js/serverControl.js, countdown.js, kioskReload.js, historyLines.js (the names and rows of the History lines); frontend/admin/recovery.html with js/recoveryView.js (the page that opens after the PC was off)
 - hibernate.bat, restart-app.bat, startup-monitor.bat at the project root
 
 **What it does**
@@ -50,12 +50,26 @@ Sleep and hibernation are only recorded here. Putting the PC to sleep, waking it
 
 When the server starts and the PC was off since its last run (a power cut or a normal shutdown, found as above), it checks the policies once (`recover` in runLog.js):
 
-- Automatic mode and a policy says the kiosk runs now: it waits up to 90 seconds for the kiosk server (startAll.js starts it at the same moment), starts it if it still does not answer, and opens the admin page in the default browser of the person signed in (`https://localhost:<PORT>/admin`; on Windows through `rundll32 url.dll,FileProtocolHandler`). The browser shows the certificate warning the first time, as it does for the desktop link.
+- Automatic mode and a policy says the kiosk runs now: it waits up to 90 seconds for the kiosk server (startAll.js starts it at the same moment), starts it if it still does not answer, and opens the History in the default browser of the person signed in to Windows (`https://localhost:<PORT>/admin/recovery.html`; on Windows through `rundll32 url.dll,FileProtocolHandler`). The browser shows the certificate warning the first time, as it does for the desktop link.
 - Automatic mode and off hours (a Stop policy, or no policy): nothing is started or opened; the scheduler starts the kiosk when the next policy begins.
 - Manual mode: the policies are paused, so the kiosk comes back the way it was: checked and opened if the kiosk server answered before the stop, left alone if it did not.
 - `KIOSK_AUTOMATION=off` (laptops, CI): nothing is started or opened. `dry-run`: only written down.
 
 One History line says what was decided and done ("PC back on: kiosk checked" or "PC back on: nothing started"). A start that did not follow the PC being off (a restart of the programs, a sign-out and sign-in) opens nothing.
+
+**The page that opens: the History without a sign-in, to read only (18 Nov 2026)**
+
+The first version opened `/admin`, which stopped at the login page: nobody is at the PC when it opens, so nothing was shown. Now `frontend/admin/recovery.html` opens. It shows the History straight away: "What happened" (the stop, the start and the "PC back on" line of this start, oldest first), "Since then" (updated every minute) and "Before that".
+
+It is not a way into the admin page. A sign-in without a password after a power cut would let anyone who switches the PC off and on into the admin page, on a screen that visitors can see. So the page gets the History lines and nothing else:
+
+- The server makes a link when it opens the browser (`issue` in `backend/features/serverControl/recoveryView.js`): 48 random hex characters after `#` in the address. The page takes it off the address at once and keeps it for that tab only.
+- `GET /api/admin/recovery-view` gives the newest 60 History lines only to a request that carries that link in the `X-Recovery-View` header and that comes from the PC itself (the address of the connection, `127.0.0.1` or `::1`, never a header). Another machine gets 403, a wrong or missing link 401.
+- The link is kept in memory only. It ends when the kiosk programs stop, when the next one is made, or after 24 hours. It is never written down: the History line names the page without it.
+- Every other admin route still needs a sign-in. The page has a "Sign in to the admin page" button that leads to `/admin#schedule-history`; after the sign-in the admin page opens the Server Schedule page with its History drawer (`openAdminLinkTarget` in core.js).
+- A browser that chose "Keep me signed in" and is still accepted by the server skips the read-only page and goes to the admin page with the History drawer open.
+
+The names and rows of the History lines are in `frontend/admin/js/historyLines.js`, shared by the drawer and this page.
 
 Three things had to change for an unattended start to work:
 
@@ -93,7 +107,7 @@ Not tested on real hardware yet: the power-cut line is proven with recorded even
 **Task-sheet items for this feature**
 
 - Enhance Hibernation setting via policy-based setting (meeting 03: Active and Stop policies, single weekdays, specific beats general, drag-and-drop priority).
-- Supervisor, 18 Nov 2026: record when and why the kiosk stopped and started, and after a power shutdown check the policy, start the kiosk and open the admin page: built 18 Nov 2026 (see the two sections above).
+- Supervisor, 18 Nov 2026: record when and why the kiosk stopped and started, and after a power shutdown check the policy, start the kiosk and open the admin page: built 18 Nov 2026 (see the sections above). After the test on 18 Nov 2026 the page that opens is the History to read only, not the login page.
 - Install and uninstall scripts for the whole application: built 12 Nov 2026, see [install.md](install.md) (`install.cmd`, `uninstall.cmd`).
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**

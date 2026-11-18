@@ -424,6 +424,9 @@ app.use('/api/admin/remember', rememberRoutes);
 // sign-out after no activity: the minutes every admin page counts (backend/core/idleSignOut.js)
 const { router: idleSignOutRoutes } = require('./core/idleSignOut');
 app.use('/api/admin/sign-in-settings', idleSignOutRoutes);
+// the History to read only, for the page that opens by itself after the PC was off (serverControl/recoveryView.js)
+const { router: recoveryViewRoutes } = require('./features/serverControl/recoveryView');
+app.use('/api/admin/recovery-view', recoveryViewRoutes);
 // <Jun Kai end>
 
 // Pulse screen is public so it can be shown without an admin session.

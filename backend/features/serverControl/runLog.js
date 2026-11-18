@@ -10,7 +10,8 @@
 //    was ended". The stop and the new start go into the History list of the Server Schedule page.
 //  - A "still alive" that comes much too late means the PC was asleep or hibernating in between: also recorded.
 //  - When the PC was off since the last run, the policies are checked once (recover): if the kiosk should run now, the
-//    kiosk server is made sure of and the admin page is opened in the default browser.
+//    kiosk server is made sure of and the History is opened in the default browser, on a page that needs no sign-in
+//    and shows nothing else (recoveryView.js).
 //
 // Recording is always on. Starting the kiosk and opening the browser follow KIOSK_AUTOMATION (off: nothing is
 // started or opened; dry-run: only written down). Sleep and hibernation are only recorded here, never caused or
@@ -24,6 +25,7 @@ const stopNote = require('../../core/stopNote');
 const control = require('./control');
 const policies = require('./policies');
 const powerEvents = require('./powerEvents');
+const recoveryView = require('./recoveryView');
 
 const STATE_FILE = paths.dataFile('run-state.json');
 const BEAT_MS = 20 * 1000;
@@ -194,7 +196,9 @@ function waitForKiosk(deps, waitMs, done, startedMs = Date.now()) {
 }
 
 // The check after the PC was off. Writes one History line that says what was decided and done. done() when finished.
-function recover({ url, deps, kioskWasUp, env = process.env, done = () => {} }) {
+// url: the page that is opened, as the History line names it. openTarget(): the address the browser really gets (the
+// page with its link), made only when the browser is opened and never written down.
+function recover({ url, openTarget = () => url, deps, kioskWasUp, env = process.env, done = () => {} }) {
     const automation = automationSetting(env);
     const plan = recoveryPlan({
         automation,
@@ -207,14 +211,14 @@ function recover({ url, deps, kioskWasUp, env = process.env, done = () => {} }) 
         return done(plan);
     }
     if (automation === 'dry-run') {
-        deps.record('recovery', `The PC was off and ${plan.reason}. The kiosk server would be checked and the admin page opened (${url}).`, true, { cause: 'acted' });
+        deps.record('recovery', `The PC was off and ${plan.reason}. The kiosk server would be checked and the History opened (${url}).`, true, { cause: 'acted' });
         return done(plan);
     }
     deps.noteStartAttempt(); // the scheduler leaves the kiosk start of the next minutes to this check
     waitForKiosk(deps, deps.waitMs === undefined ? KIOSK_WAIT_MS : deps.waitMs, (up) => {
         const finish = (kioskText) => {
-            const opened = deps.openUrl(url);
-            deps.record('recovery', `The PC was off and ${plan.reason}. ${kioskText} ${opened ? `The admin page was opened in the default browser (${url}).` : `The admin page could not be opened (${url}).`}`, false, { cause: 'acted' });
+            const opened = deps.openUrl(openTarget());
+            deps.record('recovery', `The PC was off and ${plan.reason}. ${kioskText} ${opened ? `The History was opened in the default browser (${url}).` : `The History could not be opened in the default browser (${url}).`}`, false, { cause: 'acted' });
             done(plan);
         };
         if (up) return finish('The kiosk server is running.');
@@ -294,6 +298,7 @@ function begin({ port, https = true, startedBy = process.argv.includes('--logon'
         readMode: () => control.readModeConfig().mode,
         readPolicies: () => control.readSchedulesConfig().schedules,
         openUrl,
+        bootMs: () => Date.now() - os.uptime() * 1000, // when Windows started, by its uptime
         ...given
     };
     run.stateFile = given.stateFile || STATE_FILE;
@@ -316,13 +321,13 @@ function begin({ port, https = true, startedBy = process.argv.includes('--logon'
     const finish = (events) => {
         const afterMs = state ? ms(state.aliveAt) - MARGIN_MS : 0;
         const summary = events ? powerEvents.summarize(events, afterMs) : null;
-        const stop = classifyStop({ state, note, summary, bootMs: Date.now() - os.uptime() * 1000 });
+        const stop = classifyStop({ state, note, summary, bootMs: deps.bootMs() });
         if (stop) deps.record('stopped', stop.detail, false, { at: stop.at, cause: stop.cause });
         const start = describeStart({ stop, summary, startedBy });
         deps.record('started', start.detail, false, { at: run.startedAt.toISOString(), cause: start.cause });
         if (!stop || !stop.pcWasOff) return done({ stop, start, plan: null });
-        const url = `${https ? 'https' : 'http'}://localhost:${port}/admin`;
-        recover({ url, deps, kioskWasUp: stop.kioskWasUp, env, done: (plan) => done({ stop, start, plan }) });
+        const url = `${https ? 'https' : 'http'}://localhost:${port}/admin/recovery.html`;
+        recover({ url, openTarget: () => `${url}#${recoveryView.issue()}`, deps, kioskWasUp: stop.kioskWasUp, env, done: (plan) => done({ stop, start, plan }) });
     };
     if (state) deps.readEvents(new Date(ms(state.aliveAt) - MARGIN_MS), finish);
     else finish(null);
