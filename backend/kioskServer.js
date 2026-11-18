@@ -249,7 +249,11 @@ app.use(
     saveUninitialized: false,
     rolling: true,
     cookie: {
-      secure: sslOptions !== null,
+      // <Jun Kai start> this server listens on plain http (http.createServer below), and a "secure" cookie is never
+      // set over http, so no visitor ever had a session here. The photo download on the thank-you page needs one
+      // (backend/core/uploadsGate.js)
+      secure: false,
+      // <Jun Kai end>
       httpOnly: true,
       maxAge: 1800000,
       sameSite: 'lax',

@@ -463,14 +463,15 @@ async function archiveStep(cookie) {
       await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', page: 'feedback' }));
       // a visitor's browser opens the photo it just saved (the download on the thank-you page); another browser does not
       try {
-        const saved = await fetch(`${BASE}/api/feedback/save-photo`, json({ photo: tinyPng(), userName: 'Smoke Visitor', device: 'kiosk' }));
-        const visitor = (saved.headers.get('set-cookie') || '').split(';')[0];
-        const photoId = ((await saved.json().catch(() => ({}))) || {}).photoId;
-        if (!photoId || !visitor) fail(`POST /api/feedback/save-photo gives the visitor a session (${saved.status}, photo ${photoId ? 'saved' : 'missing'}, cookie ${visitor ? 'set' : 'missing'})`);
-        else {
-          await expect('GET /uploads/photos/<own photo> with the visitor session', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie: visitor } });
-          await expect('GET /uploads/photos/<that photo> from another browser is refused', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 401);
-          if (cookie) await expect('GET /uploads/photos/<that photo> with the admin session', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie } });
+        // on both servers: the wall kiosk is on the kiosk server, tablets and phones on the main one
+        for (const [where, server] of [['', BASE], [' on the kiosk server', KIOSK]]) {
+          const saved = await fetch(`${server}/api/feedback/save-photo`, json({ photo: tinyPng(), userName: 'Smoke Visitor', device: 'kiosk' }));
+          const visitor = (saved.headers.get('set-cookie') || '').split(';')[0];
+          const photoId = ((await saved.json().catch(() => ({}))) || {}).photoId;
+          if (!photoId || !visitor) { fail(`POST /api/feedback/save-photo${where} gives the visitor a session (${saved.status}, photo ${photoId ? 'saved' : 'missing'}, cookie ${visitor ? 'set' : 'missing'})`); continue; }
+          await expect(`GET /uploads/photos/<own photo>${where} with the visitor session`, `${server}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie: visitor } });
+          await expect(`GET /uploads/photos/<that photo>${where} from another browser is refused`, `${server}/uploads/photos/${photoId}`, (r) => r.status === 401);
+          if (cookie && server === BASE) await expect('GET /uploads/photos/<that photo> with the admin session', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie } });
           try { fs.unlinkSync(path.join(ROOT, 'uploads', 'photos', photoId)); } catch { /* already gone */ }
         }
       } catch (e) { fail(`a visitor opens its own photo: ${e.message}`); }

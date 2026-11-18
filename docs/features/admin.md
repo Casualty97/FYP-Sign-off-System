@@ -54,7 +54,7 @@ Login, session timeout, navigation between the admin pages, the dashboard with i
 - Phones are always bounced off /pledgeboard: req.session.mobileAccessGranted is set by nothing (server.js 140).
 - getSelectedIP falls back to the first adapter unless one is literally named "Wi-Fi 2" (server.js 227); set SERVER_IP on the wall PC.
 - kioskServer.js has drifted from server.js (no page gates, different static handling) if the wall browser is pointed at :3003.
-- Fixed 19 Nov 2026: restart-app.bat and startup-monitor.bat could double-launch the servers. The monitor looks twice, 10 seconds apart, before it starts them, and the restart does not start a second copy when port 3000 is in use again. Tested with stand-in copies, not with the real programs.
+- Fixed 19 Nov 2026: restart-app.bat and startup-monitor.bat could double-launch the servers. The monitor looks twice, 10 seconds apart, before it starts them; restart-app.bat is unchanged. Tested with a stand-in copy of the monitor, not with the real programs.
 - Dashboard kiosk status poller was removed because its elements never existed; the Kiosk Server badge is updated by checkServerStatus instead.
 - scripts/setup: Simulation_Generator stores bare filenames in photo_path (the app expects photos/<file>) and needs pngjs, which is not a dependency; Purge_Actuator "CLEAR ALL TEST DATA" leaves photo files and several tables behind.
 

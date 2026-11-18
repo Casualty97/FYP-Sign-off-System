@@ -10,7 +10,8 @@ function isThisPc(address) {
 // a signed-in admin, or a request made on the PC. The tests and the wall browser run on the PC; a tablet does not.
 function signedInOrThisPc(req, res, next) {
     if ((req.session && req.session.user) || isThisPc(req.socket.remoteAddress)) return next();
-    res.status(401).json({ error: 'Authentication required' });
+    // not the text of the sign-in check: the admin page signs out on that one, and this is only a line on a status card
+    res.status(401).json({ error: 'Only for a signed-in admin or a request made on the PC itself' });
 }
 
 module.exports = { isThisPc, signedInOrThisPc };
