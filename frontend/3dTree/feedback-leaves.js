@@ -218,6 +218,10 @@ const NAME_BOXES = [            // lines -> widest box inside the blade, centred
 const NAME_FONT_PX = 64;          // canvas pixels per font size
 const NAME_LIFT = 0.0006;        // how far the name sits off the leaf surface, towards the viewer
 const GOLD_GLOW = new T.Color(0xffd23f); // the 2D VIP leaf's gold glow (vipGoldPulse in tree.css)
+// In the glowing look a VIP's gold leaf already glows like the others, so it is darker there, for its name to
+// read clearly on it: the leaf dimmer, its gold pulse and the gold glow around it gentler (the natural look
+// keeps the 2D tree's pulse: up to 18% brighter, with the gold glow at up to 70%).
+const VIP_GLOWING = { leaf: 0.62, pulse: 0.05, halo: 0.25 };
 // At night (natural look) the leaves are in moonlight, as the tree is (matte-tree.js), but less dim, so they
 // and their names stay easy to read; the glowing look lights them itself.
 const NIGHT_LEAF = new T.Color(0.6, 0.65, 0.78);
@@ -1440,7 +1444,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       const gold = glow <= 0.01 && leaf.isVip && settings.vipGlow !== false && leaf.state !== 'falling'
         ? 0.55 + 0.45 * (0.5 + 0.5 * Math.sin((time / 2000) * Math.PI * 2)) // 2D vipGoldPulse, 2 s
         : 0;
-      leaf.material.color.copy(leaf.colour).lerp(NEON, glow * 0.35).multiplyScalar(1 + gold * 0.18);
+      leaf.material.color.copy(leaf.colour).lerp(NEON, glow * 0.35)
+        .multiplyScalar(leaf.isVip && leafLook.aura ? VIP_GLOWING.leaf * (1 + gold * VIP_GLOWING.pulse) : 1 + gold * 0.18);
       if (!leafLook.aura) leaf.material.color.multiply(nightLight);
       placeName(leaf);
       // Glowing look: every leaf glows in its own colour (AURA), breathing gently, each at its own pace, with
@@ -1459,7 +1464,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         }
         leaf.halo.position.copy(leaf.mesh.position);
         leaf.halo.scale.copy(haloSize.setScalar(leaf.scale * MODEL_SIZE * (glow > 0.01 ? 2.6 : 2.5)));
-        leaf.halo.material.opacity = Math.max(breathe, glow > 0.01 ? glow * 0.75 : gold * 0.7) * leaf.material.opacity;
+        leaf.halo.material.opacity = Math.max(breathe, glow > 0.01 ? glow * 0.75 : gold * (leafLook.aura ? VIP_GLOWING.halo : 0.7)) * leaf.material.opacity;
       }
       // A VIP's star of light at the leaf's tip: twinkling (brightest every SPARKLE_EVERY seconds, each leaf at
       // its own time), turning slowly, with its leaf (shown as the leaf is, and not while it falls).
