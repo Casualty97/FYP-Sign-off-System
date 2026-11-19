@@ -27,7 +27,7 @@
 //   - every leaf stays easy to see on the canopy: it is never darker than a set lightness;
 //   - in the glowing look every leaf glows like a leaf of light, green, blue or orange by its visitor's badge
 //     (Environmental, Social, Governance: ESG_GLOW_COLOURS), brightest in its middle, with glowing veins, a
-//     bright outline, a soft glow around it that breathes gently and spills round it (the bloom,
+//     bright outline in its own colour, a soft glow around it that breathes gently and spills round it (the bloom,
 //     glow-look.js), and now and then a light sweeping across it (GLOW_FRAGMENT); its name is white
 //     handwriting with a soft glow;
 //   - the names' font style, weight, colour and size are the admin's (3D Leaf Adjustments: leafNameFont,
@@ -62,18 +62,17 @@ const APPEAR_MS = 900;           // how long it takes to fade in there
 const STAGE_CLEAR_MS = 3000;     // the next new leaf appears there this long after the one before starts floating up
 const TINT_BOOST = 2.3;          // the leaf picture is mid grey: this brings the chosen colour back to strength
 const NEON = new T.Color(0x39ff14);
-const WHITE = new T.Color(0xffffff);
 const MIN_LIGHTNESS = 0.38;      // a leaf colour is shown at least this light (HSL), so it stands out on the canopy
 const OLD_MIN_LIGHTNESS = 0.24;  // an older leaf's dark shade may be this dark, so it is clearly a dark shade
-// The glowing leaf: a leaf of light in a vivid badge colour, as if lit from within, with a bright, almost
-// white outline, glowing veins and a soft glow around it (AURA). The leaf picture is an almost even grey
+// The glowing leaf: a leaf of light in a vivid badge colour, as if lit from within, with a bright outline in
+// its own colour (never white), glowing veins and a soft glow around it in its colour too (AURA). The leaf picture is an almost even grey
 // (its veins only ~5% lighter) and its normal map has clear vein relief, so the main veins are found from
 // the relief and the finer ones from the picture, keeping only clear lines. The edge is found from the
 // picture's outline: blurred (a smaller copy of the picture, its mipmap) it fades towards the edge, so 1
 // minus the blurred outline is high just inside the edge. The material's colour is the leaf colour boosted
 // by TINT_BOOST (displayColour).
-const VEIN_GLOW = 0.8;           // how brightly the veins glow
-const RIM_GLOW = 1.0;            // how brightly the leaf's outline glows
+const VEIN_GLOW = 0.65;          // how brightly the veins glow
+const RIM_GLOW = 0.6;            // how brightly the leaf's outline glows (in its own colour)
 const SHIMMER_EVERY = 7;         // seconds between the light sweeps across a leaf (each leaf at its own time)
 const SHIMMER_SWEEP = 1.3;       // seconds a sweep takes to cross the leaf
 const GLOW_FRAGMENT = `
@@ -93,16 +92,20 @@ const GLOW_FRAGMENT = `
   vec3 tint = diffuseColor.rgb / ${TINT_BOOST.toFixed(2)};
   vec3 glow = mix( tint, vec3( 1. ), .2 );   // little white, so the colour stays vivid
   vec3 hot = mix( tint, vec3( 1. ), .55 );
+  // The leaf's own colour at full brightness (its strongest channel at 1), for its outline: it glows in the
+  // leaf's colour, never white.
+  vec3 vivid = tint / max( max( tint.r, tint.g ), max( tint.b, .001 ) );
   // A light sweeping across the leaf now and then (shimmer: where the sweep is, from 0 to 1; off below 0).
   float sweep = shimmer < 0. ? 0. : exp( -pow( ( vMapUv.x * .8 + vMapUv.y * .6 - shimmer * 1.9 + .25 ) / .07, 2. ) );
   // Lit from within: brightest in the middle, deeper colour towards the edge, glowing veins and outline.
-  diffuseColor.rgb = tint * ( .6 + .7 * middle * middle )
-    + glow * ( ${VEIN_GLOW.toFixed(2)} * vein + .55 * rimGlow )
-    + hot * ( ${RIM_GLOW.toFixed(2)} * rimLine + .7 * sweep );
+  diffuseColor.rgb = tint * ( .55 + .6 * middle * middle )
+    + glow * ${VEIN_GLOW.toFixed(2)} * vein
+    + vivid * ( .35 * rimGlow + ${RIM_GLOW.toFixed(2)} * rimLine )
+    + hot * .7 * sweep;
   diffuseColor.a *= texel.a;
 #endif
 `;
-const AURA = 0.4;                // the soft glow every leaf has around it, in its own colour (it breathes gently;
+const AURA = 0.3;                // the soft glow every leaf has around it, in its own colour (it breathes gently;
                                  // the bloom, glow-look.js, spreads its light further)
 const NEON_SATURATION = 0.85;    // leaf colours are shown at least this saturated, so they glow vividly
 
@@ -1387,6 +1390,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   }
 
   const haloSize = new T.Vector3();
+  const haloVivid = new T.Color();
   const nightLight = new T.Color();
   function update(dt, elapsed) {
     if (!group.visible) return;
@@ -1433,7 +1437,10 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         const breathe = leafLook.aura ? AURA * (0.8 + 0.2 * Math.sin(time / 1400 + leaf.spot.phase)) : 0;
         if (glow > 0.01) leaf.halo.material.color.copy(NEON);
         else if (gold > 0) leaf.halo.material.color.copy(GOLD_GLOW);
-        else leaf.halo.material.color.copy(leaf.colour).multiplyScalar(1 / TINT_BOOST).lerp(WHITE, 0.15);
+        else { // its own colour, a little brightened in that colour (not whitened)
+          const own = leaf.halo.material.color.copy(leaf.colour).multiplyScalar(1 / TINT_BOOST);
+          own.lerp(haloVivid.copy(own).multiplyScalar(1 / Math.max(own.r, own.g, own.b, 0.001)), 0.15);
+        }
         leaf.halo.position.copy(leaf.mesh.position);
         leaf.halo.scale.copy(haloSize.setScalar(leaf.scale * MODEL_SIZE * (glow > 0.01 ? 2.6 : 2.5)));
         leaf.halo.material.opacity = Math.max(breathe, glow > 0.01 ? glow * 0.75 : gold * 0.7) * leaf.material.opacity;
