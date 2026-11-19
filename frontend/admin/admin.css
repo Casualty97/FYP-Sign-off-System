@@ -8184,3 +8184,8 @@ input:checked + .slider:before {
 @media (prefers-reduced-motion: reduce) {
     .leaf3d-vip-glow.glowing { animation: none; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.9)); }
 }
+
+/* Names on VIP leaves (admin/js/tree3d.js updateTree3dNamePreview): the VIP name fields while "own style" is off. */
+.leaf3d-name-fields.is-off {
+    opacity: 0.45;
+}

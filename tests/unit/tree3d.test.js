@@ -154,3 +154,23 @@ test('the automatic turn: one turn a day to the right by default; any time from 
     assert.throws(() => normalizeTree3dParameters({ orbitSeconds: 'fast' }), { statusCode: 400, message: /full turn/ });
     assert.throws(() => normalizeTree3dParameters({ orbitDirection: 'up' }), { statusCode: 400, message: /Turn direction/ });
 });
+
+test('VIP names: written as the other names unless given their own style, with the same choices', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.vipNameOwnStyle, false);
+    assert.deepEqual(
+        [DEFAULT_TREE3D_PARAMETERS.vipNameFont, DEFAULT_TREE3D_PARAMETERS.vipNameWeight, DEFAULT_TREE3D_PARAMETERS.vipNameColor, DEFAULT_TREE3D_PARAMETERS.vipNameSize],
+        ['auto', 700, '#ffffff', 1]);
+    const saved = normalizeTree3dParameters({
+        vipNameOwnStyle: true, vipNameFont: 'classic-serif', vipNameWeight: 800, vipNameColor: '#5A3A00', vipNameSize: 1.25
+    });
+    assert.deepEqual(saved, { vipNameOwnStyle: true, vipNameFont: 'classic-serif', vipNameWeight: 800, vipNameColor: '#5a3a00', vipNameSize: 1.25 });
+    assert.equal(normalizeTree3dParameters({ vipNameSize: 3 }).vipNameSize, 1.4);
+    assert.throws(() => normalizeTree3dParameters({ vipNameFont: 'comic' }), { statusCode: 400, message: /VIP name font style/ });
+    assert.throws(() => normalizeTree3dParameters({ vipNameWeight: 900 }), { statusCode: 400, message: /VIP name font weight/ });
+    assert.throws(() => normalizeTree3dParameters({ vipNameColor: 'gold' }), { statusCode: 400, message: /VIP name colour/ });
+    assert.throws(() => normalizeTree3dParameters({ vipNameOwnStyle: 'yes' }), { statusCode: 400, message: /own style/ });
+    // Saving the VIP names' style leaves the other names' as they were.
+    const merged = mergeTree3dParameters({ leafNameColor: '#ffe082' }, saved);
+    assert.equal(merged.leafNameColor, '#ffe082');
+    assert.equal(merged.vipNameColor, '#5a3a00');
+});

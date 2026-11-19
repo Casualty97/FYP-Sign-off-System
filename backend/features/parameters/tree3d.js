@@ -46,6 +46,9 @@
 //   vipLeafColor       VIP leaves' gold (VIP_LEAF_COLOURS); VIPs are the names in the admin's VIP Management
 //   vipLeafScale       size of VIP leaves, 0.4 to 2.5 (2D: vipLeafDisplayScale)
 //   vipGlow            the gold pulse around VIP leaves (2D: vipGoldPulse)
+//   vipNameOwnStyle    VIP names in their own style (off by default: written as the other names)
+//   vipNameFont, vipNameWeight, vipNameColor, vipNameSize
+//                      that style, with the same choices as the other names (leafNameFont and so on)
 // 3D Tree Visualization Parameters (the 2D tree's Visualization Parameters, for the 3D tree):
 //   leafAreaWidth, leafAreaHeight
 //                      how much of the canopy new leaves may sit on, 30 to 100 (% of its width and height,
@@ -136,6 +139,11 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   vipLeafColor: '#d4af37',
   vipLeafScale: 1,
   vipGlow: true,
+  vipNameOwnStyle: false,
+  vipNameFont: 'auto',
+  vipNameWeight: 700,
+  vipNameColor: '#ffffff',
+  vipNameSize: 1,
   leafAreaWidth: 100,
   leafAreaHeight: 100,
   leafAreaOffset: 0,
@@ -218,18 +226,24 @@ function normalizeTree3dParameters(updates) {
   if (has('sunsetRequestedAt')) out.sunsetRequestedAt = timestamp(updates.sunsetRequestedAt, 'Sunset time');
   if (has('showFeedbackLeaves')) out.showFeedbackLeaves = bool(updates.showFeedbackLeaves, 'Show leaves');
   if (has('showLeafNames')) out.showLeafNames = bool(updates.showLeafNames, 'Show names on leaves');
-  if (has('leafNameFont')) out.leafNameFont = oneOf(updates.leafNameFont, LEAF_NAME_FONTS, 'Name font style');
-  if (has('leafNameWeight')) {
-    const weight = Number(updates.leafNameWeight);
-    if (!LEAF_NAME_WEIGHTS.includes(weight)) throw badRequest(`Name font weight must be one of: ${LEAF_NAME_WEIGHTS.join(', ')}`);
-    out.leafNameWeight = weight;
-  }
-  if (has('leafNameColor')) {
-    const hex = String(updates.leafNameColor ?? '').trim().toLowerCase();
-    if (!/^#[0-9a-f]{6}$/.test(hex)) throw badRequest('Name colour must be a colour like #ffffff');
-    out.leafNameColor = hex;
-  }
-  if (has('leafNameSize')) out.leafNameSize = Math.round(number(updates.leafNameSize, 0.7, 1.4, 'Name font size') * 100) / 100;
+  // The names' style, and the VIP names' own (with the same choices).
+  const nameStyle = (prefix, label) => {
+    if (has(`${prefix}Font`)) out[`${prefix}Font`] = oneOf(updates[`${prefix}Font`], LEAF_NAME_FONTS, `${label} font style`);
+    if (has(`${prefix}Weight`)) {
+      const weight = Number(updates[`${prefix}Weight`]);
+      if (!LEAF_NAME_WEIGHTS.includes(weight)) throw badRequest(`${label} font weight must be one of: ${LEAF_NAME_WEIGHTS.join(', ')}`);
+      out[`${prefix}Weight`] = weight;
+    }
+    if (has(`${prefix}Color`)) {
+      const hex = String(updates[`${prefix}Color`] ?? '').trim().toLowerCase();
+      if (!/^#[0-9a-f]{6}$/.test(hex)) throw badRequest(`${label} colour must be a colour like #ffffff`);
+      out[`${prefix}Color`] = hex;
+    }
+    if (has(`${prefix}Size`)) out[`${prefix}Size`] = Math.round(number(updates[`${prefix}Size`], 0.7, 1.4, `${label} font size`) * 100) / 100;
+  };
+  nameStyle('leafName', 'Name');
+  if (has('vipNameOwnStyle')) out.vipNameOwnStyle = bool(updates.vipNameOwnStyle, 'VIP names in their own style');
+  nameStyle('vipName', 'VIP name');
   if (has('leafNewColor')) out.leafNewColor = colour(updates.leafNewColor, LEAF_NEW_COLOURS, 'New leaf colour');
   if (has('leafOldColor')) out.leafOldColor = colour(updates.leafOldColor, LEAF_OLD_COLOURS, 'Older leaf colour');
   if (has('leafSide')) out.leafSide = oneOf(updates.leafSide, LEAF_SIDES, 'Leaf side');

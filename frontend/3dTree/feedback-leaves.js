@@ -32,7 +32,8 @@
 //     handwriting with a soft glow;
 //   - the names' font style, weight, colour and size are the admin's (3D Leaf Adjustments: leafNameFont,
 //     leafNameWeight, leafNameColor, leafNameSize; NAME_FONTS, useNameStyle), written again within one check
-//     of a change;
+//     of a change; VIP names can have their own (3D VIP Leaf Adjustments: vipNameOwnStyle, vipNameFont,
+//     vipNameWeight, vipNameColor, vipNameSize), otherwise they are written as the others;
 //   - a VIP's leaf (a name on the admin's VIP Management list, as /api/tree marks it, or a name from
 //     /api/tree/vip-names) is gold, with the 2D tree's gold pulse, at its own VIP scale, and a star of light
 //     twinkling at its tip (in both looks).
@@ -161,23 +162,35 @@ const LEAF_LOOKS = {
 };
 let leafLook = LEAF_LOOKS.glow;
 
-// How the names are written, as the admin chose (leafNameFont, leafNameWeight, leafNameColor, leafNameSize;
-// useNameStyle): the canvas font, its line height on the leaf (the font's own times the admin's size, 0.7 to
-// 1.4: larger names wrap onto more lines and are shortened with "…" sooner, fitName), its colour, and whether
-// that colour is dark (then it gets a light edge instead of a dark one, so it stays readable).
-let nameStyle = { font: `700 64px ${NAME_FONTS.modern.family}`, lineHeight: NAME_FONTS.modern.lineHeight, colour: '#ffffff', dark: false };
-function useNameStyle(settings) {
-  const chosen = NAME_FONTS[settings.leafNameFont] || leafLook.name;
-  const weight = NAME_WEIGHTS.includes(Number(settings.leafNameWeight)) ? Number(settings.leafNameWeight) : 700;
-  const colour = /^#[0-9a-f]{6}$/i.test(String(settings.leafNameColor || '')) ? settings.leafNameColor.toLowerCase() : '#ffffff';
-  const asked = Number(settings.leafNameSize);
-  const size = Number.isFinite(asked) && asked > 0 ? Math.min(1.4, Math.max(0.7, asked)) : 1;
-  const { r, g, b } = new T.Color(colour);
-  nameStyle = {
-    font: `${weight} ${NAME_FONT_PX}px ${chosen.family}`, lineHeight: chosen.lineHeight * size, colour,
+// How the names are written, as the admin chose: the canvas font, its line height on the leaf (the font's own
+// times the admin's size, 0.7 to 1.4: larger names wrap onto more lines and are shortened with "…" sooner,
+// fitName), its colour, and whether that colour is dark (then it gets a light edge instead of a dark one, so
+// it stays readable). One style for the names (leafNameFont, leafNameWeight, leafNameColor, leafNameSize) and
+// one for VIP names: their own (vipNameFont, vipNameWeight, vipNameColor, vipNameSize) when the admin ticks
+// vipNameOwnStyle, otherwise the same.
+function nameStyleOf(font, weight, colour, size) {
+  const chosen = NAME_FONTS[font] || leafLook.name;
+  const heavy = NAME_WEIGHTS.includes(Number(weight)) ? Number(weight) : 700;
+  const hex = /^#[0-9a-f]{6}$/i.test(String(colour || '')) ? String(colour).toLowerCase() : '#ffffff';
+  const asked = Number(size);
+  const scale = Number.isFinite(asked) && asked > 0 ? Math.min(1.4, Math.max(0.7, asked)) : 1;
+  const { r, g, b } = new T.Color(hex);
+  return {
+    font: `${heavy} ${NAME_FONT_PX}px ${chosen.family}`, lineHeight: chosen.lineHeight * scale, colour: hex,
     dark: 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25, // (linear light) darker than a mid grey
   };
-  return [nameStyle.font, nameStyle.lineHeight, colour].join('|');
+}
+// Until the admin's settings are used (useNameStyle): bold white modern letters for every name.
+const FIRST_NAME_STYLE = { font: `700 64px ${NAME_FONTS.modern.family}`, lineHeight: NAME_FONTS.modern.lineHeight, colour: '#ffffff', dark: false };
+let nameStyles = { normal: FIRST_NAME_STYLE, vip: FIRST_NAME_STYLE };
+// Returns a key that changes when either style changes (then every name is written again).
+function useNameStyle(settings) {
+  const normal = nameStyleOf(settings.leafNameFont, settings.leafNameWeight, settings.leafNameColor, settings.leafNameSize);
+  const vip = settings.vipNameOwnStyle === true
+    ? nameStyleOf(settings.vipNameFont, settings.vipNameWeight, settings.vipNameColor, settings.vipNameSize)
+    : normal;
+  nameStyles = { normal, vip };
+  return [normal, vip].map(style => [style.font, style.lineHeight, style.colour].join('|')).join('||');
 }
 
 // A flat normal, for a leaf model without a normal map.
@@ -232,7 +245,8 @@ const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldCol
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
   tree2d: { leafFallThreshold: 15, treeStage: 4, leafShowcaseSeconds: SHOWCASE_MS / 1000 },
   vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true,
-  leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1 }; // the names: the look's own font, bold, white, standard size
+  leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1, // the names: the look's own font, bold, white, standard size
+  vipNameOwnStyle: false, vipNameFont: 'auto', vipNameWeight: 700, vipNameColor: '#ffffff', vipNameSize: 1 }; // VIP names: as the others unless ticked
 
 const normaliseName = name => String(name || '').trim().toLowerCase();
 
@@ -317,9 +331,9 @@ function badgeShade(hex, light) {
 }
 
 // Fits a name inside the leaf as the 2D tree does (fitLeafName): whole words, as few lines as fit (up to
-// three), and when even three do not fit, the last line shortened with "…". In the names' font (nameStyle).
+// three), and when even three do not fit, the last line shortened with "…". In the name's style (nameStyles).
 const measureContext = document.createElement('canvas').getContext('2d');
-function fitName(name) {
+function fitName(name, nameStyle) {
   measureContext.font = nameStyle.font;
   const words = String(name || '').trim().split(/\s+/).filter(Boolean);
   if (!words.length) words.push('Anonymous');
@@ -362,12 +376,12 @@ function fitName(name) {
 }
 
 // The name drawn for the leaf, on a canvas the size of its box in the blade, in the admin's font, weight and
-// colour (nameStyle; white by default). Glowing look: the letters glowing softly in their own colour over a
+// colour (nameStyles: a VIP's may be its own; white by default). Glowing look: the letters glowing softly in their own colour over a
 // soft dark shadow, so they read clearly on the bright leaf. Natural look, and dark letters in the glowing
 // look: crisp letters with an edge, readable on any leaf colour (2D: white bold with a text shadow); the edge is
 // dark, or light for dark letters.
-function nameLabel(name) {
-  const { lines, box, pxPerUnit } = fitName(name);
+function nameLabel(name, nameStyle = nameStyles.normal) {
+  const { lines, box, pxPerUnit } = fitName(name, nameStyle);
   const height = lines.length * nameStyle.lineHeight;
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(box.width * pxPerUnit);
@@ -578,13 +592,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       badgeLeafColors: { ...BADGE_LEAF_COLOURS, ...(next.badgeLeafColors || {}) } };
     group.visible = settings.showFeedbackLeaves !== false;
     for (const leaf of leaves.values()) tintLeaf(leaf);
-    // The admin changed the names' font, weight or colour: every name is written again in it.
+    // The admin changed the names' (or the VIP names') font, weight, colour or size: every name is written again.
     const nextNameKey = useNameStyle(settings);
     if (nextNameKey !== nameKey) {
       nameKey = nextNameKey;
       for (const leaf of leaves.values()) {
         leaf.nameLabel.material.map.dispose();
-        shapeNameLabel(leaf.nameLabel, leaf.visitor?.name || '');
+        shapeNameLabel(leaf.nameLabel, leaf.visitor?.name || '', leaf.isVip);
       }
     }
     if (!model) return;
@@ -692,9 +706,10 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         }
         existing.isVip = isVip;
         tintLeaf(existing);
-        if ((visitor?.name || '') !== existing.nameLabel.userData.name) { // a name changed (e.g. made public)
+        // A name changed (e.g. made public), or the visitor was made VIP (or no longer is): written again.
+        if ((visitor?.name || '') !== existing.nameLabel.userData.name || existing.nameLabel.userData.vip !== isVip) {
           existing.nameLabel.material.map.dispose();
-          shapeNameLabel(existing.nameLabel, visitor?.name || '');
+          shapeNameLabel(existing.nameLabel, visitor?.name || '', isVip);
         }
         return;
       }
@@ -938,7 +953,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     }));
     nameMesh.rotation.x = -Math.PI / 2; // flat on the leaf: text along the midrib (x), facing out (+y)
     nameMesh.renderOrder = 3;
-    shapeNameLabel(nameMesh, visitor?.name || '');
+    shapeNameLabel(nameMesh, visitor?.name || '', isVipVisitor(visitor));
     mesh.add(nameMesh);
     const halo = new T.Sprite(new T.SpriteMaterial({
       map: glowMap, color: NEON, blending: T.AdditiveBlending, transparent: true, depthTest: false, depthWrite: false, opacity: 0,
@@ -972,11 +987,12 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   // ---------- the name on the leaf (as the 2D tree) ----------
 
-  function shapeNameLabel(nameMesh, name) {
-    const label = nameLabel(name || 'Anonymous visitor');
+  // vip: a VIP's name, in the VIP names' style.
+  function shapeNameLabel(nameMesh, name, vip = false) {
+    const label = nameLabel(name || 'Anonymous visitor', vip ? nameStyles.vip : nameStyles.normal);
     nameMesh.material.map = label.texture;
     nameMesh.material.needsUpdate = true;
-    nameMesh.userData = { name, width: label.width, height: label.height };
+    nameMesh.userData = { name, vip, width: label.width, height: label.height };
     nameMesh.position.set(NAME_CENTRE_X, NAME_LIFT, NAME_CENTRE_Z); // the middle of the leaf
   }
 

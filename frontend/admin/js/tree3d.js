@@ -66,7 +66,8 @@ const TREE3D_NAME_COLOURS = [
     ['Warm gold', '#ffe08a'],
     ['Soft mint', '#c8ffd8'],
     ['Ice blue', '#d6ecff'],
-    ['Charcoal', '#1f2937']
+    ['Charcoal', '#1f2937'],
+    ['Deep brown', '#4a2c0a']
 ];
 
 // Greens only: light greens for new leaves, dark greens for older ones. The server accepts only these
@@ -100,7 +101,13 @@ const TREE3D_LEAF_COLOURS = {
 const TREE3D_VIP_DEFAULTS = {
     vipLeafColor: '#d4af37',
     vipLeafScale: 1,
-    vipGlow: true
+    vipGlow: true,
+    // The names on VIP leaves: the same as the other names unless given their own style.
+    vipNameOwnStyle: false,
+    vipNameFont: 'auto',
+    vipNameWeight: 700,
+    vipNameColor: '#ffffff',
+    vipNameSize: 1
 };
 
 // 3D Tree Visualization Parameters: the 2D tree's Visualization Parameters for the 3D tree
@@ -213,14 +220,44 @@ function tree3dShownColour(hex) {
 // Names on the leaves: a sample name on a leaf in the chosen font, weight and colour, as the 3D screen writes
 // it (frontend/3dTree/feedback-leaves.js nameLabel): with the glowing look on the night sky, glowing in its own
 // colour; with the natural look on a daylight leaf, with an edge. A dark colour gets a light edge or glow.
+// A name style as the fields with this prefix set it: 'leafName' (the names) or 'vipName' (the VIP names).
+function tree3dNameStyle(prefix) {
+    return {
+        fontKey: tree3dField(`${prefix}Font`)?.value || 'auto',
+        weight: Number(tree3dField(`${prefix}Weight`)?.value) || 700,
+        colour: (tree3dField(`${prefix}Color`)?.value || '#ffffff').toLowerCase(),
+        size: Math.min(1.4, Math.max(0.7, Number(tree3dField(`${prefix}Size`)?.value) || 1))
+    };
+}
+
+// The two name previews: the names on a leaf in the chosen look (3D Leaf Adjustments), and the VIP names on
+// the gold leaf (3D VIP Leaf Adjustments), in their own style or, when that is off, the same as the others.
 function updateTree3dNamePreview() {
-    const sample = tree3dField('leafNameSample');
-    if (!sample) return;
     const glowing = tree3dField('glowLook')?.checked !== false;
-    const fontKey = tree3dField('leafNameFont')?.value || 'auto';
+    const look = glowing ? 'glowing look' : 'natural look';
+    const names = tree3dNameStyle('leafName');
+    if (tree3dField('leafNameSizeValue')) tree3dField('leafNameSizeValue').textContent = `${Math.round(names.size * 100)}%`;
+    paintTree3dNameSample('leafName', names, glowing,
+        glowing ? '#2ee05a' : tree3dShownColour(tree3dField('leafNewColor')?.value || '#7cb342'), `Name preview, ${look}`);
+
+    const own = tree3dField('vipNameOwnStyle')?.checked === true;
+    const fields = tree3dField('vipNameFields');
+    if (fields) {
+        fields.classList.toggle('is-off', !own);
+        fields.querySelectorAll('input, select, button').forEach(control => { control.disabled = !own; });
+    }
+    const vipSize = tree3dNameStyle('vipName').size;
+    if (tree3dField('vipNameSizeValue')) tree3dField('vipNameSizeValue').textContent = `${Math.round(vipSize * 100)}%`;
+    paintTree3dNameSample('vipName', own ? tree3dNameStyle('vipName') : names, glowing,
+        glowing ? '#ffd23f' : tree3dShownColour(tree3dField('leafVipColor')?.value || '#d4af37'),
+        `VIP name preview, ${own ? 'own style' : 'same as the other names'}, ${look}`);
+}
+
+function paintTree3dNameSample(prefix, style, glowing, leafColour, caption) {
+    const sample = tree3dField(`${prefix}Sample`);
+    if (!sample) return;
+    const { fontKey, weight, colour, size } = style;
     const family = TREE3D_NAME_FONTS[fontKey] || TREE3D_NAME_FONTS[glowing ? 'elegant-script' : 'modern'];
-    const weight = Number(tree3dField('leafNameWeight')?.value) || 700;
-    const colour = (tree3dField('leafNameColor')?.value || '#ffffff').toLowerCase();
     const value = parseInt(colour.slice(1), 16);
     const linear = c => { const v = c / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
     const dark = 0.2126 * linear((value >> 16) & 255) + 0.7152 * linear((value >> 8) & 255) + 0.0722 * linear(value & 255) < 0.25;
@@ -228,38 +265,40 @@ function updateTree3dNamePreview() {
     sample.style.fontFamily = family;
     sample.style.fontWeight = String(weight);
     sample.style.color = colour;
-    const size = Math.min(1.4, Math.max(0.7, Number(tree3dField('leafNameSize')?.value) || 1));
-    if (tree3dField('leafNameSizeValue')) tree3dField('leafNameSizeValue').textContent = `${Math.round(size * 100)}%`;
     const handwritten = (fontKey === 'auto' && glowing) || fontKey === 'elegant-script';
     sample.style.fontSize = `${((handwritten ? 18 : 15) * size).toFixed(1)}px`;
     sample.style.textShadow = glowing && !dark
         ? `0 0 3px ${behind}, 0 0 8px ${colour}`
         : `-1px -1px 0 ${behind}, 1px -1px 0 ${behind}, -1px 1px 0 ${behind}, 1px 1px 0 ${behind}`;
-    tree3dField('leafNameFrame')?.classList.toggle('glowing', glowing);
-    const leaf = tree3dField('leafNamePreviewLeaf');
-    if (leaf) leaf.style.setProperty('--leaf-colour', glowing ? '#2ee05a' : tree3dShownColour(tree3dField('leafNewColor')?.value || '#7cb342'));
-    if (tree3dField('leafNameCaption')) tree3dField('leafNameCaption').textContent = `Name preview, ${glowing ? 'glowing look' : 'natural look'}`;
-    for (const swatch of tree3dField('leafNameSwatches')?.children || []) {
-        swatch.setAttribute('aria-pressed', String(swatch.dataset.colour === colour));
+    tree3dField(`${prefix}Frame`)?.classList.toggle('glowing', glowing);
+    const leaf = tree3dField(`${prefix}PreviewLeaf`);
+    if (leaf) leaf.style.setProperty('--leaf-colour', leafColour);
+    if (tree3dField(`${prefix}Caption`)) tree3dField(`${prefix}Caption`).textContent = caption;
+    // The swatch for the field's own colour (the VIP swatches follow the VIP colour field, even while off).
+    const own = (tree3dField(`${prefix}Color`)?.value || '').toLowerCase();
+    for (const swatch of tree3dField(`${prefix}Swatches`)?.children || []) {
+        swatch.setAttribute('aria-pressed', String(swatch.dataset.colour === own));
     }
 }
 
 function renderTree3dNameSwatches() {
-    const box = tree3dField('leafNameSwatches');
-    if (!box || box.childElementCount) return;
-    for (const [name, hex] of TREE3D_NAME_COLOURS) {
-        const swatch = document.createElement('button');
-        swatch.type = 'button';
-        swatch.className = 'leaf3d-swatch';
-        swatch.style.background = hex;
-        swatch.dataset.colour = hex;
-        swatch.title = name;
-        swatch.setAttribute('aria-label', `Name colour: ${name}`);
-        swatch.addEventListener('click', () => {
-            tree3dField('leafNameColor').value = hex;
-            updateTree3dNamePreview();
-        });
-        box.appendChild(swatch);
+    for (const prefix of ['leafName', 'vipName']) {
+        const box = tree3dField(`${prefix}Swatches`);
+        if (!box || box.childElementCount) continue;
+        for (const [name, hex] of TREE3D_NAME_COLOURS) {
+            const swatch = document.createElement('button');
+            swatch.type = 'button';
+            swatch.className = 'leaf3d-swatch';
+            swatch.style.background = hex;
+            swatch.dataset.colour = hex;
+            swatch.title = name;
+            swatch.setAttribute('aria-label', `${prefix === 'vipName' ? 'VIP name' : 'Name'} colour: ${name}`);
+            swatch.addEventListener('click', () => {
+                tree3dField(`${prefix}Color`).value = hex;
+                updateTree3dNamePreview();
+            });
+            box.appendChild(swatch);
+        }
     }
 }
 
@@ -298,6 +337,7 @@ function updateTree3dLeafPreview() {
     }
     tree3dField('leafVipGlowBox')?.classList.toggle('glowing', tree3dField('vipGlow')?.checked === true);
     if (tree3dField('leafVipCaption')) tree3dField('leafVipCaption').textContent = `VIP leaf, ${vipSide}`;
+    if (tree3dField('vipNameSample')) updateTree3dNamePreview();
     for (const swatch of tree3dField('leafVipSwatches')?.children || []) {
         swatch.setAttribute('aria-pressed', String(swatch.dataset.colour === vipColour));
     }
@@ -425,6 +465,13 @@ function fillTree3dForm(settings) {
     tree3dField('leafVipColor').value = offered('Vip', vip.vipLeafColor) ? vip.vipLeafColor.toLowerCase() : TREE3D_VIP_DEFAULTS.vipLeafColor;
     tree3dField('vipLeafScale').value = vip.vipLeafScale;
     tree3dField('vipGlow').checked = vip.vipGlow !== false;
+    if (tree3dField('vipNameFont')) {
+        tree3dField('vipNameOwnStyle').checked = vip.vipNameOwnStyle === true;
+        tree3dField('vipNameFont').value = Object.hasOwn(TREE3D_NAME_FONTS, vip.vipNameFont) || vip.vipNameFont === 'auto' ? vip.vipNameFont : 'auto';
+        tree3dField('vipNameWeight').value = String([400, 500, 600, 700, 800].includes(Number(vip.vipNameWeight)) ? Number(vip.vipNameWeight) : 700);
+        tree3dField('vipNameColor').value = /^#[0-9a-f]{6}$/i.test(String(vip.vipNameColor || '')) ? vip.vipNameColor.toLowerCase() : '#ffffff';
+        tree3dField('vipNameSize').value = String(Math.min(1.4, Math.max(0.7, Number(vip.vipNameSize) || 1)));
+    }
 
     const visual = { ...TREE3D_VISUAL_DEFAULTS, ...(settings || {}) };
     renderTree3dBadgeColours();
@@ -500,6 +547,13 @@ function collectTree3dSettings() {
         vipLeafColor: tree3dField('leafVipColor').value,
         vipLeafScale: Number(tree3dField('vipLeafScale').value) || TREE3D_VIP_DEFAULTS.vipLeafScale,
         vipGlow: tree3dField('vipGlow').checked,
+        ...(tree3dField('vipNameFont') ? {
+            vipNameOwnStyle: tree3dField('vipNameOwnStyle').checked,
+            vipNameFont: tree3dField('vipNameFont').value,
+            vipNameWeight: Number(tree3dField('vipNameWeight').value) || TREE3D_VIP_DEFAULTS.vipNameWeight,
+            vipNameColor: tree3dField('vipNameColor').value,
+            vipNameSize: Number(tree3dField('vipNameSize').value) || TREE3D_VIP_DEFAULTS.vipNameSize
+        } : {}),
         ...collectTree3dVisual(),
         titleBox: {
             showTitleBox: tree3dField('showTitleBox').checked,

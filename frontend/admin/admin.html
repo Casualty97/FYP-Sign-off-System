@@ -1538,7 +1538,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <p style="font-size:12px; color:#666; margin-top:8px;">"Match the look" writes the names by hand with the glowing look and in clean letters with the natural look. Font size runs from 70% to 140% of the standard; larger names wrap onto more lines inside the leaf, and a long name ends with "…". A dark colour gets a light edge so it stays readable. VIP leaves use the same. The 3D screen writes the names again within about 5 seconds of saving.</p>
+                                        <p style="font-size:12px; color:#666; margin-top:8px;">"Match the look" writes the names by hand with the glowing look and in clean letters with the natural look. Font size runs from 70% to 140% of the standard; larger names wrap onto more lines inside the leaf, and a long name ends with "…". A dark colour gets a light edge so it stays readable. VIP names are written the same unless they have their own style (3D VIP Leaf Adjustments). The 3D screen writes the names again within about 5 seconds of saving.</p>
                                     </div>
                                     <div style="text-align:center;">
                                         <div class="leaf3d-preview-frame leaf3d-name-frame" id="tree3d-leafNameFrame">
@@ -1650,6 +1650,63 @@
                                     <div style="text-align:center;">
                                         <div class="leaf3d-preview-frame"><div class="leaf3d-vip-glow" id="tree3d-leafVipGlowBox"><div class="leaf3d-preview" id="tree3d-leafVipPreview"></div></div></div>
                                         <p id="tree3d-leafVipCaption" style="font-size:12px; color:#666; margin-top:6px;">VIP leaf</p>
+                                    </div>
+                                </div>
+                                <!-- Names on VIP leaves: their own font style, weight, size and colour (vipNameOwnStyle, vipNameFont,
+                                     vipNameWeight, vipNameColor, vipNameSize; frontend/3dTree/feedback-leaves.js useNameStyle), or
+                                     the same as the other names (Names on the leaves, in 3D Leaf Adjustments). -->
+                                <div class="leaf3d-name-settings" style="margin:18px 0 0;">
+                                    <div style="flex:1; min-width:300px;">
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:8px;">Names on VIP leaves</span>
+                                        <label style="display:flex; align-items:center; gap:8px; color:#334155; margin-bottom:10px;">
+                                            <input type="checkbox" id="tree3d-vipNameOwnStyle" onchange="updateTree3dNamePreview()"> Give VIP names their own style
+                                        </label>
+                                        <div id="tree3d-vipNameFields" class="leaf3d-name-fields" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px 20px;">
+                                            <div>
+                                                <label for="tree3d-vipNameFont" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font style</label>
+                                                <select id="tree3d-vipNameFont" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="auto">Match the look</option>
+                                                    <option value="elegant-script">Elegant script</option>
+                                                    <option value="handwriting">Handwriting</option>
+                                                    <option value="modern">Modern</option>
+                                                    <option value="rounded">Rounded</option>
+                                                    <option value="classic-serif">Classic serif</option>
+                                                    <option value="typewriter">Typewriter</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-vipNameWeight" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font weight</label>
+                                                <select id="tree3d-vipNameWeight" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="400">Regular</option>
+                                                    <option value="500">Medium</option>
+                                                    <option value="600">Semi-bold</option>
+                                                    <option value="700">Bold</option>
+                                                    <option value="800">Extra bold</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-vipNameSize" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font size</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-vipNameSize" min="0.7" max="1.4" step="0.05" value="1" oninput="updateTree3dNamePreview()" style="flex:1;">
+                                                    <span id="tree3d-vipNameSizeValue" style="min-width:42px; text-align:right;">100%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-vipNameColor" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Colour</label>
+                                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                                    <input type="color" id="tree3d-vipNameColor" value="#ffffff" oninput="updateTree3dNamePreview()" style="width:44px; height:32px; padding:0; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <div class="leaf3d-swatches" id="tree3d-vipNameSwatches" role="group" aria-label="Quick VIP name colours"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:8px;">Off: VIP names are written like the other names (Names on the leaves, in 3D Leaf Adjustments). On: VIP names use the style chosen here, for example a larger size or a dark brown that stands out on the gold leaf. The preview shows the VIP's gold leaf in the chosen look; save with Save VIP Leaves.</p>
+                                    </div>
+                                    <div style="text-align:center;">
+                                        <div class="leaf3d-preview-frame leaf3d-name-frame" id="tree3d-vipNameFrame">
+                                            <div class="leaf3d-preview" id="tree3d-vipNamePreviewLeaf"></div>
+                                            <span class="leaf3d-name-sample" id="tree3d-vipNameSample">Jayson Tan</span>
+                                        </div>
+                                        <p id="tree3d-vipNameCaption" style="font-size:12px; color:#666; margin-top:6px;">VIP name preview</p>
                                     </div>
                                 </div>
                             </div>
