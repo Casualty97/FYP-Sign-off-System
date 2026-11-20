@@ -1256,7 +1256,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const count = Math.max(1, group.members.length);
     const slot = Math.max(0, group.members.indexOf(leaf));
     const aspect = Math.max(0.3, camera.aspect);
-    if (group.half === null) group.half = (leaf.scale * MODEL_SIZE * SHOWCASE_SIZE / 2) / halfHeight; // as the first leaf
+    // (From a normal leaf's size, so a VIP's leaf, larger on the tree, shows the same size as the others here.)
+    if (group.half === null) group.half = (currentScale({ isVip: false }) * MODEL_SIZE * SHOWCASE_SIZE / 2) / halfHeight;
     const halfFor = (left, right) => Math.min(group.half, count > 1 ? ((right - left) / count) * aspect * 0.36 : group.half, aspect * 0.8);
     let left = -BATCH_ROW_WIDTH, right = BATCH_ROW_WIDTH;
     let half = halfFor(left, right);
@@ -1328,9 +1329,12 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     facingPose(axisX, f.flutter * Math.sin(swing * 2) * calm);
     leaf.mesh.quaternion.slerpQuaternions(floatPose, restPose, smoothstep(0.55, 1, s));
 
-    // Its size in the row at the start, back to its own size on the tree early in the float (SHRINK_SHARE),
-    // then floating up at that standard size.
-    leaf.mesh.scale.setScalar(T.MathUtils.lerp(showScale, leaf.scale, smoothstep(0, SHRINK_SHARE, t)));
+    // Its size in the row at the start, back to a normal visitor's leaf size early in the float (SHRINK_SHARE),
+    // floating up at that standard size, every leaf alike; a VIP's leaf grows to its own size on the tree (the
+    // admin's VIP leaf scale) only as it settles onto its twig.
+    const floatScale = currentScale({ isVip: false });
+    const size = T.MathUtils.lerp(showScale, floatScale, smoothstep(0, SHRINK_SHARE, t));
+    leaf.mesh.scale.setScalar(T.MathUtils.lerp(size, leaf.scale, smoothstep(0.85, 1, t)));
     leaf.mesh.scale.x *= sideSign(leaf);
     // (Fading in here too when the admin sets no time at the bottom middle.)
     leaf.material.opacity = smoothstep(0, f.appear, since) * T.MathUtils.lerp(1, facingAmount(leaf), smoothstep(0.8, 1, s));
