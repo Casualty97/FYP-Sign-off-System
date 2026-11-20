@@ -95,6 +95,13 @@ test('3D VIP leaf settings: golds only, a VIP scale and the gold glow', () => {
     assert.equal(DEFAULT_TREE3D_PARAMETERS.vipLeafColor, '#d4af37');
 });
 
+test('3D VIP leaf tip star: on by default, and the admin can turn it off', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.vipSparkle, true);
+    assert.deepEqual(normalizeTree3dParameters({ vipSparkle: false }), { vipSparkle: false });
+    assert.deepEqual(normalizeTree3dParameters({ vipSparkle: true }), { vipSparkle: true });
+    assert.throws(() => normalizeTree3dParameters({ vipSparkle: 'yes' }), { statusCode: 400, message: /VIP leaf tip star/ });
+});
+
 test('the 3D Tree Visualization Parameters are kept within their ranges', () => {
     const saved = normalizeTree3dParameters({
         leafAreaWidth: 10, leafAreaHeight: 75.4, leafAreaOffset: -90, leafRefreshMs: 1000, leafOpacity: 0.456,

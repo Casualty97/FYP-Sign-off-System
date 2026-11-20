@@ -8176,6 +8176,17 @@ input:checked + .slider:before {
     animation: leaf3dVipPulse 2s ease-in-out infinite;
 }
 
+/* The white star at a VIP leaf's tip in the preview (tree3dParameters.vipSparkle), hidden when turned off. */
+.leaf3d-vip-glow { position: relative; }
+.leaf3d-vip-sparkle {
+    position: absolute; top: 50%; right: -2px; transform: translateY(-62%);
+    color: #ffffff; font-size: 18px; line-height: 1;
+    text-shadow: 0 0 6px rgba(255, 241, 204, 0.95), 0 0 12px rgba(255, 215, 0, 0.7);
+    pointer-events: none;
+}
+.leaf3d-vip-sparkle.tip-left { right: auto; left: -2px; } /* a leaf pointing left: its tip on the left */
+.leaf3d-vip-sparkle.is-off { display: none; }
+
 @keyframes leaf3dVipPulse {
     0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 12px rgba(255, 200, 0, 0.6)); }
     50% { filter: drop-shadow(0 0 10px rgba(255, 230, 80, 1)) drop-shadow(0 0 22px rgba(255, 215, 0, 0.9)); }

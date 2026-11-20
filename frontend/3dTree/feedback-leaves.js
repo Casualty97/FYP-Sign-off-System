@@ -258,7 +258,7 @@ const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldCol
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS, leafBatchMode: 'groups', leafBatchCount: BATCH_SIZE, leafBatchSize: BATCH_SIZE,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
   tree2d: { leafFallThreshold: 15, treeStage: 4, leafShowcaseSeconds: SHOWCASE_MS / 1000 },
-  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true,
+  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true, vipSparkle: true,
   leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1, // the names: the look's own font, bold, white, standard size
   vipNameOwnStyle: false, vipNameFont: 'auto', vipNameWeight: 700, vipNameColor: '#ffffff', vipNameSize: 1 }; // VIP names: as the others unless ticked
 
@@ -1822,7 +1822,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       }
       // A VIP's star of light at the leaf's tip: twinkling (brightest every SPARKLE_EVERY seconds, each leaf at
       // its own time), turning slowly, with its leaf (shown as the leaf is, and not while it falls).
-      leaf.sparkle.visible = leaf.isVip && leaf.state !== 'falling' && leaf.material.opacity > 0.01;
+      // (Unless the admin turns the star off: 3D VIP Leaf Adjustments, tree3dParameters.vipSparkle.)
+      leaf.sparkle.visible = leaf.isVip && settings.vipSparkle !== false && leaf.state !== 'falling' && leaf.material.opacity > 0.01;
       if (leaf.sparkle.visible) {
         const beat = (time / 1000 / SPARKLE_EVERY + leaf.spot.phase) % 1;
         const twinkle = 0.55 + 0.45 * Math.pow(Math.max(0, Math.cos(beat * Math.PI * 2)), 6);
