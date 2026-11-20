@@ -1452,19 +1452,109 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   // ---------- resting (swaying with the tree) ----------
 
+  // ---------- kept apart as the viewer sees them ----------
+
+  // Each leaf's spot is clear of the others as the view was when it was placed. Seen from another side (the
+  // tree turning), leaves at different depths of the canopy can line up and cover each other. So every frame
+  // any two leaves on the tree that overlap on the screen are eased apart, across the view, just far enough
+  // to stand clear of each other (SPREAD_GAP), each by at most SPREAD_MAX of its own size so it stays on the
+  // canopy (a leaf near the canopy's outline as seen moves along it or inwards, not out into the sky); with
+  // nothing in its way a leaf eases back to its own spot. They move smoothly (SPREAD_EASE).
+  const SPREAD_GAP = 1;        // two leaves' centres kept at least their two half sizes apart
+  const SPREAD_MAX = 2.2;      // the furthest a leaf moves aside from its spot, in leaf sizes
+  const SPREAD_EASE = 4;       // how quickly a leaf moves aside (per second)
+  const SPREAD_RETURN = 0.35;  // how quickly it eases back to its spot once nothing is in its way (per second)
+  const spreadRight = new T.Vector3(), spreadUp = new T.Vector3(), spreadForward = new T.Vector3();
+  const spreadAt = new T.Vector3(), spreadPush = new T.Vector3();
+  const spreadAngle = key => { let h = 0; for (const c of String(key)) h = (h * 31 + c.charCodeAt(0)) | 0; return (h % 360) * Math.PI / 180; };
+  function spreadApart(dt) {
+    const shown = [];
+    for (const leaf of leaves.values()) {
+      leaf.spread ??= new T.Vector3();
+      leaf.spreadTarget ??= new T.Vector3();
+      leaf.spreadTarget.multiplyScalar(Math.max(0, 1 - dt * SPREAD_RETURN)); // back towards its own spot
+      if (leaf.state === 'resting' && (leaf.shown.glide ?? 1) > 0.05) shown.push(leaf);
+    }
+    if (shown.length > 1) {
+      camera.updateMatrixWorld();
+      spreadRight.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+      spreadUp.setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+      camera.getWorldDirection(spreadForward);
+      // Each leaf across the view as seen (its offset from the camera over its depth, so near and far leaves
+      // compare as they look), with its half size seen the same way.
+      // The canopy's outline as seen: an oval inside its extent (canopyBox) across the view.
+      let outline = null;
+      if (canopyBox) {
+        let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+        for (let corner = 0; corner < 8; corner++) {
+          spreadAt.set(corner & 1 ? canopyBox.max.x : canopyBox.min.x, corner & 2 ? canopyBox.max.y : canopyBox.min.y,
+            corner & 4 ? canopyBox.max.z : canopyBox.min.z).sub(camera.position);
+          const depth = Math.max(0.5, spreadAt.dot(spreadForward));
+          const u = spreadAt.dot(spreadRight) / depth, v = spreadAt.dot(spreadUp) / depth;
+          minU = Math.min(minU, u); maxU = Math.max(maxU, u); minV = Math.min(minV, v); maxV = Math.max(maxV, v);
+        }
+        outline = { u: (minU + maxU) / 2, v: (minV + maxV) / 2, ru: Math.max(1e-3, (maxU - minU) / 2 * 0.92), rv: Math.max(1e-3, (maxV - minV) / 2 * 0.92) };
+      }
+      const seen = shown.map(leaf => {
+        spreadAt.copy(leaf.shown.position).add(leaf.spreadTarget).sub(camera.position);
+        const depth = Math.max(0.5, spreadAt.dot(spreadForward));
+        return { leaf, depth, u: spreadAt.dot(spreadRight) / depth, v: spreadAt.dot(spreadUp) / depth,
+          half: (leaf.scale * MODEL_SIZE * 0.5) / depth, du: 0, dv: 0 };
+      });
+      for (let pass = 0; pass < 3; pass++) {
+        for (let i = 0; i < seen.length; i++) {
+          const a = seen[i];
+          for (let j = i + 1; j < seen.length; j++) {
+            const b = seen[j];
+            let x = (b.u + b.du) - (a.u + a.du), y = (b.v + b.dv) - (a.v + a.dv);
+            const need = (a.half + b.half) * SPREAD_GAP;
+            const apart = Math.hypot(x, y);
+            if (apart >= need) continue;
+            if (apart < 1e-6) { const angle = spreadAngle(b.leaf.key); x = Math.cos(angle); y = Math.sin(angle); } // on top of each other
+            else { x /= apart; y /= apart; }
+            const push = (need - apart) / 2;
+            a.du -= x * push; a.dv -= y * push;
+            b.du += x * push; b.dv += y * push;
+          }
+        }
+      }
+      for (const item of seen) {
+        const { leaf, depth, u, v } = item;
+        let { du, dv } = item;
+        if (!du && !dv) continue;
+        if (outline) {
+          // Not pushed out past the canopy's outline: the outward part of the push is left out there.
+          const out = (x, y) => Math.hypot((x - outline.u) / outline.ru, (y - outline.v) / outline.rv);
+          if (out(u + du, v + dv) > Math.max(out(u, v), 0.85)) {
+            let nx = (u - outline.u) / (outline.ru * outline.ru), ny = (v - outline.v) / (outline.rv * outline.rv);
+            const length = Math.hypot(nx, ny) || 1;
+            nx /= length; ny /= length;
+            const outward = du * nx + dv * ny;
+            if (outward > 0) { du -= outward * nx; dv -= outward * ny; }
+          }
+        }
+        spreadPush.copy(spreadRight).multiplyScalar(du * depth).addScaledVector(spreadUp, dv * depth);
+        leaf.spreadTarget.add(spreadPush).clampLength(0, SPREAD_MAX * leaf.scale * MODEL_SIZE);
+      }
+    }
+    const ease = 1 - Math.exp(-dt * SPREAD_EASE);
+    for (const leaf of leaves.values()) leaf.spread.lerp(leaf.spreadTarget, ease);
+  }
+
   const sway = new T.Quaternion();
   const swayEuler = new T.Euler();
   function placeAtRest(leaf, elapsed) {
     const { local, phase } = leaf.spot;
     const { position, quaternion } = leaf.shown; // its spot as shown now (turned with the view)
+    const aside = leaf.spread; // moved aside so it does not cover another leaf (spreadApart)
     const gust = clock.gust.value;
     // The same breeze as the tree's own leaves (matte-tree.js), so the leaf stays on its twig.
     const reach = smoothstep(2, 13, local.y);
     const breeze = Math.sin(elapsed * 1.7 + local.x * 0.84 + local.z * 0.62);
     leaf.mesh.position.set(
-      position.x + reach * breeze * (0.024 + 0.05 * gust),
-      position.y + reach * 0.012 * Math.sin(elapsed * 5.2 + local.x * 2.2),
-      position.z,
+      position.x + (aside?.x || 0) + reach * breeze * (0.024 + 0.05 * gust),
+      position.y + (aside?.y || 0) + reach * 0.012 * Math.sin(elapsed * 5.2 + local.x * 2.2),
+      position.z + (aside?.z || 0),
     );
     const flutter = (0.035 + 0.12 * gust) * Math.sin(elapsed * 2.3 + phase);
     sway.setFromEuler(swayEuler.set(flutter, 0, flutter * 0.6));
@@ -1680,8 +1770,9 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     nightLight.setRGB(1, 1, 1).lerp(NIGHT_LEAF, clock.night?.value || 0);
     // Once the view has turned (by any means) the clicked leaf has moved away, so its card closes.
     if (details.isOpen() && camera.getWorldDirection(currentView).angleTo(cardView) > CARD_TURN_LIMIT) details.close();
+    for (const leaf of leaves.values()) if (leaf.state !== 'falling') shownSpot(leaf, leaf.shown);
+    spreadApart(dt); // leaves that overlap as the viewer sees them move apart
     for (const [key, leaf] of leaves) {
-      if (leaf.state !== 'falling') shownSpot(leaf, leaf.shown);
       leaf.scale += (currentScale(leaf) - leaf.scale) * Math.min(1, dt * 4); // size changes ease in
       leaf.colour.lerp(leaf.targetColour, Math.min(1, dt * 0.9));     // colour changes fade over a few seconds
       if (leaf.state === 'landing') placeFlight(leaf, time, elapsed, dt);
