@@ -1533,9 +1533,40 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   const haloSize = new T.Vector3();
   const haloVivid = new T.Color();
   const nightLight = new T.Color();
+  // The leaves keep to the tree: each spot is kept in the tree's own terms (spot.local), so when the tree
+  // grows or shrinks in size (a new stage growing to its own size, tree-growth.js) every leaf moves with its
+  // twig. Checked when the tree's place or size changes.
+  let treeKey = '';
+  function followTree() {
+    const key = tree.matrixWorld.elements.map(value => value.toFixed(5)).join(',');
+    if (key === treeKey) return;
+    treeKey = key;
+    for (const leaf of leaves.values()) {
+      if (leaf.state === 'falling' || !leaf.spot.local) continue;
+      leaf.spot.position.copy(leaf.spot.local).applyMatrix4(tree.matrixWorld);
+      leaf.spot.around = undefined; // its angle and distance round the trunk again (shownSpot)
+      leaf.spot.reach = undefined;
+    }
+  }
+
+  // A leaf moved to a new spot (a new stage's canopy, moveLeavesTo) glides there from where it was.
+  const LEAF_MOVE_SECONDS = 3;
+  const moveQuaternion = new T.Quaternion();
+  function glideToNewSpot(leaf, dt) {
+    const move = leaf.restMove;
+    if (!move) return;
+    move.t = Math.min(1, move.t + dt / LEAF_MOVE_SECONDS);
+    const k = smoothstep(0, 1, move.t);
+    leaf.mesh.position.lerpVectors(move.position, leaf.mesh.position, k);
+    moveQuaternion.copy(leaf.mesh.quaternion);
+    leaf.mesh.quaternion.slerpQuaternions(move.quaternion, moveQuaternion, k);
+    if (move.t >= 1) leaf.restMove = null;
+  }
+
   function update(dt, elapsed) {
     if (!group.visible) return;
     const time = now();
+    followTree();
     nightLight.setRGB(1, 1, 1).lerp(NIGHT_LEAF, clock.night?.value || 0);
     // Once the view has turned (by any means) the clicked leaf has moved away, so its card closes.
     if (details.isOpen() && camera.getWorldDirection(currentView).angleTo(cardView) > CARD_TURN_LIMIT) details.close();
@@ -1549,6 +1580,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       } else {
         leaf.restingSince ??= time;
         placeAtRest(leaf, elapsed);
+        glideToNewSpot(leaf, dt);
         leaf.material.opacity = facingAmount(leaf) * (leaf.shown.glide ?? 1); // faded at the edges of its glide
       }
       leaf.material.opacity *= within(settings.leafOpacity, 1, 0.1, 1); // the admin's Leaf Opacity (2D: leafOpacity)
@@ -1611,11 +1643,62 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     canopyBox = anchors.length ? new T.Box3().setFromPoints(anchors.map(anchor => anchor.position)) : null;
   }
 
-  // The tree has grown into its next stage, in place (scene.js): the leaves stay where they are; new spots
-  // come from the new tree once it has grown (canopyGrew), or at once if there were none (a bare trunk).
+  // The tree has grown into another stage, in place (scene.js): every leaf moves to the matching place on the
+  // new tree's canopy (moveLeavesTo), and then grows and turns with it (followTree).
   function setTree(next) {
+    moveLeavesTo(next);
+  }
+
+  // Each leaf goes to the same place on the new canopy as it had on the old: its position within the old
+  // canopy's extent (high on the left stays high on the left), on the nearest spot of the new canopy's foliage
+  // not taken by another leaf, turned as the canopy there faces; a leaf on the tree glides there from where it
+  // was (glideToNewSpot), one floating in flies on to its new spot.
+  function moveLeavesTo(next) {
+    next.updateMatrixWorld(true);
+    const oldBox = canopyBox ? canopyBox.clone() : null;
+    const fresh = model ? canopyAnchors(next).anchors : [];
     tree = next;
-    if (!anchors.length) canopyGrew();
+    treeKey = '';
+    if (!fresh.length) return;
+    const newBox = new T.Box3().setFromPoints(fresh.map(anchor => anchor.position));
+    anchors = fresh;
+    canopyBox = newBox;
+    if (!oldBox) return;
+    const oldCentre = oldBox.getCenter(new T.Vector3()), oldHalf = oldBox.getSize(new T.Vector3()).multiplyScalar(0.5);
+    const newCentre = newBox.getCenter(new T.Vector3()), newHalf = newBox.getSize(new T.Vector3()).multiplyScalar(0.5);
+    const want = new T.Vector3();
+    const taken = new Set();
+    for (const leaf of leaves.values()) {
+      if (leaf.state === 'falling') continue;
+      const spot = leaf.spot;
+      for (const axis of ['x', 'y', 'z']) {
+        const share = oldHalf[axis] > 1e-3 ? (spot.position[axis] - oldCentre[axis]) / oldHalf[axis] : 0;
+        want[axis] = newCentre[axis] + share * newHalf[axis];
+      }
+      let best = -1, bestScore = Infinity;
+      fresh.forEach((anchor, index) => {
+        if (taken.has(index)) return;
+        // Near the wanted place, facing much the same way.
+        const score = anchor.position.distanceToSquared(want) * (1.6 - 0.6 * anchor.outward.dot(spot.outward));
+        if (score < bestScore) { bestScore = score; best = index; }
+      });
+      if (best < 0) continue;
+      taken.add(best);
+      const anchor = fresh[best];
+      const turn = new T.Quaternion().setFromUnitVectors(spot.outward.clone().normalize(), anchor.outward.clone().normalize());
+      const moved = {
+        ...spot,
+        position: anchor.position.clone(),
+        outward: anchor.outward.clone(),
+        quaternion: turn.multiply(spot.quaternion.clone()),
+        local: next.worldToLocal(anchor.position.clone()),
+        around: undefined,
+        reach: undefined,
+      };
+      if (leaf.state === 'resting') leaf.restMove = { position: leaf.mesh.position.clone(), quaternion: leaf.mesh.quaternion.clone(), t: 0 };
+      leaf.spot = moved;
+      placed.set(leaf.key, moved);
+    }
   }
 
   return { update, canopyGrew, setTree, ready };
