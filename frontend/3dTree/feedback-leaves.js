@@ -68,6 +68,8 @@ const BATCH_SIZE = 3;            // new leaves are split into this many groups (
                                  // into groups of up to this many (leafBatchSize), as the admin chooses (leafBatchMode)
 const BATCH_SPREAD_MS = 2500;    // a group's leaves leave for the tree within this, each at its own moment
 const BATCH_ROW_WIDTH = 0.8;     // how far across the screen the group's row spreads (of half its width, each way)
+const SHOWCASE_SIZE = 1.4;       // a new leaf in the row is this many times its size on the tree
+const SHRINK_SHARE = 0.18;       // it is back to its own size this far into its float up (then floats at it)
 const TINT_BOOST = 2.3;          // the leaf picture is mid grey: this brings the chosen colour back to strength
 const NEON = new T.Color(0x39ff14);
 const MIN_LIGHTNESS = 0.38;      // a leaf colour is shown at least this light (HSL), so it stands out on the canopy
@@ -642,8 +644,9 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   // ---------- data ----------
 
   // A demonstration of new feedback arriving (?demo=7 in the page address, 1 to 30; in this browser tab only,
-  // nothing is submitted or changed): the page opens without the 7 newest feedbacks, and DEMO_DELAY_MS after
-  // the scene appears they arrive together as new ones, shown as real new feedback is (in groups of up to 3,
+  // nothing is submitted or changed): the page opens without the 7 newest feedbacks (made up by pretend
+  // visitors, "Demo visitor 1" and on, when there are fewer), and DEMO_DELAY_MS after the scene appears they
+  // arrive together as new ones, shown as real new feedback is (in groups of up to 3,
   // then joining the tree). Reload the page to see it again.
   const DEMO_COUNT = (() => {
     const asked = Number(new URLSearchParams(window.location.search).get('demo'));
@@ -652,8 +655,21 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   const DEMO_DELAY_MS = 5000;
   let demoHeld = null;        // the held-back feedbacks (their keys), until they arrive
   let demoArrived = false;
-  function demoVisitors(visitors) {
-    if (!DEMO_COUNT || demoArrived || !mode.live) return visitors;
+  let demoPretend = [];       // pretend visitors, when there are fewer real feedbacks than the demo shows
+  const DEMO_BADGES = ['feedback-completer', 'social-champion', 'governance-guardian', 'climate-champion', 'ocean-guardian'];
+  function demoVisitors(real) {
+    if (!DEMO_COUNT || !mode.live) return real;
+    if (!demoHeld) {
+      // Not enough feedback yet (a fresh start): pretend visitors make up the number, in this tab only.
+      const missing = Math.max(0, DEMO_COUNT - real.length);
+      const at = new Date().toISOString();
+      demoPretend = Array.from({ length: missing }, (_, i) => ({
+        feedback_id: `demo-${i + 1}`, name: `Demo visitor ${i + 1}`, created_at: at,
+        badgeKey: DEMO_BADGES[i % DEMO_BADGES.length], isDemo: true,
+      }));
+    }
+    const visitors = [...real, ...demoPretend];
+    if (demoArrived) return visitors;
     const keyOf = visitor => leafKey(visitor, 0);
     if (!demoHeld) {
       demoHeld = new Set(sortOldestFirst(visitors).slice(-DEMO_COUNT).map(keyOf));
@@ -1240,7 +1256,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const count = Math.max(1, group.members.length);
     const slot = Math.max(0, group.members.indexOf(leaf));
     const aspect = Math.max(0.3, camera.aspect);
-    if (group.half === null) group.half = (leaf.scale * MODEL_SIZE) / halfHeight; // twice its size, as the first leaf
+    if (group.half === null) group.half = (leaf.scale * MODEL_SIZE * SHOWCASE_SIZE / 2) / halfHeight; // as the first leaf
     const halfFor = (left, right) => Math.min(group.half, count > 1 ? ((right - left) / count) * aspect * 0.36 : group.half, aspect * 0.8);
     let left = -BATCH_ROW_WIDTH, right = BATCH_ROW_WIDTH;
     let half = halfFor(left, right);
@@ -1312,8 +1328,9 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     facingPose(axisX, f.flutter * Math.sin(swing * 2) * calm);
     leaf.mesh.quaternion.slerpQuaternions(floatPose, restPose, smoothstep(0.55, 1, s));
 
-    // Its size in the row at the start, shrinking smoothly to its size on the tree.
-    leaf.mesh.scale.setScalar(leaf.scale + (showScale - leaf.scale) * (1 - s) ** 1.4);
+    // Its size in the row at the start, back to its own size on the tree early in the float (SHRINK_SHARE),
+    // then floating up at that standard size.
+    leaf.mesh.scale.setScalar(T.MathUtils.lerp(showScale, leaf.scale, smoothstep(0, SHRINK_SHARE, t)));
     leaf.mesh.scale.x *= sideSign(leaf);
     // (Fading in here too when the admin sets no time at the bottom middle.)
     leaf.material.opacity = smoothstep(0, f.appear, since) * T.MathUtils.lerp(1, facingAmount(leaf), smoothstep(0.8, 1, s));
