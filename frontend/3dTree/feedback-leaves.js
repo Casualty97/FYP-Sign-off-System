@@ -243,8 +243,9 @@ const BADGE_LEAF_COLOURS = { // the 2D tree's default badge colours
   'sustainable-living-advocate': '#16a34a', 'ocean-guardian': '#0284c7', 'governance-guardian': '#7c3aed',
   'social-champion': '#d97706',
 };
-// In the glowing look the feedback leaves glow in three colours, as the tree's own glowing leaves and the
-// ESG Centre's concept: green for Environmental, blue for Social, orange for Governance, by the visitor's
+// The feedback leaves take the admin's badge colours in both looks (badgeColour, tintLeaf). With "Colour
+// leaves by their badge" off, the glowing look's leaves glow in three colours, as the tree's own glowing
+// leaves and the ESG Centre's concept: green for Environmental, blue for Social, orange for Governance, by the visitor's
 // badge (Social Champion: Social; Governance Guardian: Governance; the climate, energy, living and ocean
 // badges and Feedback Contributor: Environmental). The vivid colour while new, a dark shade of it later.
 const ESG_GLOW_COLOURS = { environmental: '#2ee05a', social: '#2f8fff', governance: '#ff8a1f' };
@@ -1161,9 +1162,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const isNew = created !== null && Date.now() - created <= newForMs;
     const plain = isNew ? settings.leafNewColor : settings.leafOldColor;
     const esg = BADGE_ESG[leaf.visitor?.badgeKey] || 'environmental';
+    // In both looks, with "Colour leaves by their badge" on (the default): the admin's colour for the
+    // visitor's badge (Ocean Guardian blue, Social Champion amber, ...), light while new, a dark shade later.
+    // Off: the glowing look's three ESG colours (green, blue or orange), the natural look's light and dark green.
     const colour = leaf.isVip ? settings.vipLeafColor
-      : leafLook.aura ? (isNew ? ESG_GLOW_COLOURS[esg] : badgeShade(ESG_GLOW_COLOURS[esg], false)) // glowing look: green, blue or orange (ESG), vivid while new
-        : settings.badgeColours === true ? badgeShade(badgeColour(leaf.visitor), isNew) : plain;
+      : settings.badgeColours === true ? badgeShade(badgeColour(leaf.visitor), isNew)
+        : leafLook.aura ? (isNew ? ESG_GLOW_COLOURS[esg] : badgeShade(ESG_GLOW_COLOURS[esg], false))
+          : plain;
     leaf.targetColour = displayColour(colour, isNew || leaf.isVip ? MIN_LIGHTNESS : OLD_MIN_LIGHTNESS);
     if (immediate) leaf.colour.copy(leaf.targetColour);
   }
