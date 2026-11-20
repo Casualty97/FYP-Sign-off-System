@@ -1221,7 +1221,12 @@ function saveFeedbackToDatabase(userData, device, theme, retention, callback) {
             return callback(err);
         }
         
-        // Try to find matching user by decrypting emails
+        // Try to find matching user by decrypting emails. A returning visitor is the same email AND the same
+        // name: a different name typed with an email already used (a family or class sharing one email, or a
+        // test) is its own visitor, so its leaf on the 2D and 3D trees, the pledge board and the admin lists
+        // show the name typed on that form, not the first one. The passport and the daily limit still gather
+        // every visitor with that email (findUsersByEmail). (Wei Jie)
+        const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
         let user = null;
         if (userData.email) {
             for (const u of allUsers) {
@@ -1230,7 +1235,8 @@ function saveFeedbackToDatabase(userData, device, theme, retention, callback) {
                     const decryptedEmail = auth.tryDecryptEmail
                         ? auth.tryDecryptEmail(u.email_encrypted)
                         : auth.decryptEmail(u.email_encrypted);
-                    if (decryptedEmail && decryptedEmail.toLowerCase() === userData.email.toLowerCase()) {
+                    if (decryptedEmail && decryptedEmail.toLowerCase() === userData.email.toLowerCase()
+                        && sameName(u.name, userData.name)) {
                         user = u;
                         break;
                     }

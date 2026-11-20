@@ -176,7 +176,8 @@ async function start() {
   // The tree growing into another stage in place, without reloading the page (tree-stage.js, tree-growth.js).
   // The new stage's model loads in the background while the tree stays on show. Then it takes the tree's
   // place at the tree's size and with the foliage the tree had, and grows to its own size with a growth spurt
-  // of fresh foliage. The visitors' leaves stay where they are; once it has grown, the birds' perches, the
+  // of fresh foliage. The visitors' leaves move to the same places on its canopy and grow with it (leaves that
+  // came while the tree was a bare trunk fly in now, feedback-leaves.js); once it has grown, the birds' perches, the
   // wind's falling leaves and the spots for new leaves come from the new tree. Several changes in a row are
   // taken in turn; a model that cannot be loaded is tried again after a minute.
   let wantedStage=shownStage, changingStage=false, settleNewTree=false, stageFailedAt=0;
