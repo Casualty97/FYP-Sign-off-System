@@ -9,10 +9,14 @@
 //     looks straight through from the side, out to the canopy's ends) and inside it (THIN_INSIDE), so the
 //     trunk and branches show through from the side; the outside of the crown's top keeps all its leaves,
 //     so its outline stays full;
+//   - trimmed: the canopy's underside, the leaves hanging lowest (below TRIM_FROM of its half height under
+//     its middle, all but a few by TRIM_TO), and higher under the canopy's two long ends (TRIM_ENDS_FROM to
+//     TRIM_ENDS_TO: seen from the side, the nearer end is closest to the viewer, so it shows lowest), so from
+//     the side the crown ends tidily above the trunk's lower part instead of hanging down towards the ground;
 //   - filled: the outside of the canopy's front and back gets more leaves (up to FILL_SIDES copies of each
 //     leaf there, each moved a little across and out from the canopy and turned its own way), so the
-//     canopy is full round its outline from the side, fuller from the front, and the feedback leaves sit
-//     among leaves.
+//     canopy is full round its outline from the side, both its sides, fuller from the front, and the
+//     feedback leaves sit among leaves.
 // Every leaf (a sprig, one connected piece of the foliage: tree-growth.js sprigsOf) is kept, dropped or
 // copied whole, chosen by a fixed pattern, so the tree looks the same every time it loads.
 import { THREE as T } from './vendor/three-runtime.js';
@@ -20,9 +24,14 @@ import { sprigsOf } from './tree-growth.js';
 
 const THIN_MIDDLE = 0.55;       // the share of leaves dropped in the canopy's middle from front to back
 const THIN_INSIDE = 0.5;        // the share dropped deep inside the canopy (less towards its outside)
-const FILL_SIDES = 1.3;         // copies of each leaf on the outside of the canopy's front and back
-const FILL_ACROSS = [0.25, 0.75]; // how far across the canopy's surface a copy moves, in metres
-const FILL_OUT = 0.3;           // and how far out from it at most
+const TRIM_FROM = -0.35;        // the underside trimmed from this far below the canopy's middle (of its half height)
+const TRIM_TO = -0.65;          // to this far, where TRIM_BOTTOM of the leaves are gone
+const TRIM_BOTTOM = 0.9; 
+const TRIM_ENDS_FROM = -0.1; // the canopy's two long ends (seen from the side, the nearest part of the canopy, so it shows lowest)
+const TRIM_ENDS_TO = -0.4;  // have their undersides trimmed higher: from this far below the middle to this far       // the share of the lowest leaves dropped
+const FILL_SIDES = 2.2;         // copies of each leaf on the outside of the canopy's front and back
+const FILL_ACROSS = [0.25, 0.8]; // how far across the canopy's surface a copy moves, in metres
+const FILL_OUT = 0.4;           // and how far out from it at most
 
 const smoothStep = (from, to, value) => {
   const t = Math.min(1, Math.max(0, (value - from) / (to - from)));
@@ -93,9 +102,11 @@ export async function shapeCanopy(tree, pause = async () => {}) {
       const inMiddle = 1 - smoothStep(0.3, 0.65, Math.abs(z));  // 1 in its middle from front to back
       const crown = smoothStep(0.45, 0.75, y) * smoothStep(0.75, 0.9, out); // the outside of the crown's top
       const thinned = 1 - (1 - THIN_MIDDLE * inMiddle) * (1 - THIN_INSIDE * (1 - smoothStep(0.55, 0.8, out)));
-      part.keep[s] = chance(leafNumber * 3 + 1) >= thinned * (1 - crown) ? 1 : 0;
+      const ends = smoothStep(0.5, 0.8, Math.abs(x)); // 1 at the canopy's two long ends (left and right from the front)
+      const trimmed = TRIM_BOTTOM * Math.max(smoothStep(TRIM_FROM, TRIM_TO, y), ends * smoothStep(TRIM_ENDS_FROM, TRIM_ENDS_TO, y)); // the low-hanging underside
+      part.keep[s] = chance(leafNumber * 3 + 1) >= Math.max(thinned * (1 - crown), trimmed) ? 1 : 0;
 
-      const wanted = FILL_SIDES * smoothStep(0.4, 0.75, Math.abs(z)) * smoothStep(0.62, 0.85, out) * (1 - smoothStep(-0.35, -0.6, y));
+      const wanted = FILL_SIDES * smoothStep(0.35, 0.7, Math.abs(z)) * smoothStep(0.58, 0.82, out) * (1 - smoothStep(-0.3, -0.5, y));
       const copies = Math.floor(wanted) + (chance(leafNumber * 3 + 2) < wanted % 1 ? 1 : 0);
       if (!copies) continue;
       const middle = new T.Vector3().fromArray(part.middles, s * 3);
