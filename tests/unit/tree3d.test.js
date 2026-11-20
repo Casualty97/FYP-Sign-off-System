@@ -201,3 +201,24 @@ test('new leaves arriving together: split into a number of groups (3 by default)
     assert.throws(() => normalizeTree3dParameters({ leafBatchMode: 'random' }), { statusCode: 400, message: /Split new leaves/ });
     assert.throws(() => normalizeTree3dParameters({ leafBatchCount: 'two' }), { statusCode: 400, message: /Number of groups/ });
 });
+
+test('saved views: up to 12 snapshots of a zoom, angle and height, and the one the screens use', () => {
+    assert.deepEqual(DEFAULT_TREE3D_PARAMETERS.savedViews, []);
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.screenView, '');
+    const saved = normalizeTree3dParameters({
+        savedViews: [{ id: 'close-up', name: '  Close up  ', zoom: 1.8, azimuth: 7, polar: 1.3, savedAt: '2026-11-20T08:00:00Z' }],
+        screenView: 'close-up'
+    });
+    assert.equal(saved.screenView, 'close-up');
+    assert.equal(saved.savedViews[0].name, 'Close up');
+    assert.equal(saved.savedViews[0].zoom, 1.8);
+    assert.ok(Math.abs(saved.savedViews[0].azimuth - Math.atan2(Math.sin(7), Math.cos(7))) < 1e-3); // kept within -pi to pi
+    assert.equal(normalizeTree3dParameters({ savedViews: [{ id: 'far-away', zoom: 9, azimuth: 0, polar: 3 }] }).savedViews[0].zoom, 2.5);
+    assert.ok(normalizeTree3dParameters({ savedViews: [{ id: 'far-away', zoom: 0.1, azimuth: 0, polar: 0 }] }).savedViews[0].polar >= 1.04);
+    assert.equal(normalizeTree3dParameters({ screenView: '' }).screenView, '');
+    assert.throws(() => normalizeTree3dParameters({ savedViews: 'all' }), /list/);
+    assert.throws(() => normalizeTree3dParameters({ savedViews: [{ id: '../x', zoom: 1, azimuth: 0, polar: 1.2 }] }), /id/);
+    assert.throws(() => normalizeTree3dParameters({ savedViews: [{ id: 'aaaa', zoom: 1, azimuth: 0, polar: 1.2 }, { id: 'aaaa', zoom: 1, azimuth: 0, polar: 1.2 }] }), /own id/);
+    assert.throws(() => normalizeTree3dParameters({ savedViews: Array.from({ length: 13 }, (_, i) => ({ id: `view-${i}`, zoom: 1, azimuth: 0, polar: 1.2 })) }), /Up to 12/);
+    assert.throws(() => normalizeTree3dParameters({ screenView: 'bad id!' }), /saved view/);
+});

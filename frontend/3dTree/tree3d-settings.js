@@ -61,6 +61,8 @@ let lastActions = null;      // action times seen so far; the first ones only se
 let soundRetryArmed = false;
 
 const isReady = () => root?.dataset.ready === 'true';
+// The admin's view editor (?viewEditor=1): the view holds still for framing, and plays no sound.
+const viewEditor = new URLSearchParams(window.location.search).get('viewEditor') === '1';
 const pressed = (button, attribute = 'aria-pressed') => button?.getAttribute(attribute) === 'true';
 
 function withDefaults(saved) {
@@ -242,8 +244,10 @@ function applyControls(settings) {
   if (!isReady()) return;
   applyWeather(settings);
   applyRiver(settings);
-  applyToggle('orbit', controls.orbit, settings.autoOrbit);
-  applySound(settings);
+  if (!viewEditor) {
+    applyToggle('orbit', controls.orbit, settings.autoOrbit);
+    applySound(settings);
+  }
   applyToggle('soil', controls.soil, settings.showSoilPanel, 'aria-expanded');
   runActions(settings);
 }
@@ -256,7 +260,7 @@ async function refresh() {
     const data = await response.json();
     if (!response.ok || !data.success) return;
     // The admin chose the 2D tree for the wall: go straight to it.
-    if (data.parameters?.treeParameters?.treeDisplayMode === '2d') {
+    if (data.parameters?.treeParameters?.treeDisplayMode === '2d' && !viewEditor) {
       window.location.replace(`/tree${window.location.search}`);
       return;
     }

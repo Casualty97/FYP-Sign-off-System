@@ -1505,6 +1505,42 @@
                             </div>
                         </div>
                         <br>
+                        <!-- 3D View & Zoom: a live preview of the 3D tree (frontend/3dTree/3dTree.html?viewEditor=1) to turn and
+                             zoom, saved as snapshots (tree3dParameters.savedViews) and chosen for the 3D screens (screenView;
+                             frontend/3dTree/view-settings.js, admin/js/tree3d.js). -->
+                        <div class="tree-adjustment-section">
+                            <div class="section-header">
+                                <h3>3D View &amp; Zoom</h3>
+                            </div>
+                            <div class="section-body">
+                                <p style="font-size:12px; color:#666; margin:0 0 12px;">Frame the 3D tree the way the screen should show it: in the preview, drag to turn round the tree and up or down, and zoom in or out with the mouse wheel (or the buttons). Save it as a snapshot, then choose which snapshot the 3D screens show. The screens move to it within about 5 seconds and keep turning slowly from there (when the automatic turn is on).</p>
+                                <div class="view3d-layout">
+                                    <div class="view3d-stage">
+                                        <div class="view3d-frame-box">
+                                            <iframe id="tree3d-viewFrame" class="view3d-frame" title="3D tree view preview" hidden></iframe>
+                                            <button type="button" class="btn-primary view3d-open" id="tree3d-viewOpen" onclick="openTree3dViewEditor()">Show 3D preview</button>
+                                        </div>
+                                        <div class="view3d-tools">
+                                            <button type="button" class="turn-preset" onclick="zoomTree3dView(1.15)" title="Zoom in">＋ Zoom in</button>
+                                            <button type="button" class="turn-preset" onclick="zoomTree3dView(1 / 1.15)" title="Zoom out">－ Zoom out</button>
+                                            <button type="button" class="turn-preset" onclick="standardTree3dView()">Standard view</button>
+                                            <span id="tree3d-viewReadout" class="view3d-readout">Zoom 100%</span>
+                                        </div>
+                                    </div>
+                                    <div class="view3d-snapshots">
+                                        <label for="tree3d-viewName" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Save this view</label>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="text" id="tree3d-viewName" maxlength="60" placeholder="e.g. Close up on the canopy" style="flex:1; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <button type="button" class="btn-primary" onclick="saveTree3dSnapshot()">Save snapshot</button>
+                                        </div>
+                                        <span style="display:block; font-weight:600; color:#334155; margin:14px 0 6px;">Saved views</span>
+                                        <ul id="tree3d-viewList" class="view3d-list"></ul>
+                                        <button type="button" class="turn-preset" style="margin-top:8px;" onclick="useTree3dView('')">Use the standard view on the 3D screens</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
                         <!-- 3D Leaf Adjustments: the feedback leaves on the 3D tree (frontend/3dTree/feedback-leaves.js).
                              The leaf is the RainTree model in /assets/Tree/3dTreeLeaves; it is coloured, not uploaded. -->
                         <div class="tree-adjustment-section">

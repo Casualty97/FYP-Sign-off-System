@@ -13,6 +13,7 @@ import { installRiverLevel } from './river-level.js';
 import { createFallingLeaves } from './falling-leaves.js';
 import { refineSceneMaterials, drawingRatio, createFrameBudget } from './render-quality.js';
 import { createTreeView, TURN_SECONDS, TURN_SECONDS_MIN } from './tree-view.js';
+import { installViewSettings } from './view-settings.js';
 import { addFeedbackLeaves } from './feedback-leaves.js';
 import { startingStage, stageModelUrl, prepareStageTree, perchSeats, canopyDriftRoutes, normaliseStage, loadStageTree, removeTree } from './tree-stage.js';
 import { growTree, matchingScale, previewGrowth } from './tree-growth.js';
@@ -69,9 +70,13 @@ async function start() {
   const scene = new T.Scene();
   scene.background = horizon;
   const camera = new T.PerspectiveCamera(34,1,.19,landscapeFar);
+  // The admin's view editor (?viewEditor=1, in the admin's 3D View & Zoom card): zooming on, no automatic turn.
+  const viewEditor=params.get('viewEditor')==='1';
+  document.body.classList.toggle('view-editor',viewEditor);
   const treeView = createTreeView(camera,canvas,buttons['slow-orbit'],{
-    autoOrbit:!reducedMotion && params.get('orbit')!=='off',reducedMotion,
+    autoOrbit:!viewEditor && !reducedMotion && params.get('orbit')!=='off',reducedMotion,editor:viewEditor,
   });
+  installViewSettings(treeView,{editor:viewEditor}); // the admin's chosen view (view-settings.js)
   // The admin's turning speed and direction (3D Scene Controls), shown on the turn button too.
   const turnLabel=buttons['slow-orbit'].querySelector('span');
   onTree3dSettings(next=>{

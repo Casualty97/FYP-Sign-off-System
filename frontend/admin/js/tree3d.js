@@ -524,6 +524,7 @@ function fillTree3dForm(settings) {
         updateTree3dTurnFields();
     }
     tree3dField('showSoilPanel').checked = s.showSoilPanel === true;
+    useTree3dViews(s);
     tree3dField('soundEnabled').checked = s.soundEnabled === true;
     tree3dField('soundVolume').value = s.soundVolume;
     if (tree3dField('musicEnabled')) {
@@ -991,6 +992,150 @@ async function saveTree3dStage() {
         console.error('Error saving the 3D tree stage:', error);
         if (status) status.textContent = 'Failed to save the stage. Please try again.';
         showNotification(error.message || 'Failed to save the tree stage.', 'error');
+    }
+}
+
+// ---------- 3D View & Zoom ----------
+// A live preview of the 3D tree (the page with ?viewEditor=1: no automatic turn, no sound, zoom on) the admin
+// turns and zooms; its view (window.esgTree3dView in the preview: zoom, azimuth, polar) is saved as a snapshot
+// in tree3dParameters.savedViews, and the one chosen for the 3D screens is screenView ('' = the standard view).
+// frontend/3dTree/view-settings.js shows it on the screens.
+
+let tree3dViews = { saved: [], inUse: '' };
+let tree3dViewTimer = null;
+
+function useTree3dViews(settings) {
+    tree3dViews = {
+        saved: Array.isArray(settings?.savedViews) ? settings.savedViews : [],
+        inUse: String(settings?.screenView || '')
+    };
+    renderTree3dViews();
+}
+
+function tree3dViewEditor() {
+    try { return tree3dField('viewFrame')?.contentWindow?.esgTree3dView || null; } catch { return null; }
+}
+
+function describeTree3dView(view) {
+    const degrees = Math.round(((Number(view.azimuth) * 180 / Math.PI) % 360 + 360) % 360);
+    const height = Math.round(90 - Number(view.polar) * 180 / Math.PI);
+    return `Zoom ${Math.round(Number(view.zoom) * 100)}% · ${degrees}° round · ${height}° up`;
+}
+
+function openTree3dViewEditor() {
+    const frame = tree3dField('viewFrame');
+    if (!frame) return;
+    if (!frame.src) frame.src = '/3dTree/3dTree.html?viewEditor=1&clean=1';
+    frame.hidden = false;
+    tree3dField('viewOpen').hidden = true;
+    window.clearInterval(tree3dViewTimer);
+    tree3dViewTimer = window.setInterval(() => {
+        const editor = tree3dViewEditor();
+        const readout = tree3dField('viewReadout');
+        if (editor && readout) readout.textContent = describeTree3dView(editor.get());
+    }, 400);
+}
+
+function zoomTree3dView(factor) {
+    const editor = tree3dViewEditor();
+    if (editor) editor.zoomBy(factor);
+    else showNotification('Show the 3D preview first.', 'info');
+}
+
+function standardTree3dView() {
+    tree3dViewEditor()?.standard();
+}
+
+async function putTree3dViews(changes, message) {
+    try {
+        const saved = await putTree3dSettings(changes);
+        if (saved) useTree3dViews(saved);
+        if (message) showNotification(message, 'success');
+    } catch (error) {
+        showNotification(error.message || 'The views could not be saved.', 'error');
+    }
+}
+
+async function saveTree3dSnapshot() {
+    const editor = tree3dViewEditor();
+    if (!editor) { showNotification('Show the 3D preview first, then frame the view and save it.', 'info'); return; }
+    if (tree3dViews.saved.length >= 12) { showNotification('Up to 12 views can be saved: delete one first.', 'error'); return; }
+    const view = editor.get();
+    const nameField = tree3dField('viewName');
+    const name = (nameField?.value || '').trim() || `View ${tree3dViews.saved.length + 1}`;
+    const snapshot = {
+        id: `view-${Date.now().toString(36)}`, name,
+        zoom: Math.round(view.zoom * 1000) / 1000, azimuth: view.azimuth, polar: view.polar, savedAt: new Date().toISOString()
+    };
+    await putTree3dViews({ savedViews: [...tree3dViews.saved, snapshot] }, `"${name}" saved. Choose "Use on 3D screen" to show it on the screens.`);
+    if (nameField) nameField.value = '';
+}
+
+function useTree3dView(id) {
+    const view = tree3dViews.saved.find(item => item.id === id);
+    putTree3dViews({ screenView: id }, id ? `The 3D screens now show "${view?.name || 'the view'}".` : 'The 3D screens now show the standard view.');
+}
+
+function loadTree3dView(id) {
+    const view = tree3dViews.saved.find(item => item.id === id);
+    const editor = tree3dViewEditor();
+    if (!view) return;
+    if (!editor) { openTree3dViewEditor(); showNotification('The preview is opening: press "Load in preview" again once it shows the tree.', 'info'); return; }
+    editor.set(view);
+}
+
+function deleteTree3dView(id) {
+    const view = tree3dViews.saved.find(item => item.id === id);
+    if (!view || !window.confirm(`Delete the view "${view.name}"?${tree3dViews.inUse === id ? ' The 3D screens go back to the standard view.' : ''}`)) return;
+    putTree3dViews({ savedViews: tree3dViews.saved.filter(item => item.id !== id), ...(tree3dViews.inUse === id ? { screenView: '' } : {}) }, `"${view.name}" deleted.`);
+}
+
+function renderTree3dViews() {
+    const list = tree3dField('viewList');
+    if (!list) return;
+    list.replaceChildren();
+    if (!tree3dViews.saved.length) {
+        const empty = document.createElement('li');
+        empty.className = 'view3d-empty';
+        empty.textContent = 'No views saved yet: the 3D screens show the standard view.';
+        list.appendChild(empty);
+        return;
+    }
+    for (const view of tree3dViews.saved) {
+        const item = document.createElement('li');
+        item.className = `view3d-item${tree3dViews.inUse === view.id ? ' view3d-in-use' : ''}`;
+        const head = document.createElement('div');
+        head.className = 'view3d-item-head';
+        const name = document.createElement('strong');
+        name.textContent = view.name;
+        head.appendChild(name);
+        if (tree3dViews.inUse === view.id) {
+            const badge = document.createElement('span');
+            badge.className = 'view3d-badge';
+            badge.textContent = 'On the 3D screens';
+            head.appendChild(badge);
+        }
+        const meta = document.createElement('div');
+        meta.className = 'view3d-meta';
+        meta.textContent = describeTree3dView(view);
+        const actions = document.createElement('div');
+        actions.className = 'view3d-actions';
+        const buttons = [
+            ['Use on 3D screen', () => useTree3dView(view.id), tree3dViews.inUse === view.id],
+            ['Load in preview', () => loadTree3dView(view.id), false],
+            ['Delete', () => deleteTree3dView(view.id), false]
+        ];
+        for (const [label, action, disabled] of buttons) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `turn-preset${label === 'Delete' ? ' view3d-delete' : ''}`;
+            button.textContent = label;
+            button.disabled = disabled;
+            button.addEventListener('click', action);
+            actions.appendChild(button);
+        }
+        item.append(head, meta, actions);
+        list.appendChild(item);
     }
 }
 

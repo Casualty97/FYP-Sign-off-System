@@ -7,17 +7,23 @@ const front = new T.Vector3(.115, .171, 1).normalize();
 // (3D Scene Controls: tree3dParameters.orbitSeconds, 30 seconds to 24 hours, and orbitDirection; setOrbit).
 export const TURN_SECONDS = 24 * 60 * 60;
 export const TURN_SECONDS_MIN = 30;
-// One fixed, close framing with the tree as the main focus: the canopy fills a laptop screen from side to
-// side, and on the 3.5:1 wall (7 m x 2 m) the tree fills the height with the river and hills either side.
-// Zooming is off, so every screen always shows the tree at this size.
+export const ZOOM_MIN = 0.5;   // furthest out: twice as far as the standard framing
+export const ZOOM_MAX = 2.5;   // closest in
+const VIEW_MOVE_SECONDS = 1.6; // a newly chosen view is reached this smoothly
+// The standard framing, with the tree as the main focus: the canopy fills a laptop screen from side to side,
+// and on the 3.5:1 wall (7 m x 2 m) the tree fills the height with the river and hills either side (zoom 1).
+// The admin can choose another view for the screens (view-settings.js: a saved snapshot of a zoom, an angle
+// round the tree and a height); zooming with the mouse wheel, a pinch or the + and - keys works only in the
+// admin's view editor (the page with ?viewEditor=1), so viewers always see the chosen view.
 const frameHeight = 14.2;    // metres of the scene seen top to bottom (the trunk's roots to the canopy top)
 const frameWidth = 27;       // metres always seen side to side, so a narrower screen still shows the canopy
 
-export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reducedMotion }) {
+export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reducedMotion, editor = false }) {
   const controls = new OrbitControls(camera);
   controls.target.copy(centre);
   controls.enablePan = false;
-  controls.enableZoom = false; // no scroll, pinch or key zoom: the framing stays fixed
+  controls.enableZoom = editor; // the wheel and a pinch zoom only in the admin's view editor
+  controls.zoomSpeed = 0.6;
   controls.enableDamping = !reducedMotion;
   controls.minPolarAngle = T.MathUtils.degToRad(60);
   controls.maxPolarAngle = T.MathUtils.degToRad(85);
@@ -30,7 +36,13 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
 
   const offset = new T.Vector3();
   const focus = controls.target;
-  let viewDistance = 0;
+  let viewDistance = 0; // the standard framing's distance (zoom 1) for this screen's shape
+  let zoom = 1;         // the view's zoom: the camera is viewDistance / zoom from the tree
+  let move = null;      // moving to a newly chosen view: { from, to, t }
+  let pending = null;   // a view chosen before the screen's first framing, put in place then
+  const spherical = new T.Spherical();
+  const clampZoom = value => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(value) || 1));
+  const minPolar = T.MathUtils.degToRad(60), maxPolar = T.MathUtils.degToRad(85);
   let dragging = false;
   let resumeDelay = 0;
 
@@ -44,6 +56,7 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
     ['ArrowRight', () => controls.rotateLeft(.065)],
     ['ArrowUp', () => controls.rotateUp(.065)],
     ['ArrowDown', () => controls.rotateUp(-.065)],
+    ...(editor ? [['+', () => zoomBy(1.15)], ['=', () => zoomBy(1.15)], ['-', () => zoomBy(1 / 1.15)]] : []),
   ]);
   canvas.addEventListener('keydown', event => {
     const move = keyMoves.get(event.key);
@@ -74,7 +87,50 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
   });
   showOrbitState();
 
+  // The view now: its zoom, its angle round the tree (azimuth, radians) and its height (polar, from straight
+  // up: 60 to 85 degrees).
+  function getView() {
+    spherical.setFromVector3(offset.subVectors(camera.position, focus));
+    return { zoom: viewDistance > 0 ? clampZoom(viewDistance / spherical.radius) : zoom, azimuth: spherical.theta, polar: spherical.phi };
+  }
+  // Goes to a view (any of zoom, azimuth, polar; the rest stay), smoothly unless told not to.
+  function setView(view, { smooth = true } = {}) {
+    const now = getView();
+    const to = {
+      zoom: view.zoom === undefined ? now.zoom : clampZoom(view.zoom),
+      azimuth: Number.isFinite(Number(view.azimuth)) ? Number(view.azimuth) : now.azimuth,
+      polar: Number.isFinite(Number(view.polar)) ? Math.min(maxPolar, Math.max(minPolar, Number(view.polar))) : now.polar,
+    };
+    // The short way round to the new angle.
+    to.azimuth = now.azimuth + Math.atan2(Math.sin(to.azimuth - now.azimuth), Math.cos(to.azimuth - now.azimuth));
+    zoom = to.zoom;
+    if (viewDistance === 0) { pending = to; return; }
+    if (!smooth || reducedMotion) { move = null; place(to); return; }
+    move = { from: now, to, t: 0 };
+  }
+  function place({ zoom: z, azimuth, polar }) {
+    if (viewDistance === 0) return;
+    if (!editor) controls.minDistance = controls.maxDistance = viewDistance / clampZoom(z);
+    spherical.set(viewDistance / clampZoom(z), polar, azimuth);
+    camera.position.copy(focus).add(offset.setFromSpherical(spherical));
+    controls.update(0);
+    camera.updateMatrixWorld();
+  }
+  function zoomBy(factor) {
+    // From the zoom being moved to, so quick presses add up.
+    setView({ zoom: (move ? move.to.zoom : getView().zoom) * factor });
+  }
+  // The standard view's angle: from the front, as the page opens.
+  function standardAngle() {
+    spherical.setFromVector3(front);
+    return { azimuth: spherical.theta, polar: spherical.phi };
+  }
+
   return {
+    getView,
+    setView,
+    zoomBy,
+    standardAngle,
     resize(aspect) {
       if (viewDistance > 0 && camera.aspect === aspect) return;
       camera.aspect = aspect;
@@ -85,16 +141,27 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
       const firstFraming = viewDistance === 0;
       const halfFovTan = Math.tan(T.MathUtils.degToRad(camera.fov / 2));
       viewDistance = Math.max(frameHeight / (2 * halfFovTan), frameWidth / (2 * halfFovTan * aspect));
-      controls.minDistance = viewDistance;
-      controls.maxDistance = viewDistance;
+      // In the editor the wheel zooms between ZOOM_MIN and ZOOM_MAX; elsewhere the distance is the view's.
+      controls.minDistance = viewDistance / (editor ? ZOOM_MAX : zoom);
+      controls.maxDistance = viewDistance / (editor ? ZOOM_MIN : zoom);
       if (firstFraming) offset.copy(front);
       else offset.subVectors(camera.position, focus).normalize(); // keep the current orbit angle
       focus.copy(centre);
-      camera.position.copy(focus).addScaledVector(offset, viewDistance);
+      camera.position.copy(focus).addScaledVector(offset, viewDistance / zoom);
+      if (pending) { const view = pending; pending = null; place(view); return; }
       controls.update(0);
       camera.updateMatrixWorld();
     },
     update(dt, elapsedSeconds) {
+      if (move) { // moving smoothly to a newly chosen view
+        move.t = Math.min(1, move.t + dt / VIEW_MOVE_SECONDS);
+        const k = move.t * move.t * (3 - 2 * move.t);
+        const lerp = key => move.from[key] + (move.to[key] - move.from[key]) * k;
+        place({ zoom: lerp('zoom'), azimuth: lerp('azimuth'), polar: lerp('polar') });
+        if (move.t >= 1) move = null;
+        return;
+      }
+      if (editor && viewDistance > 0) zoom = getView().zoom; // the wheel or a pinch changed it
       const orbitStep = Math.max(0, elapsedSeconds - resumeDelay);
       resumeDelay = Math.max(0, resumeDelay - elapsedSeconds);
       controls.dampingFactor = -Math.expm1(-dt * 9);

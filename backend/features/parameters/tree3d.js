@@ -23,6 +23,11 @@
 //                      by default; original music composed by the 3D page itself: frontend/3dTree/background-music.js)
 //   musicVolume        how loud that music is against the nature sounds, 0 to 100
 //   showSoilPanel      the 3D soil cutaway panel is open
+//   savedViews         the admin's view snapshots (3D View & Zoom), up to MAX_SAVED_VIEWS: each { id, name, zoom
+//                      (VIEW_ZOOM_MIN to VIEW_ZOOM_MAX: 1 is the standard framing, more is closer), azimuth (its
+//                      angle round the tree, radians), polar (its height: 60 to 85 degrees from straight up, in
+//                      radians), savedAt }
+//   screenView         the snapshot every 3D screen shows (its id), or '' for the standard view
 //   showWeatherPanel, showRiverPanel, showControlsBar, showYearReview
 //                      which on-screen panels the page shows
 //   gustRequestedAt, sunsetRequestedAt
@@ -79,6 +84,10 @@
 //   (Maximum Visible Leaves stays the 2D tree's treeParameters.leafFallThreshold, shared by both trees)
 
 const SKIES = ['sunrise', 'day', 'sunset', 'night'];
+const MAX_SAVED_VIEWS = 12;
+const VIEW_ZOOM_MIN = 0.5;
+const VIEW_ZOOM_MAX = 2.5;
+const VIEW_ID = /^[a-z0-9-]{4,40}$/;
 const RIVER_MODES = ['auto', 'normal', 'high', 'danger'];
 // The leaf colours the admin can choose: light greens for new leaves, dark greens for older leaves.
 const LEAF_NEW_COLOURS = ['#7cb342', '#8bc34a', '#9ccc65', '#a4c639', '#66bb6a'];
@@ -130,6 +139,8 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   musicEnabled: true,
   musicVolume: 45,
   showSoilPanel: false,
+  savedViews: [],
+  screenView: '',
   showWeatherPanel: true,
   showRiverPanel: true,
   showControlsBar: true,
@@ -237,6 +248,31 @@ function normalizeTree3dParameters(updates) {
   if (has('musicVolume')) out.musicVolume = Math.round(number(updates.musicVolume, 0, 100, 'Music volume'));
   for (const key of ['showSoilPanel', 'showWeatherPanel', 'showRiverPanel', 'showControlsBar', 'showYearReview']) {
     if (has(key)) out[key] = bool(updates[key], key);
+  }
+  if (has('savedViews')) {
+    if (!Array.isArray(updates.savedViews)) throw badRequest('Saved views must be a list');
+    if (updates.savedViews.length > MAX_SAVED_VIEWS) throw badRequest(`Up to ${MAX_SAVED_VIEWS} views can be saved`);
+    const minPolar = (60 * Math.PI) / 180, maxPolar = (85 * Math.PI) / 180;
+    out.savedViews = updates.savedViews.map((view, index) => {
+      if (!view || typeof view !== 'object') throw badRequest(`Saved view ${index + 1} must be an object`);
+      const id = String(view.id ?? '').trim().toLowerCase();
+      if (!VIEW_ID.test(id)) throw badRequest(`Saved view ${index + 1} has no valid id`);
+      const azimuth = number(view.azimuth, -1000, 1000, 'View angle');
+      return {
+        id,
+        name: text(view.name, 60) || `View ${index + 1}`,
+        zoom: Math.round(number(view.zoom, VIEW_ZOOM_MIN, VIEW_ZOOM_MAX, 'View zoom') * 1000) / 1000,
+        azimuth: Math.round(Math.atan2(Math.sin(azimuth), Math.cos(azimuth)) * 10000) / 10000, // -pi to pi
+        polar: Math.round(number(view.polar, minPolar, maxPolar, 'View height') * 10000) / 10000,
+        savedAt: timestamp(view.savedAt, 'View time') || new Date().toISOString(),
+      };
+    });
+    if (new Set(out.savedViews.map(view => view.id)).size !== out.savedViews.length) throw badRequest('Each saved view needs its own id');
+  }
+  if (has('screenView')) {
+    const id = String(updates.screenView ?? '').trim().toLowerCase();
+    if (id && !VIEW_ID.test(id)) throw badRequest('The view in use must be a saved view or the standard view');
+    out.screenView = id;
   }
   if (has('gustRequestedAt')) out.gustRequestedAt = timestamp(updates.gustRequestedAt, 'Wind gust time');
   if (has('sunsetRequestedAt')) out.sunsetRequestedAt = timestamp(updates.sunsetRequestedAt, 'Sunset time');
