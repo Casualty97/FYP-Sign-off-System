@@ -1512,17 +1512,29 @@ class TreeManager {
         const retainedVisitors = visitors.slice(overflowCount);
         const visibleVisitors = [...fallingVisitors, ...retainedVisitors];
 
+        // First in, first out, as on the 3D tree: a new leaf joins the tree first, then the oldest falls.
+        // While new leaves are still on their way (waiting at the bottom middle or flying up), as many of
+        // the oldest leaves stay on the tree; each landing lets the oldest one go (releaseHeldLeafFalls).
+        // With no new leaf coming (the admin lowered Maximum Visible Leaves), the extra leaves fall at once.
+        const stillLanding = retainedVisitors.filter((visitor, index) =>
+            this.pendingLandingLeafKeys.has(this.getLeafKey(visitor, fallingVisitors.length + index))
+        ).length;
+        const releasedCount = Math.max(0, fallingVisitors.length - stillLanding);
+        const releasedVisitors = fallingVisitors.slice(0, releasedCount);
+        const releasedOverflow = clearedOverflow + releasedCount;
+
         return {
             visibleVisitors,
-            shouldFallAway: fallingVisitors.length > 0,
-            cycleNumber: overflowCount,
+            shouldFallAway: releasedCount > 0,
+            cycleNumber: releasedOverflow,
             threshold,
-            overflowCount,
+            overflowCount: releasedOverflow,
+            heldFallCount: fallingVisitors.length - releasedCount,
             fallingLeafKeys: new Set(
-                fallingVisitors.map((visitor, index) => this.getLeafKey(visitor, clearedOverflow + index))
+                releasedVisitors.map((visitor, index) => this.getLeafKey(visitor, clearedOverflow + index))
             ),
-            fallingLeafOrder: this.createFallingLeafOrder(fallingVisitors, clearedOverflow),
-            fallingLeafCount: fallingVisitors.length,
+            fallingLeafOrder: this.createFallingLeafOrder(releasedVisitors, clearedOverflow),
+            fallingLeafCount: releasedCount,
             isDemoCycle: false
         };
     }
@@ -2271,8 +2283,10 @@ class TreeManager {
 
         let flutter = null;
         const settleLeaf = (animation) => {
-            this.pendingLandingLeafKeys.delete(leafKey);
+            const wasLanding = this.pendingLandingLeafKeys.delete(leafKey);
             this.landingFlights.delete(leafKey);
+            // The new leaf is on the tree: the oldest leaf waiting for it can fall now (after the tree is built).
+            if (wasLanding) window.setTimeout(() => this.releaseHeldLeafFalls(), 0);
             if (this.landingCleanupTimers.has(leafKey)) {
                 window.clearTimeout(this.landingCleanupTimers.get(leafKey));
                 this.landingCleanupTimers.delete(leafKey);
@@ -2435,6 +2449,16 @@ class TreeManager {
         }
         this.leafNameFitCache.set(cacheKey, result);
         return result;
+    }
+
+    // A new leaf has landed: the oldest leaves held on the tree for it (getLeafCycleState) start to fall,
+    // without rebuilding the tree.
+    releaseHeldLeafFalls() {
+        if (!this.activeLeafCycle?.heldFallCount || this.activeLeafCycle.isDemoCycle || this.isReviewMode) return;
+        const leafCycle = this.getLeafCycleState();
+        if (leafCycle.isDemoCycle || leafCycle.fallingLeafCount <= this.activeLeafCycle.fallingLeafCount) return;
+        this.activeLeafCycle = leafCycle;
+        this.applyLeafThresholdEffect(leafCycle);
     }
 
     applyLeafThresholdEffect(leafCycle) {
