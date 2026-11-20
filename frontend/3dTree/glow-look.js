@@ -4,8 +4,8 @@
 //     admin's sky settings never brighten it), in a cool moonlight;
 //   - everything glows in the three ESG colours, green (Environmental), blue (Social) and orange
 //     (Governance):
-//   - streams of green, blue and orange light run up the trunk and out along the branches, with pulses of
-//     light travelling up them;
+//   - streams of green, blue and orange light run along all the wood, up the trunk, out along every branch
+//     and along the roots, with pulses of light travelling out along them (BARK_GLOW);
 //   - the tree's own leaves glow, each leaf in its own vivid colour, green, blue or orange, lit from within
 //     with a bright edge and glowing veins, and now and then one twinkles;
 //   - rings of light lie on the ground round the base of the tree, a pulse of light spreading out across them;
@@ -18,6 +18,7 @@ import { THREE as T } from './vendor/three-runtime.js';
 import { sprigsOf } from './tree-growth.js';
 
 const BARK_DIM = 0.4;            // how much of the bark's own colour shows under its light streams
+const STREAM_WIDTH = 0.022;      // how wide a stream of light is, as a share of the way round the wood
 
 // Whether to show the glowing look: from the page address if it names one (fixed), otherwise the admin's
 // setting; the glowing look if the settings cannot be read.
@@ -41,20 +42,33 @@ varying vec3 vGlowPos;
 float glowHash( vec3 p ) { return fract( sin( dot( p, vec3( 12.9898, 78.233, 37.719 ) ) ) * 43758.5453 ); }
 `;
 
-// Streams of light winding up the trunk and out along the branches, in the three ESG colours: thin lines at
-// fixed angles round the trunk (so they run up it, and out along branches, which spread from it), orange,
-// blue and green, with pulses travelling along them.
+// A stream of light: a thin line at a place round the wood (x, the texture's u, which goes round each trunk,
+// branch and root: 0 to 1 is once round), smooth at any distance (at least about a pixel wide, from fwidth);
+// on wood too thin or far to show it (px large), it fades out rather than fill the wood.
+const BARK_COMMON = /* glsl */`
+varying vec2 vGlowUv;
+float glowStream( float x, float centre, float px ) {
+  float off = abs( fract( x - centre + .5 ) - .5 );
+  float width = max( ${STREAM_WIDTH.toFixed(3)}, px * .9 );
+  return ( 1. - smoothstep( width, width + px * 1.5, off ) ) * smoothstep( .3, .12, px );
+}
+`;
+
+// Streams of light running along all the wood, in the three ESG colours: an orange, a blue and a green line
+// at their own places round every trunk, branch and root (the model's texture u goes round each of them and
+// its v along it, so lines at fixed u follow each one, whichever way it grows), winding gently, with pulses
+// travelling along them, out from the trunk ("along": up the trunk and out from it).
 const BARK_GLOW = /* glsl */`
   vec3 fromTrunk = vGlowPos - glowCentre;
-  float around = atan( fromTrunk.z, fromTrunk.x );
-  float along = fromTrunk.y + length( fromTrunk.xz ) * .8;
-  float wind = around * 7. + sin( fromTrunk.y * .55 + around * 2. ) * 1.1;
-  float orangeLine = pow( max( 0., sin( wind ) ), 34. );
-  float blueLine = pow( max( 0., sin( wind * .5 + 1.9 ) ), 52. );
-  float greenLine = pow( max( 0., sin( wind * .5 + .25 ) ), 52. );
-  float orangePulse = pow( fract( along * .085 - glowTime * .2 + around * .16 ), 5. );
-  float bluePulse = pow( fract( along * .07 - glowTime * .27 + .5 - around * .11 ), 5. );
-  float greenPulse = pow( fract( along * .078 - glowTime * .23 + .25 + around * .13 ), 5. );
+  float along = max( fromTrunk.y, 0. ) + length( fromTrunk.xz ) * .8;
+  float around = vGlowUv.x + .03 * sin( vGlowUv.y * 2.3 );
+  float px = fwidth( around );
+  float orangeLine = glowStream( around, .08, px );
+  float blueLine = glowStream( around, .42, px );
+  float greenLine = glowStream( around, .75, px );
+  float orangePulse = pow( fract( along * .085 - glowTime * .2 ), 5. );
+  float bluePulse = pow( fract( along * .07 - glowTime * .27 + .5 ), 5. );
+  float greenPulse = pow( fract( along * .078 - glowTime * .23 + .25 ), 5. );
   vec3 streams = vec3( 1., .5, .1 ) * orangeLine * ( .45 + 2.4 * orangePulse )
     + vec3( .2, .6, 1. ) * blueLine * ( .4 + 2.2 * bluePulse )
     + vec3( .25, 1., .35 ) * greenLine * ( .4 + 2.2 * greenPulse );
@@ -106,15 +120,15 @@ function glowMaterial(material, uniforms, done) {
     Object.assign(shader.uniforms, uniforms);
     // Where on the tree, as at its full size (glowUnscale), so its colours hold still while it grows; and a
     // leaf's own random number (leafPick, pickLeaves).
-    shader.vertexShader = `uniform vec3 glowCentre;\nuniform float glowUnscale;\nvarying vec3 vGlowPos;\n${leaf ? 'attribute float leafPick;\nvarying float vLeafPick;\n' : ''}`
+    shader.vertexShader = `uniform vec3 glowCentre;\nuniform float glowUnscale;\nvarying vec3 vGlowPos;\n${leaf ? 'attribute float leafPick;\nvarying float vLeafPick;\n' : 'varying vec2 vGlowUv;\n'}`
       + shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n'
         + '  vGlowPos = glowCentre + ( ( modelMatrix * vec4( transformed, 1. ) ).xyz - glowCentre ) * glowUnscale;'
-        + (leaf ? '\n  vLeafPick = leafPick;' : ''));
-    shader.fragmentShader = GLOW_COMMON + (leaf ? 'varying float vLeafPick;\n' : '') + shader.fragmentShader.replace('#include <map_fragment>',
+        + (leaf ? '\n  vLeafPick = leafPick;' : '\n  vGlowUv = uv;'));
+    shader.fragmentShader = GLOW_COMMON + (leaf ? 'varying float vLeafPick;\n' : BARK_COMMON) + shader.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>\n${leaf ? LEAF_GLOW : BARK_GLOW}`);
   };
   const key = material.customProgramCacheKey?.bind(material);
-  material.customProgramCacheKey = () => `${key ? key() : ''}|glow-${leaf ? 'leaf' : 'bark'}`;
+  material.customProgramCacheKey = () => `${key ? key() : ''}|glow-${leaf ? 'leaf' : 'bark-streams'}`;
   material.needsUpdate = true;
 }
 
