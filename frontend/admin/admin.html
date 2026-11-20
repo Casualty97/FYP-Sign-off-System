@@ -1447,7 +1447,10 @@
                                             <input type="range" id="tree3d-soundVolume" min="0" max="100" step="1" value="78" oninput="updateTree3dRangeLabels()">
                                             <span id="tree3d-soundVolumeValue">78</span>
                                         </div>
-                                        <p style="font-size:12px; color:#666; margin-top:6px;">Browsers start sound after the first touch on the screen, unless the kiosk browser allows autoplay.</p>
+                                        <div style="margin-top:6px;">
+                                            <button type="button" class="turn-preset" id="tree3d-soundPreview" onclick="toggleTree3dSoundPreview()">▶ Listen here</button>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">Listen here plays the river and bird sounds in this browser at the volume above. Browsers play sound only after a first touch on the page: until then the 3D screen shows "Tap anywhere to turn on the sound", and any touch starts it. For a screen nobody touches, start its Chrome with <code>--autoplay-policy=no-user-gesture-required</code>.</p>
                                     </div>
                                     <div>
                                         <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">On-screen panels</span>

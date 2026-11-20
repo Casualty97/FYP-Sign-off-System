@@ -239,9 +239,14 @@ async function start() {
       volume.disabled=!audible;
       message.textContent = audible ? 'River, wind, birds and weather sounds enabled.' : 'Sound muted.';
     } catch (error) {
-      soundLabel.textContent = 'Retry sound';
-      message.textContent = 'Sound is unavailable. Check that both audio files are present.';
-      console.warn(error);
+      if (error?.name === 'SoundBlocked') { // the browser waits for a first touch (tree3d-settings.js starts it then)
+        soundLabel.textContent = 'Tap to start sound';
+        message.textContent = 'Tap the screen to start the sound: the browser plays sound only after a first touch.';
+      } else {
+        soundLabel.textContent = 'Retry sound';
+        message.textContent = 'Sound is unavailable. Check that both audio files are present.';
+        console.warn(error);
+      }
     } finally {
       buttons.sound.disabled = false;
     }

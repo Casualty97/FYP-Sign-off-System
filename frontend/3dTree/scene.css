@@ -91,6 +91,16 @@ h1 { font: 500 clamp(2.1rem, 5.2vw, 5.25rem)/.98 Georgia, serif; letter-spacing:
 .loading.error .loader { display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .access { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+/* The admin turned the sound on, but the browser plays sound only after a first touch on the page: this note
+   (tree3d-settings.js armSoundRetry) shows until then, also with the controls bar hidden. */
+.sound-hint {
+  position: fixed; left: 50%; bottom: 18px; translate: -50% 0; z-index: 6;
+  padding: 8px 16px; border-radius: 999px; color: #f2fff4; font: 600 .82rem/1.2 Inter, "Segoe UI", sans-serif;
+  cursor: pointer; pointer-events: auto; animation: sound-hint-in .6s ease-out;
+}
+.sound-hint[hidden] { display: none; }
+@keyframes sound-hint-in { from { opacity: 0; translate: -50% 8px; } }
+@media(prefers-reduced-motion: reduce) { .sound-hint { animation: none; } }
 .embed .masthead { display: none; }
 .clean .masthead, .clean .river-monitor, .clean .dock { display: none; }
 .clean .view::after { display: none; }

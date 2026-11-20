@@ -199,20 +199,34 @@ function applySound(settings) {
   if (settings.soundEnabled) armSoundRetry();
 }
 
-// Browsers start sound only after someone touches the page (unless the kiosk browser allows it).
-// If it did not start, the first touch or key press starts it.
+// Browsers start sound only after someone touches the page (unless the kiosk browser allows it: Chrome's
+// --autoplay-policy=no-user-gesture-required). While the admin wants sound and it has not started, every touch,
+// click or key press anywhere on the page tries again (it counts as the touch the browser waits for), also with
+// the controls bar hidden, and a small note says so (#sound-hint). Once the sound has started this stops, so
+// someone muting it on screen is not overruled.
+const soundHint = document.getElementById('sound-hint');
+const RETRY_EVENTS = ['pointerdown', 'keydown', 'touchend'];
 function armSoundRetry() {
-  if (soundRetryArmed) return;
+  if (soundRetryArmed || !controls.sound) return;
   soundRetryArmed = true;
-  const retry = () => {
-    if (latest?.soundEnabled && !pressed(controls.sound) && !controls.sound.disabled) controls.sound.click();
+  const done = () => !latest?.soundEnabled || pressed(controls.sound);
+  const stop = () => {
+    RETRY_EVENTS.forEach(type => window.removeEventListener(type, retry, true));
     soundRetryArmed = false;
+    if (soundHint) soundHint.hidden = true;
   };
-  window.setTimeout(() => {
-    if (!latest?.soundEnabled || pressed(controls.sound)) { soundRetryArmed = false; return; }
-    window.addEventListener('pointerdown', retry, { once: true, capture: true });
-    window.addEventListener('keydown', retry, { once: true, capture: true });
-  }, 1500);
+  function retry() {
+    if (done()) { stop(); return; }
+    if (!controls.sound.disabled) controls.sound.click();
+  }
+  RETRY_EVENTS.forEach(type => window.addEventListener(type, retry, true));
+  const check = () => {
+    if (!soundRetryArmed) return;
+    if (done()) { stop(); return; }
+    if (soundHint && !controls.sound.disabled) soundHint.hidden = false; // tried, and waiting for a touch
+    window.setTimeout(check, 1000);
+  };
+  window.setTimeout(check, 2500);
 }
 
 function runActions(settings) {

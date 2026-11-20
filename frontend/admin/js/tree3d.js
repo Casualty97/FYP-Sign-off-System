@@ -163,6 +163,50 @@ function updateTree3dRangeLabels() {
     if (opacity) tree3dField('titleOpacityValue').textContent = Number(opacity.value).toFixed(2);
     if (blur) tree3dField('titleBlurValue').textContent = `${blur.value}px`;
     if (radius) tree3dField('titleRadiusValue').textContent = `${radius.value}px`;
+    setTree3dSoundPreviewVolume(); // Listen here follows the Volume slider
+}
+
+// Sound > Listen here: the 3D screen's river and bird sounds (frontend/3dTree/assets/audio, ambience.js) played
+// in this browser at the Volume slider's level, the river on a loop and a bird calling every few seconds, so
+// the admin can hear them and choose the volume.
+const TREE3D_SOUND_FILES = { river: '/3dTree/assets/audio/river-loop.mp3', bird: '/3dTree/assets/audio/magpie-robin.mp3' };
+let tree3dSoundPreview = null;
+
+function setTree3dSoundPreviewVolume() {
+    if (!tree3dSoundPreview) return;
+    const level = Math.max(0, Math.min(1, Number(tree3dField('soundVolume')?.value ?? 78) / 100));
+    tree3dSoundPreview.river.volume = level * 0.9;
+    tree3dSoundPreview.bird.volume = level * 0.75;
+}
+
+function stopTree3dSoundPreview() {
+    if (!tree3dSoundPreview) return;
+    window.clearInterval(tree3dSoundPreview.timer);
+    tree3dSoundPreview.river.pause();
+    tree3dSoundPreview.bird.pause();
+    tree3dSoundPreview = null;
+    const button = tree3dField('soundPreview');
+    if (button) button.textContent = '▶ Listen here';
+}
+
+async function toggleTree3dSoundPreview() {
+    if (tree3dSoundPreview) { stopTree3dSoundPreview(); return; }
+    const river = new Audio(TREE3D_SOUND_FILES.river);
+    const bird = new Audio(TREE3D_SOUND_FILES.bird);
+    river.loop = true;
+    const call = () => { bird.currentTime = 0; bird.play().catch(() => {}); };
+    tree3dSoundPreview = { river, bird, timer: window.setInterval(call, 8000) };
+    setTree3dSoundPreviewVolume();
+    try {
+        await river.play();
+        window.setTimeout(() => { if (tree3dSoundPreview?.bird === bird) call(); }, 1200);
+        const button = tree3dField('soundPreview');
+        if (button) button.textContent = '■ Stop listening';
+    } catch (error) {
+        console.error('Sound preview failed:', error);
+        stopTree3dSoundPreview();
+        showNotification('The river and bird sounds could not play in this browser.', 'error');
+    }
 }
 
 // Colour swatches: light greens for the new leaves, dark greens for the older ones, golds for VIP leaves.

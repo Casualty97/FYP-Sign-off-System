@@ -193,14 +193,20 @@ export function createAmbience() {
       if (!context) initialise();
       const enable=!audible;
       if (enable) {
-        // Resume directly in the click handler before waiting for the recordings.
-        const resume=context.resume();
+        // Resume directly in the click handler before waiting for the recordings. A browser that plays sound
+        // only after a touch on the page leaves it suspended (and its resume waiting): then it is not waited for,
+        // so the next touch can start it (SoundBlocked; tree3d-settings.js armSoundRetry).
+        const resume=context.resume().catch(()=>{});
         preparation ??= prepare().catch(error=>{
           preparation=null;
           throw error;
         });
-        await Promise.all([resume,preparation]);
-        if (context.state!=='running') throw new Error('The browser did not start audio.');
+        await Promise.all([Promise.race([resume,new Promise(done=>setTimeout(done,1500))]),preparation]);
+        if (context.state!=='running') {
+          const blocked=new Error('The browser plays sound only after a touch on the page.');
+          blocked.name='SoundBlocked';
+          throw blocked;
+        }
       }
       audible=enable;
       if(!audible) cancelThunder();
