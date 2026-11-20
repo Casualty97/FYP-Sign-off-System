@@ -15,7 +15,10 @@ const DEFAULTS = {
   glowLook: true, // the glowing look (glow-look.js); scene.js reloads the page when it changes
   weatherSource: 'live', manualSky: 'day', manualRain: false, rainArea: 'all', riverLevelMode: 'auto',
   autoOrbit: true, soundEnabled: false, soundVolume: 78, showSoilPanel: false,
-  musicEnabled: true, musicVolume: 45, // the gentle background music with the nature sounds (background-music.js)
+  musicEnabled: true, musicVolume: 45, musicStyle: 'kalimba', // the gentle background music with the nature sounds (background-music.js)
+  // The ambient sounds (ambience.js): the river, birds and breeze on, a gentle rain and night insects off.
+  ambientRiver: true, ambientRiverVolume: 100, ambientBirds: true, ambientBirdsVolume: 100, ambientWind: true, ambientWindVolume: 100,
+  ambientRain: false, ambientRainVolume: 60, ambientInsects: false, ambientInsectsVolume: 60,
   orbitSeconds: 24 * 60 * 60, orbitDirection: 'right', // one full turn a day, to the right (scene.js, tree-view.js)
   showWeatherPanel: true, showRiverPanel: true, showControlsBar: true, showYearReview: true,
   gustRequestedAt: '', sunsetRequestedAt: '',

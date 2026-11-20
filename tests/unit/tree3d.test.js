@@ -191,6 +191,26 @@ test('the background music: on by default at 45, and can be turned off or set fr
     assert.throws(() => normalizeTree3dParameters({ musicVolume: 'high' }), { statusCode: 400, message: /Music volume/ });
 });
 
+test('the music style: Calm kalimba by default, one of the four built-in styles', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.musicStyle, 'kalimba');
+    for (const style of ['kalimba', 'piano', 'dreamy', 'musicbox']) {
+        assert.deepEqual(normalizeTree3dParameters({ musicStyle: style }), { musicStyle: style });
+    }
+    assert.throws(() => normalizeTree3dParameters({ musicStyle: 'rock' }), { statusCode: 400, message: /Music style/ });
+});
+
+test('the ambient sounds: the river, birds and wind on, rain and insects off, each with its own volume', () => {
+    const on = { ambientRiver: true, ambientBirds: true, ambientWind: true, ambientRain: false, ambientInsects: false };
+    for (const [key, value] of Object.entries(on)) assert.equal(DEFAULT_TREE3D_PARAMETERS[key], value, key);
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.ambientRiverVolume, 100);
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.ambientInsectsVolume, 60);
+    assert.deepEqual(normalizeTree3dParameters({ ambientRiver: false, ambientInsects: true, ambientInsectsVolume: 72.4 }),
+        { ambientRiver: false, ambientInsects: true, ambientInsectsVolume: 72 });
+    assert.equal(normalizeTree3dParameters({ ambientRainVolume: 140 }).ambientRainVolume, 100);
+    assert.throws(() => normalizeTree3dParameters({ ambientBirds: 'yes' }), { statusCode: 400, message: /Birds/ });
+    assert.throws(() => normalizeTree3dParameters({ ambientWindVolume: 'loud' }), { statusCode: 400, message: /Forest wind volume/ });
+});
+
 test('new leaves shown together: 3 by default, a whole number from 1 to 10', () => {
     assert.equal(DEFAULT_TREE3D_PARAMETERS.leafBatchSize, 3);
     assert.equal(normalizeTree3dParameters({ leafBatchSize: 5 }).leafBatchSize, 5);

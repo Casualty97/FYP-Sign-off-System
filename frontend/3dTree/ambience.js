@@ -1,10 +1,70 @@
-import { createMusic } from './background-music.js';
+import { createMusic, MUSIC_STYLE_DEFAULT } from './background-music.js';
 
-// The page's sound: the river, wind, birds and weather, and with them the gentle background music
-// (background-music.js; the admin's musicEnabled, at musicVolume), all under the one volume and switched on
-// together.
-const riverFile='./assets/audio/river-loop.mp3';
-const birdFile='./assets/audio/magpie-robin.mp3';
+// The page's sound: the ambient sounds the admin has chosen (3D Scene Controls > Sound: setMix), each on or
+// off at its own volume:
+//   river    the flowing river water (a recording; on by default)
+//   birds    a magpie-robin calling now and then (a recording; on by default; quieter at night and in rain)
+//   wind     the breeze in the trees, stronger in gusts (made here; on by default)
+//   rain     a gentle, steady rain whatever the weather (made here; off by default)
+//   insects  crickets and cicadas chirping, a little louder at night (made here; off by default)
+// with the weather's own sounds (rain as it rains, thunder, a leaf's splash), and the background music in the
+// admin's style (background-music.js; musicEnabled, musicStyle, at musicVolume), all under the one volume and
+// switched on together.
+export const AMBIENT_SOUNDS = ['river', 'birds', 'wind', 'rain', 'insects'];
+// The admin's settings (tree3dParameters ambientRiver, ambientRiverVolume and so on) as a mix for setMix.
+export function mixFromSettings(settings = {}) {
+  const sound = (key, name) => ({
+    on: settings[key] === undefined ? MIX_DEFAULTS[name].on : settings[key] !== false,
+    volume: Number.isFinite(Number(settings[`${key}Volume`])) ? Math.max(0, Math.min(100, Number(settings[`${key}Volume`]))) / 100 : MIX_DEFAULTS[name].volume,
+  });
+  return { river: sound('ambientRiver', 'river'), birds: sound('ambientBirds', 'birds'), wind: sound('ambientWind', 'wind'),
+    rain: sound('ambientRain', 'rain'), insects: sound('ambientInsects', 'insects') };
+}
+const MIX_DEFAULTS = {
+  river: { on: true, volume: 1 }, birds: { on: true, volume: 1 }, wind: { on: true, volume: 1 },
+  rain: { on: false, volume: 0.6 }, insects: { on: false, volume: 0.6 },
+};
+
+// A few seconds of crickets and cicadas, made once, looped: each cricket a high tone chirping in short pulses
+// a few times a second, each at its own pitch and pace, and a soft cicada shimmer under them.
+function insectBuffer(context, seconds = 9) {
+  const rate = context.sampleRate;
+  const length = Math.floor(rate * seconds);
+  const buffer = context.createBuffer(2, length, rate);
+  const crickets = [
+    { pitch: 4300, every: 0.62, pulses: 3, pan: -0.5, level: 0.22, offset: 0.1 },
+    { pitch: 4750, every: 0.81, pulses: 4, pan: 0.45, level: 0.17, offset: 0.37 },
+    { pitch: 3900, every: 1.13, pulses: 2, pan: 0.1, level: 0.13, offset: 0.6 },
+  ];
+  let seed = 51721, hiss = 0;
+  for (let channel = 0; channel < 2; channel++) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      const t = i / rate;
+      let value = 0;
+      for (const c of crickets) {
+        const side = channel === 0 ? 1 - Math.max(0, c.pan) : 1 + Math.min(0, c.pan);
+        const inChirp = (t + c.offset) % c.every;
+        const pulse = inChirp / 0.034;                    // each pulse 34 ms apart
+        if (pulse < c.pulses) {
+          const within = (pulse % 1) * 0.034;
+          const shape = Math.sin(Math.PI * Math.min(1, within / 0.022)) ** 2; // a soft 22 ms pulse
+          value += c.level * side * shape * Math.sin(2 * Math.PI * c.pitch * t);
+        }
+      }
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      hiss += 0.5 * ((seed / 2147483648 - 1) - hiss);
+      const shimmer = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.21 * t + channel);   // the cicadas swell and fade
+      value += hiss * 0.025 * shimmer * Math.sin(2 * Math.PI * 6200 * t);
+      const edge = Math.min(1, i / 2000, (length - i) / 2000); // loops without a click
+      data[i] = value * edge;
+    }
+  }
+  return buffer;
+}
+// Next to this file, so the admin's Listen here (another page) finds them too.
+const riverFile=new URL('./assets/audio/river-loop.mp3',import.meta.url).href;
+const birdFile=new URL('./assets/audio/magpie-robin.mp3',import.meta.url).href;
 
 function waterDropBuffer(context) {
   const rate=context.sampleRate;
@@ -28,7 +88,11 @@ function waterDropBuffer(context) {
 export function createAmbience() {
   let context, master, riverGain, windGain, rainGain, birdGain, stereo, birds, preparation;
   let level=.78, audible=false, nextCall=Infinity, thunderBuffer, splashBuffer;
-  let musicBus, music, musicOn=true, musicLevel=.45;
+  let musicBus, music, musicOn=true, musicLevel=.45, musicStyle=MUSIC_STYLE_DEFAULT;
+  // The admin's ambient sounds: each its own gain (mixGains) after the scene's own changes (gusts, night, rain).
+  let mix=structuredClone(MIX_DEFAULTS);
+  const mixGains={};
+  let gentleRainGain, insectGain;
   const thunderVoices=new Set();
 
   async function decode(file) {
@@ -53,24 +117,41 @@ export function createAmbience() {
     musicBus=context.createGain();
     musicBus.gain.value=musicLevel;
     musicBus.connect(master);
-    music=createMusic(context,musicBus);
+    music=createMusic(context,musicBus,musicStyle);
+    for (const name of AMBIENT_SOUNDS) {
+      mixGains[name]=context.createGain();
+      mixGains[name].gain.value=mixLevel(name);
+      mixGains[name].connect(master);
+    }
     riverGain=context.createGain();
     riverGain.gain.value=.92;
-    riverGain.connect(master);
+    riverGain.connect(mixGains.river);
     windGain=context.createGain();
     windGain.gain.value=.20;
-    windGain.connect(master);
+    windGain.connect(mixGains.wind);
     rainGain=context.createGain();
     rainGain.gain.value=0;
-    rainGain.connect(master);
+    rainGain.connect(master); // the weather's rain, as it rains
+    gentleRainGain=context.createGain();
+    gentleRainGain.gain.value=.32;
+    gentleRainGain.connect(mixGains.rain); // the admin's gentle rain, whatever the weather
+    insectGain=context.createGain();
+    insectGain.gain.value=.8;
+    insectGain.connect(mixGains.insects);
     birdGain=context.createGain();
     birdGain.gain.value=.74;
     if (context.createStereoPanner) {
       stereo=context.createStereoPanner();
-      birdGain.connect(stereo).connect(master);
+      birdGain.connect(stereo).connect(mixGains.birds);
     } else {
-      birdGain.connect(master);
+      birdGain.connect(mixGains.birds);
     }
+  }
+
+  // An ambient sound's level as the admin set it: 0 when off.
+  function mixLevel(name) {
+    const sound=mix[name];
+    return sound?.on ? Math.max(0,Math.min(1,Number(sound.volume))) : 0;
   }
 
   async function prepare() {
@@ -108,8 +189,18 @@ export function createAmbience() {
     const high=context.createBiquadFilter();
     high.type='highpass';
     high.frequency.value=280;
-    drops.connect(low).connect(high).connect(rainGain);
+    const rainSound=drops.connect(low).connect(high);
+    rainSound.connect(rainGain);
+    rainSound.connect(gentleRainGain);
     drops.start();
+    const insects=context.createBufferSource();
+    insects.buffer=insectBuffer(context);
+    insects.loop=true;
+    const insectBand=context.createBiquadFilter();
+    insectBand.type='highpass';
+    insectBand.frequency.value=2200;
+    insects.connect(insectBand).connect(insectGain);
+    insects.start();
     // A reusable, low-frequency thunder roll; no remote sound requests.
     thunderBuffer=context.createBuffer(1,context.sampleRate*5.8,context.sampleRate);
     const rumble=thunderBuffer.getChannelData(0);
@@ -193,13 +284,25 @@ export function createAmbience() {
     if (master) master.gain.setTargetAtTime(audible?level:0,context.currentTime,.085);
   }
 
-  // The background music on or off, and how loud against the nature sounds (0 to 1); both may be set before
-  // the sound is first turned on.
-  function setMusic(on,value) {
+  // The background music on or off, how loud against the ambient sounds (0 to 1) and its style
+  // (background-music.js MUSIC_STYLES); all may be set before the sound is first turned on.
+  function setMusic(on,value,style) {
     musicOn=Boolean(on);
     if (Number.isFinite(value)) musicLevel=Math.max(0,Math.min(1,value));
+    if (style) musicStyle=style;
     if (musicBus) musicBus.gain.setTargetAtTime(musicLevel,context.currentTime,.15);
+    music?.setStyle(musicStyle);
     music?.setActive(audible&&musicOn);
+  }
+
+  // The admin's ambient sounds: { river: { on, volume (0 to 1) }, birds, wind, rain, insects }; any left out
+  // stay as they are. May be set before the sound is first turned on.
+  function setMix(next={}) {
+    for (const name of AMBIENT_SOUNDS) {
+      if (!next[name]) continue;
+      mix[name]={ on: next[name].on!==false, volume: Number.isFinite(Number(next[name].volume)) ? Number(next[name].volume) : mix[name].volume };
+      mixGains[name]?.gain.setTargetAtTime(mixLevel(name),context.currentTime,.2);
+    }
   }
 
   return {
@@ -207,6 +310,7 @@ export function createAmbience() {
     get musicPlaying() { return Boolean(music?.active); },
     setLevel,
     setMusic,
+    setMix,
     leafSplash,
     thunder,
     cancelThunder,
@@ -243,7 +347,8 @@ export function createAmbience() {
       windGain.gain.setTargetAtTime(.22+.76*gust+.05*Math.sin(time*.36),time,.26);
       rainGain.gain.setTargetAtTime(rain*.47,time,.25);
       birdGain.gain.setTargetAtTime(.74*(1-.80*night)*(1-.40*rain),time,.3);
-      if (time>=nextCall) {
+      insectGain.gain.setTargetAtTime(.55+.45*night,time,.6); // the insects a little louder at night
+      if (time>=nextCall && mix.birds.on) {
         playCall(time+.025,pan);
         nextCall=time+(8.3+Math.random()*6.3)*(1+night*1.4+rain*.35);
       }

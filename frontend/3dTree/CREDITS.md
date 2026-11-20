@@ -23,7 +23,8 @@ The creek, vines, epiphytes, fungi, wildflowers, soil cutaway and small wildlife
 
 - [Stream River Water Up Close](https://freesound.org/people/jackthemurray/sounds/433589/) by jackthemurray, Freesound, CC0 1.0. Trimmed and crossfaded into a loop.
 - [Oriental magpie-robin call](https://commons.wikimedia.org/wiki/File:Oriental_magpie-robin_call.ogg) by Saurmandal, Wikimedia Commons, CC0 1.0. Filtered and levelled. The recording is local bird ambience.
-- The background music is original, composed live in the browser by `background-music.js`; it uses no recordings or third-party music.
+- The background music, in all its styles (Calm kalimba, Soft piano, Dreamy pads, Music box), is original, composed live in the browser by `background-music.js`; it uses no recordings or third-party music.
+- The night insects (crickets and cicadas) and the gentle rain are synthesised in the browser by `ambience.js`.
 - Wind, rain and delayed thunder are synthesised in the browser. Three.js and meshoptimizer licence notices are in `vendor/`.
 
 - Weather skies reuse the credited sky panorama with real-time sky shading. Raindrops use instanced 3D meshes; branching lightning uses authored tube meshes with scene illumination. Rainfall, water rings, lightning and tree lighting are animated in the scene.

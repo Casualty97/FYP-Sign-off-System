@@ -6,7 +6,7 @@ import { addMatteTree } from './matte-tree.js';
 import { addForestHabitat } from './forest-habitat.js';
 import { addForestWildlife } from './forest-wildlife.js';
 import { setupSoilView } from './forest-floor.js';
-import { createAmbience } from './ambience.js';
+import { createAmbience, mixFromSettings } from './ambience.js';
 import { createWeather } from './weather.js';
 import { installSkyControls } from './singapore-weather.js';
 import { installRiverLevel } from './river-level.js';
@@ -235,7 +235,10 @@ async function start() {
   volume.addEventListener('input',()=>ambient.setLevel(Number(volume.value)/100));
   // The gentle background music with the river and birds (background-music.js): the admin's "Background music"
   // and its volume (3D Scene Controls > Sound).
-  onTree3dSettings(next=>ambient.setMusic(next?.musicEnabled!==false,Math.max(0,Math.min(100,Number(next?.musicVolume??45)))/100));
+  onTree3dSettings(next=>{
+    ambient.setMusic(next?.musicEnabled!==false,Math.max(0,Math.min(100,Number(next?.musicVolume??45)))/100,next?.musicStyle);
+    ambient.setMix(mixFromSettings(next||{})); // the admin's ambient sounds, each on or off at its own volume
+  });
   const soundLabel=buttons.sound.querySelector('span');
   buttons.sound.addEventListener('click',async () => {
     buttons.sound.disabled = true;

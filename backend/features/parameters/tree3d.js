@@ -22,6 +22,13 @@
 //   musicEnabled       a gentle background music with the river and bird sounds whenever the sound is on (on
 //                      by default; original music composed by the 3D page itself: frontend/3dTree/background-music.js)
 //   musicVolume        how loud that music is against the nature sounds, 0 to 100
+//   musicStyle         the music's style (MUSIC_STYLES): 'kalimba' (Calm kalimba, the default), 'piano' (Soft
+//                      piano), 'dreamy' (Dreamy pads) or 'musicbox' (Music box); all original, made by the page
+//   ambientRiver, ambientBirds, ambientWind, ambientRain, ambientInsects
+//                      each ambient sound on or off (AMBIENT_SOUNDS): the flowing river, birds, the breeze, a
+//                      gentle rain and night insects; the river, birds and breeze on by default
+//   ambientRiverVolume and so on
+//                      each one's volume, 0 to 100, within the Volume above
 //   showSoilPanel      the 3D soil cutaway panel is open
 //   savedViews         the admin's view snapshots (3D View & Zoom), up to MAX_SAVED_VIEWS: each { id, name, zoom
 //                      (VIEW_ZOOM_MIN to VIEW_ZOOM_MAX: 1 is the standard framing, more is closer), azimuth (its
@@ -85,6 +92,11 @@
 //   (Maximum Visible Leaves stays the 2D tree's treeParameters.leafFallThreshold, shared by both trees)
 
 const SKIES = ['sunrise', 'day', 'sunset', 'night'];
+// The background music's styles (frontend/3dTree/background-music.js MUSIC_STYLES) and the ambient sounds
+// (frontend/3dTree/ambience.js AMBIENT_SOUNDS), each with its name for messages.
+const MUSIC_STYLES = ['kalimba', 'piano', 'dreamy', 'musicbox'];
+const AMBIENT_SOUNDS = [['ambientRiver', 'River water'], ['ambientBirds', 'Birds'], ['ambientWind', 'Forest wind'],
+  ['ambientRain', 'Gentle rain'], ['ambientInsects', 'Night insects']];
 const MAX_SAVED_VIEWS = 12;
 const VIEW_ZOOM_MIN = 0.5;
 const VIEW_ZOOM_MAX = 2.5;
@@ -139,6 +151,17 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   soundVolume: 78,
   musicEnabled: true,
   musicVolume: 45,
+  musicStyle: 'kalimba',
+  ambientRiver: true,
+  ambientRiverVolume: 100,
+  ambientBirds: true,
+  ambientBirdsVolume: 100,
+  ambientWind: true,
+  ambientWindVolume: 100,
+  ambientRain: false,
+  ambientRainVolume: 60,
+  ambientInsects: false,
+  ambientInsectsVolume: 60,
   showSoilPanel: false,
   savedViews: [],
   screenView: '',
@@ -248,6 +271,11 @@ function normalizeTree3dParameters(updates) {
   if (has('soundVolume')) out.soundVolume = Math.round(number(updates.soundVolume, 0, 100, 'Volume'));
   if (has('musicEnabled')) out.musicEnabled = bool(updates.musicEnabled, 'Background music');
   if (has('musicVolume')) out.musicVolume = Math.round(number(updates.musicVolume, 0, 100, 'Music volume'));
+  if (has('musicStyle')) out.musicStyle = oneOf(updates.musicStyle, MUSIC_STYLES, 'Music style');
+  for (const [key, label] of AMBIENT_SOUNDS) {
+    if (has(key)) out[key] = bool(updates[key], label);
+    if (has(`${key}Volume`)) out[`${key}Volume`] = Math.round(number(updates[`${key}Volume`], 0, 100, `${label} volume`));
+  }
   for (const key of ['showSoilPanel', 'showWeatherPanel', 'showRiverPanel', 'showControlsBar', 'showYearReview']) {
     if (has(key)) out[key] = bool(updates[key], key);
   }

@@ -18,6 +18,13 @@ const TREE3D_DEFAULTS = {
     soundVolume: 78,
     musicEnabled: true,
     musicVolume: 45,
+    musicStyle: 'kalimba',
+    // The ambient sounds: the river, birds and breeze on, a gentle rain and night insects off.
+    ambientRiver: true, ambientRiverVolume: 100,
+    ambientBirds: true, ambientBirdsVolume: 100,
+    ambientWind: true, ambientWindVolume: 100,
+    ambientRain: false, ambientRainVolume: 60,
+    ambientInsects: false, ambientInsectsVolume: 60,
     showSoilPanel: false,
     showWeatherPanel: true,
     showRiverPanel: true,
@@ -168,90 +175,83 @@ function updateTree3dRangeLabels() {
     if (volume) tree3dField('soundVolumeValue').textContent = volume.value;
     const musicVolume = tree3dField('musicVolume');
     if (musicVolume) tree3dField('musicVolumeValue').textContent = musicVolume.value;
+    for (const key of TREE3D_AMBIENT_SOUNDS) {
+        const range = tree3dField(`${key}Volume`);
+        if (range) tree3dField(`${key}VolumeValue`).textContent = range.value;
+    }
     if (opacity) tree3dField('titleOpacityValue').textContent = Number(opacity.value).toFixed(2);
     if (blur) tree3dField('titleBlurValue').textContent = `${blur.value}px`;
     if (radius) tree3dField('titleRadiusValue').textContent = `${radius.value}px`;
-    setTree3dSoundPreviewVolume(); // Listen here follows the Volume slider
+    applyTree3dSoundPreview(); // Listen here follows the sliders
 }
 
-// Sound > Listen here: the 3D screen's river and bird sounds (frontend/3dTree/assets/audio, ambience.js) played
-// in this browser at the Volume slider's level, the river on a loop and a bird calling every few seconds, and,
-// when ticked, the background music (the 3D screen's own player, frontend/3dTree/background-music.js) at the
-// Music slider's level, so the admin can hear them together and choose the volumes.
-const TREE3D_SOUND_FILES = { river: '/3dTree/assets/audio/river-loop.mp3', bird: '/3dTree/assets/audio/magpie-robin.mp3' };
-let tree3dSoundPreview = null;
+// Sound > Ambient sounds: each a tickbox (tree3d-ambientRiver and so on) and a volume (…Volume), as saved.
+const TREE3D_AMBIENT_SOUNDS = ['ambientRiver', 'ambientBirds', 'ambientWind', 'ambientRain', 'ambientInsects'];
 
-function setTree3dSoundPreviewVolume() {
-    if (!tree3dSoundPreview) return;
-    const level = Math.max(0, Math.min(1, Number(tree3dField('soundVolume')?.value ?? 78) / 100));
-    tree3dSoundPreview.river.volume = level * 0.9;
-    tree3dSoundPreview.bird.volume = level * 0.75;
-    const music = tree3dSoundPreview.music;
-    if (music) {
-        const musicLevel = Math.max(0, Math.min(1, Number(tree3dField('musicVolume')?.value ?? 45) / 100));
-        music.gain.gain.setTargetAtTime(level * musicLevel, music.context.currentTime, 0.05);
+// The Sound card's choices as the 3D screen takes them (also what is saved).
+function readTree3dSoundFields() {
+    const percent = (id, fallback) => {
+        const value = Number(tree3dField(id)?.value);
+        return Number.isFinite(value) ? Math.round(Math.max(0, Math.min(100, value))) : fallback;
+    };
+    const style = tree3dField('musicStyle')?.value || TREE3D_DEFAULTS.musicStyle;
+    const fields = {
+        soundVolume: percent('soundVolume', TREE3D_DEFAULTS.soundVolume),
+        musicEnabled: style !== 'none',
+        musicVolume: percent('musicVolume', TREE3D_DEFAULTS.musicVolume),
+        ...(style !== 'none' ? { musicStyle: style } : {}), // None keeps the style chosen before, for next time
+    };
+    for (const key of TREE3D_AMBIENT_SOUNDS) {
+        if (!tree3dField(key)) continue;
+        fields[key] = tree3dField(key).checked;
+        fields[`${key}Volume`] = percent(`${key}Volume`, TREE3D_DEFAULTS[`${key}Volume`]);
     }
+    return fields;
 }
 
-// The music in Listen here follows its tick.
-async function updateTree3dSoundPreviewMusic() {
+// Sound > Listen here: the 3D screen's own sound (frontend/3dTree/ambience.js, with its background music,
+// background-music.js) played in this browser with the choices above, so the admin hears exactly what the
+// screen plays; it follows every change while it plays. One player, turned on and off.
+let tree3dSoundPreview = null;   // { ambient, mixFromSettings, timer } while it plays
+let tree3dSoundEngine = null;    // the player, kept for the next Listen here
+
+function applyTree3dSoundPreview() {
     const preview = tree3dSoundPreview;
     if (!preview) return;
-    const wanted = tree3dField('musicEnabled')?.checked === true;
-    if (wanted && !preview.music) {
-        try {
-            const { createMusic } = await import('/3dTree/background-music.js');
-            const context = new (window.AudioContext || window.webkitAudioContext)();
-            const gain = context.createGain();
-            gain.gain.value = 0;
-            gain.connect(context.destination);
-            const player = createMusic(context, gain);
-            if (tree3dSoundPreview !== preview) { context.close(); return; }
-            preview.music = { context, gain, player };
-            await context.resume();
-            player.setActive(true);
-        } catch (error) {
-            console.error('Music preview failed:', error);
-        }
-    } else if (!wanted && preview.music) {
-        preview.music.player.setActive(false);
-        const { context } = preview.music;
-        preview.music = null;
-        window.setTimeout(() => context.close(), 3000);
-    }
-    setTree3dSoundPreviewVolume();
+    const fields = readTree3dSoundFields();
+    preview.ambient.setLevel(fields.soundVolume / 100);
+    preview.ambient.setMusic(fields.musicEnabled, fields.musicVolume / 100, fields.musicStyle);
+    preview.ambient.setMix(preview.mixFromSettings(fields));
 }
 
 function stopTree3dSoundPreview() {
-    if (!tree3dSoundPreview) return;
-    window.clearInterval(tree3dSoundPreview.timer);
-    tree3dSoundPreview.river.pause();
-    tree3dSoundPreview.bird.pause();
-    const music = tree3dSoundPreview.music;
-    if (music) { music.player.setActive(false); window.setTimeout(() => music.context.close(), 3000); }
+    const preview = tree3dSoundPreview;
+    if (!preview) return;
     tree3dSoundPreview = null;
+    window.clearInterval(preview.timer);
+    if (preview.ambient.enabled) preview.ambient.toggle().catch(() => {}); // fades everything out
     const button = tree3dField('soundPreview');
     if (button) button.textContent = '▶ Listen here';
 }
 
 async function toggleTree3dSoundPreview() {
     if (tree3dSoundPreview) { stopTree3dSoundPreview(); return; }
-    const river = new Audio(TREE3D_SOUND_FILES.river);
-    const bird = new Audio(TREE3D_SOUND_FILES.bird);
-    river.loop = true;
-    const call = () => { bird.currentTime = 0; bird.play().catch(() => {}); };
-    tree3dSoundPreview = { river, bird, timer: window.setInterval(call, 8000) };
-    setTree3dSoundPreviewVolume();
+    const button = tree3dField('soundPreview');
     try {
-        await river.play();
-        window.setTimeout(() => { if (tree3dSoundPreview?.bird === bird) call(); }, 1200);
-        updateTree3dSoundPreviewMusic();
-        const button = tree3dField('soundPreview');
+        if (button) button.textContent = 'Loading sound…';
+        const sound = await import('/3dTree/ambience.js');
+        tree3dSoundEngine ??= sound.createAmbience();
+        const ambient = tree3dSoundEngine;
+        // The scene's sound changes with it (the view, gusts, night); here a still view by day with a light breeze.
+        const timer = window.setInterval(() => ambient.update(0, 12, 0.15, 0, 0), 120);
+        tree3dSoundPreview = { ambient, mixFromSettings: sound.mixFromSettings, timer };
+        applyTree3dSoundPreview();
+        if (!ambient.enabled) await ambient.toggle();
         if (button) button.textContent = '■ Stop listening';
     } catch (error) {
         console.error('Sound preview failed:', error);
         stopTree3dSoundPreview();
-        showNotification('The river and bird sounds could not play in this browser.', 'error');
+        showNotification('The 3D screen\'s sound could not play in this browser.', 'error');
     }
 }
 
@@ -530,9 +530,15 @@ function fillTree3dForm(settings) {
     useTree3dViews(s);
     tree3dField('soundEnabled').checked = s.soundEnabled === true;
     tree3dField('soundVolume').value = s.soundVolume;
-    if (tree3dField('musicEnabled')) {
-        tree3dField('musicEnabled').checked = s.musicEnabled !== false;
+    if (tree3dField('musicStyle')) {
+        const styles = [...tree3dField('musicStyle').options].map(option => option.value);
+        tree3dField('musicStyle').value = s.musicEnabled === false ? 'none' : (styles.includes(s.musicStyle) ? s.musicStyle : TREE3D_DEFAULTS.musicStyle);
         tree3dField('musicVolume').value = s.musicVolume;
+    }
+    for (const key of TREE3D_AMBIENT_SOUNDS) {
+        if (!tree3dField(key)) continue;
+        tree3dField(key).checked = s[key] === undefined ? TREE3D_DEFAULTS[key] : s[key] !== false;
+        tree3dField(`${key}Volume`).value = Number.isFinite(Number(s[`${key}Volume`])) ? s[`${key}Volume`] : TREE3D_DEFAULTS[`${key}Volume`];
     }
     tree3dField('showWeatherPanel').checked = s.showWeatherPanel !== false;
     tree3dField('showRiverPanel').checked = s.showRiverPanel !== false;
@@ -627,10 +633,7 @@ function collectTree3dSettings() {
         showSoilPanel: tree3dField('showSoilPanel').checked,
         soundEnabled: tree3dField('soundEnabled').checked,
         soundVolume: whole('soundVolume', TREE3D_DEFAULTS.soundVolume),
-        ...(tree3dField('musicEnabled') ? {
-            musicEnabled: tree3dField('musicEnabled').checked,
-            musicVolume: whole('musicVolume', TREE3D_DEFAULTS.musicVolume)
-        } : {}),
+        ...(tree3dField('musicStyle') ? (({ soundVolume, ...sound }) => sound)(readTree3dSoundFields()) : {}), // music and ambient sounds
         showWeatherPanel: tree3dField('showWeatherPanel').checked,
         showRiverPanel: tree3dField('showRiverPanel').checked,
         showControlsBar: tree3dField('showControlsBar').checked,
