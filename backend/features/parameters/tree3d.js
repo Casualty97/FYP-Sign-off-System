@@ -7,6 +7,9 @@
 //                      streams in the tree, glowing leaves, rings of light and specks of light, with glowing
 //                      feedback leaves and handwritten names (frontend/3dTree/glow-look.js); off shows the
 //                      daylight river valley with natural leaves. The page reloads into the new look.
+//   trunkGlow          in the glowing look, the green, blue and orange light streams on the trunk, branches and
+//                      roots (on by default)
+//   trunkGlowStrength  how thick and bright they are, 50 to 200 (percent; 100 by default)
 //   weatherSource      'live' (Singapore weather feeds) or 'manual'
 //   manualSky          time of day in manual weather: sunrise, day, sunset or night
 //   manualRain         rain and thunder in manual weather
@@ -140,6 +143,8 @@ const DEFAULT_TITLE_BOX = Object.freeze({
 
 const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   glowLook: true,
+  trunkGlow: true,
+  trunkGlowStrength: 100,
   weatherSource: 'live',
   manualSky: 'day',
   manualRain: false,
@@ -261,6 +266,8 @@ function normalizeTree3dParameters(updates) {
   const out = {};
 
   if (has('glowLook')) out.glowLook = bool(updates.glowLook, 'Glowing look');
+  if (has('trunkGlow')) out.trunkGlow = bool(updates.trunkGlow, 'Trunk glow');
+  if (has('trunkGlowStrength')) out.trunkGlowStrength = Math.round(number(updates.trunkGlowStrength, 50, 200, 'Trunk glow strength'));
   if (has('weatherSource')) out.weatherSource = oneOf(updates.weatherSource, ['live', 'manual'], 'Weather source');
   if (has('manualSky')) out.manualSky = oneOf(updates.manualSky, SKIES, 'Time of day');
   if (has('manualRain')) out.manualRain = bool(updates.manualRain, 'Manual rain');

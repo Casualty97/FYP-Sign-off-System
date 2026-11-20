@@ -1384,6 +1384,15 @@
                                             <input type="checkbox" id="tree3d-glowLook"> Glowing look
                                         </label>
                                         <p style="font-size:12px; color:#666; margin-top:6px;">On: the tree at night, lit from within, with glowing leaves, rings of light and handwritten names. Off: the daylight river valley with natural leaves. The screen reloads into the new look within about 5 seconds; with the glowing look the scene stays at night whatever the weather.</p>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-trunkGlow" onchange="updateTree3dTrunkGlowFields()"> Trunk glow (light streams on the trunk, branches and roots)
+                                        </label>
+                                        <div style="display:flex; align-items:center; gap:10px; margin-top:6px;" id="tree3d-trunkGlowStrengthRow">
+                                            <label for="tree3d-trunkGlowStrength" style="color:#334155;">Strength</label>
+                                            <input type="range" id="tree3d-trunkGlowStrength" min="50" max="200" step="5" value="100" oninput="updateTree3dTrunkGlowFields()">
+                                            <span id="tree3d-trunkGlowStrengthValue">100%</span>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">In the glowing look: green, blue and orange streams of light running up the trunk and out along every branch and root, each in a soft halo. Strength makes them thinner and dimmer (50%) or thicker and brighter (up to 200%). Off: the bark shows plainly in the moonlight; the leaves and rings still glow. The screen changes within about 5 seconds, without reloading.</p>
                                     </div>
                                     <div>
                                         <label for="tree3d-weatherSource" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Weather</label>

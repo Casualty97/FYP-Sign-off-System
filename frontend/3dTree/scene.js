@@ -172,6 +172,8 @@ async function start() {
   // The glowing tree at night (glow-look.js), when the admin's "Glowing look" is on.
   const glowLook=look.glow?addGlowLook({scene,renderer,tree,clock,lights:{sun,hemi,fill,rim}}):null;
   glowLook?.update(tree);
+  // The admin's Trunk glow: the light streams on the wood on or off, and how thick and bright (glow-look.js).
+  onTree3dSettings(next=>glowLook?.setTrunkGlow({on:next?.trunkGlow!==false,strength:Number(next?.trunkGlowStrength??100)/100}));
 
   // The tree growing into another stage in place, without reloading the page (tree-stage.js, tree-growth.js).
   // The new stage's model loads in the background while the tree stays on show. Then it takes the tree's

@@ -6,6 +6,8 @@
 
 const TREE3D_DEFAULTS = {
     glowLook: true,
+    trunkGlow: true,          // the light streams on the trunk, branches and roots (glowing look)
+    trunkGlowStrength: 100,   // how thick and bright, 50 to 200 percent
     weatherSource: 'live',
     manualSky: 'day',
     manualRain: false,
@@ -162,6 +164,16 @@ function showTreeSettingsForMode(mode) {
     const page = document.getElementById('tree-adjustment-page');
     if (page) page.classList.toggle('tree-mode-3d', mode === '3d');
     if (mode === '3d' && typeof loadTree3dStage === 'function') loadTree3dStage(); // the stage may have changed in the 2D panel
+}
+
+// Look > Trunk glow: its strength shown as a percent, and greyed out while the glow is off.
+function updateTree3dTrunkGlowFields() {
+    const strength = tree3dField('trunkGlowStrength');
+    if (!strength) return;
+    tree3dField('trunkGlowStrengthValue').textContent = `${strength.value}%`;
+    const on = tree3dField('trunkGlow')?.checked !== false;
+    strength.disabled = !on;
+    tree3dField('trunkGlowStrengthRow').style.opacity = on ? '1' : '0.45';
 }
 
 function tree3dField(id) {
@@ -513,6 +525,12 @@ function fillTree3dForm(settings) {
     const leaves = { ...TREE3D_LEAF_DEFAULTS, ...(settings || {}) };
 
     tree3dField('glowLook').checked = s.glowLook !== false;
+    if (tree3dField('trunkGlow')) {
+        tree3dField('trunkGlow').checked = s.trunkGlow !== false;
+        const strength = Number(s.trunkGlowStrength);
+        tree3dField('trunkGlowStrength').value = Number.isFinite(strength) ? Math.min(200, Math.max(50, strength)) : TREE3D_DEFAULTS.trunkGlowStrength;
+        updateTree3dTrunkGlowFields();
+    }
     tree3dField('weatherSource').value = s.weatherSource;
     tree3dField('manualSky').value = s.manualSky;
     tree3dField('manualRain').checked = s.manualRain === true;
@@ -623,6 +641,10 @@ function collectTree3dSettings() {
     };
     return {
         glowLook: tree3dField('glowLook').checked,
+        ...(tree3dField('trunkGlow') ? {
+            trunkGlow: tree3dField('trunkGlow').checked,
+            trunkGlowStrength: Math.round(Math.min(200, Math.max(50, Number(tree3dField('trunkGlowStrength').value) || 100)))
+        } : {}),
         weatherSource: tree3dField('weatherSource').value,
         manualSky: tree3dField('manualSky').value,
         manualRain: tree3dField('manualRain').checked,

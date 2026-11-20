@@ -102,6 +102,15 @@ test('3D VIP leaf tip star: on by default, and the admin can turn it off', () =>
     assert.throws(() => normalizeTree3dParameters({ vipSparkle: 'yes' }), { statusCode: 400, message: /VIP leaf tip star/ });
 });
 
+test('the trunk glow: on by default at 100%, can be turned off, strength 50 to 200', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.trunkGlow, true);
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.trunkGlowStrength, 100);
+    assert.deepEqual(normalizeTree3dParameters({ trunkGlow: false, trunkGlowStrength: 152.6 }), { trunkGlow: false, trunkGlowStrength: 153 });
+    assert.equal(normalizeTree3dParameters({ trunkGlowStrength: 20 }).trunkGlowStrength, 50);
+    assert.equal(normalizeTree3dParameters({ trunkGlowStrength: 900 }).trunkGlowStrength, 200);
+    assert.throws(() => normalizeTree3dParameters({ trunkGlow: 'bright' }), { statusCode: 400, message: /Trunk glow/ });
+});
+
 test('3D VIP leaf turning: on by default, and the admin can turn it off', () => {
     assert.equal(DEFAULT_TREE3D_PARAMETERS.vipTurn, true);
     assert.deepEqual(normalizeTree3dParameters({ vipTurn: false }), { vipTurn: false });

@@ -5,7 +5,9 @@
 //   - everything glows in the three ESG colours, green (Environmental), blue (Social) and orange
 //     (Governance):
 //   - streams of green, blue and orange light run along all the wood, up the trunk, out along every branch
-//     and along the roots, with pulses of light travelling out along them (BARK_GLOW);
+//     and along the roots, with pulses of light travelling out along them, each a bright line in a soft
+//     halo of its colour (BARK_GLOW); the admin turns them on or off and sets how thick and bright they are
+//     (3D Scene Controls > Look: "Trunk glow", tree3dParameters.trunkGlow, trunkGlowStrength; setTrunkGlow);
 //   - the tree's own leaves glow, each leaf in its own vivid colour, green, blue or orange, lit from within
 //     with a bright edge and glowing veins, and now and then one twinkles;
 //   - rings of light lie on the ground round the base of the tree, a pulse of light spreading out across them;
@@ -18,7 +20,9 @@ import { THREE as T } from './vendor/three-runtime.js';
 import { sprigsOf } from './tree-growth.js';
 
 const BARK_DIM = 0.4;            // how much of the bark's own colour shows under its light streams
-const STREAM_WIDTH = 0.022;      // how wide a stream of light is, as a share of the way round the wood
+const STREAM_WIDTH = 0.032;      // how wide a stream of light is, as a share of the way round the wood (at 100%)
+const STREAM_HALO = 3.2;         // its soft halo, this many times as wide
+const TRUNK_GLOW_FADE = 0.8;     // seconds the streams take to fade in or out when turned on or off
 
 // Whether to show the glowing look: from the page address if it names one (fixed), otherwise the admin's
 // setting; the glowing look if the settings cannot be read.
@@ -37,6 +41,8 @@ export async function startingLook() {
 
 const GLOW_COMMON = /* glsl */`
 uniform float glowTime;
+uniform float trunkGlowOn;
+uniform float trunkGlowStrength;
 uniform vec3 glowCentre;
 varying vec3 vGlowPos;
 float glowHash( vec3 p ) { return fract( sin( dot( p, vec3( 12.9898, 78.233, 37.719 ) ) ) * 43758.5453 ); }
@@ -45,12 +51,18 @@ float glowHash( vec3 p ) { return fract( sin( dot( p, vec3( 12.9898, 78.233, 37.
 // A stream of light: a thin line at a place round the wood (x, the texture's u, which goes round each trunk,
 // branch and root: 0 to 1 is once round), smooth at any distance (at least about a pixel wide, from fwidth);
 // on wood too thin or far to show it (px large), it fades out rather than fill the wood.
+// Its halo: a soft glow of the line's colour, fading out to either side of it (STREAM_HALO times as wide).
 const BARK_COMMON = /* glsl */`
 varying vec2 vGlowUv;
-float glowStream( float x, float centre, float px ) {
+float glowStream( float x, float centre, float px, float wide ) {
   float off = abs( fract( x - centre + .5 ) - .5 );
-  float width = max( ${STREAM_WIDTH.toFixed(3)}, px * .9 );
+  float width = max( wide, px * .9 );
   return ( 1. - smoothstep( width, width + px * 1.5, off ) ) * smoothstep( .3, .12, px );
+}
+float glowHalo( float x, float centre, float px, float wide ) {
+  // (No wider than at 125%, so the three halos never run together and wash the wood out.)
+  float off = abs( fract( x - centre + .5 ) - .5 ) / max( min( wide, ${(STREAM_WIDTH * 1.25).toFixed(3)} ) * ${STREAM_HALO.toFixed(1)}, px * 2. );
+  return exp( -off * off * 2.2 ) * smoothstep( .3, .12, px );
 }
 `;
 
@@ -63,16 +75,19 @@ const BARK_GLOW = /* glsl */`
   float along = max( fromTrunk.y, 0. ) + length( fromTrunk.xz ) * .8;
   float around = vGlowUv.x + .03 * sin( vGlowUv.y * 2.3 );
   float px = fwidth( around );
-  float orangeLine = glowStream( around, .08, px );
-  float blueLine = glowStream( around, .42, px );
-  float greenLine = glowStream( around, .75, px );
+  float wide = ${STREAM_WIDTH.toFixed(3)} * trunkGlowStrength;   // thicker (and brighter) with the admin's strength
+  float bright = .8 + .2 * trunkGlowStrength;
+  float orangeLine = glowStream( around, .08, px, wide ), orangeHalo = glowHalo( around, .08, px, wide );
+  float blueLine = glowStream( around, .42, px, wide ), blueHalo = glowHalo( around, .42, px, wide );
+  float greenLine = glowStream( around, .75, px, wide ), greenHalo = glowHalo( around, .75, px, wide );
   float orangePulse = pow( fract( along * .085 - glowTime * .2 ), 5. );
   float bluePulse = pow( fract( along * .07 - glowTime * .27 + .5 ), 5. );
   float greenPulse = pow( fract( along * .078 - glowTime * .23 + .25 ), 5. );
-  vec3 streams = vec3( 1., .5, .1 ) * orangeLine * ( .45 + 2.4 * orangePulse )
-    + vec3( .2, .6, 1. ) * blueLine * ( .4 + 2.2 * bluePulse )
-    + vec3( .25, 1., .35 ) * greenLine * ( .4 + 2.2 * greenPulse );
-  diffuseColor.rgb = diffuseColor.rgb * ${BARK_DIM.toFixed(2)} + streams * 1.5;
+  vec3 streams = vec3( 1., .5, .1 ) * ( orangeLine * ( .5 + 2.4 * orangePulse ) + orangeHalo * ( .28 + .7 * orangePulse ) )
+    + vec3( .2, .6, 1. ) * ( blueLine * ( .45 + 2.2 * bluePulse ) + blueHalo * ( .26 + .65 * bluePulse ) )
+    + vec3( .25, 1., .35 ) * ( greenLine * ( .45 + 2.2 * greenPulse ) + greenHalo * ( .26 + .65 * greenPulse ) );
+  // Off (the admin's Trunk glow), the bark shows as it is, in the moonlight.
+  diffuseColor.rgb = mix( diffuseColor.rgb, diffuseColor.rgb * ${BARK_DIM.toFixed(2)} + streams * 1.5 * bright, trunkGlowOn );
 `;
 
 // The tree's own leaves, glowing: each leaf in its own vivid colour, green, blue or orange (LEAF_SHARES of
@@ -260,7 +275,9 @@ function createBloom(renderer) {
 export function addGlowLook({ scene, renderer, tree, clock, lights }) {
   tree.updateMatrixWorld(true);
   const base = new T.Vector3().setFromMatrixPosition(tree.matrixWorld);
-  const uniforms = { glowTime: clock.time, glowCentre: { value: base }, glowUnscale: { value: 1 } };
+  const uniforms = { glowTime: clock.time, glowCentre: { value: base }, glowUnscale: { value: 1 },
+    trunkGlowOn: { value: 1 }, trunkGlowStrength: { value: 1 } };
+  let trunkGlowWanted = 1, lastUpdate = performance.now();
   const done = new Set();
   const addTree = next => next.traverse(object => {
     if (!object.isMesh) return;
@@ -282,9 +299,19 @@ export function addGlowLook({ scene, renderer, tree, clock, lights }) {
   return {
     addTree,
     afterRender: camera => bloom(scene, camera),
+    // The admin's Trunk glow: on or off (fading over TRUNK_GLOW_FADE) and its strength (0.5 to 2: thinner and
+    // dimmer to thicker and brighter streams).
+    setTrunkGlow({ on = true, strength = 1 } = {}) {
+      trunkGlowWanted = on ? 1 : 0;
+      uniforms.trunkGlowStrength.value = Math.max(0.5, Math.min(2, Number(strength) || 1));
+    },
     // After the weather's update: night, in cool moonlight, whatever the weather or the time of day.
     update(shown = tree) {
       uniforms.glowUnscale.value = 1 / Math.max(0.05, shown.scale.x); // a tree growing into its next stage
+      const time = performance.now(), step = Math.min(0.1, (time - lastUpdate) / 1000);
+      lastUpdate = time;
+      const on = uniforms.trunkGlowOn;
+      on.value += Math.sign(trunkGlowWanted - on.value) * Math.min(Math.abs(trunkGlowWanted - on.value), step / TRUNK_GLOW_FADE);
       if (clock.treeShade) clock.treeShade.value = 0; // the tree lights itself (matte-tree.js timeOfDay)
       clock.night.value = 1;
       clock.dusk.value = 0;
