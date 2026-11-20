@@ -18,7 +18,10 @@
 //   orbitDirection     which way the tree seems to turn: 'right' (the default) or 'left'
 //   soundEnabled       river, wind, bird and weather sounds (the browser may need a first touch or
 //                      Chrome's --autoplay-policy=no-user-gesture-required to start them)
-//   soundVolume        0 to 100
+//   soundVolume        0 to 100 (all the sound)
+//   musicEnabled       a gentle background music with the river and bird sounds whenever the sound is on (on
+//                      by default; original music composed by the 3D page itself: frontend/3dTree/background-music.js)
+//   musicVolume        how loud that music is against the nature sounds, 0 to 100
 //   showSoilPanel      the 3D soil cutaway panel is open
 //   showWeatherPanel, showRiverPanel, showControlsBar, showYearReview
 //                      which on-screen panels the page shows
@@ -118,6 +121,8 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   orbitDirection: 'right',
   soundEnabled: false,
   soundVolume: 78,
+  musicEnabled: true,
+  musicVolume: 45,
   showSoilPanel: false,
   showWeatherPanel: true,
   showRiverPanel: true,
@@ -219,6 +224,8 @@ function normalizeTree3dParameters(updates) {
   if (has('orbitDirection')) out.orbitDirection = oneOf(updates.orbitDirection, ['right', 'left'], 'Turn direction');
   if (has('soundEnabled')) out.soundEnabled = bool(updates.soundEnabled, 'Sound');
   if (has('soundVolume')) out.soundVolume = Math.round(number(updates.soundVolume, 0, 100, 'Volume'));
+  if (has('musicEnabled')) out.musicEnabled = bool(updates.musicEnabled, 'Background music');
+  if (has('musicVolume')) out.musicVolume = Math.round(number(updates.musicVolume, 0, 100, 'Music volume'));
   for (const key of ['showSoilPanel', 'showWeatherPanel', 'showRiverPanel', 'showControlsBar', 'showYearReview']) {
     if (has(key)) out[key] = bool(updates[key], key);
   }

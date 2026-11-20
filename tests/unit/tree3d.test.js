@@ -174,3 +174,12 @@ test('VIP names: written as the other names unless given their own style, with t
     assert.equal(merged.leafNameColor, '#ffe082');
     assert.equal(merged.vipNameColor, '#5a3a00');
 });
+
+test('the background music: on by default at 45, and can be turned off or set from 0 to 100', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.musicEnabled, true);
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.musicVolume, 45);
+    assert.deepEqual(normalizeTree3dParameters({ musicEnabled: false, musicVolume: 62.4 }), { musicEnabled: false, musicVolume: 62 });
+    assert.equal(normalizeTree3dParameters({ musicVolume: 150 }).musicVolume, 100);
+    assert.throws(() => normalizeTree3dParameters({ musicEnabled: 'loud' }), { statusCode: 400, message: /Background music/ });
+    assert.throws(() => normalizeTree3dParameters({ musicVolume: 'high' }), { statusCode: 400, message: /Music volume/ });
+});

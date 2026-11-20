@@ -227,6 +227,9 @@ async function start() {
   });
 
   volume.addEventListener('input',()=>ambient.setLevel(Number(volume.value)/100));
+  // The gentle background music with the river and birds (background-music.js): the admin's "Background music"
+  // and its volume (3D Scene Controls > Sound).
+  onTree3dSettings(next=>ambient.setMusic(next?.musicEnabled!==false,Math.max(0,Math.min(100,Number(next?.musicVolume??45)))/100));
   const soundLabel=buttons.sound.querySelector('span');
   buttons.sound.addEventListener('click',async () => {
     buttons.sound.disabled = true;

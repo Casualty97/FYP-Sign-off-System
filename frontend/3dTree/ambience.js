@@ -1,3 +1,8 @@
+import { createMusic } from './background-music.js';
+
+// The page's sound: the river, wind, birds and weather, and with them the gentle background music
+// (background-music.js; the admin's musicEnabled, at musicVolume), all under the one volume and switched on
+// together.
 const riverFile='./assets/audio/river-loop.mp3';
 const birdFile='./assets/audio/magpie-robin.mp3';
 
@@ -23,6 +28,7 @@ function waterDropBuffer(context) {
 export function createAmbience() {
   let context, master, riverGain, windGain, rainGain, birdGain, stereo, birds, preparation;
   let level=.78, audible=false, nextCall=Infinity, thunderBuffer, splashBuffer;
+  let musicBus, music, musicOn=true, musicLevel=.45;
   const thunderVoices=new Set();
 
   async function decode(file) {
@@ -44,6 +50,10 @@ export function createAmbience() {
     limiter.attack.value=.014;
     limiter.release.value=.23;
     master.connect(limiter).connect(context.destination);
+    musicBus=context.createGain();
+    musicBus.gain.value=musicLevel;
+    musicBus.connect(master);
+    music=createMusic(context,musicBus);
     riverGain=context.createGain();
     riverGain.gain.value=.92;
     riverGain.connect(master);
@@ -183,9 +193,20 @@ export function createAmbience() {
     if (master) master.gain.setTargetAtTime(audible?level:0,context.currentTime,.085);
   }
 
+  // The background music on or off, and how loud against the nature sounds (0 to 1); both may be set before
+  // the sound is first turned on.
+  function setMusic(on,value) {
+    musicOn=Boolean(on);
+    if (Number.isFinite(value)) musicLevel=Math.max(0,Math.min(1,value));
+    if (musicBus) musicBus.gain.setTargetAtTime(musicLevel,context.currentTime,.15);
+    music?.setActive(audible&&musicOn);
+  }
+
   return {
     get enabled() { return audible; },
+    get musicPlaying() { return Boolean(music?.active); },
     setLevel,
+    setMusic,
     leafSplash,
     thunder,
     cancelThunder,
@@ -209,6 +230,7 @@ export function createAmbience() {
         }
       }
       audible=enable;
+      music.setActive(audible&&musicOn);
       if(!audible) cancelThunder();
       setLevel(level);
       nextCall=audible?context.currentTime+.66:Infinity;
