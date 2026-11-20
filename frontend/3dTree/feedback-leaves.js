@@ -770,8 +770,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       if (existing) {
         existing.visitor = visitor;
         const isVip = isVipVisitor(visitor);
+        if (isVip && !existing.isVip && existing.state === 'resting') {
+          // Made VIP on the tree: it moves to one end of the canopy (sideSpots), fading in there.
+          relocate(existing);
+          return;
+        }
         if (isVip !== existing.isVip) {
-          // Made VIP (or no longer VIP): it now stays fixed (or turns with the view) from where it is shown.
+          // No longer VIP (or made VIP while floating in): it stays where it is shown.
           const shown = shownSpot(existing, existing.shown);
           existing.spot = { ...existing.spot, position: shown.position.clone(), quaternion: shown.quaternion.clone(), outward: shown.outward.clone(),
             local: tree.worldToLocal(shown.position.clone()), // and it keeps to the tree from here (followTree)
@@ -843,7 +848,40 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     return Math.abs(position.x - centre.x) <= width * size.x / 2 && Math.abs(position.y - centre.y) <= height * size.y / 2;
   }
 
-  function spotFor(key) {
+  // A VIP's leaf joins the tree at one end of the canopy, its left or its right as the viewer sees it (either,
+  // at random): the spots far out at that side, 50 to 80 degrees round the trunk from the viewer (so it is
+  // at the side yet fully shown, short of the edge where leaves go out of sight), in the middle of the
+  // canopy's height, on screen and clear of the title box. As the tree turns it glides with the tree as every
+  // leaf does: at the edge of the tree's outline it goes out of sight and comes back on the other side
+  // (shownSpot). The other side if one side has no such spots; anywhere on the front if neither has.
+  const SIDE_FROM = (50 * Math.PI) / 180, SIDE_TO = (80 * Math.PI) / 180;
+  function sideSpots(area, size, random) {
+    if (!canopyBox || !area.length) return null;
+    camera.updateMatrixWorld();
+    const right = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+    const view = Math.atan2(camera.position.x - orbitCentre.x, camera.position.z - orbitCentre.z);
+    const height = canopyBox.max.y - canopyBox.min.y;
+    const low = canopyBox.min.y + height * 0.25, high = canopyBox.min.y + height * 0.75;
+    const out = new T.Vector3();
+    const first = random() > 0.5 ? 1 : -1;
+    for (const side of [first, -first]) {
+      const band = area.filter(anchor => {
+        const { position } = anchor;
+        const from = Math.abs(turnedTo(Math.atan2(position.x - orbitCentre.x, position.z - orbitCentre.z), view));
+        return from >= SIDE_FROM && from <= SIDE_TO && position.y >= low && position.y <= high
+          && Math.sign(out.subVectors(position, orbitCentre).dot(right)) === side;
+      });
+      if (!band.length) continue;
+      // The furthest out at that side, as the viewer sees it.
+      const across = anchor => out.subVectors(anchor.position, orbitCentre).dot(right) * side;
+      band.sort((a, b) => across(b) - across(a));
+      const ends = band.slice(0, Math.max(8, Math.round(band.length * 0.3))).filter(anchor => seenOnScreen(anchor.position, size));
+      if (ends.length) return ends;
+    }
+    return null;
+  }
+
+  function spotFor(key, isVip = false) {
     if (placed.has(key)) return placed.get(key);
     followTree(); // the canopy's spots where they are now, if the tree has grown
     const random = seededRandom(`${key}|spot`);
@@ -855,7 +893,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const area = inArea.length > 40 ? inArea : anchors;
     const facing = area.filter(anchor => anchor.outward.dot(toCamera.subVectors(camera.position, anchor.position).normalize()) > 0.2);
     const seen = facing.filter(anchor => seenOnScreen(anchor.position, size));
-    const pool = seen.length > 40 ? seen : facing.length > 40 ? facing : area;
+    const pool = (isVip && sideSpots(area, size, random)) || (seen.length > 40 ? seen : facing.length > 40 ? facing : area);
     if (!pool.length) return null;
     const taken = [...leaves.values()].filter(leaf => leaf.state !== 'falling').map(leaf => shownSpot(leaf, leaf.shown).position);
     // How far apart two spots look to the viewer: their distance across the view, leaving out depth.
@@ -1026,7 +1064,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   window.addEventListener('resize', () => window.setTimeout(keepClearOfTitle, 400));
 
   function createLeaf(key, visitor) {
-    const spot = spotFor(key);
+    const spot = spotFor(key, isVipVisitor(visitor));
     if (!spot) return null;
     // Drawn on top of the tree's foliage (no depth test), so the canopy never covers a feedback leaf.
     const material = new T.MeshBasicMaterial({
