@@ -898,8 +898,11 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   // When a leaf has glided GLIDE_REACH to one side of the viewer, it fades away there and comes back, faded
   // in, at the same distance on the other side (wrapping round), and glides on: the front of the tree always
   // has its leaves, all moving with the tree. With the view still, every leaf is exactly at its own spot.
-  const GLIDE_REACH = (85 * Math.PI) / 180;   // how far to either side of the viewer a leaf glides
-  const GLIDE_FADE = (20 * Math.PI) / 180;    // over how much of that it fades out (and in, on the other side)
+  // A leaf stays fully shown all the way to the side of the canopy as the viewer sees it (90 degrees round from
+  // the viewer: the edge of the tree's outline), and goes out of sight only there, quickly, as if round the
+  // side of the tree, coming back in the same way at the other side.
+  const GLIDE_REACH = (90 * Math.PI) / 180;   // how far to either side of the viewer a leaf glides
+  const GLIDE_FADE = (5 * Math.PI) / 180;     // over how much of that, at its very end, it fades out (and in, on the other side)
   const glideTurn = new T.Quaternion();
   const turnedTo = (angle, around) => Math.atan2(Math.sin(angle - around), Math.cos(angle - around)); // -pi to pi
   // The canopy's distance from the trunk in a direction round it (its oval from above), for the leaves to keep
