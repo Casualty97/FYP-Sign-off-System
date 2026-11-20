@@ -253,12 +253,19 @@ const BADGE_ESG = { 'social-champion': 'social', 'governance-guardian': 'governa
 // A VIP's leaf has a star of light twinkling at its tip (both looks), as the VIP leaf of the concept.
 const SPARKLE_SIZE = 1.4;        // the star's size (its rays tip to tip), as a share of the leaf's size
 const SPARKLE_EVERY = 2.4;       // seconds between its brightest twinkles
+// A VIP's leaf on the tree turns gently from left to right and back, on its stem, as the viewer sees it: a
+// slow, smooth swing (VIP_TURN_SECONDS for left, right and back again), VIP_TURN_ANGLE each way, so its name
+// stays readable; each VIP leaf at its own moment. It starts gently once the leaf has settled on the tree
+// (VIP_TURN_EASE_IN). The admin can turn it off (3D VIP Leaf Adjustments: tree3dParameters.vipTurn).
+const VIP_TURN_ANGLE = (40 * Math.PI) / 180;
+const VIP_TURN_SECONDS = 6;
+const VIP_TURN_EASE_IN = 1.5;
 const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24, leafScale: 1, showLeafNames: true,
   leafAreaWidth: 100, leafAreaHeight: 100, leafAreaOffset: 0, leafRefreshMs: POLL_MS, leafOpacity: 1,
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS, leafBatchMode: 'groups', leafBatchCount: BATCH_SIZE, leafBatchSize: BATCH_SIZE,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
   tree2d: { leafFallThreshold: 15, treeStage: 4, leafShowcaseSeconds: SHOWCASE_MS / 1000 },
-  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true, vipSparkle: true,
+  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true, vipSparkle: true, vipTurn: true,
   leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1, // the names: the look's own font, bold, white, standard size
   vipNameOwnStyle: false, vipNameFont: 'auto', vipNameWeight: 700, vipNameColor: '#ffffff', vipNameSize: 1 }; // VIP names: as the others unless ticked
 
@@ -1543,6 +1550,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   const sway = new T.Quaternion();
   const swayEuler = new T.Euler();
+  const vipTurning = new T.Quaternion(), vipTurnAxis = new T.Vector3();
   function placeAtRest(leaf, elapsed) {
     const { local, phase } = leaf.spot;
     const { position, quaternion } = leaf.shown; // its spot as shown now (turned with the view)
@@ -1559,6 +1567,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const flutter = (0.035 + 0.12 * gust) * Math.sin(elapsed * 2.3 + phase);
     sway.setFromEuler(swayEuler.set(flutter, 0, flutter * 0.6));
     leaf.mesh.quaternion.copy(quaternion).multiply(sway);
+    // A VIP's leaf on the tree turns from left to right and back, about the view's upright (VIP_TURN_ANGLE).
+    if (leaf.isVip && leaf.state === 'resting' && settings.vipTurn !== false) {
+      const settled = smoothstep(0, VIP_TURN_EASE_IN, (now() - (leaf.restingSince ?? now())) / 1000);
+      const angle = VIP_TURN_ANGLE * settled * Math.sin((elapsed * 2 * Math.PI) / VIP_TURN_SECONDS + phase);
+      vipTurnAxis.setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+      leaf.mesh.quaternion.premultiply(vipTurning.setFromAxisAngle(vipTurnAxis, angle));
+    }
     leaf.mesh.scale.setScalar(leaf.scale);
     leaf.mesh.scale.x *= sideSign(leaf);
   }

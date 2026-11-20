@@ -62,6 +62,7 @@
 //   vipLeafScale       size of VIP leaves, 0.4 to 2.5 (2D: vipLeafDisplayScale)
 //   vipGlow            the gold pulse around VIP leaves (2D: vipGoldPulse)
 //   vipSparkle         the white star of light twinkling at a VIP leaf's tip (on by default)
+//   vipTurn            VIP leaves turn gently from left to right and back on the tree (on by default)
 //   vipNameOwnStyle    VIP names in their own style (off by default: written as the other names)
 //   vipNameFont, vipNameWeight, vipNameColor, vipNameSize
 //                      that style, with the same choices as the other names (leafNameFont and so on)
@@ -186,6 +187,7 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   vipLeafScale: 1,
   vipGlow: true,
   vipSparkle: true,
+  vipTurn: true,
   vipNameOwnStyle: false,
   vipNameFont: 'auto',
   vipNameWeight: 700,
@@ -336,6 +338,7 @@ function normalizeTree3dParameters(updates) {
   if (has('vipLeafScale')) out.vipLeafScale = Math.round(number(updates.vipLeafScale, 0.4, 2.5, 'VIP leaf scale') * 100) / 100;
   if (has('vipGlow')) out.vipGlow = bool(updates.vipGlow, 'VIP gold glow');
   if (has('vipSparkle')) out.vipSparkle = bool(updates.vipSparkle, 'VIP leaf tip star');
+  if (has('vipTurn')) out.vipTurn = bool(updates.vipTurn, 'VIP leaf turning');
   const whole = (key, min, max, name) => { if (has(key)) out[key] = Math.round(number(updates[key], min, max, name)); };
   whole('leafAreaWidth', 30, 100, 'Leaf area width');
   whole('leafAreaHeight', 30, 100, 'Leaf area height');

@@ -112,6 +112,7 @@ const TREE3D_VIP_DEFAULTS = {
     vipLeafScale: 1,
     vipGlow: true,
     vipSparkle: true, // the white star at the leaf's tip
+    vipTurn: true, // turning gently from left to right and back
     // The names on VIP leaves: the same as the other names unless given their own style.
     vipNameOwnStyle: false,
     vipNameFont: 'auto',
@@ -427,6 +428,7 @@ function updateTree3dLeafPreview() {
     }
     tree3dField('leafVipGlowBox')?.classList.toggle('glowing', tree3dField('vipGlow')?.checked === true);
     tree3dField('leafVipSparkle')?.classList.toggle('is-off', tree3dField('vipSparkle')?.checked !== true);
+    tree3dField('leafVipTurn')?.classList.toggle('turning', tree3dField('vipTurn')?.checked === true);
     tree3dField('leafVipSparkle')?.classList.toggle('tip-left', vipSide === 'left');
     if (tree3dField('leafVipCaption')) tree3dField('leafVipCaption').textContent = `VIP leaf, ${vipSide}`;
     if (tree3dField('vipNameSample')) updateTree3dNamePreview();
@@ -569,6 +571,7 @@ function fillTree3dForm(settings) {
     tree3dField('vipLeafScale').value = vip.vipLeafScale;
     tree3dField('vipGlow').checked = vip.vipGlow !== false;
     if (tree3dField('vipSparkle')) tree3dField('vipSparkle').checked = vip.vipSparkle !== false;
+    if (tree3dField('vipTurn')) tree3dField('vipTurn').checked = vip.vipTurn !== false;
     if (tree3dField('vipNameFont')) {
         tree3dField('vipNameOwnStyle').checked = vip.vipNameOwnStyle === true;
         tree3dField('vipNameFont').value = Object.hasOwn(TREE3D_NAME_FONTS, vip.vipNameFont) || vip.vipNameFont === 'auto' ? vip.vipNameFont : 'auto';
@@ -655,6 +658,7 @@ function collectTree3dSettings() {
         vipLeafScale: Number(tree3dField('vipLeafScale').value) || TREE3D_VIP_DEFAULTS.vipLeafScale,
         vipGlow: tree3dField('vipGlow').checked,
         ...(tree3dField('vipSparkle') ? { vipSparkle: tree3dField('vipSparkle').checked } : {}),
+        ...(tree3dField('vipTurn') ? { vipTurn: tree3dField('vipTurn').checked } : {}),
         ...(tree3dField('vipNameFont') ? {
             vipNameOwnStyle: tree3dField('vipNameOwnStyle').checked,
             vipNameFont: tree3dField('vipNameFont').value,

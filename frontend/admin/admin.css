@@ -8195,6 +8195,18 @@ input:checked + .slider:before {
 .leaf3d-vip-sparkle.tip-left { right: auto; left: -2px; } /* a leaf pointing left: its tip on the left */
 .leaf3d-vip-sparkle.is-off { display: none; }
 
+/* The VIP leaf in the preview turning gently from left to right and back, as on the 3D tree (vipTurn). */
+.leaf3d-vip-turn { display: inline-block; }
+.leaf3d-vip-turn.turning { animation: leaf3dVipTurn 6s ease-in-out infinite; }
+@keyframes leaf3dVipTurn {
+    0%, 100% { transform: perspective(240px) rotateY(0deg); }
+    25% { transform: perspective(240px) rotateY(40deg); }
+    75% { transform: perspective(240px) rotateY(-40deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .leaf3d-vip-turn.turning { animation: none; }
+}
+
 @keyframes leaf3dVipPulse {
     0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 12px rgba(255, 200, 0, 0.6)); }
     50% { filter: drop-shadow(0 0 10px rgba(255, 230, 80, 1)) drop-shadow(0 0 22px rgba(255, 215, 0, 0.9)); }

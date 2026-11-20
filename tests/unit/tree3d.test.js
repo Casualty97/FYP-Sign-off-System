@@ -102,6 +102,12 @@ test('3D VIP leaf tip star: on by default, and the admin can turn it off', () =>
     assert.throws(() => normalizeTree3dParameters({ vipSparkle: 'yes' }), { statusCode: 400, message: /VIP leaf tip star/ });
 });
 
+test('3D VIP leaf turning: on by default, and the admin can turn it off', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.vipTurn, true);
+    assert.deepEqual(normalizeTree3dParameters({ vipTurn: false }), { vipTurn: false });
+    assert.throws(() => normalizeTree3dParameters({ vipTurn: 'spin' }), { statusCode: 400, message: /VIP leaf turning/ });
+});
+
 test('the 3D Tree Visualization Parameters are kept within their ranges', () => {
     const saved = normalizeTree3dParameters({
         leafAreaWidth: 10, leafAreaHeight: 75.4, leafAreaOffset: -90, leafRefreshMs: 1000, leafOpacity: 0.456,
