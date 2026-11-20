@@ -4,10 +4,13 @@
 //     never overlapping another leaf, and its own random angle;
 //   - left and right leaves, as the 2D tree's LeftLeaf / RightLeaf pictures: the RainTree leaf as it is
 //     is a right leaf, mirrored it is a left leaf (mixed at random, or one side, from the admin);
-//   - a new feedback's leaf appears at the bottom middle of the screen at twice its size and stays there for
-//     12 seconds (SHOWCASE_MS), drifting gently with its name level; then it slowly floats up to its place
-//     on the tree like a falling leaf in reverse: swinging gently from side to side and rocking like a
-//     cradle, the swings dying away as it shrinks and settles onto its twig. Several new leaves take turns;
+//   - new feedbacks' leaves are split into groups as the admin sets (leafBatchMode: into leafBatchCount
+//     groups, 3 by default, or into groups of up to leafBatchSize leaves), evenly: a group appears together in a row at the bottom of the screen, below the tree, spread
+//     evenly over its width (clear of the title box and the Year Review button), the same size, for 12 seconds
+//     (SHOWCASE_MS, the admin's time), drifting gently with their names level; then they join the tree in no
+//     set order, each at its own moment within BATCH_SPREAD_MS, slowly floating up to their places like
+//     falling leaves in reverse: swinging gently from side to side and rocking like a cradle, the swings
+//     dying away as they shrink and settle onto their twigs. Then the next group appears;
 //   - leaves are placed where the viewer sees them: on screen, and not under the title box; while the tree
 //     is growing (tree-growth.js) only on the foliage grown in so far, new ones further out as it spreads;
 //   - a new visitor's leaf glows green for the first minute;
@@ -60,7 +63,11 @@ const FLOAT_MS = 7200;           // a new leaf floats up for 7.2 to 8.4 seconds 
 const NAME_FLIP_MARGIN = 0.44;   // a name turns over only when its leaf is 25 degrees past upright (no flicker)
 const SHOWCASE_MS = 12000;       // a new leaf shows at the bottom middle of the screen this long before floating up
 const APPEAR_MS = 900;           // how long it takes to fade in there
-const STAGE_CLEAR_MS = 3000;     // the next new leaf appears there this long after the one before starts floating up
+const STAGE_CLEAR_MS = 3000;     // the next group of new leaves appears this long after the one before has left
+const BATCH_SIZE = 3;            // new leaves are split into this many groups (the admin's leafBatchCount), or
+                                 // into groups of up to this many (leafBatchSize), as the admin chooses (leafBatchMode)
+const BATCH_SPREAD_MS = 2500;    // a group's leaves leave for the tree within this, each at its own moment
+const BATCH_ROW_WIDTH = 0.8;     // how far across the screen the group's row spreads (of half its width, each way)
 const TINT_BOOST = 2.3;          // the leaf picture is mid grey: this brings the chosen colour back to strength
 const NEON = new T.Color(0x39ff14);
 const MIN_LIGHTNESS = 0.38;      // a leaf colour is shown at least this light (HSL), so it stands out on the canopy
@@ -245,7 +252,7 @@ const SPARKLE_SIZE = 1.4;        // the star's size (its rays tip to tip), as a 
 const SPARKLE_EVERY = 2.4;       // seconds between its brightest twinkles
 const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24, leafScale: 1, showLeafNames: true,
   leafAreaWidth: 100, leafAreaHeight: 100, leafAreaOffset: 0, leafRefreshMs: POLL_MS, leafOpacity: 1,
-  leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS,
+  leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS, leafBatchMode: 'groups', leafBatchCount: BATCH_SIZE, leafBatchSize: BATCH_SIZE,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
   tree2d: { leafFallThreshold: 15, treeStage: 4, leafShowcaseSeconds: SHOWCASE_MS / 1000 },
   vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true,
@@ -584,6 +591,9 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       // Time at the bottom middle: one setting for both trees, the 2D tree's (treeParameters.leafShowcaseSeconds).
       showcase: within(Number(settings.tree2d?.leafShowcaseSeconds) * 1000, SHOWCASE_MS, 0, 30000),
       float: within(settings.leafFloatMs, FLOAT_MS, 2000, 20000),
+      batchMode: settings.leafBatchMode === 'size' ? 'size' : 'groups',
+      batchCount: Math.round(within(settings.leafBatchCount, BATCH_SIZE, 1, 10)),
+      batch: Math.round(within(settings.leafBatchSize, BATCH_SIZE, 1, 10)),
       fall: within(settings.leafFallMs, FALL_MS, 500, 10000),
     };
   }
@@ -612,6 +622,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       leaves.clear();
       placed.clear();
       stageFreeAt = 0;
+      batch = null;
       refresh();
     } else if (JSON.stringify(settings.tree2d) !== before) refresh(); // the 2D leaf count changed
   });
@@ -622,12 +633,39 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     initialised = !mode.live; // a reviewed year shows its leaves at once, without flights
     known.clear();
     stageFreeAt = 0;
+    batch = null;
     for (const leaf of leaves.values()) removeLeaf(leaf);
     leaves.clear();
     refresh();
   });
 
   // ---------- data ----------
+
+  // A demonstration of new feedback arriving (?demo=7 in the page address, 1 to 30; in this browser tab only,
+  // nothing is submitted or changed): the page opens without the 7 newest feedbacks, and DEMO_DELAY_MS after
+  // the scene appears they arrive together as new ones, shown as real new feedback is (in groups of up to 3,
+  // then joining the tree). Reload the page to see it again.
+  const DEMO_COUNT = (() => {
+    const asked = Number(new URLSearchParams(window.location.search).get('demo'));
+    return Number.isFinite(asked) && asked > 0 ? Math.min(30, Math.round(asked)) : 0;
+  })();
+  const DEMO_DELAY_MS = 5000;
+  let demoHeld = null;        // the held-back feedbacks (their keys), until they arrive
+  let demoArrived = false;
+  function demoVisitors(visitors) {
+    if (!DEMO_COUNT || demoArrived || !mode.live) return visitors;
+    const keyOf = visitor => leafKey(visitor, 0);
+    if (!demoHeld) {
+      demoHeld = new Set(sortOldestFirst(visitors).slice(-DEMO_COUNT).map(keyOf));
+      console.info(`3D tree demo: ${demoHeld.size} new feedbacks will arrive ${DEMO_DELAY_MS / 1000} seconds after the scene appears.`);
+      const start = window.setInterval(() => {
+        if (document.querySelector('.reserve')?.dataset.ready !== 'true') return;
+        window.clearInterval(start);
+        window.setTimeout(() => { demoArrived = true; refresh(); }, DEMO_DELAY_MS);
+      }, 250);
+    }
+    return visitors.filter(visitor => !demoHeld.has(keyOf(visitor)));
+  }
 
   async function refresh() {
     if (!model) return;
@@ -640,7 +678,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         fetch('/api/tree/vip-names', { cache: 'no-store' }).catch(() => null),
       ]);
       const data = await response.json();
-      visitors = Array.isArray(data) ? data : [];
+      visitors = demoVisitors(Array.isArray(data) ? data : []);
       const vipData = vipResponse?.ok ? await vipResponse.json() : null;
       if (Array.isArray(vipData?.vipNames)) vipNames = new Set(vipData.vipNames.map(normaliseName));
     } catch (error) {
@@ -693,7 +731,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       else { removeLeaf(leaf); leaves.delete(key); }
     }
 
-    let order = 0;
+    const arriving = []; // new leaves, shown in groups (startFlights)
     visitors.forEach((visitor, index) => {
       const key = keys[index];
       if (!visible.has(key)) return;
@@ -719,9 +757,10 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       }
       const leaf = createLeaf(key, visitor);
       if (!leaf) return;
-      if (landing.has(key)) startFlight(leaf, order++);
+      if (landing.has(key)) arriving.push(leaf);
       leaves.set(key, leaf);
     });
+    startFlights(arriving);
   }
 
   // ---------- many leaves ----------
@@ -874,6 +913,23 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   // The title box on the canvas, with a margin: no leaf sits there, wherever the admin puts the title box
   // (top or bottom, left, centre or right) or however big it is. Null when it is hidden.
+  // What the row of new leaves at the bottom of the screen keeps clear of: the title box and the Year Review
+  // button (each in canvas pixels, with a margin), when shown.
+  function rowObstacles() {
+    const areas = [];
+    const title = titleArea();
+    if (title) areas.push(title);
+    const button = document.querySelector('.year-review-toggle');
+    const box = button?.getBoundingClientRect();
+    if (box && box.width && box.height && getComputedStyle(button).display !== 'none' && getComputedStyle(button).visibility !== 'hidden') {
+      const canvasBox = renderer.domElement.getBoundingClientRect();
+      const margin = 12;
+      areas.push({ left: box.left - canvasBox.left - margin, right: box.right - canvasBox.left + margin,
+        top: box.top - canvasBox.top - margin, bottom: box.bottom - canvasBox.top + margin });
+    }
+    return areas;
+  }
+
   function titleArea() {
     const title = document.querySelector('.masthead');
     const box = title?.getBoundingClientRect();
@@ -1089,28 +1145,53 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   // ---------- showing at the bottom middle, then floating in (as the 2D landing flight) ----------
 
-  // A new leaf appears at the bottom middle of the screen at twice its size and stays there for
-  // SHOWCASE_MS (12 seconds), drifting gently in place with its name level, so the visitor can find it and
-  // read it. Then it floats up to its spot like a falling leaf in reverse: it swings gently from side to
-  // side with a steady rhythm, rocking like a cradle (the end on the outside of each swing lifts, as a
-  // pendulum's), while it rises, shrinks and turns from level to the angle it will rest at. The swings die
-  // away as it arrives, and it settles exactly where it then rests, swaying with the tree. It shows and
-  // floats at the depth of its spot, so it moves across the screen as the 2D leaf does, and it stays at the
-  // bottom middle of the screen even if the view is turned meanwhile. Several new leaves take turns there:
-  // each appears once the one before has started floating up and cleared the spot.
-  let stageFreeAt = 0; // when the bottom middle is next free for a new leaf
+  // The leaves that arrive together are split into groups as the admin sets (leafBatchMode): into a number of
+  // groups (leafBatchCount, BATCH_SIZE by default: 10 new feedbacks into 2 groups: 5 and 5; into 3: 4, 3 and
+  // 3), or into groups of up to a number of leaves (leafBatchSize: 10 in groups of up to 3: 3, 3, 2 and 2);
+  // either way as evenly as they go. A group appears together in a row at the bottom of the screen, below the tree,
+  // where a new leaf has always shown: the leaves spread evenly across it whatever the screen's size, clear of
+  // the title box, all the same size (made smaller when the row is too narrow for them to stand apart),
+  // drifting gently with their names level, so the visitors can find and read them, for the admin's time
+  // (SHOWCASE_MS, 12 seconds by default). Then they join the tree in no set order, each leaving at its own
+  // moment within BATCH_SPREAD_MS: each floats up to its spot like a falling leaf in reverse, swinging gently
+  // from side to side with a steady rhythm, rocking like a cradle (the end on the outside of each swing
+  // lifts, as a pendulum's), while it rises, shrinks and turns from level to the angle it will rest at; the
+  // swings die away as it arrives, and it settles exactly where it then rests, swaying with the tree. Each
+  // shows and floats at the depth of its spot, and the row stays at the bottom of the screen even if the
+  // view is turned meanwhile. The next group appears once the one before has left (STAGE_CLEAR_MS).
+  let stageFreeAt = 0; // when the bottom of the screen is next free for a group
+  let batch = null;    // the last group: { appearAt, showcase, members, half }
 
-  function startFlight(leaf, order) {
+  // The leaves that arrived together, in groups split as evenly as they go.
+  function startFlights(arriving) {
+    if (!arriving.length) return;
+    const { batchMode, batchCount, batch: perGroup } = timing();
+    const groups = batchMode === 'size' ? Math.ceil(arriving.length / perGroup) : Math.min(batchCount, arriving.length);
+    let next = 0;
+    for (let g = 0; g < groups; g++) {
+      const count = Math.floor(arriving.length / groups) + (g < arriving.length % groups ? 1 : 0);
+      const { showcase } = timing();
+      batch = { appearAt: Math.max(now() + 250, stageFreeAt), showcase, members: [], half: null };
+      for (const leaf of arriving.slice(next, next + count)) startFlight(leaf, batch);
+      next += count;
+    }
+  }
+
+  function startFlight(leaf, group) {
     const random = seededRandom(`${leaf.key}|flight`);
-    const { appear, showcase, float } = timing(); // the admin's timings when this leaf arrives
-    const appearAt = Math.max(now() + order * 250, stageFreeAt);
-    stageFreeAt = appearAt + showcase + STAGE_CLEAR_MS;
+    const { appear, float } = timing(); // the admin's timings when this leaf arrives
+    batch = group;
+    batch.members.push(leaf);
+    const slot = batch.members.length - 1;
+    stageFreeAt = batch.appearAt + batch.showcase + BATCH_SPREAD_MS + STAGE_CLEAR_MS;
+    const appearAt = batch.appearAt + slot * 200;                        // the group's leaves fade in one by one, quickly
+    const departAt = batch.appearAt + batch.showcase + random() * BATCH_SPREAD_MS; // and leave in no set order
     // Level means its midrib across the screen, pointing right or left, whichever is nearer its resting angle.
     camera.updateMatrixWorld();
     const midrib = new T.Vector3(1, 0, 0).applyQuaternion(leaf.shown.quaternion);
     const right = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
     leaf.flight = {
-      appearAt, appear, showcase,
+      appearAt, appear, showcase: departAt - appearAt, group: batch,
       levelSign: midrib.dot(right) >= 0 ? 1 : -1,
       duration: float * (1 + random() * 0.17),          // 7.2 to 8.4 seconds by default
       swings: 4 + random() * 1.2,                       // side-to-side swings on the way up
@@ -1144,28 +1225,47 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     restPosition.copy(leaf.mesh.position);
     restPose.copy(leaf.mesh.quaternion);
 
-    // The view as it is now: the bottom middle of the screen at the depth of the leaf's spot, with the
-    // twice-size leaf fully on screen.
+    // The view as it is now, at the depth of the leaf's spot.
     camera.updateMatrixWorld();
     camera.getWorldDirection(viewForward);
     viewRight.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
     viewUp.setFromMatrixColumn(camera.matrixWorld, 1).normalize();
     const depth = Math.max(1, start.subVectors(restPosition, camera.position).dot(viewForward));
     const halfHeight = depth * Math.tan(T.MathUtils.degToRad(camera.fov / 2));
-    const startHalf = leaf.scale * MODEL_SIZE; // half of twice its size
-    let startY = Math.min(-0.35, -1 + startHalf / halfHeight + 0.05);
-    // With the title box at the bottom of the screen, the new leaf shows just above it, not under it.
-    const area = titleArea();
-    if (area) {
-      const canvasHeight = renderer.domElement.clientHeight || window.innerHeight;
-      const canvasWidth = renderer.domElement.clientWidth || window.innerWidth;
-      const halfPx = (startHalf / halfHeight) * (canvasHeight / 2);
-      const yPx = ((1 - startY) / 2) * canvasHeight;
-      if (canvasWidth / 2 + halfPx > area.left && canvasWidth / 2 - halfPx < area.right && yPx + halfPx > area.top && yPx - halfPx < area.bottom) {
-        startY = 1 - (2 * (area.top - halfPx - 8)) / canvasHeight;
-      }
+    // Its place in its group's row at the bottom of the screen, below the tree: the row spread evenly over the
+    // screen's width (from left to right, in half widths), clear of the title box, every leaf of the group the
+    // same size on screen (half: its half size, in half heights), made smaller when the row is too narrow for
+    // them to stand apart.
+    const group = f.group;
+    const count = Math.max(1, group.members.length);
+    const slot = Math.max(0, group.members.indexOf(leaf));
+    const aspect = Math.max(0.3, camera.aspect);
+    if (group.half === null) group.half = (leaf.scale * MODEL_SIZE) / halfHeight; // twice its size, as the first leaf
+    const halfFor = (left, right) => Math.min(group.half, count > 1 ? ((right - left) / count) * aspect * 0.36 : group.half, aspect * 0.8);
+    let left = -BATCH_ROW_WIDTH, right = BATCH_ROW_WIDTH;
+    let half = halfFor(left, right);
+    const rowAt = size => Math.min(-0.35, -1 + size + 0.06); // just above the bottom of the screen
+    let rowY = rowAt(half);
+    const canvasHeight = renderer.domElement.clientHeight || window.innerHeight;
+    const canvasWidth = renderer.domElement.clientWidth || window.innerWidth;
+    for (const area of rowObstacles()) {
+      const rowTop = ((1 - rowY - half) / 2) * canvasHeight, rowBottom = ((1 - rowY + half) / 2) * canvasHeight;
+      if (area.bottom <= rowTop || area.top >= rowBottom) continue;
+      // Beside the row (the title box, the Year Review button): the row keeps to the side of the screen away
+      // from it, or, with it in the middle, the row goes just above it.
+      const areaLeft = (area.left / canvasWidth) * 2 - 1, areaRight = (area.right / canvasWidth) * 2 - 1;
+      const margin = 0.03;
+      if (areaRight < 0) left = Math.max(left, areaRight + margin);
+      else if (areaLeft > 0) right = Math.min(right, areaLeft - margin);
+      else rowY = 1 - (2 * (area.top - half * (canvasHeight / 2) - 8)) / canvasHeight;
+      half = halfFor(left, right);
+      if (areaRight < 0 || areaLeft > 0) rowY = rowAt(half);
     }
-    start.copy(camera.position).addScaledVector(viewForward, depth).addScaledVector(viewUp, startY * halfHeight);
+    const startHalf = half * halfHeight; // in the world, at this depth
+    const slotX = left + (right - left) * (slot + 0.5) / count;
+    start.copy(camera.position).addScaledVector(viewForward, depth)
+      .addScaledVector(viewUp, rowY * halfHeight).addScaledVector(viewRight, slotX * halfHeight * aspect);
+    const showScale = (2 * startHalf) / MODEL_SIZE; // its scale at the size shown in the row
     // Its resting angle as the viewer sees it, level, and the side of it that faces the viewer.
     restMidrib.set(1, 0, 0).applyQuaternion(restPose);
     restMidrib.addScaledVector(viewForward, -restMidrib.dot(viewForward));
@@ -1178,7 +1278,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
     const since = time - f.appearAt;
     if (since < f.showcase) {
-      // At the bottom middle: fading in as it rises a little into place, then drifting gently, name level.
+      // In its group's row: fading in as it rises a little into place, then drifting gently, name level.
       // The drift calms to nothing before it floats up, so the float starts from exactly here.
       const shown = Math.max(0, since);
       const appear = smoothstep(0, f.appear, shown);
@@ -1190,7 +1290,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         .addScaledVector(viewRight, startHalf * 0.05 * Math.sin(seconds * 1.1 + f.drift * 2) * idle);
       axisX.copy(level).applyAxisAngle(viewForward, 0.07 * Math.sin(seconds * 1.5 + f.drift) * idle);
       leaf.mesh.quaternion.copy(facingPose(axisX, 0.16 * Math.sin(seconds * 2.3 + f.drift) * idle));
-      leaf.mesh.scale.setScalar(leaf.scale * 2 * (0.88 + 0.12 * appear));
+      leaf.mesh.scale.setScalar(showScale * (0.88 + 0.12 * appear));
       leaf.mesh.scale.x *= sideSign(leaf);
       leaf.material.opacity = since < 0 ? 0 : appear; // waiting its turn: not shown yet
       return;
@@ -1212,8 +1312,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     facingPose(axisX, f.flutter * Math.sin(swing * 2) * calm);
     leaf.mesh.quaternion.slerpQuaternions(floatPose, restPose, smoothstep(0.55, 1, s));
 
-    // Twice its size at the start, shrinking smoothly to its size on the tree.
-    leaf.mesh.scale.setScalar(leaf.scale * (1 + (1 - s) ** 1.4));
+    // Its size in the row at the start, shrinking smoothly to its size on the tree.
+    leaf.mesh.scale.setScalar(leaf.scale + (showScale - leaf.scale) * (1 - s) ** 1.4);
     leaf.mesh.scale.x *= sideSign(leaf);
     // (Fading in here too when the admin sets no time at the bottom middle.)
     leaf.material.opacity = smoothstep(0, f.appear, since) * T.MathUtils.lerp(1, facingAmount(leaf), smoothstep(0.8, 1, s));

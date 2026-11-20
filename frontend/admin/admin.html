@@ -1329,6 +1329,23 @@
                                         <p style="font-size:12px; color:#666; margin-top:6px;">How long a new feedback's leaf stays at the bottom middle of the screen before floating up to the tree, for example 10 to 15 seconds (0 = floats up at once). Shared with the 2D tree: one setting for both trees.</p>
                                     </div>
                                     <div>
+                                        <label for="tree3d-leafBatchMode" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Split new leaves arriving together</label>
+                                        <select id="tree3d-leafBatchMode" onchange="updateTree3dBatchFields()" style="width:100%; max-width:260px; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <option value="groups">Into a number of groups</option>
+                                            <option value="size">Into groups of a number of leaves</option>
+                                        </select>
+                                        <div id="tree3d-leafBatchCountBox" style="margin-top:6px;">
+                                            <label for="tree3d-leafBatchCount" style="color:#334155;">Number of groups</label>
+                                            <input type="number" id="tree3d-leafBatchCount" min="1" max="10" step="1" value="3" oninput="updateTree3dBatchFields()" style="width:80px; margin-left:6px;">
+                                        </div>
+                                        <div id="tree3d-leafBatchSizeBox" style="margin-top:6px; display:none;">
+                                            <label for="tree3d-leafBatchSize" style="color:#334155;">Leaves in a group (at most)</label>
+                                            <input type="number" id="tree3d-leafBatchSize" min="1" max="10" step="1" value="3" oninput="updateTree3dBatchFields()" style="width:80px; margin-left:6px;">
+                                        </div>
+                                        <p id="tree3d-leafBatchExample" style="font-size:12px; color:#166534; font-weight:600; margin-top:6px;"></p>
+                                        <p style="font-size:12px; color:#666; margin-top:4px;">When several feedbacks arrive together, their leaves are split into groups, as evenly as they go, and each group shows side by side at the bottom of the screen, spread across it, for the time above; then its leaves join the tree in no set order and the next group appears. Try it with <code>/3dTree?demo=10</code>.</p>
+                                    </div>
+                                    <div>
                                         <label for="tree3d-leafFloatMs" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Float-up duration (milliseconds)</label>
                                         <input type="number" id="tree3d-leafFloatMs" min="2000" max="20000" step="500" value="7200" style="width:120px;">
                                         <p style="font-size:12px; color:#666; margin-top:6px;">How long a new leaf takes to float up and settle on the tree.</p>

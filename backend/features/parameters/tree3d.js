@@ -66,6 +66,12 @@
 //   leafShowcaseSeconds how long a new leaf stays at the bottom middle before floating up, 0 to 30 seconds
 //   leafFloatMs        how long it takes to float up to the tree, 2000 to 20000 ms
 //   leafFallMs         how long the oldest leaf takes to fall, 500 to 10000 ms (2D: Leaf Fall Duration)
+//   leafBatchMode      how new leaves arriving together are split into groups, shown one group after another
+//                      side by side at the bottom of the screen, then joining the tree in no set order:
+//                      'groups' (the default) into leafBatchCount groups, or 'size' into groups of up to
+//                      leafBatchSize leaves; either way as evenly as they go (10 into 2 groups: 5 and 5)
+//   leafBatchCount     how many groups, 1 to 10 (3 by default; fewer when fewer leaves arrive)
+//   leafBatchSize      how many leaves in a group at most, 1 to 10 (3 by default)
 //   badgeColours       leaves in their badge's colour instead of green (2D: Badge Leaf Styling), on by
 //                      default: a light shade while new, then a dark shade of it after leafNewHours
 //   badgeLeafColors    the colour for each badge (BADGE_KEYS), any colour as on the 2D tree; a badge left at
@@ -157,6 +163,9 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   leafAppearMs: 900,
   leafShowcaseSeconds: 12,
   leafFloatMs: 7200,
+  leafBatchMode: 'groups',
+  leafBatchCount: 3,
+  leafBatchSize: 3,
   leafFallMs: 4200,
   badgeColours: true,
   badgeLeafColors: DEFAULT_BADGE_LEAF_COLORS,
@@ -271,6 +280,9 @@ function normalizeTree3dParameters(updates) {
     out.leafShowcaseSeconds = Math.round(number(updates.leafShowcaseSeconds, 0, 30, 'Time at the bottom middle') * 10) / 10;
   }
   whole('leafFloatMs', 2000, 20000, 'Float-up duration');
+  if (has('leafBatchMode')) out.leafBatchMode = oneOf(updates.leafBatchMode, ['groups', 'size'], 'Split new leaves');
+  whole('leafBatchCount', 1, 10, 'Number of groups');
+  whole('leafBatchSize', 1, 10, 'New leaves shown together');
   whole('leafFallMs', 500, 10000, 'Leaf fall duration');
   if (has('badgeColours')) out.badgeColours = bool(updates.badgeColours, 'Badge colours');
   if (has('badgeLeafColors')) {

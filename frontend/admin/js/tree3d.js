@@ -124,10 +124,13 @@ const TREE3D_VISUAL_DEFAULTS = {
     leafShowcaseSeconds: 12,
     leafFloatMs: 7200,
     leafFallMs: 4200,
+    leafBatchMode: 'groups',
+    leafBatchCount: 3,
+    leafBatchSize: 3,
     badgeColours: true
 };
 const TREE3D_VISUAL_NUMBERS = ['leafAreaWidth', 'leafAreaHeight', 'leafAreaOffset', 'leafRefreshMs', 'leafOpacity',
-    'leafAppearMs', 'leafShowcaseSeconds', 'leafFloatMs', 'leafFallMs'];
+    'leafAppearMs', 'leafShowcaseSeconds', 'leafFloatMs', 'leafFallMs', 'leafBatchCount', 'leafBatchSize'];
 // The 2D tree's saved badge colours (Badge Leaf Styling), used for any badge left at its built-in colour in 3D.
 let tree3dBadgeColours2d = {};
 // The badges, with the 2D tree's default colours (Badge Leaf Styling).
@@ -566,7 +569,9 @@ function fillTree3dForm(settings) {
     const visual = { ...TREE3D_VISUAL_DEFAULTS, ...(settings || {}) };
     renderTree3dBadgeColours();
     if (tree3dField('leafAreaWidth')) {
-        TREE3D_VISUAL_NUMBERS.forEach(key => { tree3dField(key).value = visual[key]; });
+        TREE3D_VISUAL_NUMBERS.forEach(key => { if (tree3dField(key)) tree3dField(key).value = visual[key]; });
+        if (tree3dField('leafBatchMode')) tree3dField('leafBatchMode').value = visual.leafBatchMode === 'size' ? 'size' : 'groups';
+        updateTree3dBatchFields();
         tree3dField('badgeColours').checked = visual.badgeColours === true;
         // The colour each badge shows on the 3D tree: its 3D colour once changed here, otherwise the 2D tree's
         // (Badge Leaf Styling), as frontend/3dTree/feedback-leaves.js badgeColour.
@@ -725,14 +730,36 @@ function updateTree3dVisualLabels() {
     show('leafOpacity', value('leafOpacity').toFixed(2));
 }
 
+// New leaves shown together: split into a number of groups, or into groups of a number of leaves. Shows the
+// field for the chosen way and an example of how new leaves would be split (as frontend/3dTree/feedback-leaves.js
+// startFlights).
+function tree3dBatchSplit(total, mode, number) {
+    const groups = mode === 'size' ? Math.ceil(total / number) : Math.min(number, total);
+    return Array.from({ length: groups }, (_, g) => Math.floor(total / groups) + (g < total % groups ? 1 : 0));
+}
+
+function updateTree3dBatchFields() {
+    const mode = tree3dField('leafBatchMode')?.value === 'size' ? 'size' : 'groups';
+    const countBox = tree3dField('leafBatchCountBox');
+    const sizeBox = tree3dField('leafBatchSizeBox');
+    if (countBox) countBox.style.display = mode === 'groups' ? '' : 'none';
+    if (sizeBox) sizeBox.style.display = mode === 'size' ? '' : 'none';
+    const number = Math.min(10, Math.max(1, Math.round(Number(tree3dField(mode === 'size' ? 'leafBatchSize' : 'leafBatchCount')?.value) || 3)));
+    const example = tree3dField('leafBatchExample');
+    if (!example) return;
+    const say = parts => (parts.length === 1 ? `${parts[0]}` : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`);
+    example.textContent = [10, 7, 4].map(total => `${total} new leaves: ${say(tree3dBatchSplit(total, mode, number))}`).join(' · ');
+}
+
 function collectTree3dVisual() {
     if (!tree3dField('leafAreaWidth')) return {};
-    const values = Object.fromEntries(TREE3D_VISUAL_NUMBERS.map(key => {
+    const values = Object.fromEntries(TREE3D_VISUAL_NUMBERS.filter(key => tree3dField(key)).map(key => {
         const number = Number(tree3dField(key).value);
         return [key, Number.isFinite(number) && tree3dField(key).value !== '' ? number : TREE3D_VISUAL_DEFAULTS[key]];
     }));
     return {
         ...values,
+        ...(tree3dField('leafBatchMode') ? { leafBatchMode: tree3dField('leafBatchMode').value === 'size' ? 'size' : 'groups' } : {}),
         badgeColours: tree3dField('badgeColours').checked,
         badgeLeafColors: Object.fromEntries(TREE3D_BADGES.map(([key, , fallback]) =>
             [key, tree3dField(`badgeColour-${key}`)?.value || fallback]))

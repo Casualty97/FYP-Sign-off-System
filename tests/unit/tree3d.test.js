@@ -183,3 +183,21 @@ test('the background music: on by default at 45, and can be turned off or set fr
     assert.throws(() => normalizeTree3dParameters({ musicEnabled: 'loud' }), { statusCode: 400, message: /Background music/ });
     assert.throws(() => normalizeTree3dParameters({ musicVolume: 'high' }), { statusCode: 400, message: /Music volume/ });
 });
+
+test('new leaves shown together: 3 by default, a whole number from 1 to 10', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafBatchSize, 3);
+    assert.equal(normalizeTree3dParameters({ leafBatchSize: 5 }).leafBatchSize, 5);
+    assert.equal(normalizeTree3dParameters({ leafBatchSize: 4.6 }).leafBatchSize, 5);
+    assert.equal(normalizeTree3dParameters({ leafBatchSize: 0 }).leafBatchSize, 1);
+    assert.equal(normalizeTree3dParameters({ leafBatchSize: 25 }).leafBatchSize, 10);
+    assert.throws(() => normalizeTree3dParameters({ leafBatchSize: 'many' }), { statusCode: 400, message: /New leaves shown together/ });
+});
+
+test('new leaves arriving together: split into a number of groups (3 by default) or into groups of a number of leaves', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafBatchMode, 'groups');
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafBatchCount, 3);
+    assert.deepEqual(normalizeTree3dParameters({ leafBatchMode: 'size', leafBatchCount: 2 }), { leafBatchMode: 'size', leafBatchCount: 2 });
+    assert.equal(normalizeTree3dParameters({ leafBatchCount: 40 }).leafBatchCount, 10);
+    assert.throws(() => normalizeTree3dParameters({ leafBatchMode: 'random' }), { statusCode: 400, message: /Split new leaves/ });
+    assert.throws(() => normalizeTree3dParameters({ leafBatchCount: 'two' }), { statusCode: 400, message: /Number of groups/ });
+});
