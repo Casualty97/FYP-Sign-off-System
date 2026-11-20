@@ -545,6 +545,9 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   const placed = new Map();        // leaf key -> canopy spot, kept between refreshes
   const known = new Set();         // keys seen on the last check
   const waiting = new Set();       // new leaves with no place on the tree yet (a bare trunk): they fly in later
+  // First in, first out: the leaves pushed off the tree by new ones, oldest first, each waiting on the tree
+  // until a new leaf has floated up and joined it (letOldestFall), and only then falling.
+  const fallQueue = [];
   let initialised = false;
   let settings = { ...DEFAULTS };
   let model = null;                // { geometry, texture }
@@ -626,6 +629,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       for (const leaf of leaves.values()) removeLeaf(leaf);
       leaves.clear();
       placed.clear();
+      fallQueue.length = 0;
       stageFreeAt = 0;
       batch = null;
       refresh();
@@ -638,6 +642,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     initialised = !mode.live; // a reviewed year shows its leaves at once, without flights
     known.clear();
     waiting.clear();
+    fallQueue.length = 0;
     stageFreeAt = 0;
     batch = null;
     for (const leaf of leaves.values()) removeLeaf(leaf);
@@ -752,11 +757,12 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       else landing.add(key);
     }
 
-    // Leaves pushed off the tree by newer ones fall; leaves whose feedback was removed fade away.
+    // Leaves whose feedback was removed fade away. Leaves pushed off the tree by newer ones fall (below).
+    const pushedOff = [];
     for (const [key, leaf] of leaves) {
       if (visible.has(key) || leaf.state === 'falling') continue;
-      if (all.has(key)) startFall(leaf);
-      else { removeLeaf(leaf); leaves.delete(key); }
+      if (!all.has(key)) { unqueueFall(leaf); removeLeaf(leaf); leaves.delete(key); continue; }
+      if (!leaf.fallQueued) pushedOff.push(leaf);
     }
 
     const arriving = []; // new leaves, shown in groups (startFlights)
@@ -768,6 +774,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       }
       const existing = leaves.get(key);
       if (existing) {
+        unqueueFall(existing); // on the tree again (a higher Maximum Visible Leaves): it stays
         existing.visitor = visitor;
         const isVip = isVipVisitor(visitor);
         if (isVip && !existing.isVip && existing.state === 'resting') {
@@ -803,6 +810,34 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       leaves.set(key, leaf);
     });
     startFlights(arriving);
+
+    // First in, first out, the new leaf first: while new leaves are on their way (in the row at the bottom
+    // or floating up), the oldest leaves they push off stay on the tree; each time a new leaf joins the tree
+    // the oldest one waiting falls (letOldestFall). With none on the way (a lower Maximum Visible Leaves, a
+    // bare trunk) they fall at once.
+    const order = new Map(keys.map((key, index) => [key, index]));
+    pushedOff.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
+    const onTheWay = !bare && ([...leaves.values()].some(leaf => leaf.state === 'landing') || waiting.size > 0);
+    for (const leaf of pushedOff) {
+      if (!onTheWay) { startFall(leaf); continue; }
+      leaf.fallQueued = true;
+      fallQueue.push(leaf);
+    }
+    if (bare) while (fallQueue.length) letOldestFall();
+  }
+
+  function unqueueFall(leaf) {
+    if (!leaf.fallQueued) return;
+    leaf.fallQueued = false;
+    const index = fallQueue.indexOf(leaf);
+    if (index >= 0) fallQueue.splice(index, 1);
+  }
+  // A new leaf has joined the tree: the oldest leaf waiting falls.
+  function letOldestFall() {
+    const leaf = fallQueue.shift();
+    if (!leaf) return;
+    leaf.fallQueued = false;
+    if (leaves.get(leaf.key) === leaf && leaf.state !== 'falling') startFall(leaf);
   }
 
   // ---------- many leaves ----------
@@ -1046,7 +1081,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     if (key === titleKey) return;
     titleKey = key;
     for (const leaf of [...leaves.values()]) {
-      if (leaf.state !== 'resting') continue;
+      if (leaf.state !== 'resting' || leaf.fallQueued) continue;
       if (touchesTitle(onCanvas(leaf.shown.position, leaf.scale * MODEL_SIZE), area)) relocate(leaf);
     }
   }
@@ -1411,6 +1446,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       leaf.state = 'resting';
       leaf.restingSince = time;
       leaf.flight = null;
+      letOldestFall(); // first in, first out: now the oldest leaf waiting falls
     }
   }
 
@@ -1705,6 +1741,10 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         leaf.sparkle.material.rotation = time / 4000 + leaf.spot.phase;
         leaf.sparkle.material.opacity = Math.min(1, twinkle * 1.1) * leaf.material.opacity;
       }
+    }
+    // No new leaf on its way any more (one was removed meanwhile): the leaves still waiting fall.
+    if (fallQueue.length && !waiting.size && ![...leaves.values()].some(leaf => leaf.state === 'landing')) {
+      while (fallQueue.length) letOldestFall();
     }
     orderByDistance();
   }
