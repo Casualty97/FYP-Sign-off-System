@@ -131,6 +131,8 @@ h1 { font: 500 clamp(2.1rem, 5.2vw, 5.25rem)/.98 Georgia, serif; letter-spacing:
 }
 .credit a { color: inherit; text-decoration: underline; text-underline-offset: .13em; }
 .credit span { opacity: .6; margin: 0 .38em; }
+.credit .team-credit { font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+.credit .map-credit { opacity: .7; }
 
 :root { --glass-glow: 181, 226, 170; }
 body[data-weather="night"] { --glass-glow: 143, 192, 245; }
