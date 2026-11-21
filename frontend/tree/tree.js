@@ -121,6 +121,10 @@ function flightEase(time) {
     return bezier(y1, y2, s);
 }
 const LEAF_NAME_BASE_FONT_PX = 9;
+// The screen the 2D tree was designed on; on any other screen that view is scaled to fit (layoutTreePictures).
+const DESIGN_SCREEN = Object.freeze({ width: 1917, height: 1007 });
+const DESIGN_ASPECT = 16 / 9;     // the designed part of a picture captured from the 3D tree (its middle)
+const PAINTED_TREE_WIDTH = 2200;  // the painted tree's width on the design screen (it was fixed in tree.css)
 
 // How wide a name box may be (% of the leaf box) at a given box height (%) and still stay on the
 // leaf blade, centred in the middle of the leaf. Measured from the leaf photos (the narrowest of the
@@ -281,6 +285,7 @@ class TreeManager {
         this.treePictureKey = '';         // the pictures loaded now (loadTreeImage loads only what changed)
         this.treePictureMeta = null;      // a captured picture's canopy box and size (stage<N>.json)
         this.missingTreePictures = new Set(); // styles and stages already reported as not captured
+        this.screenScale = 1;             // this screen against the design screen (layoutTreePictures)
         this.landingStageFreeAt = 0;
         this.leafGlowEpochs = new Map(); // leaf key -> when its glow pulse starts (animationClock() time)
         this.leafFalls = new Map(); // leaf key -> its fall (playLeafFall), kept so a refresh mid-fall carries on
@@ -362,8 +367,9 @@ class TreeManager {
         const padX = settings?.paddingX ?? 30;
         const padY = settings?.paddingY ?? 15;
 
-        // --- Fixed positioning relative to viewport ---
-        this.treeTitleBox.style.position = 'fixed';
+        // --- Positioned in the tree's area (#treeContainer): the whole window in Auto, the admin's screen shape
+        // otherwise (applyScreenShape), so the title box stays inside the shape ---
+        this.treeTitleBox.style.position = 'absolute';
         this.treeTitleBox.style.margin = '0';
         this.treeTitleBox.style.boxSizing = 'border-box';
         this.treeTitleBox.style.maxWidth = 'calc(100% - 40px)';   // always leaves 20px on each side
@@ -486,6 +492,8 @@ class TreeManager {
             }
             this.treeStage = this.normalizeTreeStage(tree.treeStage);
             this.treeStyle = ['natural', 'digital'].includes(tree.treeStyle) ? tree.treeStyle : 'painted';
+            this.screenSize = tree.screenSize || null; // the admin's screen shape (2D Tree Display)
+            this.applyScreenShape();
             this.showTitleBox = tree.showTitleBox !== false;
             this.activeCampaign = campaign.enabled === true ? campaign : null;
             this.applyTitleBoxVisibility();
@@ -514,13 +522,13 @@ class TreeManager {
                 const probe = new Image();
                 probe.onload = () => {
                     if (this.appliedTreeBackground === backgroundUrl) {
-                        document.body.style.backgroundImage = `url('${backgroundUrl}')`;
+                        (document.getElementById('treeContainer') || document.body).style.backgroundImage = `url('${backgroundUrl}')`;
                     }
                 };
                 probe.onerror = () => {
                     console.warn(`Tree background not found, using the default: ${backgroundUrl}`);
                     if (this.appliedTreeBackground === backgroundUrl) {
-                        document.body.style.removeProperty('background-image');
+                        (document.getElementById('treeContainer') || document.body).style.removeProperty('background-image');
                     }
                 };
                 probe.src = backgroundUrl;
@@ -608,10 +616,75 @@ class TreeManager {
         }
         document.body.classList.toggle('tree-from-3d', shown);
         this.treePictureMeta = shown ? captured.meta : null;
+        // A soft, blurred copy of the picture fills any room it leaves on this screen (tree.css).
+        if (shown) document.body.style.setProperty('--tree-backdrop', `url('${captured.scene}')`);
+        else document.body.style.removeProperty('--tree-backdrop');
         if (!shown) await this.loadPaintedTreeImage();
         this.treePictureKey = shown ? key : `painted|${stage}`;
         this.updateStageLeavesVisibility();
+        this.layoutTreePictures();
         this.maskData = this.buildMaskCanvas();
+    }
+
+    // The tree fits any screen: a 16:9 screen of any size, the ESG Centre's 7 m x 2 m wall, a narrow or upright
+    // one. The view designed for a DESIGN_SCREEN (1917 x 1007) screen is scaled to fit inside this one, centred:
+    // a 16:9 screen shows it as designed, a wider one fits the tree to its height and shows more of the scene at
+    // the sides, a narrower one fits it to its width. The leaves, their names and the leaf area scale with it
+    // (screenScale), so the tree keeps its look. A picture captured from the 3D tree (Natural, Digital) is a wide
+    // panorama whose middle 16:9 is the designed view, so a wide screen is filled with more of the valley; any
+    // room it leaves (a screen wider than the panorama, or an upright one) shows a soft blurred copy of it.
+    layoutTreePictures() {
+        const box = this.leavesContainer?.getBoundingClientRect();
+        const width = box?.width || window.innerWidth || DESIGN_SCREEN.width;
+        const height = box?.height || window.innerHeight || DESIGN_SCREEN.height;
+        const scale = Math.min(width / DESIGN_SCREEN.width, height / DESIGN_SCREEN.height);
+        const meta = this.treePictureMeta;
+        let pictureWidth;
+        if (meta?.width && meta?.height) {
+            const designWidth = Math.min(meta.width, meta.height * DESIGN_ASPECT);
+            pictureWidth = meta.width * Math.min(width / designWidth, height / meta.height);
+        } else {
+            pictureWidth = PAINTED_TREE_WIDTH * scale;
+        }
+        this.screenScale = Math.min(4, Math.max(0.3, scale));
+        [this.treeImage, this.treeImageLeaves].forEach(image => {
+            if (image) image.style.width = `${Math.round(pictureWidth)}px`;
+        });
+        document.body.style.setProperty('--tree-screen-scale', this.screenScale.toFixed(4));
+    }
+
+    // The admin's screen shape (2D Tree Display > Screen size, treeParameters.screenSize; the server checks it:
+    // backend/features/parameters/screenSize.js). Auto: the tree fills the window, as it always has. A preset or a
+    // custom width and height: the tree is drawn in that shape, as large as the window allows, centred, black
+    // round it, for a display fed a picture of another shape (as an LED wall's controller often is). Everything
+    // in the tree (pictures, leaves, title box, Year Review, details card) is inside #treeContainer, so it all
+    // takes the shape, and layoutTreePictures fits the tree to it.
+    applyScreenShape() {
+        const stage = document.getElementById('treeContainer');
+        if (!stage) return;
+        const shape = this.screenSize;
+        const width = Number(shape?.width), height = Number(shape?.height);
+        const fixed = Boolean(shape) && shape.preset !== 'auto' && width > 0 && height > 0;
+        document.body.classList.toggle('tree-fixed-shape', fixed);
+        if (!fixed) {
+            ['position', 'left', 'top', 'width', 'height'].forEach(property => stage.style.removeProperty(property));
+            return;
+        }
+        const windowWidth = window.innerWidth || DESIGN_SCREEN.width;
+        const windowHeight = window.innerHeight || DESIGN_SCREEN.height;
+        const ratio = width / height;
+        let stageWidth = windowWidth, stageHeight = windowWidth / ratio;
+        if (stageHeight > windowHeight) {
+            stageHeight = windowHeight;
+            stageWidth = windowHeight * ratio;
+        }
+        Object.assign(stage.style, {
+            position: 'absolute',
+            left: `${Math.round((windowWidth - stageWidth) / 2)}px`,
+            top: `${Math.round((windowHeight - stageHeight) / 2)}px`,
+            width: `${Math.round(stageWidth)}px`,
+            height: `${Math.round(stageHeight)}px`
+        });
     }
 
     // A captured style's pictures for a stage, or null if that stage has not been captured yet.
@@ -1664,11 +1737,12 @@ class TreeManager {
         const centerY =
             treeRect.top - containerRect.top + (treeRect.height * 0.32);
 
+        const s = this.screenScale || 1; // the admin's leaf area is for the design screen
         return {
-            x: centerX - (this.ovalWidth / 2),
-            y: centerY - (this.ovalHeight / 2) + this.ovalTopOffset,
-            width: this.ovalWidth,
-            height: this.ovalHeight
+            x: centerX - (this.ovalWidth * s / 2),
+            y: centerY - (this.ovalHeight * s / 2) + this.ovalTopOffset * s,
+            width: this.ovalWidth * s,
+            height: this.ovalHeight * s
         };
     }
 
@@ -1989,7 +2063,7 @@ class TreeManager {
         const scale = isVip
             ? (typeof this.vipLeafDisplayScale === 'number' ? this.vipLeafDisplayScale : this.leafDisplayScale)
             : (typeof this.leafDisplayScale === 'number' ? this.leafDisplayScale : 1);
-        const leafSize = Math.max(8, Math.round(baseLeafSize * scale));
+        const leafSize = Math.max(8, Math.round(baseLeafSize * scale * (this.screenScale || 1)));
         leaf.style.width = `${leafSize}px`;
         leaf.style.height = `${leafSize}px`;
         leaf.style.setProperty('--leaf-size', `${leafSize}px`);
@@ -2438,8 +2512,8 @@ class TreeManager {
     // with the admin's Leaf Display Scale. Bigger leaves fit more words at this size, smaller ones fewer.
     getLeafNameFontSize() {
         const scale = Number(this.leafDisplayScale);
-        const fontSize = LEAF_NAME_BASE_FONT_PX * (Number.isFinite(scale) && scale > 0 ? scale : 1);
-        return Math.max(7, Math.min(18, Math.round(fontSize * 2) / 2));
+        const fontSize = LEAF_NAME_BASE_FONT_PX * (Number.isFinite(scale) && scale > 0 ? scale : 1) * (this.screenScale || 1);
+        return Math.max(5, Math.min(36, Math.round(fontSize * 2) / 2));
     }
 
     // Fits the name on the leaf at the given font size, wrapping only between words, never inside one.
@@ -2693,6 +2767,8 @@ class TreeManager {
 
     refreshTree() {
         this.updateLeavesTransparency();
+        this.applyScreenShape();   // the window may have changed size
+        this.layoutTreePictures(); // the screen may have changed size
 
         // rebuild mask (helps after resize)
         this.maskData = this.buildMaskCanvas();

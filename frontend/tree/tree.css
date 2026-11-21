@@ -49,13 +49,23 @@ body {
    BACKGROUND (TRUE 4:1)
    ========================= */
 body {
+    background-color: #05070a;    /* Fallback, and round a fixed screen shape */
+    overflow: hidden;
+    font-family: 'Arial', sans-serif;
+}
+
+/* The background is the tree's own (tree.js sets an admin-chosen one here), so a fixed screen shape
+   (tree.js applyScreenShape) keeps it inside the shape. */
+#treeContainer {
     background-image: url('/assets/Tree/background/2dTreeBackground.jpeg');
     background-repeat: no-repeat;
     background-position: center center;
-    background-size: cover;       /* Safe for true 4:1 */
-    background-color: #05070a;    /* Fallback */
-    overflow: hidden;
-    font-family: 'Arial', sans-serif;
+    background-size: cover;
+}
+
+/* Round a fixed screen shape: black, as an LED wall shows nothing there. */
+body.tree-fixed-shape {
+    background: #000;
 }
 
 /* =========================
@@ -101,16 +111,23 @@ body {
 }
 
 #treeImageLeaves.stage-leaves-upward {
-    transform: translate(-50%, calc(-50% - 28px));
+    transform: translate(-50%, calc(-50% - 28px * var(--tree-screen-scale, 1)));
 }
 
-/* Natural and Digital styles (the admin's 2D Tree Display, checklist item 12; tree.js loadTreeImage): the
-   tree's picture is the 3D tree in its scene (16:9), covering the whole screen; the canopy picture under it is
-   the same size and never seen, only measured, so the leaves sit on the tree's foliage. */
-body.tree-from-3d #treeImage,
-body.tree-from-3d #treeImageLeaves {
-    width: max(100vw, calc(100vh * 16 / 9));
-    height: auto;
+/* The tree's size on this screen: tree.js layoutTreePictures sets both pictures' width so the designed view fits
+   any screen (2200px is the design screen's width, before the script runs).
+   Natural and Digital styles (the admin's 2D Tree Display, checklist item 12; tree.js loadTreeImage): the
+   tree's picture is the 3D tree in its scene, a wide panorama; the canopy picture under it is the same size and
+   never seen, only measured, so the leaves sit on the tree's foliage. Any room the picture leaves on this screen
+   shows a soft, blurred copy of it. */
+body.tree-from-3d #treeContainer::before {
+    content: '';
+    position: absolute;
+    inset: -60px;
+    z-index: 0;
+    background: var(--tree-backdrop) center / cover no-repeat;
+    filter: blur(28px) brightness(0.85);
+    pointer-events: none;
 }
 
 body.tree-from-3d #treeImageLeaves,
@@ -1151,4 +1168,11 @@ body.tree-from-3d #treeImageLeaves.stage-leaves-upward {
         font-size: 0.86rem;
         padding: 8px 10px;
     }
+}
+
+/* The title box and the Year Review button grow and shrink with the tree on this screen (tree.js
+   layoutTreePictures sets --tree-screen-scale), never below 60% so they stay readable. */
+.tree-title,
+.year-review-toggle {
+    zoom: clamp(0.6, var(--tree-screen-scale, 1), 3);
 }

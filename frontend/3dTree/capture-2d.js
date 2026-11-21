@@ -14,8 +14,12 @@
 // trunk (the canopy's reflection in the river) is left out.
 import { THREE as T } from './vendor/three-runtime.js';
 
-export const CAPTURE_WIDTH = 1920;
+// A wide panorama (32:9, about the ESG Centre wall's 7:2): its middle 16:9 is framed as the 3D tree's standard
+// picture, and the sides show more of the valley, so the 2D tree fills a wide screen without cutting the tree
+// (frontend/tree/tree.js layoutTreePictures shows the middle on a 16:9 screen).
+export const CAPTURE_WIDTH = 3840;
 export const CAPTURE_HEIGHT = 1080;
+export const CAPTURE_FRAMING_ASPECT = 16 / 9; // the tree is framed as for a 16:9 picture, then the view widened
 export const CAPTURE_ZOOM = 0.8;  // of the standard view: the full-grown tree with room round it (tree-view.js)
 const DIFFERENCE = 18;       // how much a pixel must change (sum of red, green, blue, 0 to 765) to count as foliage
 const CLOSE_GAPS_PX = 6;     // gaps between leaves up to about twice this wide are filled

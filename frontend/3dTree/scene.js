@@ -19,7 +19,8 @@ import { startingStage, stageModelUrl, prepareStageTree, perchSeats, canopyDrift
 import { growTree, matchingScale, previewGrowth } from './tree-growth.js';
 import { onTree3dSettings } from './tree3d-settings.js';
 import { addGlowLook, startingLook } from './glow-look.js';
-import { captureTreePicture, CAPTURE_WIDTH, CAPTURE_HEIGHT, CAPTURE_ZOOM } from './capture-2d.js';
+import { applyScreenShape } from './screen-shape.js';
+import { captureTreePicture, CAPTURE_WIDTH, CAPTURE_HEIGHT, CAPTURE_ZOOM, CAPTURE_FRAMING_ASPECT } from './capture-2d.js';
 
 // Edit these values for the installation.
 const config = {
@@ -110,10 +111,15 @@ async function start() {
   function updateSize() {
     if (capture2d) { // always the picture's own size, whatever the window
       renderer.setDrawingBufferSize(CAPTURE_WIDTH,CAPTURE_HEIGHT,1);
-      treeView.resize(CAPTURE_WIDTH/CAPTURE_HEIGHT);
+      treeView.resize(CAPTURE_FRAMING_ASPECT); // the tree framed as for 16:9 ...
+      camera.aspect=CAPTURE_WIDTH/CAPTURE_HEIGHT; // ... then the view widened: the same height, more at the sides
+      camera.updateProjectionMatrix();
       return;
     }
     const w = Math.max(1,view.clientWidth), h = Math.max(1,view.clientHeight);
+    // The title card, Year Review and the credit grow and shrink with the screen, as on the 2D tree: against the
+    // design screen (1917 x 1007), so the ESG Centre's 7 m x 2 m wall or a small screen keeps them in proportion (scene.css).
+    document.documentElement.style.setProperty('--screen-scale',Math.min(4,Math.max(.3,Math.min(w/1917,h/1007))).toFixed(4));
     const baseRatio=drawingRatio(renderer,w,h,lowQuality,config.pixelBudget);
     renderer.setDrawingBufferSize(w,h,baseRatio*(lowQuality?frameBudget.scale:1));
     treeView.resize(w/h);
@@ -187,6 +193,8 @@ async function start() {
   // The glowing tree at night (glow-look.js), when the admin's "Glowing look" is on.
   const glowLook=look.glow?addGlowLook({scene,renderer,tree,clock,lights:{sun,hemi,fill,rim}}):null;
   glowLook?.update(tree);
+  // The admin's screen shape (3D Scene Controls > Screen size): Auto, or the page drawn in a set shape (screen-shape.js).
+  onTree3dSettings(next=>applyScreenShape(next?.screenSize));
   // The admin's Trunk glow: the light streams on the wood on or off, and how thick and bright (glow-look.js).
   onTree3dSettings(next=>glowLook?.setTrunkGlow({on:next?.trunkGlow!==false,strength:Number(next?.trunkGlowStrength??100)/100}));
 

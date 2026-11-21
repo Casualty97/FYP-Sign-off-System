@@ -116,6 +116,7 @@ async function saveTreeParameters() {
             vipLeafDisplayScale,
             treeDisplayMode,
             treeStyle,                    // the 2D tree's pictures: painted, natural or digital
+            screenSize: readScreenSizeFields('param'), // the 2D tree's screen shape
             leafThresholds: thresholds,   // save thresholds for later
             treeTitleBox: collectTreeTitleSettings()  // collect title box settings if needed
         };
@@ -145,6 +146,83 @@ async function saveTreeParameters() {
         showNotification(error.message || 'Failed to save tree parameters.', 'error');
     }
 }
+
+// ---------- Screen size, for the 2D tree (2D Tree Display) and the 3D tree (3D Scene Controls) ----------
+// Auto fits the tree to the screen; a preset or a custom width and height draws it in that shape (for a display fed
+// a picture of another shape, as an LED wall's controller often is). The server checks it and fills in a preset's
+// size: backend/features/parameters/screenSize.js (the same presets). Fields: <prefix>-screenPreset, -screenWidth,
+// -screenHeight; prefix 'param' (2D) or 'tree3d' (3D).
+const SCREEN_SIZE_PRESETS = [
+    ['auto', 'Auto: fit the screen', null, null],
+    ['led-wall-7x2', 'ESG Centre LED wall, 7 m × 2 m (7:2)', 7, 2],
+    ['hd-16x9', 'Standard screen, 16:9 (1920 × 1080)', 1920, 1080],
+    ['ultrawide-21x9', 'Ultra-wide screen, 21:9', 21, 9],
+    ['super-ultrawide-32x9', 'Super ultra-wide screen, 32:9', 32, 9],
+    ['classic-4x3', 'Classic screen, 4:3', 4, 3],
+    ['upright-9x16', 'Upright screen, 9:16 (1080 × 1920)', 1080, 1920],
+    ['custom', 'Custom width and height', null, null]
+];
+
+function screenSizeField(prefix, name) {
+    return document.getElementById(`${prefix}-${name}`);
+}
+
+function fillScreenSizeOptions() {
+    document.querySelectorAll('select[data-screen-size]').forEach(select => {
+        if (select.options.length) return;
+        SCREEN_SIZE_PRESETS.forEach(([value, label]) => select.add(new Option(label, value)));
+    });
+}
+
+// Shows the width and height for Custom, and the shape chosen (e.g. "Shape 3.50 : 1, wider than 16:9").
+function updateScreenSizeFields(prefix) {
+    fillScreenSizeOptions();
+    const select = screenSizeField(prefix, 'screenPreset');
+    if (!select) return;
+    const custom = select.value === 'custom';
+    const customRow = screenSizeField(prefix, 'screenCustom');
+    if (customRow) customRow.hidden = !custom;
+    const note = screenSizeField(prefix, 'screenShape');
+    if (!note) return;
+    const preset = SCREEN_SIZE_PRESETS.find(([value]) => value === select.value);
+    const width = custom ? Number(screenSizeField(prefix, 'screenWidth')?.value) : preset?.[2];
+    const height = custom ? Number(screenSizeField(prefix, 'screenHeight')?.value) : preset?.[3];
+    if (select.value === 'auto') note.textContent = 'The tree fills whatever screen it is shown on.';
+    else if (!(width > 0 && height > 0)) note.textContent = 'Enter the screen\'s width and height (any unit).';
+    else {
+        const ratio = width / height;
+        const compare = ratio > 1.8 ? 'wider than 16:9' : ratio < 1.75 ? (ratio < 1 ? 'taller than wide' : 'narrower than 16:9') : 'the same as 16:9';
+        note.textContent = `Shape ${ratio >= 1 ? `${ratio.toFixed(2)} : 1` : `1 : ${(1 / ratio).toFixed(2)}`}, ${compare}.`;
+    }
+}
+
+function setScreenSizeFields(prefix, value) {
+    fillScreenSizeOptions();
+    const select = screenSizeField(prefix, 'screenPreset');
+    if (!select) return;
+    const preset = SCREEN_SIZE_PRESETS.some(([key]) => key === value?.preset) ? value.preset : 'auto';
+    select.value = preset;
+    if (preset === 'custom') {
+        screenSizeField(prefix, 'screenWidth').value = value.width ?? '';
+        screenSizeField(prefix, 'screenHeight').value = value.height ?? '';
+    }
+    updateScreenSizeFields(prefix);
+}
+
+// The fields as the server takes them; undefined without the fields (an older page).
+function readScreenSizeFields(prefix) {
+    const select = screenSizeField(prefix, 'screenPreset');
+    if (!select || !select.value) return undefined;
+    if (select.value !== 'custom') return { preset: select.value };
+    return {
+        preset: 'custom',
+        width: Number(screenSizeField(prefix, 'screenWidth').value),
+        height: Number(screenSizeField(prefix, 'screenHeight').value)
+    };
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { updateScreenSizeFields('param'); updateScreenSizeFields('tree3d'); });
+else { updateScreenSizeFields('param'); updateScreenSizeFields('tree3d'); }
 
 // ---------- The 2D tree's picture style (checklist item 12) ----------
 // Painted shows the original stage pictures; Natural and Digital show pictures of the 3D tree at each stage

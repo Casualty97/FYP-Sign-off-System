@@ -8441,3 +8441,44 @@ input:checked + .slider:before {
     background: none;
     aspect-ratio: auto;
 }
+
+/* Screen size, for the 2D and 3D trees (Role 2, Wei Jie; js/tree.js updateScreenSizeFields). */
+.screen-size-panel {
+    margin-top: 18px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.screen-size-panel select {
+    padding: 8px 10px;
+    border: 1px solid #d7dbe3;
+    border-radius: 6px;
+    background: #fff;
+    width: 100%;
+    max-width: 360px;
+}
+
+.screen-size-custom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.screen-size-custom[hidden] { display: none; }
+
+.screen-size-custom input {
+    width: 90px;
+    padding: 6px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+}
+
+.screen-size-shape {
+    margin: 8px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}

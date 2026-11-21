@@ -101,6 +101,7 @@ const SKIES = ['sunrise', 'day', 'sunset', 'night'];
 const MUSIC_STYLES = ['kalimba', 'piano', 'dreamy', 'musicbox'];
 const AMBIENT_SOUNDS = [['ambientRiver', 'River water'], ['ambientBirds', 'Birds'], ['ambientWind', 'Forest wind'],
   ['ambientRain', 'Gentle rain'], ['ambientInsects', 'Night insects']];
+const { DEFAULT_SCREEN_SIZE, normalizeScreenSize } = require('./screenSize');
 const MAX_SAVED_VIEWS = 12;
 const VIEW_ZOOM_MIN = 0.5;
 const VIEW_ZOOM_MAX = 2.5;
@@ -171,6 +172,7 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   showSoilPanel: false,
   savedViews: [],
   screenView: '',
+  screenSize: DEFAULT_SCREEN_SIZE, // the screen's shape (./screenSize.js): Auto fits the window
   showWeatherPanel: true,
   showRiverPanel: true,
   showControlsBar: true,
@@ -288,6 +290,7 @@ function normalizeTree3dParameters(updates) {
   for (const key of ['showSoilPanel', 'showWeatherPanel', 'showRiverPanel', 'showControlsBar', 'showYearReview']) {
     if (has(key)) out[key] = bool(updates[key], key);
   }
+  if (has('screenSize')) out.screenSize = normalizeScreenSize(updates.screenSize);
   if (has('savedViews')) {
     if (!Array.isArray(updates.savedViews)) throw badRequest('Saved views must be a list');
     if (updates.savedViews.length > MAX_SAVED_VIEWS) throw badRequest(`Up to ${MAX_SAVED_VIEWS} views can be saved`);

@@ -413,6 +413,7 @@ function populateParameterForm(config) {
     setInputValue('param-treeDisplayMode', tree.treeDisplayMode || '2d');
     // The 2D tree's picture style (js/tree.js): painted, or captured from the 3D tree.
     setInputValue('param-treeStyle', ['natural', 'digital'].includes(tree.treeStyle) ? tree.treeStyle : 'painted');
+    if (typeof setScreenSizeFields === 'function') setScreenSizeFields('param', tree.screenSize); // js/tree.js
     if (typeof loadTreeStylePreviews === 'function') loadTreeStylePreviews();
     setCheckedValue('param-showTitleBox', tree.showTitleBox !== false);
     // Leaf display scale (new) - Done by Yu Kang
@@ -619,6 +620,7 @@ function collectParameterForm() {
             treeStage: Math.max(0, Math.min(4, Number(getInputValue('param-treeStage')) || 0)),
             treeDisplayMode: getInputValue('param-treeDisplayMode') === '3d' ? '3d' : '2d',
             treeStyle: ['natural', 'digital'].includes(getInputValue('param-treeStyle')) ? getInputValue('param-treeStyle') : 'painted',
+            screenSize: typeof readScreenSizeFields === 'function' ? readScreenSizeFields('param') : undefined,
             leafDisplayScale: sharedLeafScale,
             vipLeafDisplayScale: clampNumber(getInputValue('param-vipLeafDisplayScale') || 1, 0.4, 2, 1), // VIP Leaf Adjustments
             showTitleBox: getCheckedValue('param-showTitleBox')

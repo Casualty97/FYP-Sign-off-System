@@ -272,6 +272,7 @@ const parametersConfigStore = require('../parameters/store');
 const { normalizeTree3dParameters, mergeTree3dParameters } = require('../parameters/tree3d');
 const { normalizeTreeStageMode, normalizeLeafThresholds } = require('../parameters/treeStage');
 const { TREE_STYLES, saveTreeCapture } = require('../parameters/tree2dStyle');
+const { normalizeScreenSize } = require('../parameters/screenSize');
 const dataRetentionCleanup = require('../archive/retention');
 const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
 
@@ -6086,6 +6087,11 @@ function normalizeTreeDisplayMode(treeParameters) {
         normalized.treeStyle = style;
     }
 
+    // The 2D tree's screen shape (features/parameters/screenSize.js): Auto, a preset or a custom width and height.
+    if (Object.prototype.hasOwnProperty.call(normalized, 'screenSize')) {
+        normalized.screenSize = normalizeScreenSize(normalized.screenSize);
+    }
+
     return normalized;
 }
 
@@ -6754,13 +6760,14 @@ router.post('/parameters/tree-style-capture', auth.requireAdmin, (req, res) => {
 router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
     try {
         console.debug('🌳 Saving tree parameters');
-        const { treeStage, treeStageMode, showTitleBox, leafDisplayScale, vipLeafDisplayScale, leafThresholds, treeTitleBox, treeDisplayMode, leafFallThreshold, leafShowcaseSeconds, treeStyle } = req.body;
+        const { treeStage, treeStageMode, showTitleBox, leafDisplayScale, vipLeafDisplayScale, leafThresholds, treeTitleBox, treeDisplayMode, leafFallThreshold, leafShowcaseSeconds, treeStyle, screenSize } = req.body;
         const normalizedDisplayMode = treeDisplayMode === undefined
             ? undefined
             : normalizeTreeDisplayMode({ treeDisplayMode }).treeDisplayMode;
-        let normalizedTreeStyle;
+        let normalizedTreeStyle, normalizedScreenSize;
         try {
             normalizedTreeStyle = treeStyle === undefined ? undefined : normalizeTreeDisplayMode({ treeStyle }).treeStyle;
+            normalizedScreenSize = screenSize === undefined ? undefined : normalizeScreenSize(screenSize);
         } catch (error) {
             return res.status(400).json({ success: false, error: error.message });
         }
@@ -6802,6 +6809,8 @@ router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
         if (normalizedDisplayMode !== undefined) config.treeParameters.treeDisplayMode = normalizedDisplayMode;
         // The 2D tree's pictures: painted, or captured from the 3D tree (Natural or Digital).
         if (normalizedTreeStyle !== undefined) config.treeParameters.treeStyle = normalizedTreeStyle;
+        // The 2D tree's screen shape: Auto, a preset or a custom width and height.
+        if (normalizedScreenSize !== undefined) config.treeParameters.screenSize = normalizedScreenSize;
 
         // Handle treeTitleBox – merge with existing, but DO NOT override with root showTitleBox
         if (treeTitleBox) {

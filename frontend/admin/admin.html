@@ -973,6 +973,21 @@
                                 </label>
                                 <p style="font-size:12px; color:#666; margin-top:6px;">Turn this off to hide the ESG Digital Tree title panel on the /tree screen.</p>
 
+                                <!-- The 2D tree's screen shape (js/tree.js, backend/features/parameters/screenSize.js) -->
+                                <div class="screen-size-panel">
+                                    <label for="param-screenPreset" class="tree-style-label">🖥️ Screen size</label>
+                                    <select id="param-screenPreset" data-screen-size onchange="updateScreenSizeFields('param')"></select>
+                                    <div id="param-screenCustom" class="screen-size-custom" hidden>
+                                        <label for="param-screenWidth">Width</label>
+                                        <input type="number" id="param-screenWidth" min="0.01" step="any" placeholder="7" oninput="updateScreenSizeFields('param')">
+                                        <span aria-hidden="true">×</span>
+                                        <label for="param-screenHeight">Height</label>
+                                        <input type="number" id="param-screenHeight" min="0.01" step="any" placeholder="2" oninput="updateScreenSizeFields('param')">
+                                    </div>
+                                    <p class="screen-size-shape" id="param-screenShape"></p>
+                                    <p class="tree-style-help">Auto fits the tree to the screen it is shown on. Choose a size when the display has another shape than the picture it is sent, as an LED wall's controller often does: the tree is then drawn in that shape, as large as the screen allows, black round it. Only the shape matters, so any unit works: 7 × 2 (metres) or 3840 × 1080 (pixels). Save Display to apply it on /tree.</p>
+                                </div>
+
                                 <!-- The 2D tree's pictures (checklist item 12): painted, or captured from the 3D tree (js/tree.js) -->
                                 <div class="tree-style-panel">
                                     <label for="param-treeStyle" class="tree-style-label">🖼️ Tree picture style</label>
@@ -1422,6 +1437,21 @@
                                             <span id="tree3d-trunkGlowStrengthValue">100%</span>
                                         </div>
                                         <p style="font-size:12px; color:#666; margin-top:6px;">In the glowing look: green, blue and orange streams of light running up the trunk and out along every branch and root, each in a soft halo. Strength makes them thinner and dimmer (50%) or thicker and brighter (up to 200%). Off: the bark shows plainly in the moonlight; the leaves and rings still glow. The screen changes within about 5 seconds, without reloading.</p>
+                                    </div>
+                                    <div>
+                                <div class="screen-size-panel">
+                                    <label for="tree3d-screenPreset" class="tree-style-label">🖥️ Screen size</label>
+                                    <select id="tree3d-screenPreset" data-screen-size onchange="updateScreenSizeFields('tree3d')"></select>
+                                    <div id="tree3d-screenCustom" class="screen-size-custom" hidden>
+                                        <label for="tree3d-screenWidth">Width</label>
+                                        <input type="number" id="tree3d-screenWidth" min="0.01" step="any" placeholder="7" oninput="updateScreenSizeFields('tree3d')">
+                                        <span aria-hidden="true">×</span>
+                                        <label for="tree3d-screenHeight">Height</label>
+                                        <input type="number" id="tree3d-screenHeight" min="0.01" step="any" placeholder="2" oninput="updateScreenSizeFields('tree3d')">
+                                    </div>
+                                    <p class="screen-size-shape" id="tree3d-screenShape"></p>
+                                    <p class="tree-style-help">Auto fits the tree to the screen it is shown on. Choose a size when the display has another shape than the picture it is sent, as an LED wall's controller often does: the tree is then drawn in that shape, as large as the screen allows, black round it. Only the shape matters, so any unit works: 7 × 2 (metres) or 3840 × 1080 (pixels). Save to apply it on /3dTree within about 5 seconds.</p>
+                                </div>
                                     </div>
                                     <div>
                                         <label for="tree3d-weatherSource" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Weather</label>

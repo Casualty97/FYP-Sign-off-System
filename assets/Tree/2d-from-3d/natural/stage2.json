@@ -1,22 +1,22 @@
 {
   "style": "natural",
   "stage": 2,
-  "capturedAt": "2026-11-21T02:37:22.188Z",
-  "width": 1920,
+  "capturedAt": "2026-11-21T06:17:56.787Z",
+  "width": 3840,
   "height": 1080,
   "canopy": {
-    "x": 357,
+    "x": 1317,
     "y": 317,
     "width": 1196,
     "height": 352
   },
-  "coverage": 0.0945,
+  "coverage": 0.0472,
   "treeFoot": {
-    "x": 960,
+    "x": 1920,
     "y": 851
   },
   "treeTop": {
-    "x": 960,
+    "x": 1920,
     "y": 309
   }
 }

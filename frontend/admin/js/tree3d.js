@@ -531,6 +531,7 @@ function fillTree3dForm(settings) {
         tree3dField('trunkGlowStrength').value = Number.isFinite(strength) ? Math.min(200, Math.max(50, strength)) : TREE3D_DEFAULTS.trunkGlowStrength;
         updateTree3dTrunkGlowFields();
     }
+    if (typeof setScreenSizeFields === 'function') setScreenSizeFields('tree3d', s.screenSize); // js/tree.js
     tree3dField('weatherSource').value = s.weatherSource;
     tree3dField('manualSky').value = s.manualSky;
     tree3dField('manualRain').checked = s.manualRain === true;
@@ -645,6 +646,7 @@ function collectTree3dSettings() {
             trunkGlow: tree3dField('trunkGlow').checked,
             trunkGlowStrength: Math.round(Math.min(200, Math.max(50, Number(tree3dField('trunkGlowStrength').value) || 100)))
         } : {}),
+        ...(typeof readScreenSizeFields === 'function' && readScreenSizeFields('tree3d') ? { screenSize: readScreenSizeFields('tree3d') } : {}),
         weatherSource: tree3dField('weatherSource').value,
         manualSky: tree3dField('manualSky').value,
         manualRain: tree3dField('manualRain').checked,

@@ -811,3 +811,14 @@ body[data-weather="sunset"], body[data-weather="sunrise"] { --glass-glow: 252,18
 
 /* A hand over a feedback leaf that can be clicked for its details (feedback-leaves.js). */
 #landscape.over-feedback-leaf { cursor: pointer !important; }
+
+/* The title card, Year Review and the credit grow and shrink with the screen (scene.js updateSize sets
+   --screen-scale against the 1917 x 1007 design screen), never below 60% so they stay readable. */
+.masthead,
+.year-review-toggle,
+.credit {
+  zoom: clamp(.6, var(--screen-scale, 1), 3);
+}
+
+/* Round a fixed screen shape (screen-shape.js): black, as an LED wall shows nothing there. */
+body.fixed-shape { background: #000; }
