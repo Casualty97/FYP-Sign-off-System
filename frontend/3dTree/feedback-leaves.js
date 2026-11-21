@@ -50,6 +50,7 @@ import { createLeafDetail } from './leaf-detail.js';
 import { isGrown } from './tree-growth.js';
 import { GLOW_LAYER } from './glow-look.js';
 import { orbitCentre } from './tree-view.js';
+import { onLiveUpdate, liveConnected, LIVE_FALLBACK_MS } from './live-updates.js';
 
 const LEAF_MODEL = '/assets/Tree/3dTreeLeaves/RainTree_Leaf_Final12.glb';
 const MODEL_SIZE = 0.1;          // the leaf model is 10 cm across
@@ -586,8 +587,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     anchors = canopyAnchors(tree).anchors;
     canopyBox = anchors.length ? new T.Box3().setFromPoints(anchors.map(anchor => anchor.position)) : null;
     refresh();
-    // Checks for new feedback every leafRefreshMs (the admin's Leaf Refresh Interval; 5 seconds by default).
-    const poll = () => window.setTimeout(() => { if (mode.live) refresh(); poll(); }, timing().refresh);
+    // A new feedback shows at once: the server tells the page the moment the tree's data changes, and on
+    // reconnecting (live-updates.js). The timed check (the admin's Leaf Refresh Interval, 5 seconds by default)
+    // is then only a safety net, every LIVE_FALLBACK_MS; without the live connection it runs as set.
+    onLiveUpdate('tree', () => { if (mode.live) refresh(); });
+    onLiveUpdate('ready', () => { if (mode.live) refresh(); });
+    const poll = () => window.setTimeout(() => { if (mode.live) refresh(); poll(); },
+      liveConnected() ? Math.max(timing().refresh, LIVE_FALLBACK_MS) : timing().refresh);
     poll();
   }).catch(error => {
     console.warn('Feedback leaves could not be loaded; the tree shows without them.', error);

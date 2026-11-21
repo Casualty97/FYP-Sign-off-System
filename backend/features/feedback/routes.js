@@ -1369,6 +1369,8 @@ function saveFeedbackToDatabase(userData, device, theme, retention, callback) {
                     console.log(`📊 Feedback saved successfully - User: ${userId}, Feedback: ${feedbackId}`);
                     console.log(`📝 Pledge: ${userData.pledge ? userData.pledge.substring(0, 50) + '...' : 'None'}`);
                     console.log(`📅 Retention: ${retention}`);
+                    // The tree screens show the new leaf at once (features/tree/liveEvents.js).
+                    try { require('../tree/routes').nudgeTreeScreens(); } catch (nudgeError) { console.warn('Tree screens not told of the new feedback:', nudgeError.message); }
                     callback(null, { userId, feedbackId });
                 });
             }

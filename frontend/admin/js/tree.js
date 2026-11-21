@@ -202,7 +202,24 @@ async function loadTreeStylePreviews() {
         return item;
     };
     if (style === 'painted') {
-        box.replaceChildren(...TREE_STYLE_STAGES.map(stage => figure(`/assets/Tree/stage${stage}.png`, `Stage ${stage}`, `Painted tree, stage ${stage}`)));
+        // The painted tree is two pictures, as on /tree: its canopy (stage<N>leaves.png, none at stage 0) under
+        // its trunk and branches (stage<N>.png), on the default background.
+        box.replaceChildren(...TREE_STYLE_STAGES.map(stage => {
+            const item = figure(null, `Stage ${stage}`, '');
+            const picture = document.createElement('div');
+            picture.className = 'tree-style-painted';
+            picture.setAttribute('role', 'img');
+            picture.setAttribute('aria-label', `Painted tree, stage ${stage}`);
+            const layers = stage > 0 ? [`/assets/Tree/stage${stage}leaves.png`, `/assets/Tree/stage${stage}.png`] : ['/assets/Tree/stage0.png'];
+            layers.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = '';
+                picture.appendChild(img);
+            });
+            item.replaceChild(picture, item.firstChild);
+            return item;
+        }));
         return;
     }
     const captures = await treeStyleCaptures(style);

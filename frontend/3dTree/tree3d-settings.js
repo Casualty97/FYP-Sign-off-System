@@ -9,6 +9,8 @@
 // someone using the on-screen controls is not overruled every few seconds.
 // Backend defaults and checks: backend/features/parameters/tree3d.js.
 
+import { onLiveUpdate, liveConnected } from './live-updates.js';
+
 const POLL_MS = 5000;
 const DEFAULT_SUBTITLE = 'Terminalia catappa · A living river valley';
 const DEFAULTS = {
@@ -303,7 +305,18 @@ async function refresh() {
 }
 
 refresh();
-window.setInterval(refresh, POLL_MS);
+// The admin's settings, and in Auto the growth stage that new leaves move on, come at once: the server tells the
+// page when settings are saved or the tree's data changes (live-updates.js). The check every POLL_MS stays,
+// every SETTINGS_FALLBACK_MS while the live connection is open.
+const SETTINGS_FALLBACK_MS = 30000;
+let lastSettingsCheck = Date.now();
+const checkSettings = () => { lastSettingsCheck = Date.now(); refresh(); };
+window.setInterval(() => {
+  if (!liveConnected() || Date.now() - lastSettingsCheck >= SETTINGS_FALLBACK_MS) checkSettings();
+}, POLL_MS);
+onLiveUpdate('settings', checkSettings);
+onLiveUpdate('tree', checkSettings);
+onLiveUpdate('ready', checkSettings);
 // Apply the scene settings as soon as the scene is running, without waiting for the next check.
 if (root) {
   new MutationObserver(() => { if (latest && isReady()) applyControls(latest); })

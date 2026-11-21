@@ -29,8 +29,22 @@ const express = require('express');
 const router = express.Router();
 const { getBadgeSummary } = require('../email/service');
 const { isFeedbackFlagged } = require('../analysis/flagged');
+const paths = require('../../core/paths');
+const { createTreeLiveEvents, FINGERPRINT_SQL } = require('./liveEvents');
 
 let db;
+
+// The tree screens' live connection (GET /api/tree/events, ./liveEvents.js): told at once when the tree's data
+// or the admin's settings change, instead of checking on a timer.
+const liveEvents = createTreeLiveEvents({
+    readFingerprint: callback => {
+        if (!db) return callback(new Error('Database not initialized'));
+        return db.all(FINGERPRINT_SQL, [], (error, rows) => callback(error, rows?.[0] || null));
+    },
+    settingsFile: paths.dataFile('parametersConfig.json'),
+    // The leaf count for the automatic growth stage is counted again at once, not after its 10 seconds.
+    onChange: () => { leafCountCache.at = 0; }
+});
 
 function setDatabase(database) {
     db = database;
@@ -157,6 +171,13 @@ function countLiveTreeLeaves() {
         });
     });
 }
+
+/**
+ * GET /api/tree/events
+ * Server-Sent Events for the 2D and 3D tree screens: "tree" when a feedback is added, deleted or archived or a
+ * VIP changes, "settings" when the admin saves settings (features/tree/liveEvents.js).
+ */
+router.get('/events', liveEvents.handler);
 
 /**
  * GET /api/tree/years
@@ -305,5 +326,7 @@ router.get('/vip-names', (req, res) => {
 module.exports = {
     router,
     setDatabase,
-    countLiveTreeLeaves
+    countLiveTreeLeaves,
+    // A feedback was saved here (features/feedback/routes.js): the tree screens are told at once.
+    nudgeTreeScreens: () => liveEvents.nudge()
 };

@@ -8418,3 +8418,26 @@ input:checked + .slider:before {
     border-radius: 8px;
     background: #0b1f33;
 }
+
+/* The painted tree's preview: its canopy and trunk pictures stacked on the default background, as on /tree. */
+.tree-style-preview .tree-style-painted {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid var(--theme-border-color);
+    background: #e2e8f0 url('/assets/Tree/background/2dTreeBackground.jpeg') center / cover no-repeat;
+}
+
+.tree-style-preview .tree-style-painted img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    aspect-ratio: auto;
+}

@@ -2747,8 +2747,17 @@ function triggerTreeVipRefresh() {
     });
 }
 
+// One refresh at a time: one asked for meanwhile (a live message) runs straight after.
+let treeRefreshRunning = false;
+let treeRefreshQueued = false;
+
 function refreshTreeFromServer() {
+    if (treeRefreshRunning) {
+        treeRefreshQueued = true;
+        return;
+    }
     if (treeManager) {
+        treeRefreshRunning = true;
         const yearToRefresh = treeManager.isReviewMode ? treeManager.selectedYear : treeManager.currentYear;
 
         Promise.all([
@@ -2763,6 +2772,12 @@ function refreshTreeFromServer() {
         }).catch((error) => {
             console.warn('Tree refresh failed:', error);
         }).finally(() => {
+            treeRefreshRunning = false;
+            if (treeRefreshQueued) {
+                treeRefreshQueued = false;
+                refreshTreeFromServer();
+                return;
+            }
             scheduleTreeRefresh();
         });
     } else {
@@ -2775,13 +2790,51 @@ function scheduleTreeRefresh() {
     const configuredInterval = Math.max(5000, Number(treeManager?.leafRefreshInterval) || 30000);
     // The live tree checks every 5 seconds, from the first check after the page opens (before the tree
     // has started, the first check used to wait the full 30 seconds, so a new leaf could take that long).
-    const interval = !treeManager || !treeManager.isReviewMode
-        ? Math.min(configuredInterval, treeManager?.liveTreeRefreshInterval || 5000)
-        : configuredInterval;
+    // With the live connection open (connectTreeLiveUpdates) a new leaf comes at once, so the timed check is
+    // only a safety net (TREE_LIVE_FALLBACK_MS).
+    const liveInterval = treeLiveConnected
+        ? Math.max(configuredInterval, TREE_LIVE_FALLBACK_MS)
+        : Math.min(configuredInterval, treeManager?.liveTreeRefreshInterval || 5000);
+    const interval = !treeManager || !treeManager.isReviewMode ? liveInterval : configuredInterval;
     treeRefreshTimer = window.setTimeout(refreshTreeFromServer, interval);
 }
 
+// ---------- Event-driven refresh (Task 2) ----------
+// The server tells this page the moment the tree's data changes (a new feedback or pledge, one deleted or
+// archived, a VIP change) or the admin saves settings: GET /api/tree/events, backend/features/tree/liveEvents.js.
+// The page then refreshes at once, so a new leaf shows at the bottom middle within about a second of being
+// submitted, instead of at the next timed check. While connected, the timed check runs only every
+// TREE_LIVE_FALLBACK_MS as a safety net; if the connection drops, the browser reconnects by itself and the page
+// checks every 5 seconds again meanwhile. Not on the admin's demo page (/tree-demo), whose demos hold the
+// refresh, nor while a past year is shown in the Year Review.
+const TREE_LIVE_FALLBACK_MS = 120000;
+let treeLiveConnected = false;
+
+function connectTreeLiveUpdates() {
+    if (typeof EventSource !== 'function' || /^\/tree-demo\/?$/i.test(window.location.pathname)) return;
+    const source = new EventSource('/api/tree/events');
+    const onChange = () => {
+        if (!treeManager || treeManager.isReviewMode || treeManager.demoPlaybackActive) return;
+        refreshTreeFromServer();
+    };
+    source.addEventListener('ready', () => {
+        const wasConnected = treeLiveConnected;
+        treeLiveConnected = true;
+        // (Re)connected: anything missed while the connection was down is fetched now.
+        if (wasConnected === false && treeManager?.initialVisitorSnapshotReady) onChange();
+        scheduleTreeRefresh();
+    });
+    source.addEventListener('tree', onChange);
+    source.addEventListener('settings', onChange);
+    source.addEventListener('error', () => {
+        if (!treeLiveConnected) return;
+        treeLiveConnected = false; // checks every 5 seconds until it is back
+        scheduleTreeRefresh();
+    });
+}
+
 scheduleTreeRefresh();
+connectTreeLiveUpdates();
 
 window.addEventListener('tree-vip-refresh', triggerTreeVipRefresh);
 window.addEventListener('storage', (event) => {
