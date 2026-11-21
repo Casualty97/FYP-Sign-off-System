@@ -275,6 +275,12 @@ class TreeManager {
         // A new feedback's leaf first shows at the bottom middle for this long, then flies to the tree
         // (treeParameters.leafShowcaseSeconds, "Time at the bottom middle"); new leaves take turns there.
         this.leafShowcaseMs = 12000;
+        // The tree's pictures (treeParameters.treeStyle, the admin's 2D Tree Display): 'painted' (the painted
+        // stage pictures), or 'natural' / 'digital' (pictures captured from the 3D tree, checklist item 12).
+        this.treeStyle = 'painted';
+        this.treePictureKey = '';         // the pictures loaded now (loadTreeImage loads only what changed)
+        this.treePictureMeta = null;      // a captured picture's canopy box and size (stage<N>.json)
+        this.missingTreePictures = new Set(); // styles and stages already reported as not captured
         this.landingStageFreeAt = 0;
         this.leafGlowEpochs = new Map(); // leaf key -> when its glow pulse starts (animationClock() time)
         this.leafFalls = new Map(); // leaf key -> its fall (playLeafFall), kept so a refresh mid-fall carries on
@@ -479,11 +485,13 @@ class TreeManager {
                 this.leafShowcaseMs = Math.min(30, Math.max(0, showcaseSeconds)) * 1000;
             }
             this.treeStage = this.normalizeTreeStage(tree.treeStage);
+            this.treeStyle = ['natural', 'digital'].includes(tree.treeStyle) ? tree.treeStyle : 'painted';
             this.showTitleBox = tree.showTitleBox !== false;
             this.activeCampaign = campaign.enabled === true ? campaign : null;
             this.applyTitleBoxVisibility();
 
             this.applyTreeStageAssets(this.treeStage);
+            await this.loadTreeImage(); // a new stage or style: its pictures, before the leaves are placed
 
             // treeTitleBox is saved under treeParameters by admin.js
             this.visualAssets = assets || {};
@@ -571,22 +579,62 @@ class TreeManager {
         return stage >= 1 && stage <= 3;
     }
 
+    // The stage to show; its pictures are loaded by loadTreeImage.
     applyTreeStageAssets(stageNumber) {
-        const stage = this.normalizeTreeStage(stageNumber);
-        this.treeStage = stage;
-
-        if (this.treeImage) {
-            this.treeImage.src = `/assets/Tree/stage${stage}.png`;
-        }
-
-        if (this.treeImageLeaves) {
-            this.treeImageLeaves.src = `/assets/Tree/stage${stage}leaves.png`;
-        }
-
+        this.treeStage = this.normalizeTreeStage(stageNumber);
         this.updateStageLeavesVisibility();
     }
 
-    loadTreeImage() {
+    // The tree's pictures for the stage: the painted ones, or in the admin's Natural and Digital styles the
+    // pictures captured from the 3D tree (assets/Tree/2d-from-3d/<style>/, made by the 3D page itself:
+    // frontend/3dTree/capture-2d.js). The captured picture shows the 3D tree in its scene, covering the screen
+    // (tree.css body.tree-from-3d); its canopy picture, unseen, tells the leaves where the tree's foliage is
+    // (findRandomPositionInLeavesMask), as stage<N>leaves.png does for the painted tree. A style not captured
+    // yet shows the painted tree. Only what changed is loaded, and the leaves' mask is rebuilt for it.
+    async loadTreeImage() {
+        const stage = this.normalizeTreeStage(this.treeStage);
+        const captured = this.treeStyle === 'painted' ? null : await this.fetchCapturedTreePicture(this.treeStyle, stage);
+        const key = captured ? `${this.treeStyle}|${stage}|${captured.meta.capturedAt || ''}` : `painted|${stage}`;
+        if (key === this.treePictureKey) return;
+
+        let shown = false;
+        if (captured) {
+            const [picture, canopy] = await Promise.all([
+                this.loadImageWithFallback(this.treeImage, [captured.scene]),
+                this.stageHasLeaves() ? this.loadImageWithFallback(this.treeImageLeaves, [captured.canopy]) : Promise.resolve(true)
+            ]);
+            shown = picture && canopy;
+            if (!shown) console.warn(`The ${this.treeStyle} pictures for stage ${stage} could not be loaded; showing the painted tree.`);
+        }
+        document.body.classList.toggle('tree-from-3d', shown);
+        this.treePictureMeta = shown ? captured.meta : null;
+        if (!shown) await this.loadPaintedTreeImage();
+        this.treePictureKey = shown ? key : `painted|${stage}`;
+        this.updateStageLeavesVisibility();
+        this.maskData = this.buildMaskCanvas();
+    }
+
+    // A captured style's pictures for a stage, or null if that stage has not been captured yet.
+    async fetchCapturedTreePicture(style, stage) {
+        const base = `/assets/Tree/2d-from-3d/${style}/stage${stage}`;
+        try {
+            const response = await fetch(`${base}.json`, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const meta = await response.json();
+            if (!Number(meta?.width) || !Number(meta?.height)) throw new Error('no picture size');
+            const version = encodeURIComponent(meta.capturedAt || '');
+            return { scene: `${base}.jpg?v=${version}`, canopy: `${base}-canopy.png?v=${version}`, meta };
+        } catch (error) {
+            const missing = `${style}|${stage}`;
+            if (!this.missingTreePictures.has(missing)) {
+                this.missingTreePictures.add(missing);
+                console.warn(`The ${style} pictures for stage ${stage} have not been captured yet (admin: 2D Tree Display, Capture from the 3D tree); showing the painted tree.`, error.message);
+            }
+            return null;
+        }
+    }
+
+    loadPaintedTreeImage() {
         return new Promise((resolve) => {
             const stage = this.normalizeTreeStage(this.treeStage);
             const trunkSources = [
@@ -1596,6 +1644,19 @@ class TreeManager {
     }
 
     calculateOvalArea(treeRect, containerRect) {
+        // A picture captured from the 3D tree: the area is its canopy's box (stage<N>.json).
+        const meta = this.treePictureMeta;
+        if (meta?.canopy && meta.width && meta.height && treeRect.width && treeRect.height) {
+            const scaleX = treeRect.width / meta.width;
+            const scaleY = treeRect.height / meta.height;
+            return {
+                x: treeRect.left - containerRect.left + (meta.canopy.x * scaleX),
+                y: treeRect.top - containerRect.top + (meta.canopy.y * scaleY),
+                width: meta.canopy.width * scaleX,
+                height: meta.canopy.height * scaleY
+            };
+        }
+
         const centerX =
             treeRect.left - containerRect.left + (treeRect.width / 2);
 

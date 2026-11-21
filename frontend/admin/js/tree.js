@@ -84,6 +84,7 @@ async function saveTreeParameters() {
             ? Math.min(2, Math.max(0.4, parseFloat(vipLeafScaleSlider.value) || 1))
             : undefined;
         const treeDisplayMode = document.getElementById('param-treeDisplayMode')?.value === '3d' ? '3d' : '2d';
+        const treeStyle = chosenTreeStyle();
 
         // Get thresholds
         const thresholds = {
@@ -114,6 +115,7 @@ async function saveTreeParameters() {
             leafDisplayScale,
             vipLeafDisplayScale,
             treeDisplayMode,
+            treeStyle,                    // the 2D tree's pictures: painted, natural or digital
             leafThresholds: thresholds,   // save thresholds for later
             treeTitleBox: collectTreeTitleSettings()  // collect title box settings if needed
         };
@@ -129,6 +131,11 @@ async function saveTreeParameters() {
 
         setStatus('Tree parameters saved.', 'success');
         showNotification('Tree display, leaf scale, and thresholds saved.', 'success');
+        // A captured style with stages not captured yet: those stages show the painted tree until captured.
+        if (treeStyle !== 'painted') {
+            const missing = (await treeStyleCaptures(treeStyle)).filter(capture => !capture.meta).map(capture => capture.stage);
+            if (missing.length) showNotification(`Stage ${missing.join(', ')} has no ${treeStyle} picture yet and shows the painted tree. Press "Capture from the 3D tree".`, 'warning');
+        }
 
         // Refresh the auto stage preview
         updateAutoStagePreview();
@@ -138,6 +145,152 @@ async function saveTreeParameters() {
         showNotification(error.message || 'Failed to save tree parameters.', 'error');
     }
 }
+
+// ---------- The 2D tree's picture style (checklist item 12) ----------
+// Painted shows the original stage pictures; Natural and Digital show pictures of the 3D tree at each stage
+// (assets/Tree/2d-from-3d/<style>/), so the 2D and 3D screens match. "Capture from the 3D tree" opens the 3D
+// page in capture mode in a small frame, once for each style and stage, and saves each picture through
+// POST /api/admin/parameters/tree-style-capture (backend/features/parameters/tree2dStyle.js); the 3D page draws
+// the picture itself (frontend/3dTree/capture-2d.js). scripts/tree/capture-2d-from-3d.js does the same.
+const TREE_STYLE_STAGES = [0, 1, 2, 3, 4];
+const TREE_STYLE_LOOKS = { natural: 'natural', digital: 'glow' };
+const TREE_STYLE_NAMES = { natural: 'Natural', digital: 'Digital' };
+const TREE_STYLE_READY_MS = 120000;
+let treeStyleCaptureRun = null; // the capture in progress: { stopped }
+
+function chosenTreeStyle() {
+    const value = document.getElementById('param-treeStyle')?.value;
+    return ['natural', 'digital'].includes(value) ? value : 'painted';
+}
+
+// Each stage's saved picture description (stage<N>.json), or meta: null where none has been captured.
+async function treeStyleCaptures(style) {
+    return Promise.all(TREE_STYLE_STAGES.map(async stage => {
+        const base = `/assets/Tree/2d-from-3d/${style}/stage${stage}`;
+        try {
+            const response = await fetch(`${base}.json`, { cache: 'no-store' });
+            return { stage, base, meta: response.ok ? await response.json() : null };
+        } catch {
+            return { stage, base, meta: null };
+        }
+    }));
+}
+
+// The chosen style's pictures, stage by stage, with when each was captured.
+async function loadTreeStylePreviews() {
+    const box = document.getElementById('tree-style-previews');
+    if (!box) return;
+    const style = chosenTreeStyle();
+    const figure = (src, caption, alt) => {
+        const item = document.createElement('figure');
+        item.className = 'tree-style-preview';
+        if (src) {
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = alt;
+            img.loading = 'lazy';
+            item.appendChild(img);
+        } else {
+            const missing = document.createElement('div');
+            missing.className = 'tree-style-missing';
+            missing.textContent = 'Not captured yet';
+            item.appendChild(missing);
+        }
+        const text = document.createElement('figcaption');
+        text.textContent = caption;
+        item.appendChild(text);
+        return item;
+    };
+    if (style === 'painted') {
+        box.replaceChildren(...TREE_STYLE_STAGES.map(stage => figure(`/assets/Tree/stage${stage}.png`, `Stage ${stage}`, `Painted tree, stage ${stage}`)));
+        return;
+    }
+    const captures = await treeStyleCaptures(style);
+    if (chosenTreeStyle() !== style) return; // changed again meanwhile
+    box.replaceChildren(...captures.map(({ stage, base, meta }) => {
+        if (!meta) return figure(null, `Stage ${stage}`, '');
+        const when = meta.capturedAt ? new Date(meta.capturedAt).toLocaleString() : '';
+        return figure(`${base}.jpg?v=${encodeURIComponent(meta.capturedAt || '')}`, `Stage ${stage}${when ? ` · ${when}` : ''}`, `${TREE_STYLE_NAMES[style]} tree, stage ${stage}`);
+    }));
+}
+
+function setTreeStyleStatus(text, isError = false) {
+    const status = document.getElementById('tree-style-status');
+    if (!status) return;
+    status.textContent = text;
+    status.classList.toggle('error', isError);
+}
+
+// Opens the 3D page in capture mode in the frame and waits until it is ready to be captured.
+function openTreeCapturePage(frame, style, stage, run) {
+    return new Promise((resolve, reject) => {
+        const started = Date.now();
+        const check = () => {
+            if (run.stopped) return reject(new Error('Capture stopped.'));
+            let ready = false;
+            try { ready = frame.contentWindow?.tree2dCaptureReady === true; } catch { /* still loading */ }
+            if (ready) return resolve(frame.contentWindow);
+            if (Date.now() - started > TREE_STYLE_READY_MS) return reject(new Error(`The 3D tree (${TREE_STYLE_NAMES[style]}, stage ${stage}) did not finish loading.`));
+            setTimeout(check, 500);
+        };
+        frame.src = `/3dTree/3dTree.html?capture2d=1&look=${TREE_STYLE_LOOKS[style]}&stage=${stage}&growth=1&orbit=off`;
+        setTimeout(check, 1000);
+    });
+}
+
+async function captureTreeStylesFrom3d() {
+    if (treeStyleCaptureRun) return;
+    const modal = document.getElementById('tree-style-capture-modal');
+    const frame = document.getElementById('tree-style-capture-frame');
+    const progress = document.getElementById('tree-style-capture-progress');
+    const button = document.getElementById('tree-style-capture');
+    if (!modal || !frame || !progress) return;
+    const run = { stopped: false };
+    treeStyleCaptureRun = run;
+    if (button) button.disabled = true;
+    modal.classList.add('open');
+    setTreeStyleStatus('Capturing…');
+    const jobs = Object.keys(TREE_STYLE_LOOKS).flatMap(style => TREE_STYLE_STAGES.map(stage => ({ style, stage })));
+    let saved = 0;
+    try {
+        for (const [index, { style, stage }] of jobs.entries()) {
+            progress.textContent = `${TREE_STYLE_NAMES[style]}, stage ${stage} (${index + 1} of ${jobs.length}): loading the 3D tree…`;
+            const page = await openTreeCapturePage(frame, style, stage, run);
+            progress.textContent = `${TREE_STYLE_NAMES[style]}, stage ${stage} (${index + 1} of ${jobs.length}): saving the picture…`;
+            const capture = await page.tree2dCapture();
+            const response = await fetch('/api/admin/parameters/tree-style-capture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ style, stage, ...capture })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) throw new Error(data.error || `The picture could not be saved (HTTP ${response.status}).`);
+            saved += 1;
+        }
+        setTreeStyleStatus(`Captured all ${saved} pictures, ${new Date().toLocaleString()}.`);
+        showNotification('The 2D tree pictures were captured from the 3D tree.', 'success');
+    } catch (error) {
+        const message = run.stopped ? `Stopped after ${saved} of ${jobs.length} pictures.` : (error.message || 'The capture failed.');
+        setTreeStyleStatus(message, !run.stopped);
+        if (!run.stopped) showNotification(message, 'error');
+    } finally {
+        frame.removeAttribute('src');
+        frame.src = 'about:blank';
+        modal.classList.remove('open');
+        if (button) button.disabled = false;
+        treeStyleCaptureRun = null;
+        loadTreeStylePreviews();
+    }
+}
+
+function cancelTreeStyleCapture() {
+    if (treeStyleCaptureRun) treeStyleCaptureRun.stopped = true;
+}
+
+// The previews show from the start (the saved style is set again when the settings load, js/parameters.js).
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => loadTreeStylePreviews());
+else loadTreeStylePreviews();
 
 let treeStageModeInitialized = false;
 function initTreeStageMode() {

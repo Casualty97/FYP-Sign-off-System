@@ -66,6 +66,10 @@ let soundRetryArmed = false;
 const isReady = () => root?.dataset.ready === 'true';
 // The admin's view editor (?viewEditor=1): the view holds still for framing, and plays no sound.
 const viewEditor = new URLSearchParams(window.location.search).get('viewEditor') === '1';
+// The pictures for the 2D tree's Natural and Digital styles (?capture2d=1, capture-2d.js): the tree in clear
+// weather with the river at its normal level, no sound and no admin actions, and the page stays on the 3D tree
+// even while the wall shows the 2D tree.
+const capture2d = new URLSearchParams(window.location.search).get('capture2d') === '1';
 const pressed = (button, attribute = 'aria-pressed') => button?.getAttribute(attribute) === 'true';
 
 function withDefaults(saved) {
@@ -244,7 +248,7 @@ function runActions(settings) {
 }
 
 function applyControls(settings) {
-  if (!isReady()) return;
+  if (!isReady() || capture2d) return;
   applyWeather(settings);
   applyRiver(settings);
   if (!viewEditor) {
@@ -263,7 +267,7 @@ async function refresh() {
     const data = await response.json();
     if (!response.ok || !data.success) return;
     // The admin chose the 2D tree for the wall: go straight to it.
-    if (data.parameters?.treeParameters?.treeDisplayMode === '2d' && !viewEditor) {
+    if (data.parameters?.treeParameters?.treeDisplayMode === '2d' && !viewEditor && !capture2d) {
       window.location.replace(`/tree${window.location.search}`);
       return;
     }

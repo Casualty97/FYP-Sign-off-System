@@ -135,6 +135,7 @@ const DEFAULT_CONFIG = {
   treeParameters: {
     treeStage: 0,
     treeDisplayMode: "2d",
+    treeStyle: "painted", // the 2D tree's pictures: painted, natural or digital (features/parameters/tree2dStyle.js)
     ovalWidth: 850,
     ovalHeight: 300,
     ovalTopOffset: -100,

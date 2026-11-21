@@ -104,6 +104,21 @@ body {
     transform: translate(-50%, calc(-50% - 28px));
 }
 
+/* Natural and Digital styles (the admin's 2D Tree Display, checklist item 12; tree.js loadTreeImage): the
+   tree's picture is the 3D tree in its scene (16:9), covering the whole screen; the canopy picture under it is
+   the same size and never seen, only measured, so the leaves sit on the tree's foliage. */
+body.tree-from-3d #treeImage,
+body.tree-from-3d #treeImageLeaves {
+    width: max(100vw, calc(100vh * 16 / 9));
+    height: auto;
+}
+
+body.tree-from-3d #treeImageLeaves,
+body.tree-from-3d #treeImageLeaves.stage-leaves-upward {
+    transform: translate(-50%, -50%);
+    opacity: 0;
+}
+
 /* =========================
    LEAVES
    ========================= */

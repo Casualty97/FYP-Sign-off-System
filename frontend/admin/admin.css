@@ -8329,3 +8329,92 @@ input:checked + .slider:before {
 }
 
 .view3d-delete { color: #b91c1c; }
+
+/* ---------- 2D Tree Display: the tree's picture style (Role 2, Wei Jie; js/tree.js, checklist item 12) ---------- */
+.tree-style-panel {
+    margin-top: 18px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.tree-style-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.tree-style-panel select {
+    padding: 8px 10px;
+    border: 1px solid #d7dbe3;
+    border-radius: 6px;
+    background: #fff;
+    min-width: 280px;
+}
+
+.tree-style-previews {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.tree-style-preview {
+    margin: 0;
+    font-size: 12px;
+    color: #475569;
+}
+
+.tree-style-preview img,
+.tree-style-preview .tree-style-missing {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--theme-border-color);
+    background: #e2e8f0;
+}
+
+.tree-style-preview .tree-style-missing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+.tree-style-preview figcaption { margin-top: 4px; }
+
+.tree-style-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.tree-style-status { font-size: 13px; color: #64748b; }
+.tree-style-status.error { color: #b91c1c; }
+.tree-style-help { font-size: 12px; color: #666; margin-top: 6px; }
+
+#tree-style-capture-modal.open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tree-style-capture-box {
+    width: min(680px, 92vw);
+    padding: 18px;
+}
+
+.tree-style-capture-progress { margin: 0 0 10px; font-weight: 600; }
+
+/* The 3D page draws its picture at 1920 x 1080 whatever the frame's size (frontend/3dTree/capture-2d.js). */
+.tree-style-capture-frame {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: 8px;
+    background: #0b1f33;
+}

@@ -972,6 +972,35 @@
                                     <input type="checkbox" id="param-showTitleBox"> Display Tree Title Box
                                 </label>
                                 <p style="font-size:12px; color:#666; margin-top:6px;">Turn this off to hide the ESG Digital Tree title panel on the /tree screen.</p>
+
+                                <!-- The 2D tree's pictures (checklist item 12): painted, or captured from the 3D tree (js/tree.js) -->
+                                <div class="tree-style-panel">
+                                    <label for="param-treeStyle" class="tree-style-label">🖼️ Tree picture style</label>
+                                    <select id="param-treeStyle" onchange="loadTreeStylePreviews()">
+                                        <option value="painted">Painted (the original stage pictures)</option>
+                                        <option value="natural">Natural (the 3D tree in daylight)</option>
+                                        <option value="digital">Digital (the glowing 3D tree)</option>
+                                    </select>
+                                    <div id="tree-style-previews" class="tree-style-previews" aria-live="polite"></div>
+                                    <div class="tree-style-actions">
+                                        <button type="button" class="btn-secondary" id="tree-style-capture" onclick="captureTreeStylesFrom3d()">📸 Capture from the 3D tree</button>
+                                        <span id="tree-style-status" class="tree-style-status"></span>
+                                    </div>
+                                    <p class="tree-style-help">Natural and Digital show the 3D tree itself at each growth stage, so the 2D and 3D screens match; the visitors' leaves sit on its canopy. Capture takes pictures of all five stages in both styles (about 2 to 4 minutes); capture again after changing the 3D tree, for example its trunk glow. Save Display to show the chosen style on /tree.</p>
+                                </div>
+
+                                <div id="tree-style-capture-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="tree-style-capture-title">
+                                    <div class="modal-content tree-style-capture-box">
+                                        <div class="modal-header">
+                                            <h3 class="modal-title" id="tree-style-capture-title">Capturing the 3D tree</h3>
+                                        </div>
+                                        <p id="tree-style-capture-progress" class="tree-style-capture-progress">Starting…</p>
+                                        <iframe id="tree-style-capture-frame" class="tree-style-capture-frame" title="The 3D tree being captured"></iframe>
+                                        <div class="tree-style-actions">
+                                            <button type="button" class="btn-secondary" onclick="cancelTreeStyleCapture()">Stop</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

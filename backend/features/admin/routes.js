@@ -271,6 +271,7 @@ const assetStore = require('../assets/store');
 const parametersConfigStore = require('../parameters/store');
 const { normalizeTree3dParameters, mergeTree3dParameters } = require('../parameters/tree3d');
 const { normalizeTreeStageMode, normalizeLeafThresholds } = require('../parameters/treeStage');
+const { TREE_STYLES, saveTreeCapture } = require('../parameters/tree2dStyle');
 const dataRetentionCleanup = require('../archive/retention');
 const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
 
@@ -6074,6 +6075,17 @@ function normalizeTreeDisplayMode(treeParameters) {
         normalized.treeDisplayMode = mode;
     }
 
+    // The 2D tree's picture style (features/parameters/tree2dStyle.js): painted, natural or digital.
+    if (Object.prototype.hasOwnProperty.call(normalized, 'treeStyle')) {
+        const style = String(normalized.treeStyle || '').trim().toLowerCase();
+        if (!TREE_STYLES.includes(style)) {
+            const error = new Error('Tree picture style must be painted, natural or digital');
+            error.statusCode = 400;
+            throw error;
+        }
+        normalized.treeStyle = style;
+    }
+
     return normalized;
 }
 
@@ -6721,14 +6733,37 @@ router.post('/parameters/tree-background/upload', auth.requireAdmin, uploadTreeB
     }
 });
 
+// POST /api/admin/parameters/tree-style-capture - Save one picture of the 3D tree for the 2D tree's Natural or
+// Digital style (checklist item 12): { style, stage, scene (JPEG data URL), canopy (PNG data URL), meta }, made by
+// the 3D page in capture mode (frontend/3dTree/capture-2d.js) when the admin presses "Capture from the 3D tree".
+router.post('/parameters/tree-style-capture', auth.requireAdmin, (req, res) => {
+    try {
+        const saved = saveTreeCapture(paths.ASSETS, req.body || {});
+        if (req.session?.user?.username) {
+            logAudit('PARAMETER_TREE_STYLE_CAPTURED', req.session.user.username, 'config', `treeStyle:${saved.style}:stage${saved.stage}`, req);
+        }
+        res.json({ success: true, capture: saved });
+    } catch (error) {
+        const known = /must be|not a valid|too large|missing/i.test(error.message || '');
+        if (!known) console.error('❌ Error saving the tree picture:', error.message);
+        res.status(known ? 400 : 500).json({ success: false, error: known ? error.message : 'Failed to save the tree picture' });
+    }
+});
+
 // PUT /api/admin/parameters/treeParameters - Save tree parameters (including title box) - Done by Yu Kang
 router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
     try {
         console.debug('🌳 Saving tree parameters');
-        const { treeStage, treeStageMode, showTitleBox, leafDisplayScale, vipLeafDisplayScale, leafThresholds, treeTitleBox, treeDisplayMode, leafFallThreshold, leafShowcaseSeconds } = req.body;
+        const { treeStage, treeStageMode, showTitleBox, leafDisplayScale, vipLeafDisplayScale, leafThresholds, treeTitleBox, treeDisplayMode, leafFallThreshold, leafShowcaseSeconds, treeStyle } = req.body;
         const normalizedDisplayMode = treeDisplayMode === undefined
             ? undefined
             : normalizeTreeDisplayMode({ treeDisplayMode }).treeDisplayMode;
+        let normalizedTreeStyle;
+        try {
+            normalizedTreeStyle = treeStyle === undefined ? undefined : normalizeTreeDisplayMode({ treeStyle }).treeStyle;
+        } catch (error) {
+            return res.status(400).json({ success: false, error: error.message });
+        }
 
         // Read current config
         const config = parametersConfigStore.readParametersConfig();
@@ -6765,6 +6800,8 @@ router.put('/parameters/treeParameters', auth.requireAdmin, (req, res) => {
             config.treeParameters.leafShowcaseSeconds = Math.min(30, Math.max(0, Math.round(seconds)));
         }
         if (normalizedDisplayMode !== undefined) config.treeParameters.treeDisplayMode = normalizedDisplayMode;
+        // The 2D tree's pictures: painted, or captured from the 3D tree (Natural or Digital).
+        if (normalizedTreeStyle !== undefined) config.treeParameters.treeStyle = normalizedTreeStyle;
 
         // Handle treeTitleBox – merge with existing, but DO NOT override with root showTitleBox
         if (treeTitleBox) {

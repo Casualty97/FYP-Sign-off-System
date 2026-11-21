@@ -19,6 +19,7 @@ import { startingStage, stageModelUrl, prepareStageTree, perchSeats, canopyDrift
 import { growTree, matchingScale, previewGrowth } from './tree-growth.js';
 import { onTree3dSettings } from './tree3d-settings.js';
 import { addGlowLook, startingLook } from './glow-look.js';
+import { captureTreePicture, CAPTURE_WIDTH, CAPTURE_HEIGHT, CAPTURE_ZOOM } from './capture-2d.js';
 
 // Edit these values for the installation.
 const config = {
@@ -43,6 +44,10 @@ const buttons = Object.fromEntries(['sound','gust','slow-orbit','fullscreen']
   .map(id => [id,document.getElementById(id)]));
 document.body.classList.toggle('embed',params.get('embed')==='1');
 document.body.classList.toggle('clean',params.get('clean')==='1');
+// Pictures for the 2D tree's Natural and Digital styles (capture-2d.js, the admin's 2D Tree Display): the tree
+// still, from the standard front view, in clear weather, without the visitors' leaves, birds or falling leaves.
+const capture2d=params.get('capture2d')==='1';
+document.body.classList.toggle('capture-2d',capture2d);
 
 const clock = {time:{value:0}, gust:{value:0}, soil:{value:0},
   night:{value:0},rain:{value:0},lightning:{value:0},waterRise:{value:0},
@@ -74,9 +79,9 @@ async function start() {
   const viewEditor=params.get('viewEditor')==='1';
   document.body.classList.toggle('view-editor',viewEditor);
   const treeView = createTreeView(camera,canvas,buttons['slow-orbit'],{
-    autoOrbit:!viewEditor && !reducedMotion && params.get('orbit')!=='off',reducedMotion,editor:viewEditor,
+    autoOrbit:!viewEditor && !capture2d && !reducedMotion && params.get('orbit')!=='off',reducedMotion,editor:viewEditor,
   });
-  installViewSettings(treeView,{editor:viewEditor}); // the admin's chosen view (view-settings.js)
+  if (!capture2d) installViewSettings(treeView,{editor:viewEditor}); // the admin's chosen view (view-settings.js)
   // The admin's turning speed and direction (3D Scene Controls), shown on the turn button too.
   const turnLabel=buttons['slow-orbit'].querySelector('span');
   onTree3dSettings(next=>{
@@ -103,6 +108,11 @@ async function start() {
   scene.add(sun,sun.target,hemi,fill,rim);
 
   function updateSize() {
+    if (capture2d) { // always the picture's own size, whatever the window
+      renderer.setDrawingBufferSize(CAPTURE_WIDTH,CAPTURE_HEIGHT,1);
+      treeView.resize(CAPTURE_WIDTH/CAPTURE_HEIGHT);
+      return;
+    }
     const w = Math.max(1,view.clientWidth), h = Math.max(1,view.clientHeight);
     const baseRatio=drawingRatio(renderer,w,h,lowQuality,config.pixelBudget);
     renderer.setDrawingBufferSize(w,h,baseRatio*(lowQuality?frameBudget.scale:1));
@@ -167,7 +177,12 @@ async function start() {
     weather.frameSky(camera);
   });
   resize.observe(view);
-  finishSunset=installSkyControls(weather,camera);
+  if (capture2d) { // a clear day (the glowing look holds its own night)
+    weather.setSky(0,camera,{seconds:.01});
+    weather.setRain(0,.34,false);
+  } else {
+    finishSunset=installSkyControls(weather,camera);
+  }
   weather.update(0,camera);
   // The glowing tree at night (glow-look.js), when the admin's "Glowing look" is on.
   const glowLook=look.glow?addGlowLook({scene,renderer,tree,clock,lights:{sun,hemi,fill,rim}}):null;
@@ -316,7 +331,7 @@ async function start() {
     const currentCycle=Math.floor(elapsed/config.gustIntervalSeconds);
     if (currentCycle>gustCycle) {
       gustCycle=currentCycle;
-      dropLeaves(elapsed);
+      if (!capture2d) dropLeaves(elapsed);
     }
     const scheduled = elapsed >= config.gustIntervalSeconds ? gustStrength(cycle) : 0;
     const gust=Math.max(scheduled,gustStrength(elapsed-manualGust));
@@ -352,8 +367,35 @@ async function start() {
     if (!loading.hidden && readyToReveal) {
       loading.hidden = true;
       root.dataset.ready = 'true';
+      if (capture2d) captureReady();
     }
   });
+
+  // ?capture2d=1: once the scene is ready, the page that opened it (the admin's capture, or
+  // scripts/tree/capture-2d-from-3d.js) calls window.tree2dCapture() for the picture (capture-2d.js).
+  function captureReady() {
+    window.tree2dCapture=async () => {
+      renderer.setAnimationLoop(null); // the scene stands still from here
+      const visitorsLeaves=scene.getObjectByName('Feedback leaves');
+      if (visitorsLeaves) visitorsLeaves.visible=false;
+      updateBirds.remove();
+      updateSize();
+      // A little further out than the standard view, from the front, the same for every stage: the whole tree
+      // with room round it for the 2D tree's title box and new leaves (capture-2d.js CAPTURE_ZOOM).
+      treeView.setView({...treeView.standardAngle(),zoom:CAPTURE_ZOOM},{smooth:false});
+      weather.frameSky(camera);
+      const drawFrame=withBloom=>{
+        weather.update(0,camera);
+        glowLook?.update(tree);
+        renderer.setRenderTarget(null);
+        renderer.render(scene,camera);
+        if (withBloom) glowLook?.afterRender(camera);
+      };
+      return captureTreePicture({renderer,camera,tree,drawFrame,stage:shownStage,look:look.glow?'glow':'natural'});
+    };
+    window.tree2dCaptureReady=true;
+    window.parent?.postMessage({type:'tree2d-capture-ready',stage:shownStage,look:look.glow?'glow':'natural'},location.origin);
+  }
 }
 
 start().catch(error => {

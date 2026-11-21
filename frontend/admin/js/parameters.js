@@ -411,6 +411,9 @@ function populateParameterForm(config) {
         treeStageStatus.textContent = `Current: stage ${normalizedTreeStage}. Shown on /tree after apply.`;
     }
     setInputValue('param-treeDisplayMode', tree.treeDisplayMode || '2d');
+    // The 2D tree's picture style (js/tree.js): painted, or captured from the 3D tree.
+    setInputValue('param-treeStyle', ['natural', 'digital'].includes(tree.treeStyle) ? tree.treeStyle : 'painted');
+    if (typeof loadTreeStylePreviews === 'function') loadTreeStylePreviews();
     setCheckedValue('param-showTitleBox', tree.showTitleBox !== false);
     // Leaf display scale (new) - Done by Yu Kang
     const badgeLeafScale = Number(badgeLeafStyles.leafScale);
@@ -615,6 +618,7 @@ function collectParameterForm() {
             leafFallDuration: getNumberValue('param-leafFallDuration', 4200),
             treeStage: Math.max(0, Math.min(4, Number(getInputValue('param-treeStage')) || 0)),
             treeDisplayMode: getInputValue('param-treeDisplayMode') === '3d' ? '3d' : '2d',
+            treeStyle: ['natural', 'digital'].includes(getInputValue('param-treeStyle')) ? getInputValue('param-treeStyle') : 'painted',
             leafDisplayScale: sharedLeafScale,
             vipLeafDisplayScale: clampNumber(getInputValue('param-vipLeafDisplayScale') || 1, 0.4, 2, 1), // VIP Leaf Adjustments
             showTitleBox: getCheckedValue('param-showTitleBox')
