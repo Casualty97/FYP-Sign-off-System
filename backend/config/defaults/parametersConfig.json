@@ -11,6 +11,17 @@
   },
   "contentSettings": {
     "temporaryRetentionDays": 7,
+        "pledgePresets": [
+      { "id": "env-transport", "category": "environmental", "topic": "climate-change", "title": "Walk, cycle or take public transport", "text": "I pledge to walk, cycle or take public transport for short trips at least 3 times a week this month." },
+      { "id": "env-energy", "category": "environmental", "topic": "renewable-energy", "title": "Switch off lights and fans", "text": "I pledge to switch off lights and fans whenever I leave a room, every day this month." },
+      { "id": "env-plastic", "category": "environmental", "topic": "sustainable-living", "title": "Bring my own bottle and bag", "text": "I pledge to bring my own bottle and bag instead of using single-use plastic, every day this month." },
+      { "id": "env-litter", "category": "environmental", "topic": "ocean-conservation", "title": "Keep our waters clean", "text": "I pledge to bin my litter and pick up at least 5 pieces of rubbish near drains or waterways every week this month." },
+      { "id": "soc-volunteer", "category": "social", "topic": "community-impact", "title": "Volunteer in the community", "text": "I pledge to join one volunteer or community service activity within the next 3 months." },
+      { "id": "soc-share", "category": "social", "topic": "community-impact", "title": "Inspire friends and family", "text": "I pledge to share one sustainability tip with 3 friends or family members this week." },
+      { "id": "gov-honest", "category": "governance", "topic": "ethical-governance", "title": "Act with honesty and integrity", "text": "I pledge to make fair and honest choices, and to speak up when I see something unethical, starting today." },
+      { "id": "gov-guidelines", "category": "governance", "topic": "ethical-governance", "title": "Follow and promote school guidelines", "text": "I pledge to follow my school's sustainability and conduct guidelines, and remind my group to do the same, this semester." }
+    ],
+ 
     "pledgeExamples": [
       "Carry a reusable bottle and cutlery every day",
       "Sort waste properly and recycle whenever possible",

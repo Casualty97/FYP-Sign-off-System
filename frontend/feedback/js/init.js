@@ -161,6 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     updatePledgeCoach();
+    setupPledgeDropdown();
 
     // Add event listener for capture button
     const captureBtn = document.getElementById('capture-btn');

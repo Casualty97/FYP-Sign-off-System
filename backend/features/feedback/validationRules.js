@@ -50,7 +50,7 @@ function buildPattern(pattern) {
   }
 }
 
-function validateFeedbackSubmission(payload, validationRules = {}, featureFlags = {}) {
+function validateFeedbackSubmission(payload, validationRules = {}, featureFlags = {}, pledgePresets = []) {
   const errors = [];
   const userData = payload?.userData || {};
   const name = getString(userData.name);
@@ -103,6 +103,17 @@ function validateFeedbackSubmission(payload, validationRules = {}, featureFlags 
   const invalidTopic = pledgeTopics.find(topic => !ALLOWED_PLEDGE_TOPICS.has(topic));
   if (invalidTopic) {
     errors.push({ field: 'pledgeTopic', message: `Pledge topic "${invalidTopic}" is not supported.` });
+  }
+
+  // The pledge must be one of the preset ESG pledges (the kiosk dropdown): visitors cannot type their own. (zihan)
+  // The browser can be bypassed, so the server checks it again. An empty preset list switches this check off.
+  if (Array.isArray(pledgePresets) && pledgePresets.length > 0 && pledge) {
+    const chosenPreset = pledgePresets.find(item => getString(item && item.text) === pledge);
+    if (!chosenPreset) {
+      errors.push({ field: 'pledge', message: 'Please choose one of the listed pledges.' });
+    } else if (pledgeTopics.length !== 1 || pledgeTopics[0] !== getString(chosenPreset.topic)) {
+      errors.push({ field: 'pledgeTopic', message: 'The pledge topic does not match the chosen pledge.' });
+    }
   }
 
   const anyPhotoFeatureEnabled = isEnabled(featureFlags.cameraCaptureEnabled) || isEnabled(featureFlags.photoUploadEnabled);

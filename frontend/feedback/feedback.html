@@ -438,7 +438,7 @@
             <h2 class="consent-title" id="pledge-title">Make Your Pledge</h2>
             <p class="consent-description" id="pledge-description">Choose one action you can try after today.</p>
 
-            <div class="pledge-coach" id="pledge-coach">
+            <div class="pledge-coach" id="pledge-coach" style="display: none;">
                 <div class="pledge-coach-header">
                     <span><i class="fa-solid fa-wand-magic-sparkles"></i></span>
                     <div>
@@ -476,7 +476,25 @@
             </div>
 
             <form class="details-form" onsubmit="submitPledge(event)" novalidate>
-                <p id="pledge-form-alert" class="form-alert" role="alert"></p>
+
+                               <p id="pledge-form-alert" class="form-alert" role="alert"></p>
+                <!-- ESG pledge dropdown: the visitor chooses one preset pledge (no typing) -->
+                   <!-- ESG pledge picker: three dropdowns (Environmental, Social, Governance). Only one pledge can be chosen. -->
+                <div class="form-group">
+                    <label for="pledge-select-environmental" id="pledge-select-label">Choose your pledge</label>
+                    <small class="pledge-pick-hint">Pick one pledge from any one of the three groups.</small>
+                    <div id="pledge-esg-list" class="pledge-esg-list" role="group" aria-labelledby="pledge-select-label" tabindex="-1">
+                        <p class="pledge-loading">Loading pledges...</p>
+                    </div>
+                    <div class="pledge-preview" id="pledge-preview" aria-live="polite" style="display: none;">
+                        <span class="pledge-preview-category" id="pledge-preview-category"></span>
+                        <p class="pledge-preview-text" id="pledge-preview-text"></p>
+                        <small class="pledge-preview-focus" id="pledge-preview-focus"></small>
+                    </div>
+                </div>
+
+                <!-- The old typed pledge fields stay in the page, hidden: other code still reads and resets them -->
+                <div style="display: none;" aria-hidden="true">
                 <div class="form-group">
                     <label for="pledge-text" id="pledge-label">Your Pledge</label>
                     <textarea id="pledge-text" rows="6" placeholder="I pledge to..." required maxlength="500"></textarea>
@@ -515,6 +533,7 @@
                         </label>
                     </div>
                     <small class="topic-help-text" id="pledge-topic-help">Choose one or more. Each selected focus unlocks a passport badge.</small>
+                </div>
                 </div>
                 <div class="privacy-notice">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1243,6 +1262,7 @@
     <script src="/feedback/js/init.js"></script>
     <script src="/feedback/js/inactivity.js"></script>
     <script src="/feedback/js/questions.js"></script>
+    <script src="/feedback/js/pledgeDropdown.js"></script> <!--zihan-->
     <script src="/feedback/js/submit.js"></script>
     <script src="/feedback/js/photo.js"></script>
     <script src="/feedback/js/overlays.js"></script>

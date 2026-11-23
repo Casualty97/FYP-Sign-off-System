@@ -5159,3 +5159,137 @@ textarea::placeholder {
     color: #0f766e;
     text-align: center;
 }
+
+/* ESG pledge dropdown (pledge page) */
+.pledge-select {
+    width: 100%;
+    padding: 14px 16px;
+    font: inherit;
+    font-size: 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #1e293b;
+}
+
+.pledge-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.pledge-preview {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+}
+
+.pledge-preview-category {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: #ffffff;
+    background: #64748b;
+}
+
+.pledge-preview-category.environmental { background: #15803d; }
+.pledge-preview-category.social { background: #2563eb; }
+.pledge-preview-category.governance { background: #7c3aed; }
+
+.pledge-preview-text {
+    margin: 10px 0 6px;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #1e293b;
+}
+
+.pledge-preview-focus {
+    display: block;
+    color: #64748b;
+}
+
+/* ESG pledge picker: three dropdowns, one per ESG group, each with its colour on the side.
+   Choosing a pledge in one clears the other two, so only one can be chosen. */
+.pledge-pick-hint {
+    display: block;
+    margin: 2px 0 10px;
+    color: #64748b;
+}
+
+.pledge-esg-list {
+    display: grid;
+    gap: 12px;
+}
+
+.pledge-esg-row {
+    --esg-colour: #64748b;
+    --esg-tint: #f8fafc;
+    display: grid;
+    grid-template-columns: minmax(120px, 170px) 1fr;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px 12px 16px;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-left: 10px solid var(--esg-colour);
+    border-radius: 12px;
+    transition: opacity 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.pledge-esg-row.environmental { --esg-colour: #15803d; --esg-tint: #f0fdf4; }
+.pledge-esg-row.social { --esg-colour: #2563eb; --esg-tint: #eff6ff; }
+.pledge-esg-row.governance { --esg-colour: #7c3aed; --esg-tint: #f5f3ff; }
+
+.pledge-esg-label {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--esg-colour);
+}
+
+.pledge-category-select {
+    width: 100%;
+    padding: 12px 14px;
+    font: inherit;
+    font-size: 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #1e293b;
+}
+
+.pledge-category-select:focus {
+    outline: none;
+    border-color: var(--esg-colour);
+    box-shadow: 0 0 0 3px var(--esg-tint);
+}
+
+/* The row that holds the choice is tinted, the other two fade back */
+.pledge-esg-row.chosen {
+    background: var(--esg-tint);
+    border-color: var(--esg-colour);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+
+.pledge-esg-list.has-choice .pledge-esg-row:not(.chosen) {
+    opacity: 0.55;
+}
+
+.pledge-loading,
+.pledge-unavailable {
+    margin: 0;
+    color: #64748b;
+}
+
+@media (max-width: 560px) {
+    .pledge-esg-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+

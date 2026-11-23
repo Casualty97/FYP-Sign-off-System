@@ -646,7 +646,10 @@ router.post('/submit-feedback', async (req, res) => {
         const parameterConfig = parametersConfigStore.readParametersConfig();
         const featureFlags = parameterConfig.featureFlags || {};
         const validationRules = parameterConfig.validationRules || {};
-        const validation = validateFeedbackSubmission(requestBody, validationRules, featureFlags);
+        //zihan start
+        const pledgePresets = (parameterConfig.contentSettings || {}).pledgePresets || [];
+        const validation = validateFeedbackSubmission(requestBody, validationRules, featureFlags, pledgePresets); 
+        //zihan end
 
         if (!validation.valid) {
             return res.status(400).json({

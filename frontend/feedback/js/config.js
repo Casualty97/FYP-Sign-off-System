@@ -132,6 +132,7 @@ function shadeHexColor(hex, amount) {
 }
 
 function applyParameterOverrides() {
+    buildPledgeDropdown();
     const messages = kioskParameters.feedbackMessages || {};
     const content = kioskParameters.contentSettings || {};
     const campaign = kioskParameters.campaignSettings || {};

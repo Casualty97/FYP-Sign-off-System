@@ -197,50 +197,36 @@ function skipPhoto() {
 // Submit pledge and redirect to appropriate photo method
 // Added explicit pledge topic selection support and validation - done by XY
 function submitPledge(event, skipPhotoAfter = false) {
+    showFieldError('pledge-esg-list', 'Please choose one pledge from the list to continue.');
     if (event) event.preventDefault();
     clearValidationMessages();
-    const rules = getValidationRules();
-    userData.pledge = document.getElementById('pledge-text').value.trim();
-    userData.pledgeTopics = syncPledgeTopicField();
+
+    // The pledge comes from the ESG dropdown (getSelectedPledgePreset in pledgeDropdown.js), not from typing.
+    // Its text is a fixed preset, so the old length and topic checks are no longer needed here.
+    // The server checks again that the pledge is one of the presets.
+    const preset = getSelectedPledgePreset();
+    userData.pledge = preset ? preset.text : '';
+    userData.pledgeTopics = preset ? [preset.topic] : [];
     userData.pledgeTopic = userData.pledgeTopics[0] || '';
     userData.pledgeSkipped = false;
 
-    if (!userData.pledge) {
-        //ask user to write a pledge if they haven't done so (zihan)
-        showFieldError('pledge-text', 'Write one short action you will try before continuing.');
-        nudgeRpBear('Write one short action to continue. A small pledge is perfect.');
+    if (!preset) {
+        showFieldError('pledge-select', 'Please choose one pledge from the list to continue.');
+        nudgeRpBear('Pick one pledge from the list. There is something for everyone!');
         return;
     }
 
-    if (userData.pledge && userData.pledge.length < Number(rules.pledgeMinLength || 0)) {
-        showFieldError('pledge-text', `Please write at least ${rules.pledgeMinLength} characters.`);
-        nudgeRpBear('Your pledge is nearly there. Add a few more words.');
-        return;
-    }
-
-    if (userData.pledge && userData.pledge.length > Number(rules.pledgeMaxLength || 9999)) {
-        showFieldError('pledge-text', `Please keep your pledge within ${rules.pledgeMaxLength} characters.`);
-        nudgeRpBear('That pledge is too long. Keep it short and actionable.');
-        return;
-    }
-
-    if (rules.pledgeTopicRequired !== false && userData.pledgeTopics.length === 0) {
-        showFieldError('pledge-topic-options', 'Choose at least one sustainability focus before continuing.');
-        nudgeRpBear('Choose one focus area so I know what your pledge supports.');
-        return;
-    }
-
-    //go to photo page or skip to go confirmation page (zihan)
+    // Pledge is valid. Either go to the photo page, or skip the photo and go straight to confirmation.
     if (skipPhotoAfter) {
         skipPhoto();
         return;
     }
-
     continueAfterPledgeChoice();
 }
 
 // "Skip Photo" button on the pledge page: run the same pledge checks, then skip the photo step. (zihan)
 function submitPledgeAndSkipPhoto() {
+    showFieldError('pledge-esg-list', 'Please choose one pledge from the list to continue.');
     submitPledge(null, true);
 }
 
