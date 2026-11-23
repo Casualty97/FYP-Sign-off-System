@@ -224,17 +224,10 @@ const FACE_LANDMARKER_MODEL_URL = 'https://storage.googleapis.com/mediapipe-mode
 // Swipeable animated face filter options - changes made by nick
 const FACE_ACCESSORY_OPTIONS = [
     { id: 'none', label: 'No filter' },
-    { id: 'glasses', label: 'Glasses' },
-    { id: 'sparkle-glasses', label: 'Sparkle glasses' },
-    { id: 'moustache', label: 'Moustache' },
-    { id: 'hat', label: 'Hat' },
-    { id: 'flower-crown', label: 'Flower crown' },
-    { id: 'halo', label: 'Halo glow' },
-    { id: 'blush', label: 'Blush' },
-    { id: 'party', label: 'Party pop' },
     { id: 'rp-shades', label: 'RP shades' },
-    { id: 'leaf-crown', label: 'Leaf crown' },
-    { id: 'graduation', label: 'Graduation cap' }
+    { id: 'graduation', label: 'Graduation cap' },
+    { id: 'rp-tie', label: 'RP tie' },
+    { id: 'rp-bear', label: 'RP shoulder bear' }
 ];
 const FACE_ACCESSORY_IDS = FACE_ACCESSORY_OPTIONS.map(option => option.id);
 let faceFilterScrollTimer = null;

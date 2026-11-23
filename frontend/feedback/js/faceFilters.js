@@ -89,35 +89,36 @@ function getLandmarkPoint(landmarks, index, width, height) {
 function getFaceAccessoryGeometry(landmarks, width, height) {
     const leftEyeOuter = getLandmarkPoint(landmarks, 33, width, height);
     const rightEyeOuter = getLandmarkPoint(landmarks, 263, width, height);
+    const leftIris = getLandmarkPoint(landmarks, 468, width, height);
+    const rightIris = getLandmarkPoint(landmarks, 473, width, height);
+    const leftEyeInner = getLandmarkPoint(landmarks, 133, width, height);
+    const rightEyeInner = getLandmarkPoint(landmarks, 362, width, height);
     const noseTip = getLandmarkPoint(landmarks, 1, width, height);
-    const upperLip = getLandmarkPoint(landmarks, 13, width, height);
     const forehead = getLandmarkPoint(landmarks, 10, width, height);
     const chin = getLandmarkPoint(landmarks, 152, width, height);
-    const leftCheek = getLandmarkPoint(landmarks, 234, width, height);
-    const rightCheek = getLandmarkPoint(landmarks, 454, width, height);
 
     if (!leftEyeOuter || !rightEyeOuter || !noseTip) {
         return null;
     }
 
-    const eyeCenter = {
-        x: (leftEyeOuter.x + rightEyeOuter.x) / 2,
-        y: (leftEyeOuter.y + rightEyeOuter.y) / 2
-    };
+    const midpoint = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    const leftEye = leftIris || (leftEyeInner ? midpoint(leftEyeOuter, leftEyeInner) : leftEyeOuter);
+    const rightEye = rightIris || (rightEyeInner ? midpoint(rightEyeOuter, rightEyeInner) : rightEyeOuter);
+    const eyeCenter = midpoint(leftEye, rightEye);
+    const lensSpacing = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
     const eyeDistance = Math.hypot(rightEyeOuter.x - leftEyeOuter.x, rightEyeOuter.y - leftEyeOuter.y);
-    const angle = Math.atan2(rightEyeOuter.y - leftEyeOuter.y, rightEyeOuter.x - leftEyeOuter.x);
-    const faceHeight = forehead && chin ? Math.max(eyeDistance * 1.9, Math.abs(chin.y - forehead.y)) : eyeDistance * 2.2;
+    if (!lensSpacing || !eyeDistance) return null;
+    const angle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
+    const faceHeight = forehead && chin ? Math.hypot(chin.x - forehead.x, chin.y - forehead.y) : eyeDistance * 1.65;
 
     return {
         angle,
         eyeCenter,
         eyeDistance,
+        lensSpacing,
         faceHeight,
-        noseTip,
-        upperLip: upperLip || { x: noseTip.x, y: noseTip.y + eyeDistance * 0.35 },
         forehead: forehead || { x: eyeCenter.x, y: eyeCenter.y - eyeDistance * 0.85 },
-        leftCheek: leftCheek || { x: eyeCenter.x - eyeDistance * 0.48, y: noseTip.y + eyeDistance * 0.2 },
-        rightCheek: rightCheek || { x: eyeCenter.x + eyeDistance * 0.48, y: noseTip.y + eyeDistance * 0.2 }
+        chin: chin || { x: eyeCenter.x, y: eyeCenter.y + eyeDistance * 0.9 }
     };
 }
 
@@ -129,312 +130,44 @@ function withAccessoryTransform(ctx, center, angle, drawFn) {
     ctx.restore();
 }
 
-function drawGlassesAccessory(ctx, geometry) { // black round spectacles - changes made by nick
-    const lensRadius = geometry.eyeDistance * 0.27;
-    const lensOffset = geometry.eyeDistance * 0.34;
-    const center = {
-        x: geometry.eyeCenter.x,
-        y: geometry.eyeCenter.y + geometry.eyeDistance * 0.03
-    };
-
-    withAccessoryTransform(ctx, center, geometry.angle, () => {
-        ctx.lineWidth = Math.max(8, geometry.eyeDistance * 0.085);
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#111827';
-
-        ctx.beginPath();
-        ctx.arc(-lensOffset, 0, lensRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(lensOffset, 0, lensRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.lineWidth = Math.max(7, geometry.eyeDistance * 0.07);
-        ctx.beginPath();
-        ctx.moveTo(-lensOffset + lensRadius * 0.86, -lensRadius * 0.06);
-        ctx.quadraticCurveTo(0, -lensRadius * 0.34, lensOffset - lensRadius * 0.86, -lensRadius * 0.06);
-        ctx.stroke();
-
-        ctx.lineWidth = Math.max(6, geometry.eyeDistance * 0.055);
-        ctx.strokeStyle = 'rgba(17, 24, 39, 0.78)';
-        ctx.beginPath();
-        ctx.moveTo(-lensOffset - lensRadius * 0.92, -lensRadius * 0.18);
-        ctx.quadraticCurveTo(-lensOffset - lensRadius * 1.55, -lensRadius * 0.26, -lensOffset - lensRadius * 1.82, lensRadius * 0.34);
-        ctx.moveTo(lensOffset + lensRadius * 0.92, -lensRadius * 0.18);
-        ctx.quadraticCurveTo(lensOffset + lensRadius * 1.55, -lensRadius * 0.26, lensOffset + lensRadius * 1.82, lensRadius * 0.34);
-        ctx.stroke();
-    });
-}
-
-function drawSparkleGlassesAccessory(ctx, geometry, time) { // changes made by nick
-    drawGlassesAccessory(ctx, geometry);
-    const sparkleCenter = {
-        x: geometry.eyeCenter.x + Math.cos(geometry.angle) * geometry.eyeDistance * 0.54,
-        y: geometry.eyeCenter.y + Math.sin(geometry.angle) * geometry.eyeDistance * 0.54 - geometry.eyeDistance * 0.16
-    };
-    const pulse = 0.78 + Math.sin(time / 180) * 0.22;
-
-    withAccessoryTransform(ctx, sparkleCenter, geometry.angle + time / 520, () => {
-        ctx.fillStyle = `rgba(250, 204, 21, ${0.74 + pulse * 0.22})`;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.78)';
-        ctx.lineWidth = Math.max(2, geometry.eyeDistance * 0.018);
-        ctx.beginPath();
-        for (let i = 0; i < 8; i++) {
-            const radius = (i % 2 === 0 ? geometry.eyeDistance * 0.16 : geometry.eyeDistance * 0.055) * pulse;
-            const angle = (Math.PI * 2 * i) / 8;
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-    });
-}
-
-function drawMoustacheAccessory(ctx, geometry) {
-    const width = geometry.eyeDistance * 0.84;
-    const height = geometry.eyeDistance * 0.23;
-    const center = {
-        x: geometry.noseTip.x,
-        y: geometry.upperLip.y + geometry.eyeDistance * 0.1
-    };
-
-    withAccessoryTransform(ctx, center, geometry.angle, () => {
-        ctx.fillStyle = '#111827';
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.bezierCurveTo(-width * 0.2, -height, -width * 0.48, -height * 0.65, -width * 0.5, height * 0.12);
-        ctx.bezierCurveTo(-width * 0.35, height * 0.35, -width * 0.15, height * 0.18, 0, height * 0.04);
-        ctx.bezierCurveTo(width * 0.15, height * 0.18, width * 0.35, height * 0.35, width * 0.5, height * 0.12);
-        ctx.bezierCurveTo(width * 0.48, -height * 0.65, width * 0.2, -height, 0, 0);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
-        ctx.beginPath();
-        ctx.ellipse(-width * 0.2, -height * 0.12, width * 0.13, height * 0.1, -0.35, 0, Math.PI * 2);
-        ctx.ellipse(width * 0.2, -height * 0.12, width * 0.13, height * 0.1, 0.35, 0, Math.PI * 2);
-        ctx.fill();
-    });
-}
-
-function drawHatAccessory(ctx, geometry) {
-    const brimWidth = geometry.eyeDistance * 1.42;
-    const brimHeight = geometry.eyeDistance * 0.18;
-    const crownWidth = geometry.eyeDistance * 0.88;
-    const crownHeight = geometry.faceHeight * 0.3;
-    const center = {
-        x: geometry.forehead.x,
-        y: geometry.forehead.y - geometry.eyeDistance * 0.34
-    };
-
-    withAccessoryTransform(ctx, center, geometry.angle, () => {
-        ctx.fillStyle = '#111827';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
-        ctx.lineWidth = Math.max(2, geometry.eyeDistance * 0.025);
-
-        ctx.beginPath();
-        ctx.roundRect(-crownWidth / 2, -crownHeight, crownWidth, crownHeight, crownWidth * 0.08);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#4f46e5';
-        ctx.fillRect(-crownWidth / 2, -crownHeight * 0.28, crownWidth, crownHeight * 0.14);
-
-        ctx.fillStyle = '#111827';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, brimWidth / 2, brimHeight / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-    });
-}
-
-function drawFlowerCrownAccessory(ctx, geometry, time) { // changes made by nick
-    const flowerCount = 7;
-    const center = {
-        x: geometry.forehead.x,
-        y: geometry.forehead.y - geometry.eyeDistance * 0.28
-    };
-    const colors = ['#fb7185', '#facc15', '#a78bfa', '#34d399', '#f472b6'];
-
-    withAccessoryTransform(ctx, center, geometry.angle, () => {
-        for (let i = 0; i < flowerCount; i++) {
-            const progress = flowerCount === 1 ? 0 : i / (flowerCount - 1);
-            const x = (progress - 0.5) * geometry.eyeDistance * 1.22;
-            const arch = Math.sin(progress * Math.PI) * geometry.eyeDistance * 0.16;
-            const y = -arch + Math.sin(time / 360 + i) * geometry.eyeDistance * 0.018;
-            const radius = geometry.eyeDistance * (0.08 + (i % 2) * 0.015);
-
-            ctx.fillStyle = colors[i % colors.length];
-            for (let petal = 0; petal < 5; petal++) {
-                const angle = (Math.PI * 2 * petal) / 5;
-                ctx.beginPath();
-                ctx.ellipse(
-                    x + Math.cos(angle) * radius * 0.78,
-                    y + Math.sin(angle) * radius * 0.78,
-                    radius * 0.58,
-                    radius * 0.38,
-                    angle,
-                    0,
-                    Math.PI * 2
-                );
-                ctx.fill();
-            }
-
-            ctx.fillStyle = '#fef3c7';
-            ctx.beginPath();
-            ctx.arc(x, y, radius * 0.38, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    });
-}
-
-function drawHaloAccessory(ctx, geometry, time) { // changes made by nick
-    const center = {
-        x: geometry.forehead.x,
-        y: geometry.forehead.y - geometry.eyeDistance * (0.62 + Math.sin(time / 430) * 0.04)
-    };
-
-    withAccessoryTransform(ctx, center, geometry.angle, () => {
-        ctx.lineWidth = Math.max(5, geometry.eyeDistance * 0.06);
-        ctx.strokeStyle = '#facc15';
-        ctx.shadowColor = 'rgba(250, 204, 21, 0.82)';
-        ctx.shadowBlur = geometry.eyeDistance * 0.18;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, geometry.eyeDistance * 0.52, geometry.eyeDistance * 0.14, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-    });
-}
-
-function drawBlushAccessory(ctx, geometry, time) { // changes made by nick
-    const alpha = 0.38 + Math.sin(time / 420) * 0.08;
-    const cheekRadiusX = geometry.eyeDistance * 0.18;
-    const cheekRadiusY = geometry.eyeDistance * 0.1;
-    const cheeks = [
-        { point: geometry.leftCheek, offset: -geometry.eyeDistance * 0.04 },
-        { point: geometry.rightCheek, offset: geometry.eyeDistance * 0.04 }
-    ];
-
-    cheeks.forEach(({ point, offset }) => {
-        withAccessoryTransform(ctx, { x: point.x, y: point.y + offset }, geometry.angle, () => {
-            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, cheekRadiusX);
-            gradient.addColorStop(0, `rgba(244, 114, 182, ${alpha})`);
-            gradient.addColorStop(1, 'rgba(244, 114, 182, 0)');
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, cheekRadiusX, cheekRadiusY, 0, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    });
-}
-
-function drawPartyAccessory(ctx, geometry, time) { // changes made by nick
-    const center = {
-        x: geometry.forehead.x,
-        y: geometry.forehead.y - geometry.eyeDistance * 0.42
-    };
-    const wiggle = Math.sin(time / 180) * 0.1;
-
-    withAccessoryTransform(ctx, center, geometry.angle + wiggle, () => {
-        const hatHeight = geometry.eyeDistance * 0.78;
-        const hatWidth = geometry.eyeDistance * 0.48;
-        const gradient = ctx.createLinearGradient(0, -hatHeight, 0, 0);
-        gradient.addColorStop(0, '#60a5fa');
-        gradient.addColorStop(0.5, '#f472b6');
-        gradient.addColorStop(1, '#22c55e');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(0, -hatHeight);
-        ctx.lineTo(hatWidth / 2, 0);
-        ctx.lineTo(-hatWidth / 2, 0);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
-        ctx.lineWidth = Math.max(2, geometry.eyeDistance * 0.025);
-        for (let i = 1; i <= 3; i++) {
-            const y = -hatHeight + (hatHeight * i) / 4;
-            ctx.beginPath();
-            ctx.moveTo(-hatWidth * 0.28, y);
-            ctx.lineTo(hatWidth * 0.28, y + geometry.eyeDistance * 0.08);
-            ctx.stroke();
-        }
-
-        ctx.fillStyle = '#facc15';
-        ctx.beginPath();
-        ctx.arc(0, -hatHeight, geometry.eyeDistance * 0.1, 0, Math.PI * 2);
-        ctx.fill();
-    });
-}
-
 function drawRpShadesAccessory(ctx, geometry) { // RP shades face filter (DONE BY NICK)
-    const lensWidth = geometry.eyeDistance * 0.42;
-    const lensHeight = geometry.eyeDistance * 0.26;
-    const lensOffset = geometry.eyeDistance * 0.33;
-    const center = {
-        x: geometry.eyeCenter.x,
-        y: geometry.eyeCenter.y + geometry.eyeDistance * 0.04
-    };
+    const size = geometry.lensSpacing;
+    withAccessoryTransform(ctx, geometry.eyeCenter, geometry.angle, () => {
+        const lens = ctx.createLinearGradient(0, -size * 0.23, 0, size * 0.23);
+        lens.addColorStop(0, 'rgba(39, 118, 107, 0.58)');
+        lens.addColorStop(1, 'rgba(13, 36, 48, 0.82)');
 
-    withAccessoryTransform(ctx, center, geometry.angle, () => {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        ctx.strokeStyle = '#0f766e';
-        ctx.lineWidth = Math.max(4, geometry.eyeDistance * 0.04);
-
-        [-lensOffset, lensOffset].forEach((x) => {
-            ctx.beginPath();
-            ctx.roundRect(x - lensWidth / 2, -lensHeight / 2, lensWidth, lensHeight, lensHeight * 0.28);
-            ctx.fill();
-            ctx.stroke();
-        });
-
+        ctx.strokeStyle = '#193a35';
+        ctx.lineWidth = size * 0.037;
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(-lensOffset + lensWidth / 2, -lensHeight * 0.08);
-        ctx.lineTo(lensOffset - lensWidth / 2, -lensHeight * 0.08);
+        ctx.moveTo(-size * 0.25, 0);
+        ctx.quadraticCurveTo(0, -size * 0.16, size * 0.25, 0);
         ctx.stroke();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `700 ${Math.max(12, geometry.eyeDistance * 0.12)}px Arial`;
+        for (const x of [-size * 0.5, size * 0.5]) {
+            ctx.fillStyle = lens;
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(x - size * 0.35, -size * 0.24, size * 0.7, size * 0.47, size * 0.15);
+            } else {
+                ctx.rect(x - size * 0.35, -size * 0.24, size * 0.7, size * 0.47);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#193a35';
+            ctx.fillStyle = 'rgba(224, 255, 243, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(x - size * 0.10, -size * 0.11, size * 0.15, size * 0.025, -0.18, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.fillStyle = '#e7f7c8';
+        ctx.font = `800 ${size * 0.13}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('RP', 0, 0);
-    });
-}
-
-function drawLeafCrownAccessory(ctx, geometry, time) { // ESG leaf crown face filter (DONE BY NICK)
-    const center = {
-        x: geometry.forehead.x,
-        y: geometry.forehead.y - geometry.eyeDistance * 0.32
-    };
-
-    withAccessoryTransform(ctx, center, geometry.angle, () => {
-        for (let i = 0; i < 9; i++) {
-            const progress = i / 8;
-            const x = (progress - 0.5) * geometry.eyeDistance * 1.36;
-            const y = -Math.sin(progress * Math.PI) * geometry.eyeDistance * 0.2 + Math.sin(time / 400 + i) * geometry.eyeDistance * 0.02;
-            const rotation = (progress - 0.5) * 0.7;
-            const leafWidth = geometry.eyeDistance * 0.16;
-            const leafHeight = geometry.eyeDistance * 0.28;
-
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(rotation);
-            ctx.fillStyle = i % 2 === 0 ? '#16a34a' : '#34d399';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, leafWidth / 2, leafHeight / 2, -0.35, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-            ctx.lineWidth = Math.max(1, geometry.eyeDistance * 0.012);
-            ctx.beginPath();
-            ctx.moveTo(0, -leafHeight * 0.36);
-            ctx.lineTo(0, leafHeight * 0.36);
-            ctx.stroke();
-            ctx.restore();
-        }
+        ctx.fillText('RP', size * 0.59, size * 0.09);
     });
 }
 
@@ -445,10 +178,23 @@ function drawGraduationAccessory(ctx, geometry, time) { // Graduation cap face f
     };
 
     withAccessoryTransform(ctx, center, geometry.angle, () => {
-        const capWidth = geometry.eyeDistance * 1.22;
+        const capWidth = geometry.eyeDistance * 1.55;
         const capHeight = geometry.eyeDistance * 0.34;
-        ctx.fillStyle = '#111827';
-        ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+        const top = ctx.createLinearGradient(0, -capHeight, 0, capHeight);
+        top.addColorStop(0, '#475669');
+        top.addColorStop(1, '#172434');
+
+        ctx.fillStyle = '#182c38';
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(-capWidth * 0.26, 0, capWidth * 0.52, capHeight * 0.72, capHeight * 0.22);
+        } else {
+            ctx.rect(-capWidth * 0.26, 0, capWidth * 0.52, capHeight * 0.72);
+        }
+        ctx.fill();
+
+        ctx.fillStyle = top;
+        ctx.strokeStyle = '#71828c';
         ctx.lineWidth = Math.max(2, geometry.eyeDistance * 0.02);
 
         ctx.beginPath();
@@ -460,17 +206,17 @@ function drawGraduationAccessory(ctx, geometry, time) { // Graduation cap face f
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#0f766e';
-        ctx.fillRect(-capWidth * 0.24, capHeight * 0.04, capWidth * 0.48, capHeight * 0.32);
+        ctx.fillStyle = '#51ab8b';
+        ctx.fillRect(-capWidth * 0.19, capHeight * 0.53, capWidth * 0.38, capHeight * 0.075);
 
-        ctx.strokeStyle = '#facc15';
+        ctx.strokeStyle = '#efc574';
         ctx.lineWidth = Math.max(2, geometry.eyeDistance * 0.018);
         ctx.beginPath();
         ctx.moveTo(capWidth * 0.08, -capHeight * 0.14);
         ctx.quadraticCurveTo(capWidth * 0.28, capHeight * 0.18, capWidth * 0.25, capHeight * (0.7 + Math.sin(time / 260) * 0.08));
         ctx.stroke();
 
-        ctx.fillStyle = '#facc15';
+        ctx.fillStyle = '#efc574';
         ctx.beginPath();
         ctx.arc(capWidth * 0.25, capHeight * 0.72, geometry.eyeDistance * 0.045, 0, Math.PI * 2);
         ctx.fill();
@@ -487,30 +233,98 @@ function drawFaceAccessory(ctx, landmarks, width, height, time = performance.now
         return;
     }
 
-    if (selectedFaceAccessory === 'glasses') {
-        drawGlassesAccessory(ctx, geometry);
-    } else if (selectedFaceAccessory === 'sparkle-glasses') {
-        drawSparkleGlassesAccessory(ctx, geometry, time);
-    } else if (selectedFaceAccessory === 'moustache') {
-        drawMoustacheAccessory(ctx, geometry);
-    } else if (selectedFaceAccessory === 'hat') {
-        drawHatAccessory(ctx, geometry);
-    } else if (selectedFaceAccessory === 'flower-crown') {
-        drawFlowerCrownAccessory(ctx, geometry, time);
-    } else if (selectedFaceAccessory === 'halo') {
-        drawHaloAccessory(ctx, geometry, time);
-    } else if (selectedFaceAccessory === 'blush') {
-        drawBlushAccessory(ctx, geometry, time);
-    } else if (selectedFaceAccessory === 'party') {
-        drawPartyAccessory(ctx, geometry, time);
-    } else if (selectedFaceAccessory === 'rp-shades') {
-        drawRpShadesAccessory(ctx, geometry);
-    } else if (selectedFaceAccessory === 'leaf-crown') {
-        drawLeafCrownAccessory(ctx, geometry, time);
-    } else if (selectedFaceAccessory === 'graduation') {
-        drawGraduationAccessory(ctx, geometry, time);
-    }
+    FACE_ACCESSORY_RENDERERS[selectedFaceAccessory]?.(ctx, geometry, time, width);
 }
+
+// The face landmarks stop at the chin, so the neck and shoulder positions are estimated.
+function drawPhotoTie(ctx, geometry) {
+    const size = geometry.faceHeight;
+    withAccessoryTransform(ctx, geometry.chin, geometry.angle, () => {
+        ctx.scale(size, size);
+        ctx.translate(0, 0.17);
+        ctx.fillStyle = '#125c47';
+        ctx.beginPath();
+        ctx.moveTo(-0.067, 0.08);
+        ctx.lineTo(-0.13, 0.53);
+        ctx.lineTo(0, 0.66);
+        ctx.lineTo(0.13, 0.53);
+        ctx.lineTo(0.067, 0.08);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.save();
+        ctx.clip();
+        ctx.strokeStyle = '#81c7a1';
+        ctx.lineWidth = 0.027;
+        for (const y of [0.23, 0.36, 0.49]) {
+            ctx.beginPath();
+            ctx.moveTo(-0.14, y + 0.095);
+            ctx.lineTo(0.14, y);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.fillStyle = '#217d60';
+        ctx.beginPath();
+        ctx.moveTo(-0.09, 0);
+        ctx.lineTo(0.09, 0);
+        ctx.lineTo(0.058, 0.13);
+        ctx.lineTo(-0.058, 0.13);
+        ctx.closePath();
+        ctx.fill();
+    });
+}
+
+function drawShoulderBear(ctx, geometry, _time, frameWidth = Infinity) {
+    const size = geometry.faceHeight;
+    const side = geometry.chin.x + size * 0.86 > frameWidth ? -1 : 1;
+    const center = { x: geometry.chin.x + side * size * 0.64, y: geometry.chin.y + size * 0.1 };
+    withAccessoryTransform(ctx, center, geometry.angle * 0.35, () => {
+        ctx.scale(size, size);
+
+        function oval(x, y, width, height, color) {
+            ctx.beginPath();
+            ctx.fillStyle = color;
+            ctx.ellipse(x, y, width, height, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        oval(0, 0.095, 0.145, 0.15, '#212a33');
+        for (const x of [-0.108, 0.108]) {
+            oval(x, -0.205, 0.052, 0.052, '#ac724b');
+            oval(x, -0.205, 0.028, 0.029, '#e5aa8b');
+            oval(x * 0.82, 0.223, 0.064, 0.042, '#b77d55');
+        }
+        oval(0, -0.09, 0.145, 0.134, '#d5a478');
+        oval(0, -0.049, 0.074, 0.052, '#f1c8a0');
+        oval(-0.047, -0.12, 0.013, 0.017, '#282524');
+        oval(0.047, -0.12, 0.013, 0.017, '#282524');
+        oval(0, -0.066, 0.022, 0.013, '#482e27');
+        ctx.strokeStyle = '#482e27';
+        ctx.lineWidth = 0.008;
+        ctx.beginPath();
+        ctx.arc(0, -0.055, 0.024, 0.25, Math.PI - 0.25);
+        ctx.stroke();
+
+        ctx.fillStyle = '#74b797';
+        ctx.beginPath();
+        ctx.moveTo(-0.087, 0.028);
+        ctx.lineTo(0, 0.1);
+        ctx.lineTo(0.087, 0.028);
+        ctx.lineTo(0.061, 0.092);
+        ctx.lineTo(0, 0.132);
+        ctx.lineTo(-0.061, 0.092);
+        ctx.closePath();
+        ctx.fill();
+    });
+}
+
+const FACE_ACCESSORY_RENDERERS = {
+    'rp-shades': drawRpShadesAccessory,
+    graduation: drawGraduationAccessory,
+    'rp-tie': drawPhotoTie,
+    'rp-bear': drawShoulderBear
+};
 
 function drawFaceAccessoryForCameraView(ctx, landmarks, width, height) {
     ctx.save();
@@ -641,6 +455,21 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
     const selector = document.getElementById('face-filter-selector');
 
     document.querySelectorAll('.face-filter-card').forEach((button) => {
+        const preview = button.querySelector('canvas');
+        const context = preview?.getContext('2d');
+        if (context) {
+            context.clearRect(0, 0, preview.width, preview.height);
+            FACE_ACCESSORY_RENDERERS[button.dataset.accessory]?.(context, {
+                eyeDistance: 42,
+                lensSpacing: 30,
+                faceHeight: 56,
+                chin: { x: button.dataset.accessory === 'rp-bear' ? 12 : 48, y: 5 },
+                eyeCenter: { x: 48, y: 29 },
+                forehead: { x: 48, y: 46 },
+                angle: 0
+            }, 0);
+        }
+
         button.addEventListener('click', () => {
             selectFaceAccessory(button.dataset.accessory || 'none');
         });
