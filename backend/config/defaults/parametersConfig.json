@@ -11,17 +11,24 @@
   },
   "contentSettings": {
     "temporaryRetentionDays": 7,
-        "pledgePresets": [
+    "pledgePresets": [
       { "id": "env-transport", "category": "environmental", "topic": "climate-change", "title": "Walk, cycle or take public transport", "text": "I pledge to walk, cycle or take public transport for short trips at least 3 times a week this month." },
       { "id": "env-energy", "category": "environmental", "topic": "renewable-energy", "title": "Switch off lights and fans", "text": "I pledge to switch off lights and fans whenever I leave a room, every day this month." },
       { "id": "env-plastic", "category": "environmental", "topic": "sustainable-living", "title": "Bring my own bottle and bag", "text": "I pledge to bring my own bottle and bag instead of using single-use plastic, every day this month." },
       { "id": "env-litter", "category": "environmental", "topic": "ocean-conservation", "title": "Keep our waters clean", "text": "I pledge to bin my litter and pick up at least 5 pieces of rubbish near drains or waterways every week this month." },
+      { "id": "env-food", "category": "environmental", "topic": "sustainable-living", "title": "Waste less food", "text": "I pledge to take only what I can finish at every meal this month." },
       { "id": "soc-volunteer", "category": "social", "topic": "community-impact", "title": "Volunteer in the community", "text": "I pledge to join one volunteer or community service activity within the next 3 months." },
       { "id": "soc-share", "category": "social", "topic": "community-impact", "title": "Inspire friends and family", "text": "I pledge to share one sustainability tip with 3 friends or family members this week." },
+      { "id": "soc-include", "category": "social", "topic": "community-impact", "title": "Include others in group activities", "text": "I pledge to invite someone who might feel left out to join a school or community activity this month." },
+      { "id": "soc-donate", "category": "social", "topic": "community-impact", "title": "Donate items in good condition", "text": "I pledge to donate one item I no longer use to a local charity or community drive this month." },
+      { "id": "soc-help", "category": "social", "topic": "community-impact", "title": "Help a classmate learn", "text": "I pledge to spend 30 minutes helping a classmate with a topic they find difficult this month." },
       { "id": "gov-honest", "category": "governance", "topic": "ethical-governance", "title": "Act with honesty and integrity", "text": "I pledge to make fair and honest choices, and to speak up when I see something unethical, starting today." },
-      { "id": "gov-guidelines", "category": "governance", "topic": "ethical-governance", "title": "Follow and promote school guidelines", "text": "I pledge to follow my school's sustainability and conduct guidelines, and remind my group to do the same, this semester." }
+      { "id": "gov-guidelines", "category": "governance", "topic": "ethical-governance", "title": "Follow and promote school guidelines", "text": "I pledge to follow my school's sustainability and conduct guidelines, and remind my group to do the same, this semester." },
+      { "id": "gov-sources", "category": "governance", "topic": "ethical-governance", "title": "Credit sources in my work", "text": "I pledge to credit the sources, images and ideas I use in every school assignment this semester." },
+      { "id": "gov-expenses", "category": "governance", "topic": "ethical-governance", "title": "Keep group spending transparent", "text": "I pledge to record shared project expenses and show the receipts to my team this semester." },
+      { "id": "gov-decisions", "category": "governance", "topic": "ethical-governance", "title": "Record group decisions fairly", "text": "I pledge to write down key project decisions and share them with everyone in my group this semester." }
     ],
- 
+
     "pledgeExamples": [
       "Carry a reusable bottle and cutlery every day",
       "Sort waste properly and recycle whenever possible",
