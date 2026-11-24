@@ -102,8 +102,8 @@ function getFaceAccessoryGeometry(landmarks, width, height) {
     }
 
     const midpoint = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-    const leftEye = leftIris || (leftEyeInner ? midpoint(leftEyeOuter, leftEyeInner) : leftEyeOuter);
-    const rightEye = rightIris || (rightEyeInner ? midpoint(rightEyeOuter, rightEyeInner) : rightEyeOuter);
+    const leftEye = leftEyeInner ? midpoint(leftEyeOuter, leftEyeInner) : (leftIris || leftEyeOuter);
+    const rightEye = rightEyeInner ? midpoint(rightEyeOuter, rightEyeInner) : (rightIris || rightEyeOuter);
     const eyeCenter = midpoint(leftEye, rightEye);
     const lensSpacing = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
     const eyeDistance = Math.hypot(rightEyeOuter.x - leftEyeOuter.x, rightEyeOuter.y - leftEyeOuter.y);
@@ -133,41 +133,44 @@ function withAccessoryTransform(ctx, center, angle, drawFn) {
 function drawRpShadesAccessory(ctx, geometry) { // RP shades face filter (DONE BY NICK)
     const size = geometry.lensSpacing;
     withAccessoryTransform(ctx, geometry.eyeCenter, geometry.angle, () => {
-        const lens = ctx.createLinearGradient(0, -size * 0.23, 0, size * 0.23);
-        lens.addColorStop(0, 'rgba(39, 118, 107, 0.58)');
-        lens.addColorStop(1, 'rgba(13, 36, 48, 0.82)');
+        ctx.scale(size, size);
+        const tint = ctx.createLinearGradient(0, -0.27, 0, 0.33);
+        tint.addColorStop(0, 'rgba(28, 81, 68, 0.38)');
+        tint.addColorStop(1, 'rgba(118, 169, 147, 0.13)');
 
-        ctx.strokeStyle = '#193a35';
-        ctx.lineWidth = size * 0.037;
+        ctx.strokeStyle = '#334d40';
+        ctx.lineWidth = 0.026;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(-size * 0.25, 0);
-        ctx.quadraticCurveTo(0, -size * 0.16, size * 0.25, 0);
+        ctx.moveTo(-0.095, -0.095);
+        ctx.quadraticCurveTo(0, -0.19, 0.095, -0.095);
+        ctx.moveTo(-0.92, -0.10);
+        ctx.lineTo(-1.02, -0.14);
+        ctx.moveTo(0.92, -0.10);
+        ctx.lineTo(1.02, -0.14);
         ctx.stroke();
 
-        for (const x of [-size * 0.5, size * 0.5]) {
-            ctx.fillStyle = lens;
+        for (const side of [-1, 1]) {
+            ctx.save();
+            ctx.scale(side, 1);
             ctx.beginPath();
-            if (typeof ctx.roundRect === 'function') {
-                ctx.roundRect(x - size * 0.35, -size * 0.24, size * 0.7, size * 0.47, size * 0.15);
-            } else {
-                ctx.rect(x - size * 0.35, -size * 0.24, size * 0.7, size * 0.47);
-            }
+            ctx.moveTo(0.10, -0.12);
+            ctx.bezierCurveTo(0.12, -0.29, 0.72, -0.29, 0.88, -0.20);
+            ctx.bezierCurveTo(0.97, -0.14, 0.90, 0.17, 0.79, 0.26);
+            ctx.bezierCurveTo(0.67, 0.37, 0.34, 0.36, 0.23, 0.24);
+            ctx.bezierCurveTo(0.15, 0.16, 0.09, -0.02, 0.10, -0.12);
+            ctx.closePath();
+            ctx.fillStyle = tint;
             ctx.fill();
             ctx.stroke();
 
-            ctx.strokeStyle = '#193a35';
-            ctx.fillStyle = 'rgba(224, 255, 243, 0.22)';
+            // Small metallic accents mark the outer hinges.
+            ctx.fillStyle = '#c3a466';
             ctx.beginPath();
-            ctx.ellipse(x - size * 0.10, -size * 0.11, size * 0.15, size * 0.025, -0.18, 0, Math.PI * 2);
+            ctx.arc(0.86, -0.16, 0.021, 0, Math.PI * 2);
             ctx.fill();
+            ctx.restore();
         }
-
-        ctx.fillStyle = '#e7f7c8';
-        ctx.font = `800 ${size * 0.13}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('RP', size * 0.59, size * 0.09);
     });
 }
 
