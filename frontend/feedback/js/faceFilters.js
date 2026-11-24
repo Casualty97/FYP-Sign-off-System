@@ -278,12 +278,22 @@ function drawShoulderBear(ctx, geometry, _time, frameWidth = Infinity) {
 }
 
 // Check finger extension from the wrist without assuming the hand is upright.
-function getOpenPalm(landmarks, width, height) {
+function getOpenPalm(landmarks, width, height, handedness) {
     const points = landmarks.map(({ x, y }) => ({ x: x * width, y: y * height }));
     if (points.length < 21) return null;
     const distance = (first, second) => Math.hypot(points[first].x - points[second].x, points[first].y - points[second].y);
     const palmSize = distance(0, 9);
     if (palmSize < 8 || ![8, 12, 16, 20].every(tip => distance(0, tip) > distance(0, tip - 2) + palmSize * 0.12)) return null;
+    // A frontal palm reverses the order of the index and pinky knuckles
+    // relative to the back of the same hand. Use the raw, unmirrored video.
+    const wrist = points[0];
+    const index = points[5];
+    const pinky = points[17];
+    const orientation = (index.x - wrist.x) * (pinky.y - wrist.y)
+        - (index.y - wrist.y) * (pinky.x - wrist.x);
+    const facing = handedness === 'Right' ? -orientation : handedness === 'Left' ? orientation : 0;
+    if (facing < palmSize ** 2 * 0.2) return null;
+
     const x = (points[0].x + points[5].x + points[17].x) / 3;
     const y = (points[0].y + points[5].y + points[17].y) / 3;
     if (x < 0 || x >= width || y < 0 || y >= height) return null;
@@ -304,10 +314,13 @@ function drawCameraAccessory(ctx, video, landmarks, width, height, capture = fal
         scrollPalmVideoTime = time;
         scrollPalm = null;
         try {
-            for (const hand of confidentBackgroundHands(bgHandLandmarker.detect(video))) {
-                const palm = getOpenPalm(hand, width, height);
+            const result = bgHandLandmarker.detect(video);
+            (result.landmarks || []).forEach((hand, index) => {
+                const handedness = result.handedness?.[index]?.[0];
+                if (!handedness || handedness.score < BG_HAND_CONFIDENCE) return;
+                const palm = getOpenPalm(hand, width, height, handedness.categoryName);
                 if (palm && (!scrollPalm || palm.size > scrollPalm.size)) scrollPalm = palm;
-            }
+            });
         } catch (error) {
             console.warn('Scroll hand tracking failed:', error.message);
         }
@@ -442,7 +455,7 @@ function updateFaceAccessoryButtons() {
     const hint = document.getElementById('grad-scroll-hint');
     if (hint) {
         hint.hidden = selectedFaceAccessory !== 'grad-scroll';
-        hint.textContent = hint.hidden ? '' : 'Open your hand and show your palm to the camera to hold the scroll.';
+        hint.textContent = hint.hidden ? '' : 'Open your hand with your palm facing the camera to hold the scroll.';
     }
     const activeLabel = document.getElementById('face-filter-active');
     const option = FACE_ACCESSORY_OPTIONS.find(item => item.id === selectedFaceAccessory);
