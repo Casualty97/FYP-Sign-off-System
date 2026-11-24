@@ -1164,6 +1164,11 @@ textarea::placeholder {
     transform: translateY(-3px) scale(1.04);
 }
 
+.face-filter-art {
+    width: 64px;
+    height: 37px;
+}
+
 .face-filter-preview {
     position: relative;
     display: grid;
