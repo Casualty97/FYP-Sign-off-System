@@ -115,7 +115,6 @@ function getFaceAccessoryGeometry(landmarks, width, height) {
         angle,
         eyeCenter,
         eyeDistance,
-        lensSpacing,
         faceHeight,
         forehead: forehead || { x: eyeCenter.x, y: eyeCenter.y - eyeDistance * 0.85 },
         chin: chin || { x: eyeCenter.x, y: eyeCenter.y + eyeDistance * 0.9 }
@@ -130,48 +129,61 @@ function withAccessoryTransform(ctx, center, angle, drawFn) {
     ctx.restore();
 }
 
-function drawRpShadesAccessory(ctx, geometry) { // RP shades face filter (DONE BY NICK)
-    const size = geometry.lensSpacing;
-    withAccessoryTransform(ctx, geometry.eyeCenter, geometry.angle, () => {
-        ctx.scale(size, size);
-        const tint = ctx.createLinearGradient(0, -0.27, 0, 0.33);
-        tint.addColorStop(0, 'rgba(28, 81, 68, 0.38)');
-        tint.addColorStop(1, 'rgba(118, 169, 147, 0.13)');
-
-        ctx.strokeStyle = '#334d40';
-        ctx.lineWidth = 0.026;
+function drawRpLanyard(ctx, geometry) {
+    const { chin, faceHeight, angle } = geometry;
+    withAccessoryTransform(ctx, chin, angle * 0.35, () => {
+        ctx.scale(faceHeight, faceHeight);
+        ctx.strokeStyle = '#19735a';
+        ctx.lineWidth = 0.055;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(-0.095, -0.095);
-        ctx.quadraticCurveTo(0, -0.19, 0.095, -0.095);
-        ctx.moveTo(-0.92, -0.10);
-        ctx.lineTo(-1.02, -0.14);
-        ctx.moveTo(0.92, -0.10);
-        ctx.lineTo(1.02, -0.14);
+        ctx.moveTo(-0.23, 0.09);
+        ctx.quadraticCurveTo(-0.16, 0.26, 0, 0.47);
+        ctx.quadraticCurveTo(0.16, 0.26, 0.23, 0.09);
         ctx.stroke();
 
-        for (const side of [-1, 1]) {
-            ctx.save();
-            ctx.scale(side, 1);
-            ctx.beginPath();
-            ctx.moveTo(0.10, -0.12);
-            ctx.bezierCurveTo(0.12, -0.29, 0.72, -0.29, 0.88, -0.20);
-            ctx.bezierCurveTo(0.97, -0.14, 0.90, 0.17, 0.79, 0.26);
-            ctx.bezierCurveTo(0.67, 0.37, 0.34, 0.36, 0.23, 0.24);
-            ctx.bezierCurveTo(0.15, 0.16, 0.09, -0.02, 0.10, -0.12);
-            ctx.closePath();
-            ctx.fillStyle = tint;
-            ctx.fill();
-            ctx.stroke();
-
-            // Small metallic accents mark the outer hinges.
-            ctx.fillStyle = '#c3a466';
-            ctx.beginPath();
-            ctx.arc(0.86, -0.16, 0.021, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
+        ctx.fillStyle = '#d5ae60';
+        ctx.fillRect(-0.025, 0.43, 0.05, 0.1);
+        ctx.fillStyle = '#124c3d';
+        ctx.fillRect(-0.22, 0.51, 0.44, 0.29);
+        ctx.fillStyle = '#f7fcf8';
+        ctx.fillRect(-0.20, 0.53, 0.40, 0.25);
+        drawRpPropLabel(ctx, 'FUTURE', 0.60, 0.07, '#124c3d');
+        drawRpPropLabel(ctx, 'RP GRAD', 0.70, 0.09, '#124c3d');
     });
+}
+
+function drawRpOpenHouseBadge(ctx, geometry, _time, frameWidth = Infinity) {
+    const { chin, faceHeight, angle } = geometry;
+    const side = chin.x + faceHeight * 0.67 > frameWidth ? -1 : 1;
+    const center = { x: chin.x + side * faceHeight * 0.48, y: chin.y + faceHeight * 0.43 };
+    withAccessoryTransform(ctx, center, angle * 0.35, () => {
+        ctx.scale(faceHeight, faceHeight);
+        ctx.beginPath();
+        ctx.arc(0, 0, 0.185, 0, Math.PI * 2);
+        ctx.fillStyle = '#19735a';
+        ctx.fill();
+        ctx.strokeStyle = '#d2eddc';
+        ctx.lineWidth = 0.014;
+        ctx.stroke();
+        drawRpPropLabel(ctx, 'I ♥ RP', -0.043, 0.084, '#fff');
+        drawRpPropLabel(ctx, 'OPEN HOUSE', 0.045, 0.041, '#dcf7e8');
+    });
+}
+
+function drawRpPropLabel(ctx, text, y, size, color) {
+    ctx.save();
+    // The live preview and photo canvas can both be mirrored.
+    const transform = ctx.getTransform();
+    if (transform.a * transform.d - transform.b * transform.c < 0) ctx.scale(-1, 1);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 100px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.translate(0, y);
+    ctx.scale(size / 100, size / 100);
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
 }
 
 function drawGraduationAccessory(ctx, geometry, time) { // Graduation cap face filter (DONE BY NICK)
@@ -323,7 +335,8 @@ function drawShoulderBear(ctx, geometry, _time, frameWidth = Infinity) {
 }
 
 const FACE_ACCESSORY_RENDERERS = {
-    'rp-shades': drawRpShadesAccessory,
+    'rp-lanyard': drawRpLanyard,
+    'rp-open-house': drawRpOpenHouseBadge,
     graduation: drawGraduationAccessory,
     'rp-tie': drawPhotoTie,
     'rp-bear': drawShoulderBear
@@ -464,9 +477,8 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
             context.clearRect(0, 0, preview.width, preview.height);
             FACE_ACCESSORY_RENDERERS[button.dataset.accessory]?.(context, {
                 eyeDistance: 42,
-                lensSpacing: 30,
                 faceHeight: 56,
-                chin: { x: button.dataset.accessory === 'rp-bear' ? 12 : 48, y: 5 },
+                chin: { x: { 'rp-bear': 12, 'rp-open-house': 21 }[button.dataset.accessory] ?? 48, y: 5 },
                 eyeCenter: { x: 48, y: 29 },
                 forehead: { x: 48, y: 46 },
                 angle: 0
