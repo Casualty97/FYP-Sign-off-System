@@ -136,8 +136,8 @@ function drawGraduationAccessory(ctx, geometry, time) { // Graduation cap face f
     };
 
     withAccessoryTransform(ctx, center, geometry.angle, () => {
-        const capWidth = geometry.eyeDistance * 1.55;
-        const capHeight = geometry.eyeDistance * 0.34;
+        const capWidth = geometry.eyeDistance * 1.85;
+        const capHeight = geometry.eyeDistance * 0.41;
         const top = ctx.createLinearGradient(0, -capHeight, 0, capHeight);
         top.addColorStop(0, '#475669');
         top.addColorStop(1, '#172434');
@@ -277,8 +277,51 @@ function drawShoulderBear(ctx, geometry, _time, frameWidth = Infinity) {
     });
 }
 
+// Estimate the shoulder from the chin and use the side with more room in the frame.
+function drawGraduationScroll(ctx, geometry, _time, frameWidth = Infinity) {
+    const { chin, faceHeight, angle } = geometry;
+    const side = chin.x > frameWidth / 2 ? -1 : 1;
+    const shoulder = { x: chin.x + side * faceHeight * 0.66, y: chin.y + faceHeight * 0.22 };
+    withAccessoryTransform(ctx, shoulder, angle * 0.3 - side * 0.32, () => {
+        ctx.scale(faceHeight, faceHeight);
+        const paper = ctx.createLinearGradient(0, -0.11, 0, 0.11);
+        paper.addColorStop(0, '#fff8e3');
+        paper.addColorStop(1, '#e7cca0');
+        ctx.fillStyle = paper;
+        ctx.strokeStyle = '#af895b';
+        ctx.lineWidth = 0.013;
+        ctx.beginPath();
+        ctx.moveTo(-0.27, -0.105);
+        ctx.lineTo(0.25, -0.105);
+        ctx.bezierCurveTo(0.34, -0.105, 0.34, 0.105, 0.25, 0.105);
+        ctx.lineTo(-0.27, 0.105);
+        ctx.bezierCurveTo(-0.33, 0.105, -0.33, -0.105, -0.27, -0.105);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(0.25, 0, 0.035, 0.077, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#17674d';
+        ctx.fillRect(-0.046, -0.108, 0.092, 0.216);
+        ctx.beginPath();
+        ctx.moveTo(-0.043, 0.07);
+        ctx.lineTo(-0.102, 0.215);
+        ctx.lineTo(-0.033, 0.177);
+        ctx.lineTo(0, 0.216);
+        ctx.lineTo(0.035, 0.177);
+        ctx.lineTo(0.10, 0.215);
+        ctx.lineTo(0.043, 0.07);
+        ctx.closePath();
+        ctx.fill();
+    });
+}
+
 const FACE_ACCESSORY_RENDERERS = {
     graduation: drawGraduationAccessory,
+    'grad-scroll': drawGraduationScroll,
     'rp-tie': drawPhotoTie,
     'rp-bear': drawShoulderBear
 };
@@ -419,7 +462,7 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
             FACE_ACCESSORY_RENDERERS[button.dataset.accessory]?.(context, {
                 eyeDistance: 42,
                 faceHeight: 56,
-                chin: { x: button.dataset.accessory === 'rp-bear' ? 12 : 48, y: 5 },
+                chin: { x: ['rp-bear', 'grad-scroll'].includes(button.dataset.accessory) ? 12 : 48, y: 5 },
                 eyeCenter: { x: 48, y: 29 },
                 forehead: { x: 48, y: 46 },
                 angle: 0

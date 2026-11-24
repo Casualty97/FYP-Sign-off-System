@@ -225,6 +225,7 @@ const FACE_LANDMARKER_MODEL_URL = 'https://storage.googleapis.com/mediapipe-mode
 const FACE_ACCESSORY_OPTIONS = [
     { id: 'none', label: 'No filter' },
     { id: 'graduation', label: 'Graduation cap' },
+    { id: 'grad-scroll', label: 'Graduation scroll' },
     { id: 'rp-tie', label: 'RP tie' },
     { id: 'rp-bear', label: 'RP shoulder bear' }
 ];
