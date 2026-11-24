@@ -277,13 +277,47 @@ function drawShoulderBear(ctx, geometry, _time, frameWidth = Infinity) {
     });
 }
 
-// Estimate the shoulder from the chin and use the side with more room in the frame.
-function drawGraduationScroll(ctx, geometry, _time, frameWidth = Infinity) {
-    const { chin, faceHeight, angle } = geometry;
-    const side = chin.x > frameWidth / 2 ? -1 : 1;
-    const shoulder = { x: chin.x + side * faceHeight * 0.66, y: chin.y + faceHeight * 0.22 };
-    withAccessoryTransform(ctx, shoulder, angle * 0.3 - side * 0.32, () => {
-        ctx.scale(faceHeight, faceHeight);
+// Check finger extension from the wrist without assuming the hand is upright.
+function getOpenPalm(landmarks, width, height) {
+    const points = landmarks.map(({ x, y }) => ({ x: x * width, y: y * height }));
+    if (points.length < 21) return null;
+    const distance = (first, second) => Math.hypot(points[first].x - points[second].x, points[first].y - points[second].y);
+    const palmSize = distance(0, 9);
+    if (palmSize < 8 || ![8, 12, 16, 20].every(tip => distance(0, tip) > distance(0, tip - 2) + palmSize * 0.12)) return null;
+    const x = (points[0].x + points[5].x + points[17].x) / 3;
+    const y = (points[0].y + points[5].y + points[17].y) / 3;
+    if (x < 0 || x >= width || y < 0 || y >= height) return null;
+    return { center: { x, y }, size: palmSize * 2.35 };
+}
+
+let scrollPalm = null;
+let scrollPalmVideoTime = -Infinity;
+
+function drawCameraAccessory(ctx, video, landmarks, width, height, capture = false) {
+    if (selectedFaceAccessory !== 'grad-scroll') {
+        drawFaceAccessory(ctx, landmarks, width, height);
+        return;
+    }
+    if (!bgHandLandmarker || video.readyState < 2) return;
+    const time = video.currentTime;
+    if (capture || time < scrollPalmVideoTime || time - scrollPalmVideoTime >= 0.08) {
+        scrollPalmVideoTime = time;
+        scrollPalm = null;
+        try {
+            for (const hand of confidentBackgroundHands(bgHandLandmarker.detect(video))) {
+                const palm = getOpenPalm(hand, width, height);
+                if (palm && (!scrollPalm || palm.size > scrollPalm.size)) scrollPalm = palm;
+            }
+        } catch (error) {
+            console.warn('Scroll hand tracking failed:', error.message);
+        }
+    }
+    if (scrollPalm) drawGraduationScroll(ctx, scrollPalm);
+}
+
+function drawGraduationScroll(ctx, { center, size }) {
+    withAccessoryTransform(ctx, center, -0.22, () => {
+        ctx.scale(size, size);
         const paper = ctx.createLinearGradient(0, -0.11, 0, 0.11);
         paper.addColorStop(0, '#fff8e3');
         paper.addColorStop(1, '#e7cca0');
@@ -321,18 +355,17 @@ function drawGraduationScroll(ctx, geometry, _time, frameWidth = Infinity) {
 
 const FACE_ACCESSORY_RENDERERS = {
     graduation: drawGraduationAccessory,
-    'grad-scroll': drawGraduationScroll,
     'rp-tie': drawPhotoTie,
     'rp-bear': drawShoulderBear
 };
 
-function drawFaceAccessoryForCameraView(ctx, landmarks, width, height) {
+function drawFaceAccessoryForCameraView(ctx, video, landmarks, width, height) {
     ctx.save();
     if (isMirrored) {
         ctx.translate(width, 0);
         ctx.scale(-1, 1);
     }
-    drawFaceAccessory(ctx, landmarks, width, height, performance.now());
+    drawCameraAccessory(ctx, video, landmarks, width, height);
     ctx.restore();
 }
 
@@ -350,13 +383,13 @@ function renderLiveFaceAccessory() {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (selectedFaceAccessory !== 'none') {
+        if (selectedFaceAccessory !== 'none' && selectedFaceAccessory !== 'grad-scroll') {
             if (video.currentTime !== latestFaceAccessoryVideoTime) {
                 latestFaceAccessoryLandmarks = detectFaceAccessoryLandmarks(video);
                 latestFaceAccessoryVideoTime = video.currentTime;
             }
-            drawFaceAccessoryForCameraView(ctx, latestFaceAccessoryLandmarks, canvas.width, canvas.height);
         }
+        drawFaceAccessoryForCameraView(ctx, video, latestFaceAccessoryLandmarks, canvas.width, canvas.height);
     }
 
     faceAccessoryAnimationFrame = requestAnimationFrame(renderLiveFaceAccessory);
@@ -371,8 +404,17 @@ async function startFaceAccessoryPreview() {
     }
 
     try {
-        await ensureFaceLandmarkerReady();
-        renderLiveFaceAccessory();
+        if (selectedFaceAccessory === 'grad-scroll') {
+            const tracker = await ensureHandLandmarkerReady();
+            if (selectedFaceAccessory !== 'grad-scroll' || !stream) return;
+            if (!tracker) {
+                document.getElementById('grad-scroll-hint').textContent = 'Hand tracking is unavailable. Try selecting Grad Scroll again.';
+                return;
+            }
+        } else {
+            await ensureFaceLandmarkerReady();
+        }
+        if (!faceAccessoryAnimationFrame && stream) renderLiveFaceAccessory();
     } catch (error) {
         console.warn('Face accessory preview disabled:', error.message);
     }
@@ -383,6 +425,8 @@ function stopFaceAccessoryPreview() {
         cancelAnimationFrame(faceAccessoryAnimationFrame);
         faceAccessoryAnimationFrame = null;
     }
+    scrollPalm = null;
+    scrollPalmVideoTime = -Infinity;
     latestFaceAccessoryLandmarks = null;
     latestFaceAccessoryVideoTime = -1;
     clearFaceAccessoryCanvas();
@@ -395,6 +439,11 @@ function updateFaceAccessoryButtons() {
         button.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
 
+    const hint = document.getElementById('grad-scroll-hint');
+    if (hint) {
+        hint.hidden = selectedFaceAccessory !== 'grad-scroll';
+        hint.textContent = hint.hidden ? '' : 'Open your hand and show your palm to the camera to hold the scroll.';
+    }
     const activeLabel = document.getElementById('face-filter-active');
     const option = FACE_ACCESSORY_OPTIONS.find(item => item.id === selectedFaceAccessory);
     if (activeLabel && option) {
@@ -459,10 +508,13 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
         const context = preview?.getContext('2d');
         if (context) {
             context.clearRect(0, 0, preview.width, preview.height);
+            if (button.dataset.accessory === 'grad-scroll') {
+                drawGraduationScroll(context, { center: { x: 48, y: 25 }, size: 65 });
+            }
             FACE_ACCESSORY_RENDERERS[button.dataset.accessory]?.(context, {
                 eyeDistance: 42,
                 faceHeight: 56,
-                chin: { x: ['rp-bear', 'grad-scroll'].includes(button.dataset.accessory) ? 12 : 48, y: 5 },
+                chin: { x: button.dataset.accessory === 'rp-bear' ? 12 : 48, y: 5 },
                 eyeCenter: { x: 48, y: 29 },
                 forehead: { x: 48, y: 46 },
                 angle: 0
@@ -494,6 +546,11 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
 }
 
 async function getCurrentFaceAccessoryLandmarks() {
+    if (selectedFaceAccessory === 'grad-scroll') {
+        await ensureHandLandmarkerReady();
+        return null;
+    }
+
     if (selectedFaceAccessory === 'none') {
         return null;
     }

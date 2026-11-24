@@ -372,7 +372,7 @@ function captureVideoFrameDataUrl(faceDetection = null, faceAccessoryLandmarks =
     const backgroundPicture = allowBackground ? getBackgroundCompositeCanvas(video) : null;
     drawPhotoWithBeautyFilter(context, backgroundPicture || video, 0, 0, canvas.width, canvas.height, faceDetection);
     //zihan end
-    drawFaceAccessory(context, faceAccessoryLandmarks, canvas.width, canvas.height);
+    drawCameraAccessory(context, video, faceAccessoryLandmarks, canvas.width, canvas.height, true);
     return canvas.toDataURL('image/png');
 }
 

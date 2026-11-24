@@ -107,6 +107,35 @@ async function createBackgroundTask(createTask, modelUrls, extraOptions) {
     throw lastError;
 }
 
+let handLandmarkerLoadPromise = null;
+
+function ensureHandLandmarkerReady(HandLandmarker, vision) {
+    if (bgHandLandmarker) return Promise.resolve(bgHandLandmarker);
+    if (handLandmarkerLoadPromise) return handLandmarkerLoadPromise;
+
+    const load = async () => {
+        if (!HandLandmarker) {
+            const tasks = await import(MEDIAPIPE_TASKS_VISION_URL);
+            HandLandmarker = tasks.HandLandmarker;
+            vision = await tasks.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
+        }
+        bgHandLandmarker = await createBackgroundTask(
+            (options) => HandLandmarker.createFromOptions(vision, options),
+            BG_HAND_MODEL_URLS,
+            { runningMode: 'IMAGE', numHands: 2, minHandDetectionConfidence: BG_HAND_CONFIDENCE, minHandPresenceConfidence: BG_HAND_CONFIDENCE }
+        );
+        return bgHandLandmarker;
+    };
+
+    handLandmarkerLoadPromise = load().catch((error) => {
+        console.warn('Hand tracking could not load:', error);
+        return null;
+    }).finally(() => {
+        handLandmarkerLoadPromise = null;
+    });
+    return handLandmarkerLoadPromise;
+}
+
 function ensureBackgroundReady() {
     if (bgToolReady) return Promise.resolve(true);
     if (bgToolLoadPromise) return bgToolLoadPromise;
@@ -125,22 +154,8 @@ function ensureBackgroundReady() {
             const labelIndex = labels.findIndex((label) => /person|foreground/i.test(label));
             bgPersonMaskIndex = labelIndex >= 0 ? labelIndex : 0;
 
-            // The hand model is a bonus. If it fails, the background still works without hand protection.
-            try {
-                bgHandLandmarker = await createBackgroundTask(
-                    (options) => HandLandmarker.createFromOptions(vision, options),
-                    BG_HAND_MODEL_URLS,
-                    {
-                        runningMode: 'IMAGE',
-                        numHands: 2,
-                        minHandDetectionConfidence: BG_HAND_CONFIDENCE,
-                        minHandPresenceConfidence: BG_HAND_CONFIDENCE
-                    }
-                );
-            } catch (handError) {
-                console.warn('Background: hand model could not load, continuing without hand protection.', handError);
-                bgHandLandmarker = null;
-            }
+            // Hand protection is optional for backgrounds.
+            await ensureHandLandmarkerReady(HandLandmarker, vision);
 
             bgToolReady = true;
             return true;
