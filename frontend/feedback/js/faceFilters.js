@@ -129,62 +129,6 @@ function withAccessoryTransform(ctx, center, angle, drawFn) {
     ctx.restore();
 }
 
-function drawRpGraduationGown(ctx, geometry) {
-    const { chin, faceHeight, angle } = geometry;
-    // Keep the neckline below the chin and use a smaller tilt for the shoulders.
-    withAccessoryTransform(ctx, chin, angle * 0.3, () => {
-        ctx.scale(faceHeight, faceHeight);
-        const fabric = ctx.createLinearGradient(-0.9, 0, 0.9, 0);
-        fabric.addColorStop(0, '#292e39');
-        fabric.addColorStop(0.47, '#141820');
-        fabric.addColorStop(1, '#252a34');
-
-        ctx.beginPath();
-        ctx.moveTo(-0.23, 0.15);
-        ctx.bezierCurveTo(-0.43, 0.12, -0.75, 0.24, -0.89, 0.46);
-        ctx.quadraticCurveTo(-1.02, 0.70, -1.07, 1.36);
-        ctx.lineTo(1.07, 1.36);
-        ctx.quadraticCurveTo(1.02, 0.70, 0.89, 0.46);
-        ctx.bezierCurveTo(0.75, 0.24, 0.43, 0.12, 0.23, 0.15);
-        ctx.quadraticCurveTo(0, 0.49, -0.23, 0.15);
-        ctx.closePath();
-        ctx.fillStyle = fabric;
-        ctx.fill();
-
-        ctx.strokeStyle = '#373d49';
-        ctx.lineWidth = 0.017;
-        ctx.beginPath();
-        ctx.moveTo(-0.77, 0.52);
-        ctx.quadraticCurveTo(-0.64, 0.83, -0.71, 1.35);
-        ctx.moveTo(0.77, 0.52);
-        ctx.quadraticCurveTo(0.64, 0.83, 0.71, 1.35);
-        ctx.stroke();
-
-        const hood = ctx.createLinearGradient(0, 0.13, 0, 0.61);
-        hood.addColorStop(0, '#99dc81');
-        hood.addColorStop(1, '#46a65c');
-        ctx.beginPath();
-        ctx.moveTo(-0.23, 0.15);
-        ctx.bezierCurveTo(-0.42, 0.12, -0.57, 0.18, -0.67, 0.25);
-        ctx.quadraticCurveTo(-0.37, 0.30, 0, 0.60);
-        ctx.quadraticCurveTo(0.37, 0.30, 0.67, 0.25);
-        ctx.bezierCurveTo(0.57, 0.18, 0.42, 0.12, 0.23, 0.15);
-        ctx.quadraticCurveTo(0, 0.49, -0.23, 0.15);
-        ctx.closePath();
-        ctx.fillStyle = hood;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(-0.74, 0.33);
-        ctx.quadraticCurveTo(-0.45, 0.32, 0, 0.68);
-        ctx.quadraticCurveTo(0.45, 0.32, 0.74, 0.33);
-        ctx.strokeStyle = '#ed549c';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = 0.029;
-        ctx.stroke();
-    });
-}
-
 function drawGraduationAccessory(ctx, geometry, time) { // Graduation cap face filter (DONE BY NICK)
     const center = {
         x: geometry.forehead.x,
@@ -334,7 +278,6 @@ function drawShoulderBear(ctx, geometry, _time, frameWidth = Infinity) {
 }
 
 const FACE_ACCESSORY_RENDERERS = {
-    'rp-gown': drawRpGraduationGown,
     graduation: drawGraduationAccessory,
     'rp-tie': drawPhotoTie,
     'rp-bear': drawShoulderBear
@@ -475,7 +418,7 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
             context.clearRect(0, 0, preview.width, preview.height);
             FACE_ACCESSORY_RENDERERS[button.dataset.accessory]?.(context, {
                 eyeDistance: 42,
-                faceHeight: button.dataset.accessory === 'rp-gown' ? 36 : 56,
+                faceHeight: 56,
                 chin: { x: button.dataset.accessory === 'rp-bear' ? 12 : 48, y: 5 },
                 eyeCenter: { x: 48, y: 29 },
                 forehead: { x: 48, y: 46 },

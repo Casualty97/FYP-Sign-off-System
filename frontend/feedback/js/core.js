@@ -224,7 +224,6 @@ const FACE_LANDMARKER_MODEL_URL = 'https://storage.googleapis.com/mediapipe-mode
 // Swipeable animated face filter options - changes made by nick
 const FACE_ACCESSORY_OPTIONS = [
     { id: 'none', label: 'No filter' },
-    { id: 'rp-gown', label: 'RP graduation gown' },
     { id: 'graduation', label: 'Graduation cap' },
     { id: 'rp-tie', label: 'RP tie' },
     { id: 'rp-bear', label: 'RP shoulder bear' }
