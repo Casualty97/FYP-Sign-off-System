@@ -346,8 +346,8 @@ function healthBatteryCell(device) {
 }
 
 function healthTabletStatus(device) {
-    return device.online ? uiPill('ok', 'Reporting')
-        : `${uiPill('muted', 'Not reporting')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(device.seconds_ago))}</div>`;
+    return device.online ? uiPill('ok', 'Online')
+        : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(device.seconds_ago))}</div>`;
 }
 
 function renderHealthTablets(check, force) {
