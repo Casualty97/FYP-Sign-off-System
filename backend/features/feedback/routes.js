@@ -309,6 +309,7 @@ function parsePhotoDataUrl(photo, fallbackMime = 'image/png') { // changes made 
 
 function sanitizeLostFoundPhotoName(name) { // Lost & Found photo filename cleanup (DONE BY NICK)
     return String(name || 'item-photo')
+        .slice(0, 200) // <Jun Kai/> the patterns below get slow on a very long name; only 48 characters are kept anyway
         .replace(/\.[^.]+$/, '')
         .replace(/[^a-z0-9_-]+/gi, '_')
         .replace(/^_+|_+$/g, '')
@@ -648,6 +649,12 @@ router.post('/submit-feedback', requestLimit.kioskForms, async (req, res) => {
     const startTime = Date.now();
     const requestBody = req.body || {};
     const userData = requestBody.userData || {};
+    // <Jun Kai start> an email longer than any real one (254 characters) is refused before a pattern looks at it: a very
+    // long made-up address makes the email pattern slow enough to hold up the whole server
+    if (typeof userData.email === 'string' && userData.email.length > 254) {
+        return res.status(400).json({ success: false, message: 'Feedback validation failed', errors: [{ field: 'email', message: 'Email format is invalid.' }] });
+    }
+    // <Jun Kai end>
     const device = requestBody.device || 'unknown';
     const theme = requestBody.theme || 'unknown';
     requestBody.retention = 'longterm';
@@ -1119,6 +1126,7 @@ router.post('/visitor-passport', requestLimit.visitorLookup, (req, res) => {
 // Validate email format
 function isValidEmail(email) {
     if (!email || typeof email !== 'string') return false;
+    if (email.length > 254) return false; // <Jun Kai/> no real email is longer, and a very long one makes the pattern slow
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
