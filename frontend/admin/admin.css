@@ -8853,6 +8853,12 @@ html[data-theme="dark"] .users-btn.ui-danger:hover:not(:disabled) { background: 
 @media (max-width: 1299px) { .users-layout { grid-template-columns: 1fr; } }
 /* <Jun Kai end> */
 
+/* <Jun Kai start> Lost & Found: the encrypted contact with its Decrypt and Hide links */
+.lf-locked { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--color-dark-gray); white-space: nowrap; }
+.lf-contact { overflow-wrap: anywhere; }
+.lf-contact-btn { display: block; margin-top: 2px; font-size: 12px; }
+/* <Jun Kai end> */
+
 /* <Jun Kai start> Data Export A: the unlock bar on top and the nine downloads in four groups. Locked, the cards are
    greyed out and say Locked; unlocked, the bar turns green and each card has its Download button. */
 .dx-unlock { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 0 0 6px; padding: 16px 20px; border-radius: 14px; background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
