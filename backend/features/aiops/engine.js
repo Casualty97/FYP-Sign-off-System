@@ -1,6 +1,6 @@
 // Owner: Role 3, Jun Kai.
 // Runs the anomaly detection in backend/server.js: every intervalSeconds it loads the last day of hardware samples,
-// the health recorder's runs, the named tablets and the new log lines, hands them to the incident engine
+// the health recorder's runs and the new log lines, hands them to the incident engine
 // (incidents.js over the SQL store) and keeps the status the System Health page shows. The master switch in the
 // settings turns the detection off; the advisor keeps its own switch.
 // <Jun Kai start>
@@ -33,7 +33,6 @@ function createRunner(overrides = {}) {
         hardware: () => require('../hardware/settings'),
         control: () => require('../serverControl/control'),
         policies: () => require('../serverControl/policies'),
-        tabletNames: () => require('../health/tabletNames'),
         settings: () => settings.read(),
         audit: (action, by, id) => require('../../core/audit').logAudit(action, by, 'incident', id, null),
         files: () => [log.eventFile('server'), log.eventFile('kiosk')],
@@ -43,9 +42,9 @@ function createRunner(overrides = {}) {
     const state = {
         started: false, timer: null, intervalSeconds: settings.DEFAULTS.intervalSeconds,
         lastTickAt: null, nextTickAt: null, lastResult: null, lastError: null,
-        states: {}, notes: {}, sampleHours: 0, namedTablets: 0, lastPrune: 0, logged: new Set(),
-        // awakeSince: when the server started or the PC last woke up; quietEndedAt: when quiet hours last ended
-        awakeSince: d.now().getTime(), lastTickMs: null, quietWas: false, quietEndedAt: 0
+        states: {}, notes: {}, sampleHours: 0, lastPrune: 0, logged: new Set(),
+        // awakeSince: when the server started or the PC last woke up
+        awakeSince: d.now().getTime(), lastTickMs: null
     };
     const reader = createLogReader(d.files(), { now: () => d.now().getTime() });
     const current = () => d.settings();
@@ -94,7 +93,7 @@ function createRunner(overrides = {}) {
         now: d.now
     });
 
-    // In AUTO mode while the policies say the kiosk is off, the kiosk and tablet detectors are muted
+    // In AUTO mode while the policies say the kiosk is off, the kiosk server check is muted
     function quietNow(now, conf) {
         if (!conf.quietHours) return false;
         try {
@@ -102,19 +101,6 @@ function createRunner(overrides = {}) {
             return !d.policies().status(d.control().readSchedulesConfig().schedules, now).on;
         } catch {
             return false;
-        }
-    }
-
-    // every tablet that ever reported, with the name an admin gave it (only named ones are watched) and how long
-    // ago it last reported; read fresh at every check. No heartbeat table yet (before db:migrate) means no tablets.
-    async function loadDevices() {
-        try {
-            const rows = await all('SELECT device_id, TIMESTAMPDIFF(SECOND, last_seen, NOW()) AS seconds_ago FROM device_heartbeats ORDER BY last_seen DESC LIMIT 200', []);
-            const names = d.tabletNames().all() || {};
-            return rows.map((row) => ({ device_id: row.device_id, name: names[row.device_id] || null, seconds_ago: Number(row.seconds_ago) }));
-        } catch (error) {
-            if (error && error.missingTable) return [];
-            throw error;
         }
     }
 
@@ -131,22 +117,18 @@ function createRunner(overrides = {}) {
     async function loadInput() {
         const now = d.now();
         const conf = current();
-        const [rows, hourRows, memoryBuckets, diskBuckets, diskPoints, latest, devices] = await Promise.all([
+        const [rows, hourRows, memoryBuckets, diskBuckets, diskPoints, latest] = await Promise.all([
             all(`SELECT ${SAMPLE_COLUMNS} FROM hardware_samples WHERE sampled_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY ORDER BY sampled_at`, []),
             all(`SELECT ${SAMPLE_COLUMNS} FROM hardware_samples WHERE sampled_at >= UTC_TIMESTAMP() - INTERVAL 14 DAY AND HOUR(CONVERT_TZ(sampled_at, '+00:00', '+08:00')) = ? ORDER BY sampled_at`, [detectors.sgtHour(now)]),
             means('memory_percent', 600, DAY / 1000),
             means('disk_percent', 3600, (7 * DAY) / 1000),
             means('disk_used_gb', 3600, (30 * DAY) / 1000),
-            all('SELECT disk_percent AS percent, disk_total_gb AS totalGb FROM hardware_samples ORDER BY sampled_at DESC LIMIT 1', []),
-            loadDevices()
+            all('SELECT disk_percent AS percent, disk_total_gb AS totalGb FROM hardware_samples ORDER BY sampled_at DESC LIMIT 1', [])
         ]);
         reader.readNew();
         state.sampleHours = input.spanHours(rows);
-        state.namedTablets = detectors.namedTablets(devices).length;
         const nowMs = now.getTime();
         const quiet = quietNow(now, conf);
-        if (state.quietWas && !quiet) state.quietEndedAt = nowMs;
-        state.quietWas = quiet;
         return input.assembleInput({
             now: nowMs,
             intervalSeconds: d.hardware().read().intervalSeconds,
@@ -154,13 +136,11 @@ function createRunner(overrides = {}) {
             totalGb: latest[0] ? latest[0].totalGb : null,
             percent: latest[0] ? latest[0].percent : null,
             runs: d.recorder().runs(),
-            devices,
             events: reader.events(24),
             known: reader.known(nowMs - DAY),
             historyHours: reader.historyHours(),
             quiet,
-            awakeSeconds: (nowMs - state.awakeSince) / 1000,
-            watchSeconds: (nowMs - Math.max(state.awakeSince, state.quietEndedAt)) / 1000
+            awakeSeconds: (nowMs - state.awakeSince) / 1000
         });
     }
 
@@ -308,8 +288,7 @@ function createRunner(overrides = {}) {
             data: {
                 sampleHours: state.sampleHours,
                 healthRuns: d.recorder().runs().length,
-                logHours: round1(reader.historyHours()),
-                namedTablets: state.namedTablets
+                logHours: round1(reader.historyHours())
             },
             quietNow: quietNow(d.now(), conf),
             recorder: d.recorder().getStatus(),

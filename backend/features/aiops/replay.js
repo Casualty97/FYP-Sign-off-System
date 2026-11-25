@@ -1,6 +1,6 @@
 // Owner: Role 3, Jun Kai.
-// Replay evaluation of the anomaly detection: a synthetic week of hardware samples, health runs, tablet heartbeats
-// and server log lines with seven planted faults, played minute by minute through the real detectors and incident
+// Replay evaluation of the anomaly detection: a synthetic week of hardware samples, health runs and server log
+// lines with six planted faults, played minute by minute through the real detectors and incident
 // engine on the memory store, then scored (precision, recall, minutes to detect). No clock, database or files.
 // <Jun Kai start>
 const detectors = require('./detectors');
@@ -19,8 +19,6 @@ const ERROR_CHANCE = 1 / 60; // about one error line an hour
 const WARN_CHANCE = 1 / 30; // and two warnings
 const BURST = [3, 3, 3, 3, 2, 2, 1, 1]; // errors per minute of the planted burst: 14 in the first 5 minutes
 const PROCESSES = ['server', 'kiosk'];
-const TABLETS = [{ device_id: 'tablet-1', name: 'Tablet 1' }, { device_id: 'tablet-2', name: 'Tablet 2' }];
-const PHONE = { device_id: 'phone-3f9c', name: null }; // opened the page once, never named: must never alarm
 
 // day 1 is the Monday the world starts on; hour and minute are Singapore time
 const at = (day, hour = 0, minute = 0) => START + (day - 1) * DAY + hour * HOUR + minute * MINUTE;
@@ -77,9 +75,8 @@ function plannedFaults(days) {
         { key: 'F2', title: 'Memory leak', expect: [['drift', 'rising', 'memory'], ['spike', 'high', 'memory'], ['timeOfDay', 'unusual', 'memory']], start: at(5), end: at(5) + 36 * HOUR, grace: 60 },
         { key: 'F3', title: 'Disk filling', expect: [['disk', 'filling', null], ['disk', 'full', null], ['drift', 'rising', 'disk']], start: at(2), end: worldEnd, windowStart: at(3), grace: 0 },
         { key: 'F4', title: 'Database down', expect: [['services', 'down', 'database']], start: at(3, 9), end: at(3, 9, 12), grace: 15 },
-        { key: 'F5', title: 'Tablet 2 offline', expect: [['tablets', 'offline', 'tablet-2']], start: at(6, 11), end: at(6, 11, 40), grace: 15 },
-        { key: 'F6', title: 'Error burst', expect: [['logs', 'burst', null]], start: at(2, 16), end: at(2, 16, BURST.length), grace: 10 },
-        { key: 'F7', title: 'New error shape', expect: [['logs', 'new', null]], start: at(6, 15, 30), end: at(6, 15, 31), grace: 15 }
+        { key: 'F5', title: 'Error burst', expect: [['logs', 'burst', null]], start: at(2, 16), end: at(2, 16, BURST.length), grace: 10 },
+        { key: 'F6', title: 'New error shape', expect: [['logs', 'new', null]], start: at(6, 15, 30), end: at(6, 15, 31), grace: 15 }
     ];
     return list
         .filter((f) => f.start < worldEnd)
@@ -92,7 +89,7 @@ function createWorld(random, faults) {
     const F = Object.fromEntries(faults.map((f) => [f.key, f]));
     const active = (key, t) => F[key] !== undefined && t >= F[key].start && t < F[key].end;
     const world = {
-        cpu: [], memory: [], gpu: [], disk: [], hourly: [], runs: [], events: [], eventMeta: [], heartbeats: [],
+        cpu: [], memory: [], gpu: [], disk: [], hourly: [], runs: [], events: [], eventMeta: [],
         byHour: Array.from({ length: 24 }, () => ({ cpu: [], memory: [], gpu: [] })), faults: F
     };
     const counts = { error: 0, warn: 0 };
@@ -101,7 +98,6 @@ function createWorld(random, faults) {
         return n < 2 * shapes.length ? shapes[n % shapes.length] : random.pick(shapes); // every shape is seen on day 1
     };
     const percent = (v) => Math.min(100, Math.max(0, v));
-    const beat = () => Math.max(0, Math.round(random.gauss(30, 20)));
 
     const addSample = (m, t) => {
         const hour = detectors.sgtHour(t);
@@ -130,7 +126,6 @@ function createWorld(random, faults) {
                 percent: hourRows.reduce((sum, p) => sum + p.v, 0) / hourRows.length
             });
         }
-        world.heartbeats.push([beat(), beat()]);
     };
 
     const addHealthRun = (t) => {
@@ -147,11 +142,11 @@ function createWorld(random, faults) {
 
     const addLogs = (t) => {
         const lines = [];
-        const burst = active('F6', t) ? BURST[Math.floor((t - F.F6.start) / MINUTE)] || 0 : 0;
+        const burst = active('F5', t) ? BURST[Math.floor((t - F.F5.start) / MINUTE)] || 0 : 0;
         for (let i = 0; i < burst; i++) lines.push({ level: 'error', message: ERROR_SHAPES[i % 2](random) });
         if (random.next() < ERROR_CHANCE) lines.push({ level: 'error', message: shapeOf('error', ERROR_SHAPES)(random) });
         if (random.next() < WARN_CHANCE) lines.push({ level: 'warn', message: shapeOf('warn', WARN_SHAPES)(random) });
-        if (F.F7 && t === F.F7.start) lines.push({ level: 'error', message: NEW_SHAPE(random) });
+        if (F.F6 && t === F.F6.start) lines.push({ level: 'error', message: NEW_SHAPE(random) });
         const seconds = lines.map(() => random.int(0, 59)).sort((a, b) => a - b);
         lines.forEach((line, i) => {
             const ms = t + seconds[i] * 1000;
@@ -172,7 +167,6 @@ function createWorld(random, faults) {
 // What the engine's load() hands the detectors at minute m: the pinned input shape, cut from the world's arrays
 // the way engine.js cuts it from the database and the recorder
 function createInput(world) {
-    const F = world.faults;
     let runStart = 0;
     let eventStart = 0;
     const known = new Set(); // templates of log lines older than 24 hours
@@ -191,8 +185,6 @@ function createInput(world) {
             hourSeries[metric] = list.slice(k);
         }
         const memory = world.memory.slice(from, m + 1);
-        const [beat1, beat2] = world.heartbeats[m];
-        const offline = F.F5 !== undefined && t >= F.F5.start && t < F.F5.end;
         return {
             now: t,
             intervalSeconds: 60,
@@ -204,13 +196,6 @@ function createInput(world) {
             },
             disk: { points: world.hourly.slice(-30 * 24).map((p) => ({ t: p.t, v: p.usedGb })), totalGb: TOTAL_GB, percent: world.disk[m].v },
             health: { runs: world.runs.slice(runStart) },
-            tablets: {
-                devices: [
-                    { ...TABLETS[0], seconds_ago: beat1 },
-                    { ...TABLETS[1], seconds_ago: offline ? Math.round((t - F.F5.start) / 1000) + 30 : beat2 },
-                    { ...PHONE, seconds_ago: 7 * 86400 + Math.round((t - START) / 1000) }
-                ]
-            },
             logs: { events: world.events.slice(eventStart), known, historyHours: world.events.length ? (t - world.eventMeta[0].ms) / HOUR : 0 },
             quiet: false
         };
@@ -261,7 +246,7 @@ function score(faults, rows, meta) {
     };
 }
 
-// run({ seed, days, stepMinutes, settings, onProgress }) -> the scored week. Samples, health runs, heartbeats and
+// run({ seed, days, stepMinutes, settings, onProgress }) -> the scored week. Samples, health runs and
 // logs arrive every minute whatever the step; the engine ticks every stepMinutes minutes. onProgress({ day, days,
 // ticks, ms }) is called at the end of each simulated day.
 async function run({ seed = 1, days = 7, stepMinutes = 1, settings = DEFAULTS, onProgress } = {}) {

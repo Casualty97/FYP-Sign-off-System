@@ -23,10 +23,10 @@ const engineAt = (store, clock, conf = settings.DEFAULTS) => incidents.createEng
     store, now: () => new Date(clock.t), load: async () => ({}), detect: () => ({ anomalies: [], states: {}, notes: {} }), settings: () => conf
 });
 
-test('five kinds, each with its real detector, a "test:" fingerprint and a first line that says the numbers are made up', () => {
-    assert.deepEqual(testIncidents.testKinds().map((k) => k.key), ['cpu', 'kiosk', 'disk', 'tablet', 'errors']);
+test('four kinds, each with its real detector, a "test:" fingerprint and a first line that says the numbers are made up', () => {
+    assert.deepEqual(testIncidents.testKinds().map((k) => k.key), ['cpu', 'kiosk', 'disk', 'errors']);
     assert.ok(testIncidents.testKinds().every((k) => k.label && typeof k.label === 'string'));
-    const detectorOf = { cpu: 'spike', kiosk: 'services', disk: 'disk', tablet: 'tablets', errors: 'logs' };
+    const detectorOf = { cpu: 'spike', kiosk: 'services', disk: 'disk', errors: 'logs' };
     for (const { key } of testIncidents.testKinds()) {
         const row = testIncidents.testIncident(key, NOW.getTime(), 'systemadmin');
         assert.equal(row.detector, detectorOf[key]);
@@ -53,7 +53,7 @@ test('openTest opens the chosen kind (CPU when none is given) and refuses a kind
     assert.deepEqual((await store.events(kiosk.id)).map((e) => [e.type, e.detail.test]), [['opened', true]]);
     const plain = await engine.openTest('systemadmin');
     assert.equal(plain.detector, 'spike');
-    await assert.rejects(engine.openTest('systemadmin', 'format-disk'), (error) => error.status === 400 && /cpu, kiosk, disk, tablet, errors/.test(error.message));
+    await assert.rejects(engine.openTest('systemadmin', 'format-disk'), (error) => error.status === 400 && /cpu, kiosk, disk, errors/.test(error.message));
 });
 
 test('a check closes a test incident 10 minutes after it opened, even while its detector looks or is switched off', async () => {
@@ -62,17 +62,17 @@ test('a check closes a test incident 10 minutes after it opened, even while its 
     const conf = { ...settings.DEFAULTS, clearAfterMinutes: 1 };
     const engine = incidents.createEngine({
         store, now: () => new Date(clock.t), load: async () => ({}), settings: () => conf,
-        // the detector of the CPU kind is held (a fresh wake-up) and the tablets detector is switched off
-        detect: () => ({ anomalies: [], states: {}, notes: {}, held: ['spike:'], closed: ['tablets:'] })
+        // the detector of the CPU kind is held (a fresh wake-up) and the server errors detector is switched off
+        detect: () => ({ anomalies: [], states: {}, notes: {}, held: ['spike:'], closed: ['logs:'] })
     });
     const cpu = await engine.openTest('a', 'cpu');
-    const tablet = await engine.openTest('a', 'tablet');
+    const errors = await engine.openTest('a', 'errors');
     clock.t += 5 * MINUTE;
     await engine.tick();
     assert.equal((await store.listOpen()).length, 2, 'still open after 5 minutes');
     clock.t += 5 * MINUTE;
     await engine.tick();
-    for (const id of [cpu.id, tablet.id]) {
+    for (const id of [cpu.id, errors.id]) {
         const after = await store.get(id);
         assert.deepEqual([after.status, after.resolved_by], ['resolved', 'auto']);
     }
@@ -154,7 +154,6 @@ test('through the runner: the old example incidents go at start, and a verdict o
             hardware: () => ({ read: () => ({ intervalSeconds: 60 }) }),
             control: () => ({ readModeConfig: () => ({ mode: 'manual' }), readSchedulesConfig: () => ({ schedules: [] }) }),
             policies: () => ({ status: () => ({ on: true }) }),
-            tabletNames: () => ({ all: () => ({}) }),
             settings: () => settings.DEFAULTS,
             learning: { read: () => ({}), write: (state) => writes.push(state) },
             audit: () => {},

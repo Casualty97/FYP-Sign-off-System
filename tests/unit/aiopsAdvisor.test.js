@@ -70,8 +70,7 @@ test('rule-based advice fits each detector, and every step it names is on the li
     assert.equal(step('services', 'slow', 'database'), 'check-mysql');
     assert.equal(step('services', 'down', 'kiosk'), 'restart-kiosk-server');
     assert.equal(step('services', 'down', 'email'), 'check-mail-login');
-    assert.equal(step('tablets', 'offline', 'tab-1'), 'check-tablet');
-    assert.equal(step('tablets', 'all-offline'), 'check-tablet');
+    assert.equal(Object.hasOwn(advisor.ACTIONS, 'check-tablet'), false, 'the tablet step went with the tablets detector');
     assert.equal(step('logs', 'burst'), 'review-server-log');
     assert.equal(step('drift', 'rising', 'disk'), 'run-archive-now');
     assert.equal(step('drift', 'rising', 'memory'), 'restart-kiosk-server');

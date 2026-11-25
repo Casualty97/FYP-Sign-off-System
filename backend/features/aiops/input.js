@@ -1,5 +1,5 @@
 // Owner: Role 3, Jun Kai.
-// Turns what the engine loaded (sample rows, bucket means, health runs, tablets, log lines) into the input the
+// Turns what the engine loaded (sample rows, bucket means, health runs, log lines) into the input the
 // detectors read. MySQL hands DECIMAL columns over as strings, so every number is converted here; anything that is
 // not a finite number becomes null and the detectors skip it. Pure functions, no database.
 // <Jun Kai start>
@@ -46,26 +46,23 @@ function spanHours(rows) {
 
 // rows: the last 24 h of samples [{ t, cpu, memory, gpu, disk }]; hourRows: the same shape for the last 14 days at
 // the same Singapore hour; memoryBuckets: 10-minute means of memory over 24 h; diskBuckets: hourly disk % over
-// 7 days; diskPoints: hourly used GB over 30 days; the rest comes straight from the recorder, the heartbeats and
-// the log reader. The result is the shape detectors.runAll reads.
-// awakeSeconds: time since the server started or the PC woke up; watchSeconds: time the PC has been awake with the
-// kiosk meant to be on (both null when unknown).
+// 7 days; diskPoints: hourly used GB over 30 days; the rest comes straight from the recorder and the log
+// reader. The result is the shape detectors.runAll reads.
+// awakeSeconds: time since the server started or the PC woke up (null when unknown).
 function assembleInput({
     now, intervalSeconds, rows, hourRows, memoryBuckets, diskBuckets, diskPoints, totalGb, percent,
-    runs, devices, events, known, historyHours, quiet, awakeSeconds, watchSeconds
+    runs, events, known, historyHours, quiet, awakeSeconds
 } = {}) {
     const at = toMs(now);
     return {
         now: at === null ? Date.now() : at,
         intervalSeconds: num(intervalSeconds) || 60,
         awakeSeconds: num(awakeSeconds),
-        watchSeconds: num(watchSeconds),
         samples: { cpu: series(rows, 'cpu'), memory: series(rows, 'memory'), gpu: series(rows, 'gpu'), disk: series(rows, 'disk') },
         hourSeries: { cpu: series(hourRows, 'cpu'), memory: series(hourRows, 'memory'), gpu: series(hourRows, 'gpu') },
         driftSeries: { memory: points(memoryBuckets), disk: points(diskBuckets) },
         disk: { points: points(diskPoints), totalGb: num(totalGb), percent: num(percent) },
         health: { runs: Array.isArray(runs) ? runs : [] },
-        tablets: { devices: Array.isArray(devices) ? devices : [] },
         logs: {
             events: Array.isArray(events) ? events : [],
             known: known instanceof Set ? known : new Set(Array.isArray(known) ? known : []),

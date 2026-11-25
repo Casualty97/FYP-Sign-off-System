@@ -14,7 +14,6 @@ const DETECTORS = [
     { key: 'drift', label: 'Slow creep', description: 'Memory or disk use rising steadily for hours' },
     { key: 'disk', label: 'Disk filling up', description: 'Full within days at the current growth, or over 90 %' },
     { key: 'services', label: 'Services down or slow', description: 'MySQL, the kiosk server or the mail login' },
-    { key: 'tablets', label: 'Named tablets offline', description: 'A tablet with a name stops reporting' },
     { key: 'logs', label: 'Server errors', description: 'A burst of errors, or a kind of error never seen before' }
 ];
 const DEFAULTS = {

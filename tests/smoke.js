@@ -438,11 +438,13 @@ async function archiveStep(cookie) {
       await expect('GET /api/admin/server-schedules/preview with the session', `${BASE}/api/admin/server-schedules/preview?days=7`, (r) => r.body && r.body.success === true && !!r.body.preview && Array.isArray(r.body.preview.days) && r.body.preview.days.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/server-schedules/preview from a picked date', `${BASE}/api/admin/server-schedules/preview?days=7&from=2027-01-04`, (r) => r.body && r.body.success === true && r.body.preview.start === '2027-01-04' && r.body.preview.days.length === 7 && typeof r.body.preview.manual === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/server-schedules/preview refuses a date that does not exist', `${BASE}/api/admin/server-schedules/preview?from=2026-02-30`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
-      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 9 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
-      await expect('PUT /api/admin/health/tablets/x/name refuses a bad device id', `${BASE}/api/admin/health/tablets/x/name`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ name: 'Tablet 1' }) });
+      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 8 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
+      // the Tablets section was taken out of System Health (25 Nov 2026): naming a tablet and Offline after went with it
+      await expect('PUT /api/admin/health/tablets/x/name is gone', `${BASE}/api/admin/health/tablets/x/name`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ name: 'Tablet 1' }) });
+      await expect('GET /api/admin/health/settings is gone', `${BASE}/api/admin/health/settings`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
       // anomaly detection, read-only: the engine status, the settings and the incident list
-      await expect('GET /api/admin/aiops/status with the session', `${BASE}/api/admin/aiops/status`, (r) => r.body && r.body.success === true && !!r.body.status && Array.isArray(r.body.status.detectors) && r.body.status.detectors.length === 7 && typeof r.body.status.enabled === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
-      await expect('GET /api/admin/aiops/settings with the session', `${BASE}/api/admin/aiops/settings`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.settings.detectors && !!r.body.settings.detectors.spike && typeof r.body.settings.detectors.spike.sensitivity === 'number' && Array.isArray(r.body.detectors) && r.body.detectors.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/aiops/status with the session', `${BASE}/api/admin/aiops/status`, (r) => r.body && r.body.success === true && !!r.body.status && Array.isArray(r.body.status.detectors) && r.body.status.detectors.length === 6 && !r.body.status.detectors.some((d) => d.key === 'tablets') && typeof r.body.status.enabled === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/aiops/settings with the session', `${BASE}/api/admin/aiops/settings`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.settings.detectors && !!r.body.settings.detectors.spike && typeof r.body.settings.detectors.spike.sensitivity === 'number' && Array.isArray(r.body.detectors) && r.body.detectors.length === 6 || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/aiops/incidents?status=all with the session', `${BASE}/api/admin/aiops/incidents?status=all`, (r) => r.body && r.body.success === true && Array.isArray(r.body.incidents) || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai end>
       await expect('GET /api/admin/server/automation with the session', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.success === true && r.body.automation && r.body.automation.enabled === false || `automation=${JSON.stringify(r.body && r.body.automation).slice(0, 120)}`, { headers: { cookie } });
@@ -480,22 +482,11 @@ async function archiveStep(cookie) {
           try { fs.unlinkSync(path.join(ROOT, 'uploads', 'photos', photoId)); } catch { /* already gone */ }
         }
       } catch (e) { fail(`a visitor opens its own photo: ${e.message}`); }
-      // a failing tablets query only turns the card to unknown, so check the row really comes back
+      // the heartbeat above is still taken (the closed screen in off hours uses it), but System Health no longer lists tablets
       if (cookie) {
-        await expect('GET /api/admin/health lists the smoke tablet', `${BASE}/api/admin/health?all=1`, (r) => {
-          const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
-          const devices = (tablets && tablets.detail && tablets.detail.devices) || [];
-          return devices.some((d) => d.device_id === 'smoke-tablet-01') || `tablets: ${JSON.stringify(tablets && { status: tablets.status, summary: tablets.summary }).slice(0, 160)}`;
-        }, { headers: { cookie } });
+        await expect('GET /api/admin/health has no Tablets check', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length === 7 && !r.body.health.checks.some((c) => c.key === 'tablets') || r.text.slice(0, 160), { headers: { cookie } });
         const put = (b) => ({ method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(b) });
-        await expect('PUT /api/admin/health/tablets/smoke-tablet-01/name names the smoke tablet', `${BASE}/api/admin/health/tablets/smoke-tablet-01/name`, (r) => r.body && r.body.success === true && r.body.name === 'Smoke tablet 1' || r.text.slice(0, 160), put({ name: '  Smoke   tablet 1 ' }));
-        await expect('GET /api/admin/health shows the tablet name', `${BASE}/api/admin/health?all=1`, (r) => {
-          const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
-          const device = ((tablets && tablets.detail && tablets.detail.devices) || []).find((d) => d.device_id === 'smoke-tablet-01');
-          return device && device.name === 'Smoke tablet 1' || `device: ${JSON.stringify(device || null).slice(0, 160)}`;
-        }, { headers: { cookie } });
-        await expect('PUT an empty name gives the smoke tablet its device name back', `${BASE}/api/admin/health/tablets/smoke-tablet-01/name`, (r) => r.body && r.body.success === true && r.body.name === null || r.text.slice(0, 160), put({ name: '' }));
-        // <Jun Kai start> the alert lines and Offline after: a line per part, refused values, round trips put back as they were
+        // <Jun Kai start> the alert lines: a line per part, refused values, round trips put back as they were
         const hwSaved = (await get(`${BASE}/api/admin/hardware/settings`, { headers: { cookie } })).body;
         await expect('GET /api/admin/hardware/settings has an alert line for every part', `${BASE}/api/admin/hardware/settings`, (r) => r.body && r.body.alerts && ['cpu', 'memory', 'gpu', 'disk'].every((p) => r.body.alerts[p] && r.body.alerts[p].critical > r.body.alerts[p].warn) || r.text.slice(0, 160), { headers: { cookie } });
         await expect('PUT /api/admin/hardware/alert-lines refuses red at or below amber', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.status === 400 && r.body && r.body.field === 'disk.critical' || `${r.status}: ${r.text.slice(0, 120)}`, put({ alerts: { disk: { warn: 90, critical: 90 } } }));
@@ -503,17 +494,6 @@ async function archiveStep(cookie) {
           await expect('PUT /api/admin/hardware/alert-lines saves a CPU line', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.body && r.body.success === true && r.body.alerts.cpu.warn === 70 && r.body.alerts.disk.warn === hwSaved.alerts.disk.warn || r.text.slice(0, 160), put({ alerts: { cpu: { warn: 70, critical: 90 } } }));
           await expect('PUT /api/admin/hardware/alert-lines puts the lines back', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.body && r.body.success === true && r.body.alerts.cpu.warn === hwSaved.alerts.cpu.warn || r.text.slice(0, 160), put({ alerts: hwSaved.alerts }));
         } else fail('PUT /api/admin/hardware/alert-lines round trip skipped: GET /api/admin/hardware/settings gave no alert lines');
-        const healthSaved = (await get(`${BASE}/api/admin/health/settings`, { headers: { cookie } })).body;
-        await expect('GET /api/admin/health/settings has the tablet window', `${BASE}/api/admin/health/settings`, (r) => r.body && r.body.success === true && Number.isInteger(r.body.settings.tabletOfflineMinutes) || r.text.slice(0, 160), { headers: { cookie } });
-        await expect('PUT /api/admin/health/settings refuses 1 minute', `${BASE}/api/admin/health/settings`, (r) => r.status === 400 && r.body && r.body.field === 'tabletOfflineMinutes' || `${r.status}: ${r.text.slice(0, 120)}`, put({ tabletOfflineMinutes: 1 }));
-        if (healthSaved && healthSaved.settings) {
-          await expect('PUT /api/admin/health/settings saves 10 minutes', `${BASE}/api/admin/health/settings`, (r) => r.body && r.body.success === true && r.body.settings.tabletOfflineMinutes === 10 || r.text.slice(0, 160), put({ tabletOfflineMinutes: 10 }));
-          await expect('GET /api/admin/health uses the 10-minute window for the tablets', `${BASE}/api/admin/health?all=1`, (r) => {
-            const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
-            return tablets && tablets.detail && tablets.detail.onlineWindowSeconds === 600 || `window: ${JSON.stringify(tablets && tablets.detail ? tablets.detail.onlineWindowSeconds : null)}`;
-          }, { headers: { cookie } });
-          await expect('PUT /api/admin/health/settings puts the window back', `${BASE}/api/admin/health/settings`, (r) => r.body && r.body.success === true && r.body.settings.tabletOfflineMinutes === healthSaved.settings.tabletOfflineMinutes || r.text.slice(0, 160), put(healthSaved.settings));
-        } else fail('PUT /api/admin/health/settings round trip skipped: GET /api/admin/health/settings gave no settings');
         // sign-out after no activity: the minutes, a refused value, a round trip put back as it was
         const idleSaved = (await get(`${BASE}/api/admin/sign-in-settings`, { headers: { cookie } })).body;
         await expect('GET /api/admin/sign-in-settings has the minutes', `${BASE}/api/admin/sign-in-settings`, (r) => r.body && r.body.success === true && Number.isInteger(r.body.settings.idleMinutes) && r.body.defaults.idleMinutes === 30 || r.text.slice(0, 160), { headers: { cookie } });

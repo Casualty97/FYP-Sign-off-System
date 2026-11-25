@@ -3391,7 +3391,7 @@
                         <div>
                             <h2>System Health</h2>
                             <!-- <Jun Kai start> -->
-                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation, with the open incidents in short (the full list is on the Incidents page). Refreshes every 30 seconds while this page is open.</p>
+                            <p>The checks the kiosk depends on, with the open incidents in short. The full list is on the Incidents page.</p>
                             <!-- <Jun Kai end> -->
                         </div>
                         <!-- <Jun Kai start> -->
@@ -3445,41 +3445,6 @@
                         <span id="health-history-note">One block is half an hour of the background checks.</span>
                     </div>
                     <!-- <Jun Kai end> -->
-                    <!-- <Jun Kai start> the Tablets list is the one panel under the cards: the Server PC card points to the Hardware page instead -->
-                    <div id="health-panels">
-                    <!-- <Jun Kai end> -->
-                        <div class="ui-card" id="health-tablets-card">
-                            <div class="ui-card-header">
-                                <div>
-                                    <h3>Tablets</h3>
-                                    <!-- <Jun Kai start> -->
-                                    <p>Each kiosk screen reports once a minute from the feedback page; one quiet for longer than Offline after shows as offline. Incidents use their own minutes (Incidents, Settings). Use the edit button next to a tablet to give it a name or a number.</p>
-                                    <!-- <Jun Kai end> -->
-                                </div>
-                                <!-- <Jun Kai start> when a quiet tablet counts as offline, for every admin (a System Admin changes it) -->
-                                <div class="health-offline-after">
-                                    <label class="ui-label" for="health-offline-after">Offline after</label>
-                                    <select class="ui-select" id="health-offline-after" onchange="saveHealthOfflineAfter()">
-                                        <option value="2">2 min</option>
-                                        <option value="3">3 min</option>
-                                        <option value="5">5 min</option>
-                                        <option value="10">10 min</option>
-                                        <option value="15">15 min</option>
-                                        <option value="30">30 min</option>
-                                    </select>
-                                </div>
-                                <!-- <Jun Kai end> -->
-                            </div>
-                            <div class="ui-table-wrap">
-                                <!-- <Jun Kai start> -->
-                                <table class="ui-table">
-                                    <thead><tr><th>Device</th><th>Page</th><th>Status</th><th>Address</th></tr></thead>
-                                    <tbody id="health-tablets"><tr><td colspan="4" class="ui-empty">No tablet has reported yet</td></tr></tbody>
-                                </table>
-                                <!-- <Jun Kai end> -->
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- <Jun Kai start> -->
@@ -3488,7 +3453,7 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Incidents</h2>
-                            <p>Unusual behaviour of the server PC, its services, the tablets and the server logs, found by comparing each with its own past. Refreshes every 30 seconds while this page is open.</p>
+                            <p>Unusual behaviour of the server PC, its services and the server logs, found by comparing each with its own past.</p>
                         </div>
                         <div class="ui-row inc-header-actions">
                             <span class="inc-chips" id="incidents-chips"></span>
@@ -3564,7 +3529,7 @@
                                     <div class="inc-drawer-title">Timing and keeping</div>
                                     <label class="inc-toggle-row">
                                         <span class="ui-switch"><input type="checkbox" id="incidents-quiet"><span class="ui-switch-track"></span></span>
-                                        <span class="inc-toggle-text"><strong>Quiet hours</strong><small>No tablet or kiosk alerts while the policies say the kiosk is off.</small></span>
+                                        <span class="inc-toggle-text"><strong>Quiet hours</strong><small>No kiosk server alerts while the policies say the kiosk is off.</small></span>
                                     </label>
                                     <div class="inc-drawer-grid">
                                         <div class="ui-field">

@@ -16,7 +16,9 @@ test('each detector only shows help that fits it; anything else from the advisor
     assert.deepEqual(playbooks.allowedFor(incident('services', 'down', 'database')), ['check-mysql', 'none']);
     assert.equal(playbooks.chooseAction(incident('disk', 'filling'), { action: 'restart-kiosk-server' }), 'free-disk-space');
     assert.equal(playbooks.chooseAction(incident('disk', 'filling'), { action: 'run-archive-now' }), 'run-archive-now');
-    assert.equal(playbooks.chooseAction(incident('tablets', 'offline', 't1'), null), 'check-tablet');
+    // an incident of the tablets detector that was taken out gets the neutral help, never an error
+    assert.equal(playbooks.chooseAction(incident('tablets', 'offline', 't1'), null), 'none');
+    assert.ok(playbooks.helpFor(incident('tablets', 'offline', 't1'), { action: 'check-tablet' }).steps.length >= 1);
     assert.equal(playbooks.chooseAction(incident('test', 'sample'), { action: 'check-mysql' }), 'none');
 });
 
@@ -72,9 +74,7 @@ test('a kiosk that is down leads with the fix when one is on offer, and the log 
     assert.equal(fixesOff.fix, null);
 });
 
-test('the steps name the real things: the tablet, the log file, MySQL', () => {
-    assert.match(texts(playbooks.helpFor(incident('tablets', 'offline', 't1', { name: 'Entrance' }), null).steps), /tablet \*\*Entrance\*\*/);
-    assert.match(texts(playbooks.helpFor(incident('tablets', 'all-offline'), null).steps), /Wi-Fi router/);
+test('the steps name the real things: the log file, MySQL', () => {
     assert.match(texts(playbooks.helpFor(incident('logs', 'burst', null, { process: 'kiosk' }), null).steps), /app-events-kiosk\.jsonl/);
     assert.match(texts(playbooks.helpFor(incident('logs', 'burst', null, { process: 'server' }), null).steps), /app-events-server\.jsonl/);
     assert.match(texts(playbooks.helpFor(incident('services', 'down', 'database'), null).steps), /MySQL84/);
@@ -86,8 +86,7 @@ test('every step of every help is well formed: text, even bold marks, closed key
         incident('spike', 'high', 'cpu'), incident('spike', 'high', 'memory'), incident('spike', 'high', 'gpu'), incident('timeOfDay', 'high', 'cpu'),
         incident('drift', 'rising', 'memory'), incident('drift', 'rising', 'disk'), incident('disk', 'filling'), incident('disk', 'full'),
         incident('services', 'down', 'kiosk'), incident('services', 'down', 'database'), incident('services', 'slow', 'database'),
-        incident('services', 'down', 'email'), incident('services', 'down', 'other'), incident('tablets', 'offline', 't1'),
-        incident('tablets', 'all-offline'), incident('logs', 'burst'), incident('logs', 'new'), incident('test', 'sample')
+        incident('services', 'down', 'email'), incident('services', 'down', 'other'), incident('logs', 'burst'), incident('logs', 'new'), incident('test', 'sample')
     ];
     for (const one of cases) {
         for (const action of playbooks.allowedFor(one)) {

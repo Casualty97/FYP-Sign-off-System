@@ -36,6 +36,7 @@ const incidentsDrawn = new WeakMap(); // element -> its HTML as last drawn
 
 const INCIDENT_SEVERITY = { critical: { tone: 'down', label: 'Critical' }, warn: { tone: 'warn', label: 'Attention' }, info: { tone: 'info', label: 'Info' } };
 const INCIDENT_VERDICT_LABEL = { correct: 'Correct', 'not-useful': 'Not useful', 'false-alarm': 'False alarm' };
+// tablets: a detector that was taken out (25 Nov 2026); the label stays for incidents it opened earlier
 const INCIDENT_DETECTOR_LABEL = {
     spike: 'Sudden spikes', timeOfDay: 'Unusual for the time of day', drift: 'Slow creep', disk: 'Disk filling up',
     services: 'Services down or slow', tablets: 'Named tablets offline', logs: 'Server errors', test: 'Test'
@@ -300,15 +301,7 @@ function renderIncidentsSummary() {
     incidentsPut(document.getElementById('incidents-note'), note);
 }
 
-// How many tablets have a name: from the detector status, else the Tablets check on this page
-function incidentsNamedTablets(status) {
-    if (status.data && incidentIsNumber(status.data.namedTablets)) return status.data.namedTablets;
-    const check = typeof healthTabletCheck === 'function' ? healthTabletCheck() : null;
-    const devices = check && check.detail && Array.isArray(check.detail.devices) ? check.detail.devices : null;
-    return devices ? devices.filter((d) => d.name).length : null;
-}
-
-function incidentsWatchingText(status, namedTablets) {
+function incidentsWatchingText(status) {
     const on = new Set((status.detectors || []).filter(incidentDetectorOn).map((d) => d.key));
     const parts = [];
     const hardware = ['spike', 'timeOfDay', 'drift'].some((key) => on.has(key));
@@ -316,11 +309,6 @@ function incidentsWatchingText(status, namedTablets) {
     else if (hardware) parts.push('CPU, memory and GPU');
     else if (on.has('disk')) parts.push('disk');
     if (on.has('services')) parts.push('3 services');
-    if (on.has('tablets')) {
-        if (namedTablets === 0) parts.push('no named tablet yet (name one in the Tablets panel to watch it)');
-        else if (namedTablets === null || namedTablets === undefined) parts.push('the named tablets');
-        else parts.push(`${namedTablets} named tablet${namedTablets === 1 ? '' : 's'}`);
-    }
     if (on.has('logs')) parts.push('the server logs');
     if (!parts.length) return 'Every detector is switched off. Open Settings to choose what to watch.';
     return `Watching ${incidentJoin(parts)}.`;
@@ -890,7 +878,7 @@ function incidentClearHtml() {
     if (incidentsError) return `<div class="inc-clear"><div class="inc-clear-title">Could not load the incidents</div><div class="inc-clear-text">${escapeHtmlSafe(incidentsError)}</div></div>`;
     if (!incidentsStatus) return '<div class="inc-clear"><div class="inc-clear-text">Loading the incidents</div></div>';
     if (incidentsStatus.enabled === false) return '<div class="inc-clear"><div class="inc-clear-title">Anomaly detection is off</div><div class="inc-clear-text">Nothing is compared and no incident is opened.</div><button type="button" class="ui-btn ui-btn-secondary" data-act="settings">Open Settings</button></div>';
-    return `<div class="inc-clear"><span class="inc-clear-icon">${INCIDENT_CHECK}</span><div class="inc-clear-title">No open incidents</div><div class="inc-clear-text">${escapeHtmlSafe(incidentsWatchingText(incidentsStatus, incidentsNamedTablets(incidentsStatus)))}</div></div>`;
+    return `<div class="inc-clear"><span class="inc-clear-icon">${INCIDENT_CHECK}</span><div class="inc-clear-title">No open incidents</div><div class="inc-clear-text">${escapeHtmlSafe(incidentsWatchingText(incidentsStatus))}</div></div>`;
 }
 
 // Zones are swapped only when their own HTML changed, so the buttons in the others keep focus; zones with buttons
@@ -1210,7 +1198,7 @@ function renderHealthIncidentsSummary(data) {
         const nowMs = Date.now();
         rowsHtml = all.length
             ? all.slice(0, 3).map((i) => incidentSummaryRow(i, nowMs)).join('') + (all.length > 3 ? `<div class="inc-sum-more">and ${all.length - 3} more on the Incidents page</div>` : '')
-            : `<div class="inc-sum-empty">No open incidents. ${escapeHtmlSafe(incidentsWatchingText(data.status || {}, incidentsNamedTablets(data.status || {})))}</div>`;
+            : `<div class="inc-sum-empty">No open incidents. ${escapeHtmlSafe(incidentsWatchingText(data.status || {}))}</div>`;
     }
     incidentsPut(chips, chipsHtml);
     incidentsPut(rows, rowsHtml);

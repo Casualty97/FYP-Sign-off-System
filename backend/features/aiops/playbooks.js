@@ -28,7 +28,6 @@ function allowedFor(incident) {
             if (subject === 'kiosk') return ['restart-kiosk-server', 'none'];
             if (subject === 'email') return ['check-mail-login', 'none'];
             return ['review-server-log', 'none'];
-        case 'tablets': return ['check-tablet', 'none'];
         case 'logs': return ['review-server-log', 'none'];
         default: return ['none'];
     }
@@ -113,24 +112,6 @@ const STEPS = {
         step('Paste it into the password box and press **Save**.'),
         step('This incident closes once the login works again.')
     ],
-    'check-tablet': (incident) => {
-        const evidence = incident.evidence && typeof incident.evidence === 'object' ? incident.evidence : {};
-        if (incident.kind === 'all-offline') {
-            return [
-                step('Check the kiosk PC is on the network: the network icon at the bottom right of the screen.'),
-                step('Check the Wi-Fi router is on: the tablets reach the kiosk PC through it.'),
-                step('On **System Health**, check the **Kiosk server** card: if it is down, start it first (**Operating Hours**).'),
-                step('Reopen the kiosk page on one tablet to see if it comes back.')
-            ];
-        }
-        const name = typeof evidence.name === 'string' && evidence.name.trim() ? evidence.name.trim() : 'the tablet';
-        return [
-            step(`Go to the tablet **${name}** and check the screen is on and it is charging.`),
-            step('Check it is on the same Wi-Fi as the kiosk PC (**Settings**, **Wi-Fi**).'),
-            step('Reopen the kiosk page: scan the QR code on the **Feedback QR Code** page, or pull down to refresh.'),
-            step('Within a minute it reports again and this incident closes by itself.')
-        ];
-    },
     'review-server-log': (incident) => {
         const evidence = incident.evidence && typeof incident.evidence === 'object' ? incident.evidence : {};
         const file = evidence.process === 'kiosk' ? 'app-events-kiosk.jsonl' : 'app-events-server.jsonl';
