@@ -226,7 +226,12 @@ async function updateLostFoundReportStatus(reportId, status) { // changes made b
 // Update pagination
 function updateAuditPagination(total) {
     const totalPages = Math.ceil(total / auditLogsPerPage);
-    document.getElementById('audit-page-info').textContent = `Page ${currentAuditPage} of ${totalPages || 1}`;
+    // <Jun Kai start> the redesigned page says which events it shows, like the Feedback list
+    const first = (currentAuditPage - 1) * auditLogsPerPage + 1;
+    const last = Math.min(total, currentAuditPage * auditLogsPerPage);
+    const filtered = total !== allAuditLogs.length ? ` (${allAuditLogs.length} in total)` : '';
+    document.getElementById('audit-page-info').textContent = total > 0 ? `Showing ${first} to ${last} of ${total}${filtered}` : 'Nothing to show';
+    // <Jun Kai end>
     document.getElementById('prev-audit-btn').disabled = currentAuditPage <= 1;
     document.getElementById('next-audit-btn').disabled = currentAuditPage >= totalPages;
 }
@@ -247,20 +252,6 @@ function nextAuditPage() {
         currentAuditPage++;
         displayAuditLogsPage();
         updateAuditPagination(filteredAuditLogs.length);
-    }
-}
-
-// Toggle advanced filters panel
-function toggleAdvancedFilters() {
-    const panel = document.getElementById('advanced-filters-panel');
-    const icon = document.getElementById('filter-toggle-icon');
-    
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-        icon.classList.add('rotated');
-    } else {
-        panel.style.display = 'none';
-        icon.classList.remove('rotated');
     }
 }
 
@@ -310,96 +301,6 @@ function setDateRangePreset(preset) {
     filterDateTo.value = formatDateToSGTString(todaySGT);
     filterDateFrom.value = formatDateToSGTString(startDate);
     filterAuditLogs();
-}
-
-// Update filter indicators (highlight active filters)
-function updateFilterIndicators() {
-    // Count active filters
-    let activeCount = 0;
-    
-    const searchInput = document.getElementById('audit-search-input');
-    const filterAction = document.getElementById('filter-action');
-    const filterUser = document.getElementById('filter-user');
-    const filterTargetType = document.getElementById('filter-target-type');
-    const filterIp = document.getElementById('filter-ip');
-    const filterDateFrom = document.getElementById('filter-date-from');
-    const filterDateTo = document.getElementById('filter-date-to');
-    
-    // Check and highlight each filter
-    if (searchInput && searchInput.value) {
-        activeCount++;
-    }
-    
-    if (filterAction && filterAction.value) {
-        activeCount++;
-        filterAction.classList.add('has-value');
-    } else if (filterAction) {
-        filterAction.classList.remove('has-value');
-    }
-    
-    if (filterUser && filterUser.value) {
-        activeCount++;
-        filterUser.classList.add('has-value');
-    } else if (filterUser) {
-        filterUser.classList.remove('has-value');
-    }
-    
-    if (filterTargetType && filterTargetType.value) {
-        activeCount++;
-        filterTargetType.classList.add('has-value');
-    } else if (filterTargetType) {
-        filterTargetType.classList.remove('has-value');
-    }
-    
-    if (filterIp && filterIp.value) {
-        activeCount++;
-        filterIp.classList.add('has-value');
-    } else if (filterIp) {
-        filterIp.classList.remove('has-value');
-    }
-    
-    if (filterDateFrom && filterDateFrom.value) {
-        activeCount++;
-        filterDateFrom.classList.add('has-value');
-    } else if (filterDateFrom) {
-        filterDateFrom.classList.remove('has-value');
-    }
-    
-    if (filterDateTo && filterDateTo.value) {
-        activeCount++;
-        filterDateTo.classList.add('has-value');
-    } else if (filterDateTo) {
-        filterDateTo.classList.remove('has-value');
-    }
-    
-    // Update active filters count
-    const activeFiltersCount = document.getElementById('active-filters-count');
-    if (activeFiltersCount) {
-        activeFiltersCount.textContent = activeCount;
-    }
-    
-    // Show/hide results info bar
-    const resultsInfoBar = document.getElementById('results-info-bar');
-    if (resultsInfoBar) {
-        if (activeCount > 0 || filteredAuditLogs.length !== allAuditLogs.length) {
-            resultsInfoBar.style.display = 'flex';
-        } else {
-            resultsInfoBar.style.display = 'none';
-        }
-    }
-}
-
-// Update results counts
-function updateResultsCounts() {
-    const filteredCount = document.getElementById('filtered-count');
-    const totalCount = document.getElementById('total-count');
-    const resultsCount = document.getElementById('results-count');
-    const totalLogs = document.getElementById('total-logs');
-    
-    if (filteredCount) filteredCount.textContent = filteredAuditLogs.length;
-    if (totalCount) totalCount.textContent = allAuditLogs.length;
-    if (resultsCount) resultsCount.textContent = filteredAuditLogs.length;
-    if (totalLogs) totalLogs.textContent = allAuditLogs.length;
 }
 
 // Download audit logs as Excel

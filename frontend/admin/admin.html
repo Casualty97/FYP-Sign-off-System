@@ -1794,153 +1794,83 @@
                 </div>
 
                 <div id="audit-page" class="page">
-                    <div class="page-header">
-                        <h2>Audit Logs</h2>
-                        <p>Important system actions and security events</p>
+                    <!-- <Jun Kai start> Audit Logs page (admin redesign, Audit Logs B): the events are grouped under a heading
+                         per day and each one reads as a short sentence, with its action code as a coloured tag and the IP
+                         address and time on the right. The filters are chips that are always in view. The ids of the search
+                         box, the filters and the pager are the old ones, so filterAuditLogs and the helpers in lostFound.js
+                         keep working. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Audit Logs</h2>
+                            <p>Important actions and security events, grouped by day, newest first.</p>
+                        </div>
                     </div>
 
-                    <div class="audit-section">
-                        <div class="section-header">
-                            <h3>Recent Activity</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="toggleAdvancedFilters()">
-                                    <span id="filter-toggle-icon">▼</span> Advanced Filters
-                                </button>
-                                <button class="btn-primary" onclick="loadAuditLogs()">🔄 Refresh</button>
+                    <div class="ui-card audit-card">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the audit log">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the audit log</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="audit-search-input" placeholder="Search user, action, target or IP" autocomplete="off" oninput="filterAuditLogs()">
+                            </label>
+                            <button type="button" class="ui-filter" id="audit-date-button" popovertarget="audit-date-pop" aria-haspopup="dialog">
+                                <span data-fb-icon="calendar"></span><span id="audit-date-label">Any date</span>
+                            </button>
+                            <div class="ui-filter-pop" id="audit-date-pop" popover aria-label="Date range">
+                                <div class="ui-filter-presets">
+                                    <button type="button" onclick="setDateRangePreset('today')">Today</button>
+                                    <button type="button" onclick="setDateRangePreset('week')">Past 7 days</button>
+                                    <button type="button" onclick="setDateRangePreset('month')">Past month</button>
+                                    <button type="button" onclick="clearAuditDates()">Any date</button>
+                                </div>
+                                <label class="ui-filter-field">From <input type="date" id="filter-date-from" class="ui-input" onchange="filterAuditLogs()"></label>
+                                <label class="ui-filter-field">To <input type="date" id="filter-date-to" class="ui-input" onchange="filterAuditLogs()"></label>
                             </div>
+                            <select id="filter-action" class="ui-filter ui-filter-select" aria-label="Action" onchange="filterAuditLogs()">
+                                <option value="">Action: any</option>
+                                <option value="LOGIN">Sign in</option>
+                                <option value="LOGOUT">Sign out</option>
+                                <option value="DELETE">Delete</option>
+                                <option value="ADD">Add</option>
+                                <option value="EDIT">Edit</option>
+                                <option value="DOWNLOAD">Download</option>
+                                <option value="VIEW">View</option>
+                                <option value="ARCHIVE">Archive</option>
+                            </select>
+                            <select id="filter-user" class="ui-filter ui-filter-select" aria-label="Admin" onchange="filterAuditLogs()">
+                                <option value="">Admin: any</option>
+                            </select>
+                            <select id="filter-target-type" class="ui-filter ui-filter-select" aria-label="Target" onchange="filterAuditLogs()">
+                                <option value="">Target: any</option>
+                                <option value="user">User</option>
+                                <option value="feedback">Feedback</option>
+                                <option value="overlay">Overlay</option>
+                                <option value="question">Question</option>
+                                <option value="visitor_archive">Visitor archive</option>
+                            </select>
+                            <label class="audit-ip-filter">
+                                <span class="ui-sr-only">IP address</span>
+                                <input type="search" id="filter-ip" class="ui-filter audit-ip-input" placeholder="IP address" autocomplete="off" oninput="filterAuditLogs()">
+                            </label>
+                            <button type="button" class="ui-link" id="audit-clear-filters" onclick="clearAllFilters()" hidden>Clear filters</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="loadAuditLogs()" title="Load the audit log again" aria-label="Load the audit log again" data-fb-icon="refresh"></button>
                         </div>
 
-                        <!-- Global Search (DONE BY PRETI)-->
-                        <div class="toolbar">
-                            <input type="text" id="audit-search-input" class="search-input" 
-                                   placeholder="🔍 Search across all columns (user, action, target, IP, date)..." 
-                                   oninput="filterAuditLogs()">
-                            <div class="toolbar-buttons">
-                                <button class="btn-secondary" onclick="clearAllFilters()">Clear Filters</button>
-                            </div>
+                        <!-- filled by updateAuditTable() in audit.js: a heading per day, then that day's events -->
+                        <div id="audit-logs-body" class="audit-timeline">
+                            <p class="ui-empty audit-empty">Loading the audit log</p>
                         </div>
 
-                        <!-- Advanced Filter Panel (DONE BY PRETI)-->
-                        <div id="advanced-filters-panel" class="advanced-filters-panel" style="display: none;">
-                            <div class="filter-grid">
-                                <!-- Date Range Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📅 Date Range</label>
-                                    <div class="date-range-inputs">
-                                        <input type="date" id="filter-date-from" class="filter-date" onchange="filterAuditLogs()">
-                                        <span class="date-separator">to</span>
-                                        <input type="date" id="filter-date-to" class="filter-date" onchange="filterAuditLogs()">
-                                    </div>
-                                    <button class="btn-link" onclick="setDateRangePreset('today')">Today</button>
-                                    <button class="btn-link" onclick="setDateRangePreset('week')">This Week</button>
-                                    <button class="btn-link" onclick="setDateRangePreset('month')">This Month</button>
-                                </div>
-
-                                <!-- Action Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">⚡ Action Type</label>
-                                    <select id="filter-action" class="filter-select" onchange="filterAuditLogs()">
-                                        <option value="">All Actions</option>
-                                        <option value="LOGIN">Login</option>
-                                        <option value="LOGOUT">Logout</option>
-                                        <option value="DELETE">Delete</option>
-                                        <option value="ADD">Add</option>
-                                        <option value="EDIT">Edit</option>
-                                        <option value="DOWNLOAD">Download</option>
-                                        <option value="VIEW">View</option>
-                                        <!-- <Jun Kai start> -->
-                                        <option value="ARCHIVE">Archive</option>
-                                        <!-- <Jun Kai end> -->
-                                    </select>
-                                </div>
-
-                                <!-- User Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">👤 Admin User</label>
-                                    <select id="filter-user" class="filter-select" onchange="filterAuditLogs()">
-                                        <option value="">All Users</option>
-                                        <!-- Will be populated dynamically (DONE BY PRETI)-->
-                                    </select>
-                                </div>
-
-                                <!-- Target Type Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">🎯 Target Type</label>
-                                    <select id="filter-target-type" class="filter-select" onchange="filterAuditLogs()">
-                                        <option value="">All Targets</option>
-                                        <option value="user">User</option>
-                                        <option value="feedback">Feedback</option>
-                                        <option value="overlay">Overlay</option>
-                                        <option value="question">Question</option>
-                                        <!-- <Jun Kai start> -->
-                                        <option value="visitor_archive">Visitor archive</option>
-                                        <!-- <Jun Kai end> -->
-                                    </select>
-                                </div>
-
-                                <!-- IP Address Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">🌐 IP Address</label>
-                                    <input type="text" id="filter-ip" class="filter-input" 
-                                           placeholder="e.g., 192.168.1.1" 
-                                           oninput="filterAuditLogs()">
-                                </div>
-
-                                <!-- Results Count (DONE BY PRETI)-->
-                                <div class="filter-group filter-results">
-                                    <label class="filter-label">📊 Results</label>
-                                    <div class="results-display">
-                                        <span id="filtered-count">0</span> / <span id="total-count">0</span> logs
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Results Info Bar (DONE BY PRETI)-->
-                        <div class="results-info-bar" id="results-info-bar" style="display: none;">
-                            <span class="info-text">
-                                <strong id="active-filters-count">0</strong> filter(s) active - 
-                                <!-- <Jun Kai start> the second strong was closed with a span tag, which left it open and made every later page bold -->
-                                Showing <strong id="results-count">0</strong> of <strong id="total-logs">0</strong> logs
-                                <!-- <Jun Kai end> -->
+                        <div class="ui-pager">
+                            <span id="audit-page-info" aria-live="polite">Loading</span>
+                            <span class="ui-pager-buttons">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="prevAuditPage()" id="prev-audit-btn" disabled>Previous</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="nextAuditPage()" id="next-audit-btn" disabled>Next</button>
                             </span>
                         </div>
-
-                        <div class="data-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th onclick="sortAuditLogs('created_at')" class="sortable">
-                                            Time <span class="sort-indicator" id="sort-created_at"></span>
-                                        </th>
-                                        <th onclick="sortAuditLogs('admin_username')" class="sortable">
-                                            User <span class="sort-indicator" id="sort-admin_username"></span>
-                                        </th>
-                                        <th onclick="sortAuditLogs('action')" class="sortable">
-                                            Action <span class="sort-indicator" id="sort-action"></span>
-                                        </th>
-                                        <th>Target</th>
-                                        <th onclick="sortAuditLogs('ip_address')" class="sortable">
-                                            IP Address <span class="sort-indicator" id="sort-ip_address"></span>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="audit-logs-body">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading audit logs...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            
-                            <div class="pagination" style="margin-top: 20px;">
-                                <button onclick="prevAuditPage()" id="prev-audit-btn" disabled>← Previous</button>
-                                <span id="audit-page-info">Page 1</span>
-                                <button onclick="nextAuditPage()" id="next-audit-btn">Next →</button>
-                            </div>
-                        </div>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Lost and Found Reports Page - changes made by nick -->
