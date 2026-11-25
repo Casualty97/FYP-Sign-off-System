@@ -2,6 +2,10 @@
 
 Owner: Role 3, Jun Kai. Task-sheet point 5, "installation and deletion scripts" for the application (built 12 Nov 2026).
 
+This page is the developer setup: a git checkout with Node.js and MySQL already on the PC. The kiosk itself is
+installed from the offline package, which brings its own Node.js and MySQL: see
+[command-line-install.md](command-line-install.md).
+
 ## In short
 
 | Command (in the project folder) | What happens |

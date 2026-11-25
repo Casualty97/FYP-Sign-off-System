@@ -87,7 +87,8 @@ test('the changes are written in place, missing keys at the end, line endings ke
 });
 
 test('the command line options are read', () => {
-    assert.deepEqual(setup.parseArgs(['install', '--role', 'WallPC', '--dry-run']), { command: 'install', dryRun: true, nonInteractive: false, rootPasswordEmpty: false, role: 'wallpc', database: undefined });
+    assert.deepEqual(setup.parseArgs(['install', '--role', 'WallPC', '--dry-run']), { command: 'install', dryRun: true, nonInteractive: false, rootPasswordEmpty: false, adminLater: false, role: 'wallpc', database: undefined });
+    assert.equal(setup.parseArgs(['install', '--admin-later']).adminLater, true, 'the command line installer sets the admin account itself');
     assert.equal(setup.parseArgs(['remove-data', '--database', 'dp_kiosk_db', '--non-interactive']).database, 'dp_kiosk_db');
 });
 

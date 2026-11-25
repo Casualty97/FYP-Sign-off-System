@@ -14,7 +14,13 @@ everything from a web page. Built by the AY2025/26 FYP team; enhanced by the cur
 
 MySQL 8.4 runs on the PC. Ollama is optional and only used by the admin feedback analysis.
 
-## Install (any computer)
+## Install the kiosk (offline package)
+
+The kiosk PC installs from the offline package on the GitHub Release: unzip `rp-xperience-kiosk-windows-x64.zip` and
+run `install.cmd`, or paste one line into PowerShell. Node.js and MySQL are inside the package, so the PC needs
+nothing else. See [docs/features/command-line-install.md](docs/features/command-line-install.md).
+
+## Install for development (any computer)
 
 On Windows, run `install.cmd` in the project folder (or double-click it) once Node.js 22 and MySQL 8.4 are installed:
 it installs the packages, fills `backend/.env`, creates the database if it is missing and applies the migrations.
