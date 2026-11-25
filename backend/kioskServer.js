@@ -125,6 +125,7 @@ const uploadsGate = require('./core/uploadsGate'); // visitor files: only for th
 // <Jun Kai end>
 
 const app = express();
+require('./core/securityHeaders').apply(app); // <Jun Kai/> security headers on every answer
 const PORT = 3003; // CHANGED: Now runs on 3003 (behind gateway on 3001)
 
 // ==================== NETWORK INTERFACE FUNCTIONS ====================
