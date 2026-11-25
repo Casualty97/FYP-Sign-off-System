@@ -45,6 +45,7 @@ function fakeWorld({ mailReady = true, mailWorks = true } = {}) {
     ];
     const resets = new Map(); // userId -> { id, link_hash, code_hash, code_attempts, expired }
     const requests = []; // { userId, secondsAgo }
+    const wrongCodes = []; // userIds, one per wrong code today
     let nextId = 10;
     const mails = [];
     const audits = [];
@@ -87,6 +88,8 @@ function fakeWorld({ mailReady = true, mailWorks = true } = {}) {
         deleteForUser: async (userId) => { resets.delete(userId); },
         deleteReset: async (resetId) => { for (const [userId, r] of resets) if (r.id === resetId) resets.delete(userId); },
         setPassword: async (userId, hash) => { accounts.find((a) => a.id === userId).password = hash; return true; },
+        wrongCodesToday: async (userId) => wrongCodes.filter((id) => id === userId).length,
+        noteWrongCode: async (userId) => { wrongCodes.push(userId); },
     };
     const mailer = {
         ready: async () => mailReady,
@@ -106,7 +109,7 @@ function fakeWorld({ mailReady = true, mailWorks = true } = {}) {
         log: { error: () => {} },
     });
     const flush = async () => { while (deferred.length) await deferred.shift()(); };
-    return { service, accounts, resets, requests, mails, audits, ended, forgotten, flush };
+    return { service, accounts, resets, requests, wrongCodes, mails, audits, ended, forgotten, flush };
 }
 
 test('a request answers the same for an account, an unknown name and an account without email', async () => {
@@ -135,7 +138,7 @@ test('with email not set up, every name gets the same "not set up" answer', asyn
     assert.equal(a.error, TEXT.noMail);
 });
 
-test('60 s between requests and at most 5 an hour per account', async () => {
+test('45 s between requests and at most 5 an hour per account', async () => {
     const w = fakeWorld();
     w.requests.push({ userId: 1, secondsAgo: 30 });
     await w.service.request({ identifier: 'itadmin' });
@@ -163,19 +166,40 @@ async function opened(w) {
     return [...w.mails].reverse().find((m) => m.kind === 'reset'); // the newest
 }
 
-test('a wrong code says how many tries are left, the fifth wrong one ends the reset', async () => {
+test('every wrong code gets the same answer as an unknown name, so a code check gives no account away', async () => {
     const w = fakeWorld();
     const mail = await opened(w);
     const wrong = mail.code === '000000' ? '000001' : '000000';
-    for (let left = 4; left >= 1; left--) {
-        const r = await w.service.verifyCode({ identifier: 'itadmin', code: wrong });
-        assert.equal(r.error, `That code is wrong. ${left} ${left === 1 ? 'try' : 'tries'} left.`);
-    }
-    const last = await w.service.verifyCode({ identifier: 'itadmin', code: wrong });
-    assert.equal(last.error, TEXT.tooManyCodes);
-    assert.equal(w.resets.size, 0);
-    const late = await w.service.verifyCode({ identifier: 'itadmin', code: mail.code });
-    assert.equal(late.error, TEXT.codeWrongOrOld, 'the right code no longer helps');
+    const real = await w.service.verifyCode({ identifier: 'itadmin', code: wrong });
+    const unknown = await w.service.verifyCode({ identifier: 'nobody', code: wrong });
+    const noReset = await w.service.verifyCode({ identifier: 'noemail', code: wrong });
+    assert.deepEqual(real, unknown);
+    assert.deepEqual(real, noReset);
+    assert.equal(real.error, TEXT.codeWrongOrOld);
+    // the rule about the username is only checked after the code, so it cannot tell a real name either
+    const sameAsName = await w.service.complete({ identifier: 'itadmin', code: wrong, password: 'itadmin1', confirm: 'itadmin1' });
+    const sameAsMadeUp = await w.service.complete({ identifier: 'nobody12', code: wrong, password: 'nobody12', confirm: 'nobody12' });
+    assert.deepEqual(sameAsName, sameAsMadeUp);
+});
+
+test('after 5 wrong codes the code stops working but the link still does', async () => {
+    const w = fakeWorld();
+    const mail = await opened(w);
+    const wrong = mail.code === '000000' ? '000001' : '000000';
+    for (let i = 0; i < 5; i++) assert.equal((await w.service.verifyCode({ identifier: 'itadmin', code: wrong })).error, TEXT.codeWrongOrOld);
+    assert.equal((await w.service.verifyCode({ identifier: 'itadmin', code: mail.code })).error, TEXT.codeWrongOrOld, 'the right code no longer helps');
+    assert.equal(w.resets.size, 1, 'the reset stays, so the owner can still use the link');
+    const token = mail.link.split('#reset=')[1];
+    assert.deepEqual(await w.service.complete({ token, password: 'Link after typos 1', confirm: 'Link after typos 1' }), { ok: true, username: 'itadmin' });
+});
+
+test('10 wrong codes in a day switch the code off for the account, also across new resets', async () => {
+    const w = fakeWorld();
+    for (let i = 0; i < 10; i++) w.wrongCodes.push(1);
+    const mail = await opened(w);
+    assert.equal((await w.service.verifyCode({ identifier: 'itadmin', code: mail.code })).error, TEXT.codeWrongOrOld);
+    assert.equal(w.resets.get(1).code_attempts, 0, 'no try was even counted');
+    assert.equal((await w.service.checkLink({ token: mail.link.split('#reset=')[1] })).ok, true, 'the link still works');
 });
 
 test('the code path: check, then save; the code and the link stop working at once', async () => {

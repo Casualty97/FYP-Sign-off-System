@@ -4,7 +4,9 @@
 // so the clock of this program never decides whether a reset is still valid. createStore(db) takes the database, so
 // the unit tests can give it a fake one.
 const TTL_MINUTES = 15;
-const MAX_CODE_TRIES = 5;
+const MAX_CODE_TRIES = 5; // wrong codes per reset
+const MAX_WRONG_CODES_PER_DAY = 10; // wrong codes per account in 24 hours, across resets
+const accountEmail = require('../../core/accountEmail');
 
 const TABLES = [
     `CREATE TABLE IF NOT EXISTS admin_password_resets (
@@ -30,6 +32,14 @@ const TABLES = [
       KEY idx_password_reset_requests_user (admin_user_id, requested_at),
       CONSTRAINT fk_password_reset_request_user FOREIGN KEY (admin_user_id) REFERENCES admin_users (id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS admin_password_reset_failures (
+      id INT NOT NULL AUTO_INCREMENT,
+      admin_user_id INT NOT NULL,
+      failed_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_password_reset_failures_user (admin_user_id, failed_at),
+      CONSTRAINT fk_password_reset_failure_user FOREIGN KEY (admin_user_id) REFERENCES admin_users (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
 function createStore(db) {
@@ -41,7 +51,8 @@ function createStore(db) {
     let ready = null;
     function ensureTables() {
         if (!ready) {
-            ready = (async () => { for (const sql of TABLES) await all(sql); })().catch((err) => { ready = null; throw err; });
+            // the email column of migration 011 first: the reset reads admin_users.email
+            ready = (async () => { await accountEmail.ensureColumn(db); for (const sql of TABLES) await all(sql); })().catch((err) => { ready = null; throw err; });
         }
         return ready;
     }
@@ -101,6 +112,16 @@ function createStore(db) {
         return (await run('DELETE FROM admin_password_resets WHERE id = ? AND expires_at > NOW()', [resetId])) === 1;
     }
 
+    // wrong codes of an account in the last 24 hours, and noting one more
+    async function wrongCodesToday(userId) {
+        const row = await one('SELECT COUNT(*) AS n FROM admin_password_reset_failures WHERE admin_user_id = ? AND failed_at > NOW() - INTERVAL 1 DAY', [userId]);
+        return Number(row && row.n) || 0;
+    }
+    async function noteWrongCode(userId) {
+        await run('INSERT INTO admin_password_reset_failures (admin_user_id) VALUES (?)', [userId]);
+        await run('DELETE FROM admin_password_reset_failures WHERE failed_at < NOW() - INTERVAL 2 DAY');
+    }
+
     async function deleteForUser(userId) {
         await ensureTables();
         return run('DELETE FROM admin_password_resets WHERE admin_user_id = ?', [userId]);
@@ -118,8 +139,8 @@ function createStore(db) {
         return one('SELECT id, username, email FROM admin_users WHERE id = ? AND is_active = 1 AND is_deleted = 0', [userId]);
     }
 
-    return { ensureTables, findAccount, recentRequests, replaceReset, useCodeTry, findByLink, consume, deleteForUser, deleteReset, setPassword, accountById };
+    return { ensureTables, findAccount, recentRequests, replaceReset, useCodeTry, findByLink, consume, deleteForUser, deleteReset, setPassword, accountById, wrongCodesToday, noteWrongCode };
 }
 
-module.exports = { createStore, TTL_MINUTES, MAX_CODE_TRIES, TABLES };
+module.exports = { createStore, TTL_MINUTES, MAX_CODE_TRIES, MAX_WRONG_CODES_PER_DAY, TABLES };
 // <Jun Kai end>

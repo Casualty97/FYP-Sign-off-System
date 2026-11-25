@@ -183,6 +183,11 @@ function takePasswordResetToken() {
 }
 
 async function startPasswordResetFromLink(token) {
+    // the reset card is on the login page: shown also in a tab where the dashboard was open
+    const loginPage = passwordResetEl('login-page');
+    const dashboard = passwordResetEl('admin-dashboard');
+    if (loginPage) loginPage.style.display = '';
+    if (dashboard) dashboard.style.display = 'none';
     openPasswordReset();
     if (!token) return passwordResetSay('This link is not complete. Ask for a new code.', 'error');
     passwordResetBusy(true);
@@ -196,5 +201,10 @@ async function startPasswordResetFromLink(token) {
 
 document.addEventListener('DOMContentLoaded', () => {
     passwordResetEl('reset-form')?.addEventListener('submit', submitPasswordReset);
+});
+// the link opened in a tab that already shows the admin page only changes the part after "#": no new page load
+window.addEventListener('hashchange', () => {
+    const token = takePasswordResetToken();
+    if (token !== null) startPasswordResetFromLink(token);
 });
 // <Jun Kai end>
