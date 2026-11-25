@@ -8,10 +8,24 @@
 $ErrorActionPreference = 'Continue'
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $SetupJs = Join-Path $PSScriptRoot 'setup.js'
-$FirewallGroup = 'ESG Kiosk'
-$FirewallName = 'ESG Kiosk - tablets to the kiosk server'
-$StartupLink = Join-Path ([Environment]::GetFolderPath('Startup')) 'ESG Kiosk.lnk'
-$DesktopLink = Join-Path ([Environment]::GetFolderPath('Desktop')) 'ESG Kiosk Admin.url'
+$FirewallGroup = 'RP Xperience Centre Kiosk'
+$FirewallName = 'RP Xperience Centre Kiosk - tablets to the kiosk server'
+$StartupLink = Join-Path ([Environment]::GetFolderPath('Startup')) 'RP Xperience Centre Kiosk.lnk'
+$DesktopLink = Join-Path ([Environment]::GetFolderPath('Desktop')) 'RP Xperience Centre Kiosk Admin.url'
+# <Jun Kai start>
+# The names from before the centre was renamed (until 18 Nov 2026). A PC installed under them is updated in place:
+# install.ps1 replaces them with the names above, uninstall.ps1 removes whichever it finds.
+$OldFirewallGroup = 'ESG ' + 'Kiosk'
+$OldStartupLink = Join-Path ([Environment]::GetFolderPath('Startup')) ('ESG ' + 'Kiosk.lnk')
+$OldDesktopLink = Join-Path ([Environment]::GetFolderPath('Desktop')) ('ESG ' + 'Kiosk Admin.url')
+
+# A Startup shortcut belongs to this copy when it starts the kiosk from this folder
+function Test-OwnLink([string]$LinkPath) {
+    if (-not (Test-Path $LinkPath)) { return $false }
+    $link = (New-Object -ComObject WScript.Shell).CreateShortcut($LinkPath)
+    return ($link.WorkingDirectory.TrimEnd('\') -ieq $Root.TrimEnd('\'))
+}
+# <Jun Kai end>
 
 function Write-Step([string]$Text) { Write-Host ''; Write-Host "== $Text" -ForegroundColor Cyan }
 function Write-Ok([string]$Text) { Write-Host "   ok    $Text" -ForegroundColor Green }
@@ -53,7 +67,8 @@ function Get-KioskProcesses {
 }
 
 function Get-FirewallRules {
-    return @(Get-NetFirewallRule -Group $FirewallGroup -ErrorAction SilentlyContinue)
+    # <Jun Kai/> a rule made under the old name counts too, so it is found, checked and replaced like the new one
+    return @(Get-NetFirewallRule -Group $FirewallGroup -ErrorAction SilentlyContinue) + @(Get-NetFirewallRule -Group $OldFirewallGroup -ErrorAction SilentlyContinue)
 }
 
 # The ports the kiosk's firewall rule opens now, as text; nothing when there is no rule. Reading needs no administrator.

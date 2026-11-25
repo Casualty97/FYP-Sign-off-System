@@ -73,7 +73,7 @@ function renderBluetoothAssets() {
         const lastSeen = formatAssetDate(asset.lastSeen || asset.addedAt);
         const statusClass = asset.isDetected ? 'detected' : 'offline';
         const statusText = asset.isDetected ? 'Detected Nearby' : 'Not Detected';
-        const safeBluetoothId = String(asset.bluetoothId || '').replace(/'/g, "\\'");
+        const safeBluetoothId = String(asset.bluetoothId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); // <Jun Kai/> the backslash first
 
         return `
             <article class="asset-card">
@@ -175,7 +175,7 @@ function showAddAssetModal(defaultBluetoothId = '') {
                     </div>
                     <div>
                         <label for="asset-location">Location</label>
-                        <input id="asset-location" name="location" type="text" placeholder="Level 3, ESG Centre">
+                        <input id="asset-location" name="location" type="text" placeholder="Level 3, RP Xperience Centre">
                     </div>
                     <div class="full-span">
                         <label for="asset-notes">Notes</label>

@@ -52,9 +52,9 @@ gets the matching step (the user's rule of 12 Nov 2026: keep the installer in st
    database it prints the first login (`systemadmin`, change the password in User Management).
 5. **Wall PC, as the user:** a shortcut in the Startup folder starts `node startAll.js --logon` at logon (minimised
    window; `--logon` makes the History list on Server Schedule say "Started: Windows sign-in"), and
-   an "ESG Kiosk Admin" link to `https://localhost:<PORT>/admin` goes on the desktop.
+   an "RP Xperience Centre Kiosk Admin" link to `https://localhost:<PORT>/admin` goes on the desktop.
 6. **Wall PC, as administrator** (Windows asks; a second, elevated window does only this part): a firewall rule
-   "ESG Kiosk - tablets to the kiosk server" for the main server's port (`PORT` in `backend\.env`, 3000 unless changed)
+   "RP Xperience Centre Kiosk - tablets to the kiosk server" for the main server's port (`PORT` in `backend\.env`, 3000 unless changed)
    on Private and Domain networks (never Public). Tablets only talk to the main server; the kiosk server on 3003
    listens on this PC only (`backend/kioskServer.js`), so it gets no rule. When the rule is already right, nothing asks
    for administrator rights; a rule of an earlier install that opened other ports is replaced. If Windows counts the

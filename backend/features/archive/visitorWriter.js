@@ -151,7 +151,7 @@ function readmeText(m, leaves = null) {
     const lines = [
         'Visitor Data Archive',
         '',
-        `Exported from the ESG kiosk on ${sgtOf(m.createdAt)} (Singapore time) as archive ${m.archiveId}, ${m.trigger === 'automatic' ? 'by the automatic schedule' : `by ${m.createdBy}`}.`,
+        `Exported from the RP Xperience Centre kiosk on ${sgtOf(m.createdAt)} (Singapore time) as archive ${m.archiveId}, ${m.trigger === 'automatic' ? 'by the automatic schedule' : `by ${m.createdBy}`}.`,
         m.deleteAfterArchive
             ? 'This archive was made with "Delete the records from the database" switched on: the records were to be deleted after this file passed its check.'
             : 'This archive was made as an export only: the records stayed in the database.',
