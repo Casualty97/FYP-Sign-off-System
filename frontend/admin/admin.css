@@ -8989,6 +8989,9 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
    with its action code as a coloured tag, and the IP address and time on the right */
 .audit-card { overflow: hidden; }
 .audit-ip-filter { display: inline-flex; }
+.audit-card .ui-search { flex-basis: 220px; }
+/* pushes Order and refresh to the right, also when they wrap onto a second line */
+#audit-order { margin-left: auto; }
 /* a select is as wide as its longest option, and usernames typed at the login page can be very long */
 .audit-card .ui-filter-select { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .audit-ip-input { width: 136px; cursor: text; }

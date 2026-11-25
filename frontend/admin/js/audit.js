@@ -170,6 +170,8 @@ function displayAuditLogsPage() {
 // event. The day, the heading and the time all use Singapore time, the same as the date presets.
 const AUDIT_ZONE = 'Asia/Singapore';
 const AUDIT_AVATAR_HUES = [220, 262, 330, 12, 28, 160, 190, 290];
+// one formatter for every row: making a new one per row was slow on a list of thousands
+const AUDIT_DAY_FORMAT = new Intl.DateTimeFormat('en-CA', { timeZone: AUDIT_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
 
 // What each action the server writes means, said as the rest of a sentence after the username.
 // {id} becomes "#" and the record number, {n} the number of records, {name} the setting the row is about.
@@ -232,7 +234,7 @@ const AUDIT_SENTENCES = {
     AIOPS_LOCAL_AI_ON: 'switched on the local AI for incidents',
     AIOPS_LOCAL_AI_OFF: 'switched off the local AI for incidents',
     AIOPS_FIX_MODE_ASK: 'set the {name} fix to ask first',
-    AIOPS_FIX_MODE_DELAYED: 'set the {name} fix to run after 5 minutes',
+    AIOPS_FIX_MODE_DELAYED: 'set the {name} fix to ask first, then run by itself after a wait',
     AIOPS_FIX_MODE_AUTO: 'set the {name} fix to run automatically',
     AIOPS_INCIDENT_FIX: 'started a fix for incident {id}',
     AIOPS_INCIDENT_FIX_AUTO: 'started a fix for incident {id} by itself',
@@ -307,7 +309,7 @@ function auditDate(log) {
 // "2026-11-26" for the Singapore calendar day of a date, "unknown" for a row without a usable time
 function auditDayKey(date) {
     if (!date) return 'unknown';
-    return new Intl.DateTimeFormat('en-CA', { timeZone: AUDIT_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+    return AUDIT_DAY_FORMAT.format(date);
 }
 
 function auditDayLabel(key, count, continued) {
