@@ -104,13 +104,14 @@ function usersSafe(user) {
         department: user.department || 'IT',
         is_active: user.is_active !== undefined ? user.is_active : 1,
         deleted_at: user.deleted_at,
-        deleted_by: user.deleted_by || 'Unknown'
+        deleted_by: user.deleted_by || 'Unknown',
+        email: user.email || '' // <Jun Kai/>
     };
 }
 
 // data-* values for a button: the account the action is for
 function usersButtonData(user) {
-    return `data-id="${Number(user.id)}" data-username="${escapeHtml(user.username)}" data-role="${escapeHtml(user.role)}" data-full-name="${escapeHtml(user.full_name)}"`;
+    return `data-id="${Number(user.id)}" data-username="${escapeHtml(user.username)}" data-role="${escapeHtml(user.role)}" data-full-name="${escapeHtml(user.full_name)}" data-email="${escapeHtml(user.email)}"`;
 }
 
 function usersNameCell(user) {
@@ -130,6 +131,7 @@ function updateActiveUsersTable(usersData) {
     }
     const currentUser = sessionStorage.getItem('loggedUser');
     const isSystemAdmin = sessionStorage.getItem('userRole') === 'system_admin';
+    usersShowEmailNote(list.map(usersSafe), currentUser); // <Jun Kai/>
     tbody.innerHTML = list.map((raw) => {
         const user = usersSafe(raw);
         const isCurrentUser = user.username === currentUser;
@@ -144,7 +146,7 @@ function updateActiveUsersTable(usersData) {
         if (!actions) actions = `<span class="ui-muted">${isRoot ? 'Protected' : 'No actions'}</span>`;
         return `<tr>
             <td>${usersNameCell(user)}</td>
-            <td>${escapeHtml(user.full_name)}</td>
+            <td>${escapeHtml(user.full_name)} ${user.email ? `<span class="users-sub">${escapeHtml(user.email)}</span>` : '<span class="users-sub users-no-email">No email yet</span>'}</td>
             <td class="users-role">${escapeHtml(formatRoleName(user.role))} <span class="users-sub">${escapeHtml(user.department)}</span></td>
             <td><span class="ui-tag is-${user.is_active ? 'green' : 'amber'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
             <td><span class="ui-actions">${actions}</span></td>
@@ -182,6 +184,27 @@ function updateDeletedUsersTable(usersData) {
     }).join('');
 }
 
+// <Jun Kai start> a quick look at an email address (the server checks again with the same rule)
+function usersEmailLooksRight(email) {
+    return email.length <= 254 && /^[^\s@<>"',;:()[\]\\]+@[^\s@<>"',;:()[\]\\]+\.[^\s@<>"',;:()[\]\\]{2,}$/.test(email);
+}
+
+// the note above the accounts: who cannot reset a forgotten password yet, the signed-in admin first
+function usersShowEmailNote(users, currentUser) {
+    const note = document.getElementById('users-email-note');
+    if (!note) return;
+    const missing = users.filter((user) => !user.email);
+    const own = missing.find((user) => user.username === currentUser);
+    if (!missing.length) { note.hidden = true; note.textContent = ''; return; }
+    const others = missing.length - (own ? 1 : 0);
+    const parts = [];
+    if (own) parts.push(`Your account has no email yet: add one with ${own.username === 'systemadmin' ? 'Edit my account' : 'Edit'}, so you can reset a forgotten password.`);
+    if (others) parts.push(`${others} other account${others === 1 ? ' has' : 's have'} no email and cannot reset a forgotten password until one is added.`);
+    note.textContent = parts.join(' ');
+    note.hidden = false;
+}
+// <Jun Kai end>
+
 function usersSetCount(which, n) {
     const count = document.getElementById(`users-count-${which}`);
     if (count) count.textContent = String(n);
@@ -203,9 +226,9 @@ function prepareUsersPage() {
     document.getElementById('users-page')?.addEventListener('click', (event) => {
         const button = event.target.closest('[data-user-action]');
         if (!button) return;
-        const { id, username, role, fullName } = button.dataset;
+        const { id, username, role, fullName, email } = button.dataset;
         const action = button.dataset.userAction;
-        if (action === 'edit') editUser(Number(id), username, role, fullName);
+        if (action === 'edit') editUser(Number(id), username, role, fullName, email || '');
         if (action === 'delete') deleteUser(Number(id), username);
         if (action === 'restore') restoreUser(Number(id), username);
         if (action === 'purge') permanentDeleteUser(Number(id), username);
@@ -295,7 +318,22 @@ function addUser() {
                         This name will be displayed in the admin panel
                     </div>
                 </div>
-                
+
+                    <!-- <Jun Kai start> the account's email: a forgotten password is reset with a code or link sent here -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="add-user-email" style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
+                            Email *
+                        </label>
+                        <input type="email" id="add-user-email" 
+                            placeholder="name@example.com" autocomplete="off" maxlength="254"
+                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
+                            required>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
+                            A code and a link to reset a forgotten password are sent here. Each email belongs to one account.
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
+
                 <div class="form-group" class="mb-20">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
                         Role *
@@ -375,12 +413,13 @@ async function handleAddUser(event) {
     
     const username = document.getElementById('add-username').value.trim();
     const fullName = document.getElementById('add-full-name').value.trim();
+    const email = (document.getElementById('add-user-email')?.value || '').trim().toLowerCase(); // <Jun Kai/>
     const role = document.getElementById('add-user-role').value;
     const password = document.getElementById('add-user-password').value;
     const errorDiv = document.getElementById('add-user-error');
     
     // Validate inputs
-    if (!username || !fullName || !role || !password) {
+    if (!username || !fullName || !email || !role || !password) { // <Jun Kai/> the email is required
         errorDiv.textContent = 'All fields are required';
         errorDiv.style.display = 'block';
         return;
@@ -399,7 +438,13 @@ async function handleAddUser(event) {
         errorDiv.style.display = 'block';
         return;
     }
-    
+    // <Jun Kai/> the same quick email check as the server (the server checks again)
+    if (!usersEmailLooksRight(email)) {
+        errorDiv.textContent = 'Enter a valid email address, like name@example.com.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
     try {
         const response = await fetch('/api/admin/users', {
             method: 'POST',
@@ -410,6 +455,7 @@ async function handleAddUser(event) {
             body: JSON.stringify({
                 username,
                 full_name: fullName,
+                email, // <Jun Kai/>
                 role,
                 password
             })
@@ -441,7 +487,7 @@ function closeAddUserModal() {
 }
 
 // This is the MODIFIED VERSION that allows systemadmin to edit their own password
-function editUser(userId, username, currentRole, fullName) {
+function editUser(userId, username, currentRole, fullName, email = '') { // <Jun Kai/> email
     const currentUserRole = sessionStorage.getItem('userRole');
     if (currentUserRole !== 'system_admin') {
         alert('Access denied. System Administrator privileges required.');
@@ -462,6 +508,7 @@ function editUser(userId, username, currentRole, fullName) {
     // <Jun Kai/> escaped copies for the window's HTML: a full name is free text
     const usernameHtml = escapeHtml(username);
     const fullNameHtml = escapeHtml(fullName || '');
+    const emailHtml = escapeHtml(email || ''); // <Jun Kai/>
     const modal = document.createElement('div');
     modal.className = 'edit-user-modal';
     modal.style.cssText = `
@@ -552,7 +599,22 @@ function editUser(userId, username, currentRole, fullName) {
                             This name will be displayed in the admin panel
                         </div>
                     </div>
-                    
+
+                    <!-- <Jun Kai start> the account's email: a forgotten password is reset with a code or link sent here -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="edit-email" style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
+                            Email *
+                        </label>
+                        <input type="email" id="edit-email" value="${emailHtml}"
+                            placeholder="name@example.com" autocomplete="off" maxlength="254"
+                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
+                            required>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
+                            Where a code and a link to reset your forgotten password are sent. Only you can change the email of this account.
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
+
                     <div class="form-group" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
                             Role (locked)
@@ -671,7 +733,22 @@ function editUser(userId, username, currentRole, fullName) {
                             This name will be displayed in the admin panel
                         </div>
                     </div>
-                    
+
+                    <!-- <Jun Kai start> the account's email: a forgotten password is reset with a code or link sent here -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="edit-email" style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
+                            Email *
+                        </label>
+                        <input type="email" id="edit-email" value="${emailHtml}"
+                            placeholder="name@example.com" autocomplete="off" maxlength="254"
+                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
+                            required>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
+                            A code and a link to reset a forgotten password are sent here. Each email belongs to one account.
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
+
                     <div class="form-group" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
                             Role
@@ -750,6 +827,7 @@ async function handleEditUser(event, userId) {
     
     const username = document.getElementById('edit-username').value.trim();
     const fullName = document.getElementById('edit-full-name').value.trim();
+    const editEmail = (document.getElementById('edit-email')?.value || '').trim().toLowerCase(); // <Jun Kai/>
     const role = document.getElementById('edit-user-role').value;
     const password = document.getElementById('edit-user-password').value;
     const errorDiv = document.getElementById('edit-user-error');
@@ -768,6 +846,13 @@ async function handleEditUser(event, userId) {
         return;
     }
     
+    // <Jun Kai/> an email that was typed must look right (the server also refuses to clear one that was set)
+    if (editEmail && !usersEmailLooksRight(editEmail)) {
+        errorDiv.textContent = 'Enter a valid email address, like name@example.com.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
     // Validate password if provided
     if (password && password.length < 8) {
         errorDiv.textContent = 'Password must be at least 8 characters long';
@@ -779,6 +864,7 @@ async function handleEditUser(event, userId) {
         const updateData = {
             username,
             full_name: fullName,
+            email: editEmail, // <Jun Kai/>
             role
         };
         
