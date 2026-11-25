@@ -705,113 +705,88 @@
 
                 <!-- Feedback Reports Page (DONE BY Yu Kang) -->
                 <div id="feedback-report-page" class="page">
-                    <div class="page-header">
-                        <h2>Feedback Reports</h2>
-                        <p>Generate and view detailed feedback reports with AI insights</p>
+                    <!-- <Jun Kai start> Feedback Reports page (admin redesign, Feedback Reports A): flagged feedback first with a red
+                         count, the analysis under it with the five modes as one switch, and the AI cache storage setting in a small
+                         panel opened from the button on the top right. The ids analysis.js and formUi.js use are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Feedback Reports</h2>
+                            <p>Flagged texts and an analysis of what visitors wrote.</p>
+                        </div>
+                        <button type="button" class="ui-btn ui-btn-secondary" id="ai-cache-open" onclick="openAiCachePanel()" aria-controls="ai-cache-panel"><span data-fb-icon="settings"></span>AI cache storage</button>
                     </div>
 
-                    <!-- Tab Contents for Feedback analysis Report -->
-                     <div class="feedback-tabs">
-                        <button class="feedback-tab active" onclick="switchFeedbackTab('feedback-report-tab')">
-                            📊 Feedback Report
-                        </button>
-
-                        <button class="feedback-tab" onclick="switchFeedbackTab('ai-cache-tab')">
-                            ⚙️ AI cache storage
-                        </button>
-                    </div>
-
-                    <div id="feedback-report-tab" class="feedback-tab-content active">
-                        <div class="feedback-section">
-                            <div class="section-header">
-                                <h3>Flagged Feedback</h3>
-                                <button type="button" class="btn-secondary" onclick="loadFlaggedFeedback()">Refresh</button>
+                    <section class="ui-card fr-card" aria-labelledby="fr-flagged-title">
+                        <div class="fr-card-head">
+                            <div>
+                                <h3 id="fr-flagged-title">Flagged feedback <span class="fr-count" id="flagged-count" hidden></span></h3>
+                                <p class="fr-sub" id="flagged-feedback-summary">Keyword analysis checks feedback answers and visitor comments. Flagged submissions are hidden from the tree page.</p>
                             </div>
-                            <div class="flagged-feedback-summary" id="flagged-feedback-summary">
-                                Keyword analysis checks feedback answers and visitor comments. Flagged submissions are hidden from the digital tree.
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="loadFlaggedFeedback()"><span data-fb-icon="refresh"></span>Refresh</button>
+                        </div>
+                        <div class="fr-table-wrap">
+                            <table class="fr-table">
+                                <thead>
+                                    <tr><th>Date</th><th>Visitor</th><th>Source</th><th>Matched keywords</th><th>Feedback text</th><th>Pledge text</th></tr>
+                                </thead>
+                                <tbody id="flagged-feedback-table-body">
+                                    <tr><td colspan="6" class="fr-empty">Loading flagged feedback...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="ui-card fr-card feedback-analyse" aria-labelledby="feedback-analysis-header">
+                        <div class="fr-card-head">
+                            <div>
+                                <h3 id="feedback-analysis-header">Feedback analysis</h3>
+                                <p class="fr-sub" id="fr-analysis-sub">Pick a mode and press Analyze feedback.</p>
                             </div>
-                            <div class="table-container flagged-feedback-table-wrap">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Visitor</th>
-                                            <th>Source</th>
-                                            <th>Matched Keywords</th>
-                                            <th>Feedback Text</th>
-                                            <th>Pledge Text</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="flagged-feedback-table-body">
-                                        <tr>
-                                            <td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">
-                                                Loading flagged feedback...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="fr-analysis-tools">
+                                <label class="ui-sr-only" for="analysis-mode">Analysis mode</label>
+                                <select id="analysis-mode" class="ui-sr-only" tabindex="-1" aria-hidden="true">
+                                    <option value="rule-based">Rule-based</option>
+                                    <option value="xenova">Xenova AI</option>
+                                    <option value="qwen">Qwen AI</option>
+                                    <option value="gemma">Gemma AI</option>
+                                    <option value="localgpt">LocalGPT</option>
+                                </select>
+                                <div class="fr-modes" id="fr-modes" role="radiogroup" aria-label="Analysis mode"></div>
+                                <button type="button" id="analyze-feedback-btn" class="ui-btn ui-btn-primary" onclick="analyzeFeedbackData()">Analyze feedback</button>
                             </div>
                         </div>
-
-                        <!-- Feedback Analysis Section (DONE BY YU KANG)-->
-                        <div class="feedback-section feedback-analyse">
-                            <div class="section-header">
-                                <h3 id="feedback-analysis-header">Feedback Analysis</h3>
-                                <div style="display:flex; gap:10px; align-items:center;">
-                                    <select id="analysis-mode" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer;">
-                                        <option value="rule-based">Rule-Based Analysis</option>
-
-                                        <option value="xenova">Xenova AI</option>
-
-                                        <option value="qwen">Qwen AI</option>
-
-                                        <option value="gemma">Gemma AI</option>
-
-                                        <option value="localgpt">LocalGPT</option>
-                                    </select>
-                                
-                                    <button id="analyze-feedback-btn" class="btn-primary" onclick="analyzeFeedbackData()">Analyze Feedback</button>
-                                </div>
-                            </div>
-                            <!-- <Jun Kai start> shown while the Local AI models switch is off (analysis.js refreshAnalysisModes) -->
-                            <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are switched off on the AI Settings page. Rule-Based Analysis still works.</div>
-                            <!-- <Jun Kai end> -->
-
-                            <div id="feedback-analysis-results" style="display: none; margin-top: 20px;">
-                                <!-- AI Insight Summary (Done by Yu Kang) -->
-                                <h4 style="margin-bottom: 12px;">AI Insight Summary:</h4>
-                                <div id="feedback-analysis-output"></div>
-                            </div>
-                        </div> 
-                        <br>
-                    </div>
-                    
-                    <div id="ai-cache-tab" class="feedback-tab-content">
-                        <div class="feedback-section">
-                            <div class="section-header">
-                                <h2>AI Cache Storage</h2>
-                                <p>Settings for AI cache storage to be either on JSON or Database.</p>
-                            </div>
-                            <div class="section-body" style="margin-top: 16px;">
-                                <div class="form-group" style="max-width: 420px;">
-                                    <label for="ai-cache-storage-mode" style="font-weight: 600;">Storage Mode</label>
-                                    <select id="ai-cache-storage-mode" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;">
-                                        <option value="json">JSON only</option>
-                                        <option value="database">Database only</option>
-                                        <option value="both">JSON and Database</option>
-                                    </select>
-                                </div>
-
-                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px;">
-                                    <button type="button" class="btn-primary" onclick="saveCacheStorageMode()">Save Cache Storage</button>
-                                    <button type="button" class="btn-secondary" onclick="loadCacheStorageMode()">Refresh</button>
-                                </div>
-
-                                <div id="ai-cache-storage-status" class="fm-status fm-status--hidden" aria-live="polite" style="margin-top: 14px;"></div>
-                            </div>
+                        <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are switched off on the AI Settings page. Rule-based analysis still works.</div>
+                        <div id="feedback-analysis-results" class="fr-results" style="display: none;">
+                            <div id="feedback-analysis-output"></div>
                         </div>
-                    </div>
+                    </section>
 
+                    <aside class="ui-sidepanel" id="ai-cache-panel" aria-labelledby="ai-cache-title" hidden>
+                        <header class="ui-sidepanel-head">
+                            <div>
+                                <h3 id="ai-cache-title" tabindex="-1">AI cache storage</h3>
+                                <p>Where analysis results are kept between runs</p>
+                            </div>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="closeAiCachePanel()" title="Close" aria-label="Close AI cache storage" data-fb-icon="close"></button>
+                        </header>
+                        <div class="ui-sidepanel-body">
+                            <div class="ui-field-stack">
+                                <label for="ai-cache-storage-mode">Storage mode</label>
+                                <select id="ai-cache-storage-mode" class="ui-input">
+                                    <option value="json">JSON only</option>
+                                    <option value="database">Database only</option>
+                                    <option value="both">JSON and Database</option>
+                                </select>
+                            </div>
+                            <div id="ai-cache-storage-status" class="fm-status fm-status--hidden" aria-live="polite"></div>
+                        </div>
+                        <footer class="ui-sidepanel-foot">
+                            <button type="button" class="ui-btn ui-btn-primary" onclick="saveCacheStorageMode()">Save</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="loadCacheStorageMode()">Refresh</button>
+                        </footer>
+                    </aside>
+                    <!-- <Jun Kai end> -->
                     <!--
                     <div class="feedback-section">
                         <div class="chart-card">
@@ -830,8 +805,6 @@
                         </div>
                     </div>-->
                 </div>
-
-
                 <!-- Digital Tree Page (DONE BY PRETI)-->
                 <div id="digital-tree-page" class="page">
                     <div class="page-header">
