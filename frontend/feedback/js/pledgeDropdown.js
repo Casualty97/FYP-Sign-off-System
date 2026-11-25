@@ -153,8 +153,14 @@ function updatePledgePreview() {
     if (multiple) {
         for (const item of selected) {
             const row = document.createElement('li');
-            const label = document.createElement('span');
+            const copy = document.createElement('div');
+            copy.className = 'pledge-selected-copy';
+            const category = document.createElement('span');
+            category.className = 'pledge-preview-category ' + item.category;
+            category.textContent = PLEDGE_CATEGORY_LABELS[item.category];
+            const label = document.createElement('p');
             label.textContent = item.text;
+            copy.append(category, label);
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.textContent = 'Remove';
@@ -165,7 +171,7 @@ function updatePledgePreview() {
                 getPledgeSelects().find(select => select.dataset.category === item.category)?.focus();
                 resetInactivityTimer();
             });
-            row.append(label, remove);
+            row.append(copy, remove);
             selectedList.appendChild(row);
         }
     } else {
