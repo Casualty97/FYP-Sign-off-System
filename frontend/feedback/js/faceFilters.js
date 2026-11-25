@@ -194,12 +194,70 @@ function drawFaceAccessory(ctx, landmarks, width, height, time = performance.now
     FACE_ACCESSORY_RENDERERS[selectedFaceAccessory]?.(ctx, geometry, time, width);
 }
 
-// The face landmarks stop at the chin, so the neck and shoulder positions are estimated.
-function drawPhotoTie(ctx, geometry) {
+let tiePoseLandmarker = null;
+let tiePoseLoadPromise = null;
+let tiePose = null;
+let tiePoseVideoTime = -Infinity;
+
+function ensureTiePoseReady() {
+    if (!tiePoseLoadPromise) {
+        tiePoseLoadPromise = import(MEDIAPIPE_TASKS_VISION_URL)
+            .then(async ({ PoseLandmarker, FilesetResolver }) => {
+                const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
+                tiePoseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'
+                    },
+                    runningMode: 'IMAGE',
+                    numPoses: 1
+                });
+            })
+            .catch(error => console.warn('Tie shoulder tracking unavailable:', error.message));
+    }
+    return tiePoseLoadPromise;
+}
+
+function getTieCollar(landmarks, geometry, width, height) {
+    const first = landmarks?.[11];
+    const second = landmarks?.[12];
+    if (!first || !second || first.visibility < 0.5 || second.visibility < 0.5) return null;
+
+    const [left, right] = first.x < second.x ? [first, second] : [second, first];
+    const shoulderGap = (right.x - left.x) * width;
+    const shoulderY = (left.y + right.y) * height / 2;
+    const offset = shoulderY - geometry.chin.y;
+    if (offset < geometry.faceHeight * 0.08 || offset > geometry.faceHeight || shoulderGap < geometry.faceHeight * 0.5) return null;
+
+    return {
+        x: (left.x + right.x) * width / 2,
+        y: geometry.chin.y + offset * 0.8,
+        angle: Math.atan2((right.y - left.y) * height, shoulderGap)
+    };
+}
+
+function drawCameraTie(ctx, video, landmarks, width, height, capture) {
+    const geometry = getFaceAccessoryGeometry(landmarks, width, height);
+    if (!geometry) return;
+
+    const time = video.currentTime;
+    if (tiePoseLandmarker && video.readyState >= 2 &&
+        (capture || time < tiePoseVideoTime || time - tiePoseVideoTime >= 0.12)) {
+        tiePoseVideoTime = time;
+        tiePose = null;
+        try {
+            tiePose = tiePoseLandmarker.detect(video).landmarks[0];
+        } catch (error) {
+            console.warn('Tie shoulder tracking failed:', error.message);
+        }
+    }
+    drawPhotoTie(ctx, geometry, getTieCollar(tiePose, geometry, width, height));
+}
+
+function drawPhotoTie(ctx, geometry, collar = null) {
     const size = geometry.faceHeight;
-    withAccessoryTransform(ctx, geometry.chin, geometry.angle, () => {
+    withAccessoryTransform(ctx, collar || geometry.chin, collar?.angle ?? geometry.angle, () => {
         ctx.scale(size, size);
-        ctx.translate(0, 0.28);
+        if (!collar) ctx.translate(0, 0.28);
         ctx.fillStyle = '#125c47';
         ctx.beginPath();
         ctx.moveTo(-0.067, 0.08);
@@ -304,6 +362,10 @@ let scrollPalm = null;
 let scrollPalmVideoTime = -Infinity;
 
 function drawCameraAccessory(ctx, video, landmarks, width, height, capture = false) {
+    if (selectedFaceAccessory === 'rp-tie') {
+        drawCameraTie(ctx, video, landmarks, width, height, capture);
+        return;
+    }
     if (selectedFaceAccessory !== 'grad-scroll') {
         drawFaceAccessory(ctx, landmarks, width, height);
         return;
@@ -368,7 +430,7 @@ function drawGraduationScroll(ctx, { center, size }) {
 
 const FACE_ACCESSORY_RENDERERS = {
     graduation: drawGraduationAccessory,
-    'rp-tie': drawPhotoTie,
+    'rp-tie': (ctx, geometry) => drawPhotoTie(ctx, geometry),
     'rp-bear': drawShoulderBear
 };
 
@@ -425,6 +487,7 @@ async function startFaceAccessoryPreview() {
                 return;
             }
         } else {
+            if (selectedFaceAccessory === 'rp-tie') void ensureTiePoseReady();
             await ensureFaceLandmarkerReady();
         }
         if (!faceAccessoryAnimationFrame && stream) renderLiveFaceAccessory();
@@ -440,6 +503,8 @@ function stopFaceAccessoryPreview() {
     }
     scrollPalm = null;
     scrollPalmVideoTime = -Infinity;
+    tiePose = null;
+    tiePoseVideoTime = -Infinity;
     latestFaceAccessoryLandmarks = null;
     latestFaceAccessoryVideoTime = -1;
     clearFaceAccessoryCanvas();
