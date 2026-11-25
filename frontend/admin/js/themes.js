@@ -216,7 +216,6 @@ const themeConfig = {
                 'page-background': {
                     auto: ['*-page'],
                     explicit: [
-                        '#theme-settings-page .theme-preview',
                         'body',
                         '.page-content'
                     ]
@@ -271,7 +270,6 @@ const themeConfig = {
                         '#data-export-page .password-panel-card',
                         '#data-export-page .export-card',
                         '#theme-settings-page .theme-section-list',
-                        '#theme-settings-page .theme-settings-form',
                         '#theme-settings-page .preview-card',
                         '.card',
                         '.stat-card',
@@ -770,16 +768,18 @@ const themeConfig = {
         },
         
         // <Jun Kai/> Style & Theme B: these keys still name the old classes, like the other redesigned pages, so they match
-        // nothing and the new cards keep the kit colours (and dark mode) until the theme is mapped onto the kit
+        // nothing and the new cards keep the kit colours (and dark mode) until the theme is mapped onto the kit. The three
+        // old classes that the new page reuses (.theme-settings-form, .theme-group-title, .theme-preview) were taken out
+        // here and in the overall lists, so a dark card colour never paints the editor behind its dark text
         'theme-settings-page': {
             general: {
-                'page-background': ['#theme-settings-page', '#theme-settings-page .theme-preview'],
+                'page-background': ['#theme-settings-page'],
                 'primary-text': ['#theme-settings-page .page-header h2'],
                 'secondary-text': ['#theme-settings-page .page-header p']
             },
             card: {
                 'card-header-background': ['#theme-settings-page .theme-sidebar-header', '#theme-settings-page .theme-panel-header'],
-                'card-background': ['#theme-settings-page .theme-section-list', '#theme-settings-page .theme-settings-form', '#theme-settings-page .preview-card'],
+                'card-background': ['#theme-settings-page .theme-section-list', '#theme-settings-page .preview-card'],
                 'card-item-hover-bg': ['#theme-settings-page .theme-section-item:hover'],
                 'card-item-hover-text': ['#theme-settings-page .theme-section-item:hover'],
                 'card-item-active-bg': ['#theme-settings-page .theme-section-item.active'],
@@ -788,8 +788,7 @@ const themeConfig = {
                 'card-primary-text': ['#theme-settings-page .theme-sidebar-header h3', '#theme-settings-page .preview-card h5', '#theme-settings-page .theme-panel-header h3'],
                 'card-secondary-text': [
                     '#theme-settings-page .preview-card p',
-                    '#theme-settings-page .theme-section-item',     
-                    '#theme-settings-form .theme-group-title'        
+                    '#theme-settings-page .theme-section-item'
                 ],
             },
             buttons: {
@@ -928,6 +927,9 @@ let currentSection = 'global';
 // Initialize theme settings page
 function initThemeSettings() {
     loadThemeSettings();
+    // <Jun Kai/> the stored colours are loaded again, so changes that were not saved are gone and so is their mark
+    themeMarkUnsaved(false);
+    themeSay('');
     renderSectionList();
     selectSection('global');
     applyThemeSettings();
@@ -1856,7 +1858,7 @@ function applyThemeSettings() {
                 if ((optionId === 'primary-text' || optionId === 'secondary-text') && colors['page-background'] && themeContrast(cssValue, colors['page-background']) < 4.5) return;
                 if (optionId === 'page-background') {
                     if (section.isGlobal) {
-                        css += `:root { --l3-page-tint: ${cssValue}; }\n#theme-settings-page .theme-preview { background-color: ${cssValue} !important; }\n`;
+                        css += `:root { --l3-page-tint: ${cssValue}; }\n`; // <Jun Kai/> the preview takes its colours from updatePreview
                         return;
                     }
                     if (useGlobal) return;
@@ -2228,6 +2230,13 @@ async function saveCurrentTheme() {
         
         console.log('✅ Theme saved successfully:', data);
         // <Jun Kai start>
+        if (isActive) {
+            applyThemeData(themeData); // stores and applies the colours the theme was made from
+            themeMarkUnsaved(false);
+            renderSectionList();
+            renderThemeControls(currentSection);
+            updatePreview(currentSection);
+        }
         themeSay(`The theme "${themeName}" is saved${isActive ? ' and in use' : ''}.`, 'ok');
         closeSaveThemeForm();
         // <Jun Kai end>
