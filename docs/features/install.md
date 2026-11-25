@@ -80,8 +80,10 @@ gets the matching step (the user's rule of 12 Nov 2026: keep the installer in st
 ## Encryption key
 
 `ENCRYPTION_KEY` encrypts visitor emails and the Visitor Data Archive files. An empty key means the public development
-key in `backend/core/auth.js` is used. The installer only creates a key while the database holds no encrypted email and
-no archive; otherwise it leaves the key empty and says so, because a new key would make those unreadable. Keep a copy of
+key in `backend/core/auth.js` is used. The installer only creates a key while the database holds no encrypted email, no
+encrypted Lost & Found contact and no archive; otherwise it leaves the key empty and says so, because a new key would
+make those unreadable. After the migrations, install and update also encrypt the contacts of Lost & Found reports saved
+before migration 010 (`database/encrypt-lostfound-contacts.js --apply`, safe to run twice; the update backup comes first). Keep a copy of
 `backend\.env` somewhere safe: an archive can only be opened with the key that wrote it.
 
 ## Notes

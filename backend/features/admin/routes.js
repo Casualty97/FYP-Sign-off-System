@@ -256,6 +256,7 @@ const rememberMe = require('../../core/rememberMe');
 const adminSessions = require('../../core/adminSessions'); // <Jun Kai/> ends the sign-ins of a deleted or changed account
 const { forLog } = require('../../core/log'); // <Jun Kai/> request values are printed without line breaks
 const requestLimit = require('../../core/requestLimit'); // <Jun Kai/> request limits per address
+const lostFoundContact = require('../lostFound/contact'); // <Jun Kai/> the encrypted Lost & Found contact
 const loginLimit = require('../../core/loginLimit'); // a limit on wrong passwords at the sign-in
 const { csvCell } = require('../../core/csv'); // one CSV cell: 0 is kept, dates in Singapore time, no formulas
 // <Jun Kai end>
@@ -593,24 +594,65 @@ router.get('/lost-found-reports', auth.requireAdmin, (req, res) => {
 
         res.json({
             success: true,
-            reports: reports || []
+            // <Jun Kai/> no contact (only through the password check below) and no feedback_progress, the kiosk answers
+            // saved with the report, which can hold the visitor's name and email; the page uses neither
+            reports: (reports || []).map((report) => { const listed = lostFoundContact.withoutContact(report); delete listed.feedback_progress; return listed; })
         });
     });
 });
 
-router.get('/lost-found-reports/export.csv', auth.requireAdmin, (req, res) => { // Lost & Found CSV export (DONE BY NICK)
+// <Jun Kai start> the contact of one report, after the System Admin types their password again (like /decrypt-email)
+router.post('/lost-found-reports/:id/contact', auth.requireAuth, auth.requireAdmin, requestLimit.passwordChecks, (req, res) => {
+    const username = req.session.user.username;
+    const password = req.body && req.body.password;
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ success: false, error: 'Report id required' });
+    if (!password) return res.status(400).json({ success: false, error: 'Password required' });
+    auth.loginUser(username, password, (loginErr, user) => {
+        if (loginErr || !user) return res.status(401).json({ success: false, error: 'Invalid password' });
+        if (user.role !== 'system_admin') return res.status(403).json({ success: false, error: 'Only System Admins can see a contact.' });
+        lostFoundStore.getLostFoundContact(id, (err, contact) => {
+            if (err) {
+                console.error('Error decrypting a Lost & Found contact:', err.message);
+                return res.status(500).json({ success: false, error: 'The contact could not be decrypted (check ENCRYPTION_KEY in backend/.env).' });
+            }
+            if (contact === undefined) return res.status(404).json({ success: false, error: 'Report not found' });
+            if (!contact) return res.status(404).json({ success: false, error: 'This report has no contact' });
+            logAudit('VIEW_LOST_FOUND_CONTACT', username, 'lost_found_report', id, req);
+            res.json({ success: true, contact });
+        });
+    });
+});
+
+// Lost & Found CSV export (DONE BY NICK). <Jun Kai/> Now a POST with the password: the file holds the decrypted contacts.
+router.post('/lost-found-reports/export.csv', auth.requireAuth, auth.requireAdmin, requestLimit.passwordChecks, requestLimit.heavyWork, (req, res) => {
+    const username = req.session.user.username;
+    const password = req.body && req.body.password;
+    if (!password) return res.status(400).json({ success: false, error: 'Password required' });
+    auth.loginUser(username, password, (loginErr, user) => {
+        if (loginErr || !user) return res.status(401).json({ success: false, error: 'Invalid password' });
+        if (user.role !== 'system_admin') return res.status(403).json({ success: false, error: 'Only System Admins can export the contacts.' });
+        exportLostFoundCsv(req, res, username);
+    });
+});
+
+function exportLostFoundCsv(req, res, username) {
+// <Jun Kai end>
     lostFoundStore.listLostFoundReports((err, reports) => {
         if (err) {
             console.error('Error exporting Lost & Found reports:', err);
             return res.status(500).json({ success: false, error: err.message });
         }
 
+        // <Jun Kai/> each contact decrypted; one that cannot be read says so instead of stopping the export
+        const contactOf = (report) => { try { return lostFoundContact.revealContact(report, auth.decryptEmail) || ''; } catch (e) { return '(could not decrypt)'; } };
+        logAudit('DOWNLOAD_LOST_FOUND_CSV', username, 'lost_found_report', (reports || []).length, req); // <Jun Kai/> target id = number of reports
         const csvData = convertToCSV((reports || []).map(report => ({
             TrackingCode: report.tracking_code || '',
             Type: report.report_type || '',
             Item: report.item_description || '',
             Location: report.location_text || '',
-            Contact: report.contact_info || '',
+            Contact: contactOf(report),
             Details: report.details || '',
             Photo: report.item_photo_path || '',
             CurrentPage: report.current_page || '',
@@ -623,7 +665,7 @@ router.get('/lost-found-reports/export.csv', auth.requireAdmin, (req, res) => { 
         res.setHeader('Content-Disposition', `attachment; filename=lost_found_reports_${Date.now()}.csv`);
         res.send(csvData || 'TrackingCode,Type,Item,Location,Contact,Details,Photo,CurrentPage,Status,CreatedAt,UpdatedAt\n');
     });
-});
+}
 
 router.get('/nick-usage-analytics', auth.requireAdmin, (req, res) => { // Nick feature usage analytics for admin dashboard (DONE BY NICK)
     db.all(`

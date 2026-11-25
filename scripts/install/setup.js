@@ -22,6 +22,7 @@ const FILES = {
     example: path.join(ROOT, 'backend', '.env.example'),
     schema: path.join(ROOT, 'database', 'schema.sql'),
     migrate: path.join(ROOT, 'database', 'migrate.js'),
+    encryptContacts: path.join(ROOT, 'database', 'encrypt-lostfound-contacts.js'), // <Jun Kai/>
     migrations: path.join(ROOT, 'database', 'migrations')
 };
 const FOLDERS = ['uploads/photos', 'uploads/processed', 'logs', 'backend/cache', 'backend/data'];
@@ -84,7 +85,8 @@ function dbConfig(values, env = process.env) {
 // A new ENCRYPTION_KEY is only safe once the database could be read and nothing in it was encrypted with the
 // development key that an empty one means
 function keySafe(stats) {
-    return stats.appUser && (!stats.databaseExists || (stats.encryptedEmails === 0 && stats.archives === 0));
+    // <Jun Kai/> encrypted Lost & Found contacts (migration 010) depend on the key in the same way as the emails
+    return stats.appUser && (!stats.databaseExists || (stats.encryptedEmails === 0 && stats.archives === 0 && !stats.encryptedContacts));
 }
 
 // The keys install fills in, judged on the file (it is what every later start reads). A value that is already there
@@ -134,7 +136,7 @@ function readEnvFile() {
 
 // Read-only look at the database: can the app user log in, does the database exist, what is in it
 async function inspect(cfg, mysql) {
-    const stats = { reachable: false, appUser: false, databaseExists: false, tables: 0, admins: 0, encryptedEmails: 0, archives: 0, pending: [], error: null };
+    const stats = { reachable: false, appUser: false, databaseExists: false, tables: 0, admins: 0, encryptedEmails: 0, archives: 0, encryptedContacts: 0, plainContacts: 0, pending: [], error: null };
     let conn;
     try {
         conn = await mysql.createConnection({ host: cfg.host, port: cfg.port, user: cfg.user, password: cfg.password });
@@ -160,6 +162,14 @@ async function inspect(cfg, mysql) {
         stats.admins = await count('admin_users');
         stats.encryptedEmails = await count('users', "WHERE email_encrypted IS NOT NULL AND email_encrypted <> ''");
         stats.archives = await count('visitor_archives');
+        // <Jun Kai start> Lost & Found contacts: encrypted ones (they need the key) and plain ones from before migration 010
+        if (tables.has('lost_found_reports')) {
+            const [[column]] = await conn.query("SELECT COUNT(*) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'lost_found_reports' AND COLUMN_NAME = 'contact_info_encrypted'", [cfg.database]);
+            const hasColumn = Number(column.n) > 0;
+            if (hasColumn) stats.encryptedContacts = await count('lost_found_reports', "WHERE contact_info_encrypted IS NOT NULL AND contact_info_encrypted <> ''");
+            stats.plainContacts = await count('lost_found_reports', hasColumn ? "WHERE contact_info_encrypted IS NULL AND TRIM(contact_info) <> ''" : "WHERE TRIM(contact_info) <> ''");
+        }
+        // <Jun Kai end>
         let applied = new Set();
         if (tables.has('schema_migrations')) {
             const [names] = await conn.query('SELECT name FROM ??.schema_migrations', [cfg.database]);
@@ -221,6 +231,23 @@ function runMigrations(cfg) {
     for (const line of `${run.stdout || ''}${run.stderr || ''}`.split(/\r?\n/).filter(Boolean)) console.log(`         ${line}`);
     if (run.status !== 0) throw new Error('database/migrate.js up failed (see the lines above)');
 }
+
+// <Jun Kai start> Lost & Found reports saved before migration 010 keep their contact in plain text until this runs. It is
+// safe to run twice and checks each value by decrypting it again before the plain one goes. A failure is only a
+// warning: the admin page still shows old contacts through the password check, and the command can be run by hand.
+function encryptOldContacts(cfg) {
+    const env = { ...process.env, DB_HOST: cfg.host, DB_USER: cfg.user, DB_PASSWORD: cfg.password, DB_NAME: cfg.database };
+    delete env.ESG_MYSQL_ROOT_PASSWORD;
+    const run = spawnSync(process.execPath, [FILES.encryptContacts, '--apply'], { cwd: ROOT, env, encoding: 'utf8' });
+    const lines = `${run.stdout || ''}${run.stderr || ''}`.split(/\r?\n/).filter((line) => line && !/Connected to MySQL/.test(line));
+    for (const line of lines) console.log(`         ${line}`);
+    if (run.status === 0) say.ok('Lost & Found contacts saved before migration 010 are now encrypted');
+    else {
+        say.note('the old Lost & Found contacts could not all be encrypted (see the lines above); nothing was lost.');
+        say.info('Run it again later in the app folder: node database/encrypt-lostfound-contacts.js --apply');
+    }
+}
+// <Jun Kai end>
 
 const say = {
     ok: (t) => console.log(`   ok    ${t}`),
@@ -309,7 +336,7 @@ async function install(opts) {
     if (plan.kept.includes('ENCRYPTION_KEY')) {
         if (!stats.appUser) say.would('set ENCRYPTION_KEY once the database shows that no stored email depends on the development key');
         else {
-            say.note(`ENCRYPTION_KEY is empty, but the database already holds ${stats.encryptedEmails} encrypted email(s) and ${stats.archives} archive(s).`);
+            say.note(`ENCRYPTION_KEY is empty, but the database already holds ${stats.encryptedEmails} encrypted email(s), ${stats.encryptedContacts || 0} encrypted Lost & Found contact(s) and ${stats.archives} archive(s).`); // <Jun Kai/> contacts
             say.info('A new key is NOT set: it would make them unreadable. See docs/features/install.md, "Encryption key".');
         }
     }
@@ -327,6 +354,7 @@ async function install(opts) {
         if (fresh) say.would('apply every migration in database/migrations');
         else if (stats.pending.length) say.would(`apply ${stats.pending.length} new migration(s): ${stats.pending.join(', ')}`);
         else say.ok('every migration is already applied');
+        if (stats.plainContacts) say.would(`encrypt the contact of ${stats.plainContacts} Lost & Found report(s) saved before migration 010`); // <Jun Kai/>
         return 0;
     }
     runMigrations(cfg);
@@ -337,6 +365,7 @@ async function install(opts) {
         return 1;
     }
     say.ok(`database ${cfg.database}: ${stats.tables} tables, ${stats.admins} admin account(s), every migration applied`);
+    if (stats.plainContacts) encryptOldContacts(cfg); // <Jun Kai/> after the key in backend/.env is final and every migration is in
     // the command line installer sets the first admin account right after (set-admin), so the default is never shown there
     if (fresh && !opts.adminLater) say.note('first login on the admin page: systemadmin / SystemAdmin123! (change the password on the Users page)');
     return 0;
@@ -512,5 +541,5 @@ if (require.main === module) {
     run(opts).then((code) => process.exit(code), (e) => { say.bad(e.message); process.exit(1); });
 }
 
-module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, loadMysql, nodeOk, rawEnvLines, adminProblem, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
+module.exports = { parseEnv, effective, dbConfig, keySafe, encryptOldContacts, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, loadMysql, nodeOk, rawEnvLines, adminProblem, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
 // <Jun Kai end>
