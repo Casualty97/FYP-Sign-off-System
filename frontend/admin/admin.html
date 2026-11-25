@@ -349,264 +349,145 @@
             <main class="page-content">
                 <!-- Dashboard Page (DONE BY PRETI)-->
                 <div id="dashboard-page" class="page active">
-                    <div class="page-header">
+                    <!-- <Jun Kai start> Dashboard page (admin redesign, Dashboard C): one screen with tabs. Overview holds five
+                         tiles, two graphs and three small cards; the visitor numbers, the Journey Passport and the system status
+                         have their own tabs. The ids the scripts use (tiles, canvases, passport, alerts, status) are the old ones. -->
+                    <div class="ui-page-header">
                         <div>
                             <h2>Dashboard</h2>
-                            <p>Real-time overview of system statistics and performance</p>
+                            <p class="last-updated" id="dashboard-updated">Loading...</p>
                         </div>
-                        <button class="refresh-btn" onclick="refreshDashboard()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                            Refresh
-                        </button>
+                        <button type="button" class="ui-btn ui-btn-secondary db-refresh" id="dashboard-refresh-btn" onclick="refreshDashboard()"><span data-fb-icon="refresh"></span>Refresh</button>
                     </div>
 
-                    <!-- Key Metrics Grid -->
-                    <div class="dashboard-metrics-grid">
-                        <!-- This Month's Feedback Card -->
-                        <div class="metric-card metric-purple">
-                            <div class="metric-header">
-                                <div class="metric-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="metric-value" id="feedback-month-value">0</div>
-                            <div class="metric-label">Total Feedback</div>
-                            <div class="metric-subtitle">This month</div>
-                        </div>
-
-                        <!-- Today's Feedback Card -->
-                        <div class="metric-card metric-blue">
-                            <div class="metric-header">
-                                <div class="metric-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                                    </svg>
-                                </div>
-                                <span class="metric-badge">Today</span>
-                            </div>
-                            <div class="metric-value" id="feedback-today-value">0</div>
-                            <div class="metric-label">Today's Feedback</div>
-                            <div class="metric-subtitle">Submissions today</div>
-                        </div>
-
-
+                    <div class="ui-tabs db-tabs" role="tablist" aria-label="Dashboard views">
+                        <button type="button" role="tab" class="ui-tab" id="db-tab-overview" data-db-tab="overview" aria-selected="true" aria-controls="db-panel-overview">Overview</button>
+                        <button type="button" role="tab" class="ui-tab" id="db-tab-visitors" data-db-tab="visitors" aria-selected="false" aria-controls="db-panel-visitors" tabindex="-1">Visitors</button>
+                        <button type="button" role="tab" class="ui-tab" id="db-tab-passport" data-db-tab="passport" aria-selected="false" aria-controls="db-panel-passport" tabindex="-1">Journey Passport <span class="ui-tab-count" id="db-passport-count">0</span></button>
+                        <button type="button" role="tab" class="ui-tab" id="db-tab-system" data-db-tab="system" aria-selected="false" aria-controls="db-panel-system" tabindex="-1">System <span class="ui-tab-count db-count-alert" id="db-system-count" hidden>0</span></button>
                     </div>
 
-                    <!-- Charts Section -->
-                    <div class="dashboard-charts-section">
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>Feedback Trends</h3>
-                                <div class="chart-controls">
-                                    <button class="chart-control-btn active" onclick="updateChartRange('week')">Week</button>
-                                    <button class="chart-control-btn" onclick="updateChartRange('month')">Month</button>
-                                    <button class="chart-control-btn" onclick="updateChartRange('year')">Year</button>
+                    <div id="db-panel-overview" class="db-panel" role="tabpanel" aria-labelledby="db-tab-overview">
+                        <div class="db-tiles">
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">Today</span><span class="ui-stat-value" id="feedback-today-value">0</span><span class="ui-stat-note">feedback</span></div>
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">This month</span><span class="ui-stat-value" id="feedback-month-value">0</span><span class="ui-stat-note">feedback</span></div>
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">Leaves</span><span class="ui-stat-value" id="daily-leaf-total">0</span><span class="ui-stat-note">last 6 days</span></div>
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">Pledges</span><span class="ui-stat-value" id="daily-pledge-total">0</span><span class="ui-stat-note">last 6 days</span></div>
+                            <div class="ui-card ui-stat db-tile db-kiosk" id="db-kiosk-tile"><span class="ui-stat-label">Kiosk</span><span class="ui-stat-value" id="db-kiosk-value">...</span><span class="ui-stat-note" id="db-kiosk-note">checking</span></div>
+                        </div>
+
+                        <div class="db-charts">
+                            <section class="ui-card db-card" aria-labelledby="db-trends-title">
+                                <div class="db-card-head">
+                                    <h3 id="db-trends-title">Feedback trends</h3>
+                                    <div class="db-seg" role="group" aria-label="Period">
+                                        <button type="button" class="db-seg-btn active" aria-pressed="true" onclick="updateChartRange('week', this)">Week</button>
+                                        <button type="button" class="db-seg-btn" aria-pressed="false" onclick="updateChartRange('month', this)">Month</button>
+                                        <button type="button" class="db-seg-btn" aria-pressed="false" onclick="updateChartRange('year', this)">Year</button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="visitorTrendsChart"></canvas>
-                            </div>
+                                <div class="db-chart"><canvas id="visitorTrendsChart" aria-label="Feedback per day"></canvas></div>
+                            </section>
+                            <section class="ui-card db-card" aria-labelledby="db-leaves-title">
+                                <div class="db-card-head">
+                                    <h3 id="db-leaves-title">Daily leaves and pledges</h3>
+                                    <div class="db-seg" role="group" aria-label="Chart type">
+                                        <button type="button" id="daily-leaf-bar-btn" class="db-seg-btn active" aria-pressed="true" onclick="setDailyLeafPledgeChartType('bar')">Bar</button>
+                                        <button type="button" id="daily-leaf-line-btn" class="db-seg-btn" aria-pressed="false" onclick="setDailyLeafPledgeChartType('line')">Line</button>
+                                    </div>
+                                </div>
+                                <div class="db-chart"><canvas id="dailyLeafPledgeChart" aria-label="Leaves and pledges per day"></canvas></div>
+                            </section>
                         </div>
 
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>Feedback Breakdown</h3>
-                                <p class="chart-subtitle">Email, photos & storage types</p>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="feedbackDistributionChart"></canvas>
-                            </div>
+                        <div class="db-cards">
+                            <section class="ui-card db-card" aria-labelledby="db-needs-title">
+                                <div class="db-card-head">
+                                    <h3 id="db-needs-title">Needs you <span class="ui-tab-count db-count-alert" id="db-needs-count" hidden>0</span></h3>
+                                </div>
+                                <div id="db-needs-list" class="db-needs-list"><p class="db-empty">Checking...</p></div>
+                                <div class="db-card-foot"><button type="button" class="ui-link" onclick="showDashboardTab('system')">All alerts and system status</button></div>
+                            </section>
+                            <section class="ui-card db-card" aria-labelledby="db-breakdown-title">
+                                <div class="db-card-head"><h3 id="db-breakdown-title">Feedback breakdown</h3></div>
+                                <div class="db-donut">
+                                    <canvas id="feedbackDistributionChart" aria-label="Feedback with and without an email"></canvas>
+                                    <div class="db-donut-total"><strong id="db-donut-total">0</strong><span>submissions</span></div>
+                                </div>
+                                <div class="db-legend" id="db-donut-legend"></div>
+                            </section>
+                            <section class="ui-card db-card" aria-labelledby="db-actions-title">
+                                <div class="db-card-head"><h3 id="db-actions-title">Quick actions</h3></div>
+                                <div class="db-actions">
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('feedback-data')"><span data-fb-icon="message"></span>View Feedback</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('digital-tree')"><span data-fb-icon="tree"></span>Digital Tree</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('pledgeboard')"><span data-fb-icon="clipboard"></span>Pledgeboard</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('data-export')"><span data-fb-icon="download"></span>Export Data</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('questions')"><span data-fb-icon="help"></span>Questions</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('users')"><span data-fb-icon="users"></span>Users</button>
+                                </div>
+                            </section>
                         </div>
+                    </div>
 
-                        <div class="chart-card daily-leaf-card">
-                            <div class="chart-header">
+                    <div id="db-panel-visitors" class="db-panel" role="tabpanel" aria-labelledby="db-tab-visitors" hidden>
+                        <div class="db-two">
+                            <section class="ui-card db-card" aria-labelledby="db-facts-title">
+                                <div class="db-card-head"><h3 id="db-facts-title">Feedback breakdown</h3></div>
+                                <dl class="db-facts" id="db-breakdown-list"></dl>
+                            </section>
+                            <section class="ui-card db-card" aria-labelledby="db-days-title">
+                                <div class="db-card-head"><h3 id="db-days-title">Leaves and pledges per day</h3></div>
+                                <div id="daily-leaf-list" class="db-day-list"><p class="db-empty">Loading...</p></div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <div id="db-panel-passport" class="db-panel" role="tabpanel" aria-labelledby="db-tab-passport" hidden>
+                        <section class="ui-card db-card" aria-labelledby="journey-passport-title">
+                            <div class="db-card-head">
                                 <div>
-                                    <h3>Daily Leaves & Pledges</h3>
-                                    <p class="chart-subtitle">Last 6 days of tree growth and pledge activity</p>
+                                    <h3 id="journey-passport-title">Journey Passport</h3>
+                                    <p class="db-card-sub">Visitor milestones across feedback, pledges, keepsakes and repeat visits</p>
                                 </div>
-                                <!-- Bar/Line chart switch (DONE BY XY) -->
-                                <div class="chart-controls" aria-label="Daily leaves and pledges chart type">
-                                    <button type="button" id="daily-leaf-bar-btn" class="chart-control-btn active" onclick="setDailyLeafPledgeChartType('bar')">Bar</button>
-                                    <button type="button" id="daily-leaf-line-btn" class="chart-control-btn" onclick="setDailyLeafPledgeChartType('line')">Line</button>
-                                </div>
+                                <span id="journey-passport-status" class="journey-passport-status">Loading...</span>
                             </div>
-                            <div class="chart-container daily-leaf-chart-container">
-                                <canvas id="dailyLeafPledgeChart"></canvas>
+                            <div class="db-passport-stats">
+                                <div><span>Passport holders</span><strong id="passport-holder-count">0</strong></div>
+                                <div><span>Repeat visitors</span><strong id="passport-repeat-count">0</strong></div>
+                                <div><span>Total stamps</span><strong id="passport-stamp-count">0</strong></div>
+                                <div><span>Average stamps</span><strong id="passport-average-count">0</strong></div>
                             </div>
-                            <div class="daily-leaf-summary">
-                                <div class="daily-leaf-total">
-                                    <span>Total Leaves</span>
-                                    <strong id="daily-leaf-total">0</strong>
-                                </div>
-                                <div class="daily-leaf-total">
-                                    <span>Total Pledges</span>
-                                    <strong id="daily-pledge-total">0</strong>
-                                </div>
-                            </div>
-                            <div id="daily-leaf-list" class="daily-leaf-list">
-                                <p class="daily-leaf-empty">Loading daily leaf and pledge counts...</p>
-                            </div>
-                        </div>
+                            <div id="journey-passport-breakdown" class="journey-passport-breakdown"><p class="journey-passport-empty">Loading...</p></div>
+                            <div id="journey-passport-list" class="journey-passport-list"><p class="journey-passport-empty">Loading...</p></div>
+                        </section>
                     </div>
 
-                    <!-- Intervention Alerts -->
-                    <section class="intervention-alerts-card" aria-labelledby="intervention-alerts-title">
-                        <div class="intervention-alerts-header">
-                            <div>
-                                <h3 id="intervention-alerts-title">Intervention Alerts</h3>
-                                <p>Signals that may need staff action before the next visitor group</p>
-                            </div>
-                            <span id="intervention-alerts-count" class="intervention-alerts-count">Checking...</span>
-                        </div>
-                        <div id="intervention-alerts-list" class="intervention-alerts-list">
-                            <p class="intervention-alert-empty">Loading intervention alerts...</p>
-                        </div>
-                    </section>
-
-                    <!-- RP Xperience Centre Journey Passport -->
-                    <section class="journey-passport-card" aria-labelledby="journey-passport-title">
-                        <div class="journey-passport-header">
-                            <div>
-                                <h3 id="journey-passport-title">RP Xperience Centre Journey Passport</h3>
-                                <p>Tracks visitor milestones across feedback, pledges, keepsakes and repeat visits</p>
-                            </div>
-                            <span id="journey-passport-status" class="journey-passport-status">Loading...</span>
-                        </div>
-                        <div class="journey-passport-summary">
-                            <div>
-                                <span>Passport Holders</span>
-                                <strong id="passport-holder-count">0</strong>
-                            </div>
-                            <div>
-                                <span>Repeat Visitors</span>
-                                <strong id="passport-repeat-count">0</strong>
-                            </div>
-                            <div>
-                                <span>Total Stamps</span>
-                                <strong id="passport-stamp-count">0</strong>
-                            </div>
-                            <div>
-                                <span>Avg Stamps</span>
-                                <strong id="passport-average-count">0</strong>
-                            </div>
-                        </div>
-                        <div id="journey-passport-breakdown" class="journey-passport-breakdown">
-                            <p class="journey-passport-empty">Loading passport stamp breakdown...</p>
-                        </div>
-                        <div id="journey-passport-list" class="journey-passport-list">
-                            <p class="journey-passport-empty">Loading visitor passports...</p>
-                        </div>
-                    </section>
-
-                    <!-- System Status & Quick Actions -->
-                    <div class="dashboard-bottom-section">
-                        <!-- System Status -->
-                        <div class="status-card">
-                            <div class="status-header">
-                                <h3>System Status</h3>
-                                <span id="overall-system-status" class="status-indicator status-online">
-                                    <span class="status-dot"></span>
-                                    All Systems Operational
-                                </span>
-                            </div>
-                            <div class="status-grid">
-                                <div class="status-item">
-                                    <div class="status-item-icon">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                            <line x1="8" y1="21" x2="16" y2="21"></line>
-                                            <line x1="12" y1="17" x2="12" y2="21"></line>
-                                        </svg>
-                                    </div>
-                                    <div class="status-item-content">
-                                        <span class="status-item-label">Kiosk Server</span>
-                                        <span id="kiosk-server-status" class="status-badge status-checking">Checking...</span>
-                                    </div>
+                    <div id="db-panel-system" class="db-panel" role="tabpanel" aria-labelledby="db-tab-system" hidden>
+                        <div class="db-two">
+                            <section class="ui-card db-card" aria-labelledby="db-status-title">
+                                <div class="db-card-head">
+                                    <h3 id="db-status-title">System status</h3>
+                                    <span id="overall-system-status" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Checking...</span>
                                 </div>
-                                <div class="status-item">
-                                    <div class="status-item-icon">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="status-item-content">
-                                        <span class="status-item-label">Database</span>
-                                        <span id="database-status" class="status-badge status-checking">Checking...</span>
-                                    </div>
+                                <div class="db-status-rows">
+                                    <div class="db-status-row"><span data-fb-icon="monitor"></span><span>Kiosk server</span><span id="kiosk-server-status" class="ui-pill ui-pill-muted">Checking...</span></div>
+                                    <div class="db-status-row"><span data-fb-icon="database"></span><span>Database</span><span id="database-status" class="ui-pill ui-pill-muted">Checking...</span></div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Quick Actions -->
-                        <div class="quick-actions-card">
-                            <div class="quick-actions-header">
-                                <h3>Quick Actions</h3>
-                                <p>Frequently used admin tasks</p>
-                            </div>
-                            <div class="quick-actions-grid">
-                                <button class="quick-action-btn" onclick="showPage('feedback-data')">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                    </svg>
-                                    <span>View Feedback</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="showPage('digital-tree')">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 2v6"></path>
-                                        <path d="m12 8-8 6h16z"></path>
-                                        <path d="m4 14 8 8"></path>
-                                        <path d="m20 14-8 8"></path>
-                                    </svg>
-                                    <span>Digital Tree</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="showPage('pledgeboard')">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                                        <polyline points="14 2 14 8 20 8"></polyline>
-                                    </svg>
-                                    <span>Pledgeboard</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="showPage('data-export')">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
-                                    <span>Export Data</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="showPage('questions')">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                    </svg>
-                                    <span>Manage Questions</span>
-                                </button>
-                                <button class="quick-action-btn" onclick="showPage('users')">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="9" cy="7" r="4"></circle>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                    </svg>
-                                    <span>Users</span>
-                                </button>
-                            </div>
+                            </section>
+                            <section class="ui-card db-card" aria-labelledby="intervention-alerts-title">
+                                <div class="db-card-head">
+                                    <div>
+                                        <h3 id="intervention-alerts-title">Intervention alerts</h3>
+                                        <p class="db-card-sub">Signals that may need staff action before the next visitor group</p>
+                                    </div>
+                                    <span id="intervention-alerts-count" class="intervention-alerts-count">Checking...</span>
+                                </div>
+                                <div id="intervention-alerts-list" class="intervention-alerts-list"><p class="intervention-alert-empty">Loading...</p></div>
+                            </section>
                         </div>
                     </div>
-
-                    <!-- Last Updated -->
-                    <div class="dashboard-footer">
-                        <p class="last-updated">Last updated: Loading...</p>
-                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
                 
                 <!-- Feedback Data Page (DONE BY PRETI)-->
@@ -705,113 +586,88 @@
 
                 <!-- Feedback Reports Page (DONE BY Yu Kang) -->
                 <div id="feedback-report-page" class="page">
-                    <div class="page-header">
-                        <h2>Feedback Reports</h2>
-                        <p>Generate and view detailed feedback reports with AI insights</p>
+                    <!-- <Jun Kai start> Feedback Reports page (admin redesign, Feedback Reports A): flagged feedback first with a red
+                         count, the analysis under it with the five modes as one switch, and the AI cache storage setting in a small
+                         panel opened from the button on the top right. The ids analysis.js and formUi.js use are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Feedback Reports</h2>
+                            <p>Flagged texts and an analysis of what visitors wrote.</p>
+                        </div>
+                        <button type="button" class="ui-btn ui-btn-secondary" id="ai-cache-open" onclick="openAiCachePanel()" aria-controls="ai-cache-panel"><span data-fb-icon="settings"></span>AI cache storage</button>
                     </div>
 
-                    <!-- Tab Contents for Feedback analysis Report -->
-                     <div class="feedback-tabs">
-                        <button class="feedback-tab active" onclick="switchFeedbackTab('feedback-report-tab')">
-                            📊 Feedback Report
-                        </button>
-
-                        <button class="feedback-tab" onclick="switchFeedbackTab('ai-cache-tab')">
-                            ⚙️ AI cache storage
-                        </button>
-                    </div>
-
-                    <div id="feedback-report-tab" class="feedback-tab-content active">
-                        <div class="feedback-section">
-                            <div class="section-header">
-                                <h3>Flagged Feedback</h3>
-                                <button type="button" class="btn-secondary" onclick="loadFlaggedFeedback()">Refresh</button>
+                    <section class="ui-card fr-card" aria-labelledby="fr-flagged-title">
+                        <div class="fr-card-head">
+                            <div>
+                                <h3 id="fr-flagged-title">Flagged feedback <span class="fr-count" id="flagged-count" hidden></span></h3>
+                                <p class="fr-sub" id="flagged-feedback-summary">Keyword analysis checks feedback answers and visitor comments. Flagged submissions are hidden from the tree page.</p>
                             </div>
-                            <div class="flagged-feedback-summary" id="flagged-feedback-summary">
-                                Keyword analysis checks feedback answers and visitor comments. Flagged submissions are hidden from the digital tree.
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="loadFlaggedFeedback()"><span data-fb-icon="refresh"></span>Refresh</button>
+                        </div>
+                        <div class="fr-table-wrap">
+                            <table class="fr-table">
+                                <thead>
+                                    <tr><th>Date</th><th>Visitor</th><th>Source</th><th>Matched keywords</th><th>Feedback text</th><th>Pledge text</th></tr>
+                                </thead>
+                                <tbody id="flagged-feedback-table-body">
+                                    <tr><td colspan="6" class="fr-empty">Loading flagged feedback...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="ui-card fr-card feedback-analyse" aria-labelledby="feedback-analysis-header">
+                        <div class="fr-card-head">
+                            <div>
+                                <h3 id="feedback-analysis-header">Feedback analysis</h3>
+                                <p class="fr-sub" id="fr-analysis-sub">Pick a mode and press Analyze feedback.</p>
                             </div>
-                            <div class="table-container flagged-feedback-table-wrap">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Visitor</th>
-                                            <th>Source</th>
-                                            <th>Matched Keywords</th>
-                                            <th>Feedback Text</th>
-                                            <th>Pledge Text</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="flagged-feedback-table-body">
-                                        <tr>
-                                            <td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">
-                                                Loading flagged feedback...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="fr-analysis-tools">
+                                <label class="ui-sr-only" for="analysis-mode">Analysis mode</label>
+                                <select id="analysis-mode" class="ui-sr-only" tabindex="-1" aria-hidden="true">
+                                    <option value="rule-based">Rule-based</option>
+                                    <option value="xenova">Xenova AI</option>
+                                    <option value="qwen">Qwen AI</option>
+                                    <option value="gemma">Gemma AI</option>
+                                    <option value="localgpt">LocalGPT</option>
+                                </select>
+                                <div class="fr-modes" id="fr-modes" role="radiogroup" aria-label="Analysis mode"></div>
+                                <button type="button" id="analyze-feedback-btn" class="ui-btn ui-btn-primary" onclick="analyzeFeedbackData()">Analyze feedback</button>
                             </div>
                         </div>
-
-                        <!-- Feedback Analysis Section (DONE BY YU KANG)-->
-                        <div class="feedback-section feedback-analyse">
-                            <div class="section-header">
-                                <h3 id="feedback-analysis-header">Feedback Analysis</h3>
-                                <div style="display:flex; gap:10px; align-items:center;">
-                                    <select id="analysis-mode" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer;">
-                                        <option value="rule-based">Rule-Based Analysis</option>
-
-                                        <option value="xenova">Xenova AI</option>
-
-                                        <option value="qwen">Qwen AI</option>
-
-                                        <option value="gemma">Gemma AI</option>
-
-                                        <option value="localgpt">LocalGPT</option>
-                                    </select>
-                                
-                                    <button id="analyze-feedback-btn" class="btn-primary" onclick="analyzeFeedbackData()">Analyze Feedback</button>
-                                </div>
-                            </div>
-                            <!-- <Jun Kai start> shown while the Local AI models switch is off (analysis.js refreshAnalysisModes) -->
-                            <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are switched off on the AI Settings page. Rule-Based Analysis still works.</div>
-                            <!-- <Jun Kai end> -->
-
-                            <div id="feedback-analysis-results" style="display: none; margin-top: 20px;">
-                                <!-- AI Insight Summary (Done by Yu Kang) -->
-                                <h4 style="margin-bottom: 12px;">AI Insight Summary:</h4>
-                                <div id="feedback-analysis-output"></div>
-                            </div>
-                        </div> 
-                        <br>
-                    </div>
-                    
-                    <div id="ai-cache-tab" class="feedback-tab-content">
-                        <div class="feedback-section">
-                            <div class="section-header">
-                                <h2>AI Cache Storage</h2>
-                                <p>Settings for AI cache storage to be either on JSON or Database.</p>
-                            </div>
-                            <div class="section-body" style="margin-top: 16px;">
-                                <div class="form-group" style="max-width: 420px;">
-                                    <label for="ai-cache-storage-mode" style="font-weight: 600;">Storage Mode</label>
-                                    <select id="ai-cache-storage-mode" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;">
-                                        <option value="json">JSON only</option>
-                                        <option value="database">Database only</option>
-                                        <option value="both">JSON and Database</option>
-                                    </select>
-                                </div>
-
-                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px;">
-                                    <button type="button" class="btn-primary" onclick="saveCacheStorageMode()">Save Cache Storage</button>
-                                    <button type="button" class="btn-secondary" onclick="loadCacheStorageMode()">Refresh</button>
-                                </div>
-
-                                <div id="ai-cache-storage-status" class="fm-status fm-status--hidden" aria-live="polite" style="margin-top: 14px;"></div>
-                            </div>
+                        <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are switched off on the AI Settings page. Rule-based analysis still works.</div>
+                        <div id="feedback-analysis-results" class="fr-results" style="display: none;">
+                            <div id="feedback-analysis-output"></div>
                         </div>
-                    </div>
+                    </section>
 
+                    <aside class="ui-sidepanel" id="ai-cache-panel" aria-labelledby="ai-cache-title" hidden>
+                        <header class="ui-sidepanel-head">
+                            <div>
+                                <h3 id="ai-cache-title" tabindex="-1">AI cache storage</h3>
+                                <p>Where analysis results are kept between runs</p>
+                            </div>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="closeAiCachePanel()" title="Close" aria-label="Close AI cache storage" data-fb-icon="close"></button>
+                        </header>
+                        <div class="ui-sidepanel-body">
+                            <div class="ui-field-stack">
+                                <label for="ai-cache-storage-mode">Storage mode</label>
+                                <select id="ai-cache-storage-mode" class="ui-input">
+                                    <option value="json">JSON only</option>
+                                    <option value="database">Database only</option>
+                                    <option value="both">JSON and Database</option>
+                                </select>
+                            </div>
+                            <div id="ai-cache-storage-status" class="fm-status fm-status--hidden" aria-live="polite"></div>
+                        </div>
+                        <footer class="ui-sidepanel-foot">
+                            <button type="button" class="ui-btn ui-btn-primary" onclick="saveCacheStorageMode()">Save</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="loadCacheStorageMode()">Refresh</button>
+                        </footer>
+                    </aside>
+                    <!-- <Jun Kai end> -->
                     <!--
                     <div class="feedback-section">
                         <div class="chart-card">
@@ -830,8 +686,6 @@
                         </div>
                     </div>-->
                 </div>
-
-
                 <!-- Digital Tree Page (DONE BY PRETI)-->
                 <div id="digital-tree-page" class="page">
                     <div class="page-header">
@@ -2225,7 +2079,7 @@
                                 <div class="ui-card-header">
                                     <div>
                                         <h3>Mail account<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: About the mail account" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="About the mail account"><ul><li>A saved password is never sent back to this page. It shows as ********, and leaving it like that keeps the stored one.</li><li>The sender address is what visitors see as From. Left empty, the mail login is used. Gmail shows its own address unless the sender address is a verified alias.</li><li>Save reloads the mail service at once, with no restart. Settings that the mail server rejects are not saved, and the ones that worked stay.</li></ul></template></span></h3>
-                                        <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
+                                        <p>The account the kiosk sends its emails from.</p>
                                     </div>
                                 </div>
                                 <div class="ui-card-body">
@@ -2241,7 +2095,6 @@
                                         <div class="ui-field">
                                             <label class="ui-label" for="sender-email">Sender address (From)</label>
                                             <input class="ui-input" id="sender-email" type="email" placeholder="noreply@yourdomain.com" autocomplete="off">
-                                            <span class="ui-help">Gmail shows its own address as the sender unless this one is a verified alias.</span>
                                         </div>
                                         <div class="ui-field-wide" id="email-fields"></div>
                                     </div>
@@ -2251,7 +2104,7 @@
                                 <div class="ui-card-header">
                                     <div>
                                         <h3>Test message<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Test message" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Test message"><div>Sends one short email with the saved settings, so save first. It goes out as "RP Xperience Centre" from the sender address, like the real emails.</div></template></span></h3>
-                                        <p>Sends a short email with the saved settings. Save first, then test.</p>
+                                        <p>One email to check the saved settings.</p>
                                     </div>
                                 </div>
                                 <div class="ui-card-body">
