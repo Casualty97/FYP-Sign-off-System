@@ -46,7 +46,9 @@ function handler(req, res) {
         try {
             const made = await thumbnail(file);
             const tag = `"${made.stamp}"`;
-            res.set({ 'Cache-Control': 'private, max-age=300', ETag: tag });
+            // no-cache: the browser asks again every time (a cheap 304), so after a sign-out the picture is not
+            // readable from the browser's own copy; the full photos behind /uploads are asked for again the same way
+            res.set({ 'Cache-Control': 'private, no-cache', ETag: tag });
             if (req.headers['if-none-match'] === tag) return res.status(304).end();
             res.type('image/webp').send(made.buffer);
         } catch (error) {
