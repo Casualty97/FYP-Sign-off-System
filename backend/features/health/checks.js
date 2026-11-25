@@ -72,9 +72,9 @@ async function checkDatabase() {
 
 async function checkOllama() {
     const base = { key: 'ollama', label: 'Ollama (local LLM)' };
-    // <Jun Kai start> the Local AI models switch is off: nothing in the app uses Ollama, so it is not even asked
+    // <Jun Kai start> nothing in the app uses Ollama (AI Settings page: the advisor and the Feedback Reports modes are off), so it is not even asked
     if (!aiopsSettings.localAiOn()) {
-        return { ...base, status: 'off', summary: 'Switched off in the incident settings', detail: { url: OLLAMA_URL, hint: 'Local AI models is off (Incidents page, Settings): the advisor and Feedback Reports do not use Ollama.' }, latencyMs: null };
+        return { ...base, status: 'off', summary: 'Switched off on the AI Settings page', detail: { url: OLLAMA_URL, hint: 'The incident advisor and the Feedback Reports AI modes are switched off on the AI Settings page.' }, latencyMs: null };
     }
     // <Jun Kai end>
     try {

@@ -283,8 +283,8 @@ const archivedLeaves = require('../archive/archivedLeaves'); // <Jun Kai/> VIP l
 const { toSgtDay } = require('../archive/visitorSchedule');
 const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
 // the Local AI models switch of the incident settings: off, the analysis modes that run a model are refused
-const aiopsSettings = require('../aiops/settings');
-const LOCAL_AI_OFF_TEXT = 'Local AI models are switched off (Incidents page, Settings, Local AI advisor). Use Rule-Based Analysis, or switch them on there.';
+const aiSettings = require('../aiSettings/store'); // <Jun Kai/> the AI Settings page
+const LOCAL_AI_OFF_TEXT = 'The Feedback Reports AI modes are switched off on the AI Settings page. Use Rule-Based Analysis, or switch them on there.';
 // <Jun Kai end>
 
 
@@ -2361,7 +2361,7 @@ router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
     // <Jun Kai start> refused here, before a running analysis is stopped and before anything is cached: the engines
     // turn every failure into "neutral", which would be cached as a real answer
     const modelModes = [analysis_modes.XENOVA, analysis_modes.LOCALGPT, analysis_modes.QWEN, analysis_modes.GEMMA];
-    if (modelModes.includes(mode) && !aiopsSettings.localAiOn()) {
+    if (modelModes.includes(mode) && !aiSettings.on('reportModels')) { // <Jun Kai/> AI Settings page
         return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true });
     }
     // <Jun Kai end>
@@ -2567,7 +2567,7 @@ router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
 // Sentiment AI analysis of feedback answers (added by Yu Kang)
 router.get('/feedback-sentiment-analysis', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
     // <Jun Kai start> the Xenova model is a local AI model too
-    if (!aiopsSettings.localAiOn()) return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true });
+    if (!aiSettings.on('reportModels')) return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true }); // <Jun Kai/>
     // <Jun Kai end>
     console.debug('🧠 Running LOCAL AI sentiment analysis...');
 
@@ -6461,7 +6461,38 @@ router.get('/parameters', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/translate
 // Translate visitor-entered feedback text to English from the admin page (Done by Caeden)
+// <Jun Kai start> the AI Settings page (backend/features/aiSettings/store.js): every signed-in admin page reads it,
+// only a System Admin changes it, and every change goes to the audit log
+router.get('/ai-settings', auth.requireAuth, (req, res) => {
+  try {
+    res.json({ success: true, ...aiSettings.status() });
+  } catch (error) {
+    console.error('Could not read the AI settings:', error.message);
+    res.status(500).json({ success: false, error: 'Could not read the AI settings.' });
+  }
+});
+
+router.put('/ai-settings', auth.requireAuth, auth.requireAdmin, (req, res) => {
+  try {
+    const result = aiSettings.save(req.body || {});
+    if (result.error) return res.status(400).json({ success: false, error: result.error, field: result.field });
+    const who = req.session.user && req.session.user.username;
+    // the switch's name goes in the target type: target_id is a number column
+    for (const [key, value] of result.changed) logAudit(value ? 'AI_SETTING_ON' : 'AI_SETTING_OFF', who, `ai_settings:${key}`, null, req);
+    res.json({ success: true, ...aiSettings.status(), changed: result.changed.map(([key]) => key) });
+  } catch (error) {
+    console.error('Could not save the AI settings:', error.message);
+    res.status(500).json({ success: false, error: 'Could not save the AI settings.' });
+  }
+});
+// <Jun Kai end>
+
 router.post('/translate', auth.requireAuth, (req, res) => {
+  // <Jun Kai start> the AI Settings page can switch it off: then nothing is sent to Google
+  if (!aiSettings.on('translate')) {
+    return res.status(409).json({ success: false, error: 'Translate to English is switched off on the AI Settings page.', aiOff: true });
+  }
+  // <Jun Kai end>
   const { text } = req.body || {};
 
   if (!text || !String(text).trim()) {

@@ -161,8 +161,9 @@ function write(settings) {
     return settings;
 }
 
-// the Local AI models switch, for the features outside AIOps that run a model (Feedback Reports, System Health)
-const localAiOn = (settings = read()) => !settings || settings.localAi !== false;
+// <Jun Kai/> the old Local AI models switch moved to the AI Settings page: this now tells whether anything still uses Ollama
+// (loaded on call, because aiSettings/store.js loads this file)
+const localAiOn = () => require('../aiSettings/store').ollamaInUse();
 
 module.exports = { read, validate, write, repair, localAiOn, FILE_NAME, DETECTORS, DEFAULTS, LIMITS };
 // <Jun Kai end>

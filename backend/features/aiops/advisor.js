@@ -23,7 +23,7 @@ const MAX = { summary: 400, cause: 200, why: 300, causes: 3, examples: 3, points
 const TIMEOUT_MS = 120 * 1000;      // a 3B model on a CPU can take a minute
 const AGAIN_AFTER_MS = 30 * 1000;   // "Ask again" for one incident at most this often
 const ADVISED = new Set(['opened', 'reopened', 'severity']); // events after which an incident needs (new) advice
-const LOCAL_AI_OFF = 'Local AI models are switched off in the incident settings';
+const LOCAL_AI_OFF = 'AI is switched off on the AI Settings page'; // <Jun Kai/>
 
 const cut = (value, max) => String(value === null || value === undefined ? '' : value).slice(0, max);
 
@@ -154,14 +154,15 @@ async function askOllama({ url, model, prompt, timeoutMs = TIMEOUT_MS, fetchImpl
 
 // The queue around it: one incident at a time (Ollama is slow on a CPU), never the same incident twice at once.
 // store: the incident store; settings(): the aiops settings; ask(): askOllama (a fake in the tests).
-function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').replace(/\/$/, ''), ask = askOllama, now = () => Date.now() }) {
+function createAdvisor({ store, settings, url = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').replace(/\/$/, ''), ask = askOllama, now = () => Date.now(), aiAllOn = () => require('../aiSettings/store').allOn() }) {
     const queue = [];
     const askedAt = new Map(); // incident id -> ms of the last question, for "Ask again"
     const state = { busy: null, lastError: null, lastAt: null, lastSource: null, done: 0 };
     const conf = () => {
         const current = settings() || {};
         const advisor = current.advisor || {};
-        return { on: advisor.enabled !== false, localAi: current.localAi !== false, model: advisor.model || 'qwen2.5:3b' };
+        // <Jun Kai/> localAi: the old switch (kept for old settings files) and the AI Settings switch for all AI features
+        return { on: advisor.enabled !== false, localAi: current.localAi !== false && aiAllOn(), model: advisor.model || 'qwen2.5:3b' };
     };
 
     async function adviseOne(id) {

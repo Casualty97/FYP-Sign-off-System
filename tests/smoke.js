@@ -409,6 +409,20 @@ async function archiveStep(cookie) {
       if (r.status === 200 && cookie) pass('POST /api/admin/login with the seeded admin (200, session cookie set)');
       else fail(`POST /api/admin/login with the seeded admin (${r.status}, cookie ${cookie ? 'set' : 'missing'})`);
     } catch (e) { fail(`POST /api/admin/login: ${e.message}`); }
+    // <Jun Kai start> the AI Settings page: everyone signed in reads the switches, only a System Admin changes them, and
+    // sending the same values back changes nothing (so this run leaves the settings as they were)
+    await expect('GET /api/admin/ai-settings without a session is refused', `${BASE}/api/admin/ai-settings`, (r) => r.status === 401 || `${r.status}`);
+    {
+      const r = await get(`${BASE}/api/admin/ai-settings`, { headers: { cookie } });
+      const s = r.body && r.body.settings;
+      const ok = r.status === 200 && s && ['all', 'reportModels', 'pledgeCheck', 'translate', 'incidentAdvisor'].every((k) => typeof s[k] === 'boolean') && r.body.pledge && typeof r.body.pledge.onlineKey === 'boolean' && !/api[_-]?key|sk-/i.test(r.text);
+      if (ok) pass('GET /api/admin/ai-settings lists the five switches and the pledge mode, with no key in the answer'); else fail(`GET /api/admin/ai-settings (${r.status}): ${r.text.slice(0, 160)}`);
+      if (ok) {
+        await expect('PUT /api/admin/ai-settings with the same values changes nothing', `${BASE}/api/admin/ai-settings`, (x) => x.status === 200 && x.body && Array.isArray(x.body.changed) && x.body.changed.length === 0 || `${x.status} ${x.text.slice(0, 120)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(s) });
+        await expect('PUT /api/admin/ai-settings refuses a switch that does not exist', `${BASE}/api/admin/ai-settings`, (x) => x.status === 400 || `${x.status}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ faceCheck: false }) });
+      }
+    }
+    // <Jun Kai end>
     // <Jun Kai start> "keep me signed in for 1 day": the token alone signs the admin back in, Logout ends it
     try {
       const r = await fetch(`${BASE}/api/admin/login`, json({ username: ADMIN_USER, password: ADMIN_PASS, remember: true }));
