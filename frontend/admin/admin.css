@@ -7922,6 +7922,10 @@ input:checked + .slider:before {
    On a narrow screen it drops under the text instead of squeezing it into a thin column. */
 #health-tablets-card .ui-card-header { flex-wrap: wrap; }
 #health-tablets-card .ui-card-header > div:first-child { flex: 1 1 320px; min-width: 0; }
+.health-offline-after { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+.health-offline-after .ui-label { margin: 0; white-space: nowrap; }
+.health-offline-after .ui-select { width: auto; min-width: 104px; }
+.health-offline-after .ui-select:disabled { background-color: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
 .health-skel { display: block; height: 10px; margin-top: 14px; border-radius: 5px; background: linear-gradient(90deg, #eef2f6 25%, #f7f9fb 37%, #eef2f6 63%); background-size: 400% 100%; animation: healthShimmer 1.4s ease infinite; }
 .health-skel + .health-skel { margin-top: 10px; }
 @keyframes healthShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }

@@ -16,7 +16,8 @@ const tabletNames = require('./tabletNames');
 // the alert lines of each part (Hardware page, Alert lines) and when a tablet counts as offline (Tablets, Offline after)
 const hardwareSettings = require('../hardware/settings');
 const aiopsSettings = require('../aiops/settings');
-const TABLET_REPORT_WINDOW_SECONDS = 180;
+const healthSettings = require('./settings');
+const tabletWindowSeconds = () => healthSettings.read().tabletOfflineMinutes * 60;
 // <Jun Kai end>
 
 const OLLAMA_URL = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
@@ -204,7 +205,7 @@ async function checkTablets() {
             ORDER BY last_seen DESC
             LIMIT 50`, []);
         const names = tabletNames.all();
-        const windowSeconds = TABLET_REPORT_WINDOW_SECONDS;
+        const windowSeconds = tabletWindowSeconds();
         const devices = tabletNames.sortDevices(rows.map((r) => ({ ...r, name: names[r.device_id] || null, online: r.seconds_ago <= windowSeconds })));
         const online = devices.filter((d) => d.online);
         let status = 'ok';
