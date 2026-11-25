@@ -86,7 +86,7 @@ const BADGE_CONFIGS = {
         icon: '📝',
         imageUrl: 'https://img.icons8.com/fluency/96/feedback.png',
         color: '#10b981',
-        textTemplate: `Hello!\n\nCongratulations on completing the feedback form! You've earned the "Feedback Contributor" badge.\n\nKeep up the great work!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on completing the feedback form! You've earned the "Feedback Contributor" badge.\n\nKeep up the great work!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: #f8fafc; padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -108,7 +108,7 @@ const BADGE_CONFIGS = {
                             🏆 Achievement Unlocked
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -149,7 +149,7 @@ const BADGE_CONFIGS = {
         icon: '🌱',
         imageUrl: 'https://img.icons8.com/fluency/96/leaf.png',
         color: '#059669',
-        textTemplate: `Hello!\n\nCongratulations! By making an environmental pledge, you've earned the "Eco Warrior" badge.\n\nYour commitment to sustainability makes a real difference!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making an environmental pledge, you've earned the "Eco Warrior" badge.\n\nYour commitment to sustainability makes a real difference!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #d1fae5); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -171,7 +171,7 @@ const BADGE_CONFIGS = {
                             🌍 Planet Protector 🛡️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -212,7 +212,7 @@ const BADGE_CONFIGS = {
         icon: '🤝',
         imageUrl: 'https://img.icons8.com/fluency/96/handshake.png',
         color: '#3b82f6',
-        textTemplate: `Hello!\n\nCongratulations on making a pledge commitment! You've earned the "Commitment Champion" badge.\n\nYour pledges help drive positive change!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on making a pledge commitment! You've earned the "Commitment Champion" badge.\n\nYour pledges help drive positive change!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #eff6ff, #dbeafe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -234,7 +234,7 @@ const BADGE_CONFIGS = {
                             💪 Commitment Champion
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -266,7 +266,7 @@ const BADGE_CONFIGS = {
         icon: '🌎',
         imageUrl: 'https://img.icons8.com/fluency/96/earth-globe.png',
         color: '#0ea5e9',
-        textTemplate: `Hello!\n\nCongratulations on pledging climate action! You've earned the "Climate Champion" badge.\n\nYour commitment to the climate helps protect our planet.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging climate action! You've earned the "Climate Champion" badge.\n\nYour commitment to the climate helps protect our planet.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfeff, #dbeafe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -288,7 +288,7 @@ const BADGE_CONFIGS = {
                             🌍 Climate Action Hero
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -329,7 +329,7 @@ const BADGE_CONFIGS = {
         icon: '⚡',
         imageUrl: 'https://img.icons8.com/fluency/96/solar-panel.png',
         color: '#22c55e',
-        textTemplate: `Hello!\n\nCongratulations on pledging renewable energy! You've earned the "Renewable Innovator" badge.\n\nYour commitment to clean power is energizing the future.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging renewable energy! You've earned the "Renewable Innovator" badge.\n\nYour commitment to clean power is energizing the future.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #e7f5ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -351,7 +351,7 @@ const BADGE_CONFIGS = {
                             ⚡ Clean Power Leader
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -392,7 +392,7 @@ const BADGE_CONFIGS = {
         icon: '🌿',
         imageUrl: 'https://img.icons8.com/fluency/96/leaf.png',
         color: '#16a34a',
-        textTemplate: `Hello!\n\nCongratulations on pledging sustainable living! You've earned the "Sustainable Living Advocate" badge.\n\nYour commitment to greener habits inspires others.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging sustainable living! You've earned the "Sustainable Living Advocate" badge.\n\nYour commitment to greener habits inspires others.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #eff6ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -414,7 +414,7 @@ const BADGE_CONFIGS = {
                             🌱 Green Lifestyle Leader
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -455,7 +455,7 @@ const BADGE_CONFIGS = {
         icon: '🌊',
         imageUrl: 'https://img.icons8.com/fluency/96/wave.png',
         color: '#0ea5e9',
-        textTemplate: `Hello!\n\nCongratulations on pledging ocean conservation! You've earned the "Ocean Guardian" badge.\n\nYour commitment to protecting marine life is truly inspiring.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging ocean conservation! You've earned the "Ocean Guardian" badge.\n\nYour commitment to protecting marine life is truly inspiring.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #eff6ff, #e0f2fe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -477,7 +477,7 @@ const BADGE_CONFIGS = {
                             🌊 Marine Protector
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -518,7 +518,7 @@ const BADGE_CONFIGS = {
         icon: '🤝',
         imageUrl: 'https://img.icons8.com/fluency/96/group.png',
         color: '#f59e0b',
-        textTemplate: `Hello!\n\nCongratulations! By making a social responsibility pledge, you've earned the "Social Champion" badge.\n\nYour commitment to community and inclusion makes a real difference!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making a social responsibility pledge, you've earned the "Social Champion" badge.\n\nYour commitment to community and inclusion makes a real difference!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -540,7 +540,7 @@ const BADGE_CONFIGS = {
                             🤝 Community Builder 🏘️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -581,7 +581,7 @@ const BADGE_CONFIGS = {
         icon: '⚖️',
         imageUrl: 'https://img.icons8.com/fluency/96/justice-scale.png',
         color: '#8b5cf6',
-        textTemplate: `Hello!\n\nCongratulations! By making a governance and ethics pledge, you've earned the "Governance Guardian" badge.\n\nYour commitment to transparency and accountability strengthens our society!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making a governance and ethics pledge, you've earned the "Governance Guardian" badge.\n\nYour commitment to transparency and accountability strengthens our society!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #f3e8ff, #e9d5ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -603,7 +603,7 @@ const BADGE_CONFIGS = {
                             ⚖️ Ethics Champion 🛡️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -904,7 +904,7 @@ Key exhibits or takeaway messages:
 ${highlights.map(item => `- ${item}`).join('\n') || '- Thank you for contributing to RP Xperience Centre.'}
 
 Best regards,
-ESG Team`;
+RP Xperience Centre Team`;
 
     const html = `
         <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background:#f8fafc; padding:20px; border-radius:12px;">
@@ -925,7 +925,7 @@ ESG Team`;
                     ${highlightsHtml}
                 </div>
                 ${userData?.pledge ? `<p style="font-size:14px; color:#475569; line-height:1.6; margin:0 0 18px 0;"><strong>Your pledge:</strong> ${escapeHtml(userData.pledge)}</p>` : ''}
-                <p style="font-size:14px; color:#475569; line-height:1.6; margin:0;">Best regards,<br><strong>ESG Team</strong></p>
+                <p style="font-size:14px; color:#475569; line-height:1.6; margin:0;">Best regards,<br><strong>RP Xperience Centre Team</strong></p>
             </div>
         </div>
     `;
@@ -957,7 +957,7 @@ ${section.highlights.map(item => `  - ${item}`).join('\n')}`
 )).join('\n\n')}
 
 Best regards,
-ESG Team`;
+RP Xperience Centre Team`;
 
     const htmlSections = sections.map(section => `
         <div style="background:#ffffff; padding:18px; border-radius:10px; border-left:5px solid ${section.badgeConfig.color}; box-shadow:0 8px 22px rgba(15,23,42,0.08); margin-bottom:14px;">
