@@ -50,7 +50,7 @@ function buildPattern(pattern) {
   }
 }
 
-function validateFeedbackSubmission(payload, validationRules = {}, featureFlags = {}, pledgePresets = []) {
+function validateFeedbackSubmission(payload, validationRules = {}, featureFlags = {}, pledgePresets = [], allowMultiplePledges = false) {
   const errors = [];
   const userData = payload?.userData || {};
   const name = getString(userData.name);
@@ -88,14 +88,6 @@ function validateFeedbackSubmission(payload, validationRules = {}, featureFlags 
     errors.push({ field: 'pledge', message: 'Pledge is required.' });
   }
 
-  if (pledge && pledge.length < Number(validationRules.pledgeMinLength || 0)) {
-    errors.push({ field: 'pledge', message: `Pledge must be at least ${validationRules.pledgeMinLength} characters.` });
-  }
-
-  if (pledge && pledge.length > Number(validationRules.pledgeMaxLength || 9999)) {
-    errors.push({ field: 'pledge', message: `Pledge must be ${validationRules.pledgeMaxLength} characters or fewer.` });
-  }
-
   if (isEnabled(validationRules.pledgeTopicRequired) && pledgeTopics.length === 0) {
     errors.push({ field: 'pledgeTopic', message: 'Pledge topic is required.' });
   }
@@ -105,15 +97,37 @@ function validateFeedbackSubmission(payload, validationRules = {}, featureFlags 
     errors.push({ field: 'pledgeTopic', message: `Pledge topic "${invalidTopic}" is not supported.` });
   }
 
-  // The pledge must be one of the preset ESG pledges (the kiosk dropdown): visitors cannot type their own. (zihan)
-  // The browser can be bypassed, so the server checks it again. An empty preset list switches this check off.
+  let pledgeTexts = [pledge];
   if (Array.isArray(pledgePresets) && pledgePresets.length > 0 && pledge) {
-    const chosenPreset = pledgePresets.find(item => getString(item && item.text) === pledge);
-    if (!chosenPreset) {
-      errors.push({ field: 'pledge', message: 'Please choose one of the listed pledges.' });
-    } else if (pledgeTopics.length !== 1 || pledgeTopics[0] !== getString(chosenPreset.topic)) {
-      errors.push({ field: 'pledgeTopic', message: 'The pledge topic does not match the chosen pledge.' });
+    const ids = userData.pledgePresetIds;
+    // Older clients send only the preset text for a single pledge.
+    const byId = new Map(pledgePresets.filter(Boolean).map(item => [item.id, item]));
+    const selections = ids === undefined
+      ? [pledgePresets.find(item => getString(item?.text) === pledge)]
+      : Array.isArray(ids) && ids.length <= byId.size && new Set(ids).size === ids.length
+        ? ids.map(id => byId.get(id))
+        : [];
+
+    if (!selections.length || selections.some(item => !item) ||
+        selections.map(item => getString(item.text)).join('\n') !== pledge) {
+      errors.push({ field: 'pledge', message: 'Please choose from the listed pledges.' });
+    } else {
+      pledgeTexts = selections.map(item => getString(item.text));
+      if (!allowMultiplePledges && selections.length > 1) {
+        errors.push({ field: 'pledge', message: 'Only one pledge can be selected.' });
+      }
+      const expectedTopics = new Set(selections.map(item => getString(item.topic)));
+      if (pledgeTopics.length !== expectedTopics.size || pledgeTopics.some(topic => !expectedTopics.has(topic))) {
+        errors.push({ field: 'pledgeTopic', message: 'The pledge topics do not match the selected pledges.' });
+      }
     }
+  }
+
+  if (pledge && pledgeTexts.some(text => text.length < Number(validationRules.pledgeMinLength || 0))) {
+    errors.push({ field: 'pledge', message: `Each pledge must be at least ${validationRules.pledgeMinLength} characters.` });
+  }
+  if (pledge && pledgeTexts.some(text => text.length > Number(validationRules.pledgeMaxLength || 9999))) {
+    errors.push({ field: 'pledge', message: `Each pledge must be ${validationRules.pledgeMaxLength} characters or fewer.` });
   }
 
   const anyPhotoFeatureEnabled = isEnabled(featureFlags.cameraCaptureEnabled) || isEnabled(featureFlags.photoUploadEnabled);

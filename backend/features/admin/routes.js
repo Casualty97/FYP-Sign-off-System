@@ -6057,6 +6057,13 @@ function normalizeContentSettings(contentSettings) {
 
   const normalized = { ...contentSettings };
 
+  if (Object.prototype.hasOwnProperty.call(normalized, 'allowMultiplePledges') &&
+      typeof normalized.allowMultiplePledges !== 'boolean') {
+    const error = new Error('Allow multiple pledges must be true or false');
+    error.statusCode = 400;
+    throw error;
+  }
+
   if (Object.prototype.hasOwnProperty.call(normalized, 'temporaryRetentionDays')) {
     const days = Number(normalized.temporaryRetentionDays);
 

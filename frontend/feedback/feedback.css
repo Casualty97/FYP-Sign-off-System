@@ -5203,8 +5203,8 @@ textarea::placeholder {
 }
 
 .pledge-preview-category.environmental { background: #15803d; }
-.pledge-preview-category.social { background: #2563eb; }
-.pledge-preview-category.governance { background: #7c3aed; }
+.pledge-preview-category.social { background: #b45309; }
+.pledge-preview-category.governance { background: #2563eb; }
 
 .pledge-preview-text {
     margin: 10px 0 6px;
@@ -5248,8 +5248,8 @@ textarea::placeholder {
 }
 
 .pledge-esg-row.environmental { --esg-colour: #15803d; --esg-tint: #f0fdf4; }
-.pledge-esg-row.social { --esg-colour: #2563eb; --esg-tint: #eff6ff; }
-.pledge-esg-row.governance { --esg-colour: #7c3aed; --esg-tint: #f5f3ff; }
+.pledge-esg-row.social { --esg-colour: #b45309; --esg-tint: #fff7ed; }
+.pledge-esg-row.governance { --esg-colour: #2563eb; --esg-tint: #eff6ff; }
 
 .pledge-esg-label {
     font-size: 16px;
@@ -5298,3 +5298,9 @@ textarea::placeholder {
     }
 }
 
+
+.pledge-preview [hidden] { display: none; }
+.pledge-selected-list { margin: 0; padding: 0; list-style: none; }
+.pledge-selected-list li { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 8px 0; }
+.pledge-selected-list li + li { border-top: 1px solid #e2e8f0; }
+.pledge-selected-list button { flex-shrink: 0; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #334155; cursor: pointer; }

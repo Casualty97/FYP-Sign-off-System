@@ -70,6 +70,7 @@ const DEFAULT_CONFIG = {
   },
   contentSettings: {
     temporaryRetentionDays: 7,
+    allowMultiplePledges: false,
     pledgePresets: defaultContentSettings.pledgePresets,
 
     pledgeExamples: [

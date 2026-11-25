@@ -482,7 +482,7 @@
                    <!-- ESG pledge picker: three dropdowns (Environmental, Social, Governance). Only one pledge can be chosen. -->
                 <div class="form-group">
                     <label for="pledge-select-environmental" id="pledge-select-label">Choose your pledge</label>
-                    <small class="pledge-pick-hint">Pick one pledge from any one of the three groups.</small>
+                    <small class="pledge-pick-hint" id="pledge-pick-hint">Pick one pledge from any one of the three groups.</small>
                     <div id="pledge-esg-list" class="pledge-esg-list" role="group" aria-labelledby="pledge-select-label" tabindex="-1">
                         <p class="pledge-loading">Loading pledges...</p>
                     </div>
@@ -490,6 +490,7 @@
                         <span class="pledge-preview-category" id="pledge-preview-category"></span>
                         <p class="pledge-preview-text" id="pledge-preview-text"></p>
                         <small class="pledge-preview-focus" id="pledge-preview-focus"></small>
+                        <ul class="pledge-selected-list" id="pledge-selected-list" aria-label="Selected pledges" hidden></ul>
                     </div>
                 </div>
 

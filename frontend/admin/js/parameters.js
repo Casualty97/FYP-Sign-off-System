@@ -345,6 +345,7 @@ function populateParameterForm(config) {
     setInputValue('param-feedbackPrompt', feedback.feedbackPrompt);
     setInputValue('param-pledgePrompt', feedback.pledgePrompt);
 
+    setInputValue('param-allowMultiplePledges', String(content.allowMultiplePledges === true));
     const pledgeExamples = Array.isArray(content.pledgeExamples) ? content.pledgeExamples : [];
     setInputValue('param-temporaryRetentionDays', content.temporaryRetentionDays || 7);
     setInputValue('param-pledgeExample1', pledgeExamples[0] || 'Carry a reusable bottle and cutlery every day');
@@ -534,6 +535,7 @@ function collectParameterForm() {
             pledgePrompt: getInputValue('param-pledgePrompt')
         },
         contentSettings: {
+            allowMultiplePledges: getInputValue('param-allowMultiplePledges') === 'true',
             temporaryRetentionDays: Math.min(365, Math.max(1, Number(getInputValue('param-temporaryRetentionDays')) || 7)),
             pledgeExamples: [
                 getInputValue('param-pledgeExample1'),

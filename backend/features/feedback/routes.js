@@ -649,10 +649,8 @@ router.post('/submit-feedback', async (req, res) => {
         const parameterConfig = parametersConfigStore.readParametersConfig();
         const featureFlags = parameterConfig.featureFlags || {};
         const validationRules = parameterConfig.validationRules || {};
-        //zihan start
-        const pledgePresets = (parameterConfig.contentSettings || {}).pledgePresets || [];
-        const validation = validateFeedbackSubmission(requestBody, validationRules, featureFlags, pledgePresets); 
-        //zihan end
+        const { pledgePresets = [], allowMultiplePledges = false } = parameterConfig.contentSettings || {};
+        const validation = validateFeedbackSubmission(requestBody, validationRules, featureFlags, pledgePresets, allowMultiplePledges === true);
 
         if (!validation.valid) {
             return res.status(400).json({
@@ -1359,6 +1357,7 @@ function saveFeedbackToDatabase(userData, device, theme, retention, callback) {
             likedFeedback: userData.q2,
             improvementFeedback: userData.q3,
             pledge: userData.pledge,
+            pledgePresetIds: userData.pledgePresetIds,
             pledgeTopic: userData.pledgeTopic || null,
             pledgeTopics: Array.isArray(userData.pledgeTopics) ? userData.pledgeTopics : normalizePledgeTopics(userData),
             badgeKeys: emailService.determineBadgeKeys(userData),

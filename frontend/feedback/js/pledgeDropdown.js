@@ -2,8 +2,7 @@
 // pledgeDropdown.js - ESG pledge picker (the visitor picks a pledge, they do not type one)
 //
 // The page shows THREE dropdowns, one for each ESG group (Environmental, Social, Governance), each with
-// its own colour bar. The visitor can choose only ONE pledge in total: picking something in one dropdown
-// clears the other two.
+// its own colour bar. The admin can allow one pledge or multiple pledges.
 //
 // The list of pledges comes from the server (contentSettings.pledgePresets in the parameters, the same
 // place the kiosk already loads its other texts from). Each pledge has:
@@ -38,11 +37,28 @@ function getPledgeSelects() {
     return Array.from(document.querySelectorAll('#pledge-esg-list .pledge-category-select'));
 }
 
-// The preset the visitor has chosen (in whichever dropdown), or null if nothing is chosen yet
-function getSelectedPledgePreset() {
-    const chosen = getPledgeSelects().find((select) => select.value);
-    if (!chosen) return null;
-    return getPledgePresets().find((preset) => preset.id === chosen.value) || null;
+let selectedPledgeIds = [];
+
+function allowsMultiplePledges() {
+    return kioskParameters?.contentSettings?.allowMultiplePledges === true;
+}
+
+function getSelectedPledgePresets() {
+    const byId = new Map(getPledgePresets().map(preset => [preset.id, preset]));
+    return selectedPledgeIds.map(id => byId.get(id)).filter(Boolean);
+}
+
+function renderPledgeSelection() {
+    const selected = getSelectedPledgePresets();
+    const multiple = allowsMultiplePledges();
+    for (const select of getPledgeSelects()) {
+        select.value = multiple ? '' : (selected.find(preset => preset.category === select.dataset.category)?.id || '');
+        for (const option of select.options) {
+            option.disabled = multiple && selectedPledgeIds.includes(option.value);
+        }
+    }
+    updatePledgeRows();
+    updatePledgePreview();
 }
 
 // Colour the row that holds the choice and fade the other two
@@ -51,8 +67,7 @@ function updatePledgeRows() {
     if (!list) return;
     let anyChosen = false;
     list.querySelectorAll('.pledge-esg-row').forEach((row) => {
-        const select = row.querySelector('select');
-        const isChosen = Boolean(select && select.value);
+        const isChosen = getSelectedPledgePresets().some(preset => preset.category === row.dataset.category);
         row.classList.toggle('chosen', isChosen);
         if (isChosen) anyChosen = true;
     });
@@ -65,8 +80,14 @@ function buildPledgeDropdown() {
     if (!list) return;
 
     const presets = getPledgePresets();
-    const currentSelect = getPledgeSelects().find((select) => select.value);
-    const previousChoice = currentSelect ? currentSelect.value : '';
+    const multiple = allowsMultiplePledges();
+    const available = new Set(presets.map(preset => preset.id));
+    selectedPledgeIds = selectedPledgeIds.filter(id => available.has(id));
+    if (!multiple) selectedPledgeIds = selectedPledgeIds.slice(0, 1);
+    const hint = document.getElementById('pledge-pick-hint');
+    if (hint) hint.textContent = multiple
+        ? 'Choose a pledge to add it. You can add more from the same group or a different group.'
+        : 'Pick one pledge from any one of the three groups.';
 
     list.innerHTML = '';
     list.classList.remove('has-choice');
@@ -98,7 +119,7 @@ function buildPledgeDropdown() {
         select.className = 'pledge-category-select';
         select.dataset.category = category;
         // The first option is the "nothing chosen" state. defaultSelected = true makes form.reset() come back to it.
-        select.appendChild(new Option('Select a pledge...', '', true, true));
+        select.appendChild(new Option(multiple ? 'Add a pledge...' : 'Select a pledge...', '', true, true));
         group.forEach((preset) => select.appendChild(new Option(preset.title || preset.text, preset.id)));
         select.addEventListener('change', () => onPledgePresetChange(select));
 
@@ -107,12 +128,7 @@ function buildPledgeDropdown() {
         list.appendChild(row);
     });
 
-    if (previousChoice) {
-        const owner = getPledgeSelects().find((select) => Array.from(select.options).some((option) => option.value === previousChoice));
-        if (owner) owner.value = previousChoice;
-    }
-    updatePledgeRows();
-    updatePledgePreview();
+    renderPledgeSelection();
 }
 
 // Show the full sentence, its ESG category and the badge it unlocks under the dropdowns
@@ -120,36 +136,62 @@ function updatePledgePreview() {
     const box = document.getElementById('pledge-preview');
     if (!box) return;
 
-    const preset = getSelectedPledgePreset();
+    const selected = getSelectedPledgePresets();
+    const preset = selected[0];
+    const selectedList = document.getElementById('pledge-selected-list');
+    const multiple = allowsMultiplePledges();
+    selectedList.replaceChildren();
+    selectedList.hidden = !multiple;
     if (!preset) {
         box.style.display = 'none';
         return;
     }
 
-    const category = document.getElementById('pledge-preview-category');
-    category.textContent = PLEDGE_CATEGORY_LABELS[preset.category];
-    category.className = 'pledge-preview-category ' + preset.category;
-    document.getElementById('pledge-preview-text').textContent = preset.text;
-    document.getElementById('pledge-preview-focus').textContent =
-        'Focus: ' + formatPledgeTopicLabel(preset.topic) + '. This pledge unlocks a passport badge.';
+    for (const id of ['pledge-preview-category', 'pledge-preview-text', 'pledge-preview-focus']) {
+        document.getElementById(id).hidden = multiple;
+    }
+    if (multiple) {
+        for (const item of selected) {
+            const row = document.createElement('li');
+            const label = document.createElement('span');
+            label.textContent = item.text;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.textContent = 'Remove';
+            remove.setAttribute('aria-label', `Remove ${item.title || item.text}`);
+            remove.addEventListener('click', () => {
+                selectedPledgeIds = selectedPledgeIds.filter(id => id !== item.id);
+                renderPledgeSelection();
+                getPledgeSelects().find(select => select.dataset.category === item.category)?.focus();
+                resetInactivityTimer();
+            });
+            row.append(label, remove);
+            selectedList.appendChild(row);
+        }
+    } else {
+        const category = document.getElementById('pledge-preview-category');
+        category.textContent = PLEDGE_CATEGORY_LABELS[preset.category];
+        category.className = 'pledge-preview-category ' + preset.category;
+        document.getElementById('pledge-preview-text').textContent = preset.text;
+        document.getElementById('pledge-preview-focus').textContent =
+            'Focus: ' + formatPledgeTopicLabel(preset.topic) + '. This pledge unlocks a passport badge.';
+    }
     box.style.display = 'block';
 }
 
 // Runs when the visitor picks something in one of the dropdowns
 function onPledgePresetChange(changedSelect) {
-    // Only ONE pledge in total: choosing here clears the other two dropdowns
-    if (changedSelect && changedSelect.value) {
-        getPledgeSelects().forEach((select) => {
-            if (select !== changedSelect) select.value = '';
-        });
+    const id = changedSelect.value;
+    if (allowsMultiplePledges()) {
+        if (id && !selectedPledgeIds.includes(id)) selectedPledgeIds.push(id);
+    } else {
+        selectedPledgeIds = id ? [id] : [];
     }
 
     clearValidationMessages();
-    updatePledgeRows();
-    updatePledgePreview();
+    renderPledgeSelection();
     resetInactivityTimer();
-
-    const preset = getSelectedPledgePreset();
+    const preset = getPledgePresets().find(item => item.id === id);
     if (preset) cheerRpBear('Great choice! That supports ' + formatPledgeTopicLabel(preset.topic) + '.');
 }
 
@@ -164,8 +206,8 @@ function setupPledgeDropdown() {
     if (form && form.dataset.pledgeResetWired !== 'true') {
         form.dataset.pledgeResetWired = 'true';
         form.addEventListener('reset', () => setTimeout(() => {
-            updatePledgeRows();
-            updatePledgePreview();
+            selectedPledgeIds = [];
+            renderPledgeSelection();
         }, 0));
     }
 }

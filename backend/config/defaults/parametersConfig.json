@@ -11,6 +11,7 @@
   },
   "contentSettings": {
     "temporaryRetentionDays": 7,
+    "allowMultiplePledges": false,
     "pledgePresets": [
       { "id": "env-transport", "category": "environmental", "topic": "climate-change", "title": "Walk, cycle or take public transport", "text": "I pledge to walk, cycle or take public transport for short trips at least 3 times a week this month." },
       { "id": "env-energy", "category": "environmental", "topic": "renewable-energy", "title": "Switch off lights and fans", "text": "I pledge to switch off lights and fans whenever I leave a room, every day this month." },

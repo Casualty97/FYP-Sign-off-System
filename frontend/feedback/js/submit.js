@@ -197,21 +197,18 @@ function skipPhoto() {
 // Submit pledge and redirect to appropriate photo method
 // Added explicit pledge topic selection support and validation - done by XY
 function submitPledge(event, skipPhotoAfter = false) {
-    showFieldError('pledge-esg-list', 'Please choose one pledge from the list to continue.');
     if (event) event.preventDefault();
     clearValidationMessages();
 
-    // The pledge comes from the ESG dropdown (getSelectedPledgePreset in pledgeDropdown.js), not from typing.
-    // Its text is a fixed preset, so the old length and topic checks are no longer needed here.
-    // The server checks again that the pledge is one of the presets.
-    const preset = getSelectedPledgePreset();
-    userData.pledge = preset ? preset.text : '';
-    userData.pledgeTopics = preset ? [preset.topic] : [];
+    const presets = getSelectedPledgePresets();
+    userData.pledgePresetIds = presets.map(preset => preset.id);
+    userData.pledge = presets.map(preset => preset.text).join('\n');
+    userData.pledgeTopics = [...new Set(presets.map(preset => preset.topic))];
     userData.pledgeTopic = userData.pledgeTopics[0] || '';
     userData.pledgeSkipped = false;
 
-    if (!preset) {
-        showFieldError('pledge-select', 'Please choose one pledge from the list to continue.');
+    if (!presets.length) {
+        showFieldError('pledge-esg-list', 'Please choose at least one pledge to continue.');
         nudgeRpBear('Pick one pledge from the list. There is something for everyone!');
         return;
     }
@@ -226,7 +223,6 @@ function submitPledge(event, skipPhotoAfter = false) {
 
 // "Skip Photo" button on the pledge page: run the same pledge checks, then skip the photo step. (zihan)
 function submitPledgeAndSkipPhoto() {
-    showFieldError('pledge-esg-list', 'Please choose one pledge from the list to continue.');
     submitPledge(null, true);
 }
 
