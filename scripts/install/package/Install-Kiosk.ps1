@@ -417,7 +417,7 @@ function Install-Fresh($Plan, $Pkg, $Admin, $Import) {
         if ("$($err.Exception.Message)" -notmatch '^STOP:') { Write-Bad $err.Exception.Message }
         Write-Step 'The install failed: undoing what it made'
         Undo-Fresh $Plan $info $rootExisted
-        throw $err
+        if ("$($err.Exception.Message)" -match '^STOP:') { throw $err }; throw [Management.Automation.RuntimeException]::new("STOP:$ExitFailed")
     } finally {
         if ($pwFile) { Remove-Item -LiteralPath $pwFile -Force -ErrorAction SilentlyContinue }
     }
@@ -443,6 +443,12 @@ function Install-Shortcuts($Info, [string]$App) {
 
 function Undo-Fresh($Plan, $Info, [bool]$RootExisted) {
     $root = $Plan.Root
+    # the log moves back to the temp folder first: the undo may delete the install folder it was copied into
+    if ($script:LogFile -and (Test-InsideRoot $root $script:LogFile)) {
+        $tmpLog = Join-Path (Join-Path $env:TEMP 'rp-xperience-kiosk') (Split-Path $script:LogFile -Leaf)
+        Copy-Item -LiteralPath $script:LogFile -Destination $tmpLog -Force -ErrorAction SilentlyContinue
+        $script:LogFile = $tmpLog
+    }
     try {
         Stop-KioskServers $root | Out-Null
         foreach ($it in @($Info.items | Where-Object { $_.type -eq 'shortcut' })) {
@@ -577,7 +583,7 @@ function Install-Update($Plan, $Pkg, $Info) {
                 if (Wait-KioskReady $app ([int]$Info.port)) { Write-Ok 'the previous version runs again' } else { Write-Note 'the previous version did not answer yet; run kiosk-status.cmd' }
             }
         } catch { Write-Bad "putting the previous version back failed: $($_.Exception.Message). Run install.cmd again: it finishes this first." }
-        throw $err
+        if ("$($err.Exception.Message)" -match '^STOP:') { throw $err }; throw [Management.Automation.RuntimeException]::new("STOP:$ExitFailed")
     }
 }
 

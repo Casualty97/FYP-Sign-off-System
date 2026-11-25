@@ -54,6 +54,17 @@ function Test-SafeRoot([string]$Path) {
     return $true
 }
 function Get-ServicePath($Svc) { return ($Svc.PathName -replace '^"([^"]+)".*$', '$1') }
+# Why MySQL did not start: the end of its own error log (only administrators can read it) and what Windows says
+function Show-MySqlError($m) {
+    $err = Join-Path $m.Data 'mysqld.err'
+    if (Test-Path -LiteralPath $err) {
+        Write-Info 'the last lines of mysqld.err:'
+        foreach ($line in @(Get-Content -LiteralPath $err -Tail 25 -ErrorAction SilentlyContinue)) { Write-Info "  $line" }
+    }
+    Write-Info "service state: $(Get-ServiceState)"
+    $events = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Service Control Manager'; StartTime = (Get-Date).AddMinutes(-10) } -MaxEvents 20 -ErrorAction SilentlyContinue | Where-Object { $_.Message -match [regex]::Escape($ServiceDisplay) -or $_.Message -match $ServiceName })
+    foreach ($e in @($events | Select-Object -First 3)) { Write-Info "  Windows: $($e.Message)" }
+}
 
 function Install-MySqlFiles {
     $m = Get-MySqlPaths $Root
@@ -201,8 +212,11 @@ try {
                 [void](Invoke-Native 'icacls.exe' @($m.Data, '/grant', "$($script:SvcAccount):(OI)(CI)F", '/T', '/Q') -Quiet)
             } else { Write-Ok "the MySQL data folder $($m.Data) is kept" }
             $result.mysql = $state
-            if ((Get-ServiceState) -ne 'Running') { & sc.exe start $ServiceName 2>&1 | Out-Null }
-            if (-not (Wait-TcpOpen $MySqlPort 120)) { throw "the MySQL service did not answer on port $MySqlPort; see $($m.Data)\mysqld.err" }
+            if ((Get-ServiceState) -ne 'Running') { & sc.exe start $ServiceName 2>&1 | ForEach-Object { Write-Log 'OUT' "$_" } }
+            if (-not (Wait-TcpOpen $MySqlPort 120)) {
+                Show-MySqlError $m
+                throw "the MySQL service did not answer on port $MySqlPort; see $($m.Data)\mysqld.err"
+            }
             Write-Ok "the MySQL service answers on 127.0.0.1:$MySqlPort (this PC only)"
             $result.mysqlVersion = Get-MySqlVersion $Root
         }

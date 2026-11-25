@@ -126,6 +126,17 @@ try {
     & (Get-Node $Root) (Join-Path $PSScriptRoot 'kiosk-check.js') marker add (Join-Path $Root 'app')
     Test-That 'a visitor row can be written and read back' (Test-Marker $Root) 'no marker'
 
+    Write-Part 'The MySQL service stops and starts again (as after a restart of the PC)'
+    Stop-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    $stopped = (Get-ServiceState) -eq 'Stopped' -and -not (Test-TcpOpen 3307)
+    Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    $back = Wait-TcpOpen 3307 120
+    if (-not $back) {
+        $err = Join-Path $Root 'mysql-data\mysqld.err'
+        if (Test-Path $err) { Get-Content $err -Tail 30 | ForEach-Object { Write-Host "     | $_" } }
+    }
+    Test-That 'the service stops, starts again and still has the data' ($stopped -and $back -and (Test-Marker $Root)) "stopped $stopped, back $back"
+
     Write-Part 'The same package again: a repair keeps everything'
     $code = Invoke-Ps (Join-Path $pkg 'installer\Install-Kiosk.ps1') @('-InstallDir', $Root, '-NonInteractive')
     Test-That 'the repair finishes (exit 0)' ($code -eq 0) "exit $code"
