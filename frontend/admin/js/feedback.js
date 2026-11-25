@@ -206,33 +206,29 @@ function filterFeedbackData() {
 }
 
 // <Jun Kai start>
-// The Feedback page since the admin redesign (Feedback A): filters as chips, compact rows, and a side panel that shows
-// one submission. Loading, filtering, sorting, paging and the email buttons are the code above and in encryption.js;
-// this part only draws.
-
-// Shows which filters are set: a set chip is tinted, the date chip names its range, and Clear filters appears
-function updateFeedbackCounts(total, filtered, activeFilters) {
-    const clear = document.getElementById('feedback-clear-filters');
-    if (clear) clear.hidden = activeFilters === 0;
-    for (const id of ['feedback-filter-email', 'feedback-filter-visits', 'feedback-filter-retention']) {
-        const select = document.getElementById(id);
-        if (select) select.classList.toggle('is-set', select.value !== '');
-    }
-    const from = document.getElementById('feedback-filter-date-from')?.value || '';
-    const to = document.getElementById('feedback-filter-date-to')?.value || '';
-    const label = document.getElementById('feedback-date-label');
-    const day = (text) => new Date(text + 'T00:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
-    if (label) label.textContent = from && to ? (from === to ? day(from) : `${day(from)} to ${day(to)}`) : from ? `From ${day(from)}` : to ? `Until ${day(to)}` : 'Any date';
-    document.getElementById('feedback-date-button')?.classList.toggle('is-set', !!(from || to));
-}
-
-function clearFeedbackDateRange() {
-    for (const id of ['feedback-filter-date-from', 'feedback-filter-date-to']) {
-        const input = document.getElementById(id);
-        if (input) input.value = '';
-    }
-    filterFeedbackData();
-}
+// The Feedback page since the admin redesign (Feedback A). The rows, the pager and the side panel are drawn by
+// submissionList.js, which the Archived Feedback page uses too; this file keeps loading, filtering and sorting.
+const feedbackView = makeSubmissionList({
+    key: 'feedback', name: 'feedbackView', pageId: 'feedback-data-page', columns: 8, perPage: feedbackItemsPerPage,
+    all: () => allFeedbackData, setAll: (rows) => { allFeedbackData = rows; },
+    list: () => filteredFeedbackData, setList: (rows) => { filteredFeedbackData = rows; },
+    page: () => feedbackCurrentPage, setPage: (number) => { feedbackCurrentPage = number; },
+    decrypted: () => decryptedEmailMap,
+    resetDecrypted: () => { decryptedEmailMap = {}; isAnyEmailDecrypted = false; },
+    markDecrypted: (id, email) => { decryptedEmailMap[id] = email; isAnyEmailDecrypted = true; },
+    setEncryptedIds: (ids) => { encryptedFeedbackIds = ids; },
+    updateButtons: () => updateEncryptionButtons(),
+    remove: (id) => deleteFeedback(id),
+    refilter: () => filterFeedbackData(),
+    clearFilters: 'clearAllFeedbackFilters()',
+    emptyText: 'No feedback yet. A submission shows here as soon as a visitor sends one.',
+    filteredText: 'No submission matches these filters.',
+});
+function updateFeedbackCounts(total, filtered, activeFilters) { feedbackView.showFilterState(activeFilters); }
+function clearFeedbackDateRange() { feedbackView.clearDates(); }
+function renderFeedbackPage() { feedbackView.render(); }
+function updateFeedbackPaginationControls(totalItems, totalPages) { feedbackView.pager(totalItems, totalPages); }
+function feedbackDeleted(feedbackId) { feedbackView.deleted(feedbackId); } // called by feedbackDeletion.js after a delete
 // <Jun Kai end>
 
 // Show the user's typed feedback directly in the admin feedback table. (DONE BY CAEDEN)
@@ -257,356 +253,10 @@ function getFeedbackAnswerPreview(feedback) {
     return preview.length > 120 ? `${preview.slice(0, 117)}...` : preview;
 }
 
-// <Jun Kai start>
-const FEEDBACK_AVATAR_HUES = [262, 168, 334, 28, 214, 150, 12, 232];
-let feedbackPanelId = null; // the submission the side panel shows, null while it is closed
-
-function feedbackHasEmail(feedback) {
-    const text = String(feedback.email_encrypted || '').trim();
-    return text !== '' && text.toLowerCase() !== 'no email provided';
-}
-
-function feedbackInitials(name) {
-    // letters and digits only, so a name with quotes or brackets still gets readable initials
-    const words = String(name || '').split(/\s+/).map((word) => word.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean);
-    if (!words.length) return '?';
-    return (words[0][0] + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase();
-}
-
-function feedbackDateText(feedback) {
-    const date = new Date(feedback.date);
-    if (Number.isNaN(date.getTime())) return 'Date unknown';
-    return date.toLocaleString('en-SG', { timeZone: 'Asia/Singapore', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-// the line under a visitor's name: the email once it is decrypted, "Encrypted" while it is locked, or "No email"
-function feedbackEmailLine(feedback) {
-    if (decryptedEmailMap[feedback.id]) return `<span class="fb-email fb-email-open">${uiIcon('unlock', 12)}${escapeHtmlSafe(decryptedEmailMap[feedback.id])}</span>`;
-    if (feedbackHasEmail(feedback)) return `<span class="fb-email">${uiIcon('lock', 12)}Encrypted</span>`;
-    return '<span class="fb-email fb-email-none">No email</span>';
-}
-
-function feedbackKeptBadge(feedback) {
-    const retention = feedback.data_retention || 'longterm';
-    return retention === '7days' || retention === '7day'
-        ? '<span class="badge badge-warning">7 days</span>'
-        : '<span class="badge badge-permanent">Long-term</span>';
-}
-
-// a small picture made by the server (GET /api/admin/feedback/:id/thumb/:kind), so a page of 25 rows does not load 50 full photos
-function feedbackThumb(feedback, kind) {
-    const has = kind === 'raw' ? feedback.photo_path : feedback.processed_photo_path;
-    const what = kind === 'raw' ? 'Raw photo' : 'Processed photo';
-    if (!has) return `<span class="ui-thumb ui-thumb-none" title="No ${what.toLowerCase()}">${uiIcon('image', 14)}</span>`;
-    return `<img class="ui-thumb" loading="lazy" decoding="async" width="40" height="40" src="/api/admin/feedback/${Number(feedback.id)}/thumb/${kind}" alt="${what} of ${escapeHtmlSafe(feedback.name || 'Anonymous')}" onerror="this.replaceWith(Object.assign(document.createElement('span'), { className: 'ui-thumb ui-thumb-none', title: 'The photo file is missing' }))">`;
-}
-
-function feedbackCanDelete() {
-    const role = sessionStorage.getItem('userRole');
-    return role === 'IT_admin' || role === 'system_admin';
-}
-
-// Render current page of feedback (25 records)
-function renderFeedbackPage() {
-    const tbody = document.getElementById('feedback-table-body');
-    if (!tbody) return;
-
-    // while a submission is open, the table shows the page that submission is on
-    const openAt = feedbackPanelId === null ? -1 : filteredFeedbackData.findIndex((item) => Number(item.id) === feedbackPanelId);
-    if (openAt >= 0) feedbackCurrentPage = Math.floor(openAt / feedbackItemsPerPage) + 1;
-
-    const totalPages = Math.ceil(filteredFeedbackData.length / feedbackItemsPerPage);
-    const startIndex = (feedbackCurrentPage - 1) * feedbackItemsPerPage;
-    const pageData = filteredFeedbackData.slice(startIndex, startIndex + feedbackItemsPerPage);
-
-    // the encrypted emails of this page only: Decrypt works page by page
-    encryptedFeedbackIds = pageData.filter(feedbackHasEmail).map((item) => item.id);
-
-    if (filteredFeedbackData.length === 0) {
-        const none = allFeedbackData.length === 0;
-        tbody.innerHTML = `<tr><td colspan="8" class="ui-empty">${none ? 'No feedback yet. A submission shows here as soon as a visitor sends one.' : 'No submission matches these filters. <button type="button" class="ui-link" onclick="clearAllFeedbackFilters()">Clear filters</button>'}</td></tr>`;
-        updateFeedbackPaginationControls(0, 0);
-        updateEncryptionButtons();
-        syncFeedbackPanel();
-        return;
-    }
-
-    const canDelete = feedbackCanDelete();
-    tbody.innerHTML = pageData.map((feedback) => {
-        const id = Number(feedback.id);
-        const name = feedback.name || 'Anonymous';
-        const pledge = String(feedback.pledge || '').trim();
-        const typed = getFeedbackAnswerPreview(feedback);
-        const answers = Array.isArray(feedback.question_answers) ? feedback.question_answers.length : 0;
-        return `<tr data-feedback-id="${id}" data-retention="${escapeHtmlSafe(feedback.data_retention || 'longterm')}" tabindex="0" aria-label="Open the submission of ${escapeHtmlSafe(name)}"${id === feedbackPanelId ? ' class="is-open"' : ''}>
-            <td><span class="ui-who"><span class="ui-avatar" style="--ui-hue: ${FEEDBACK_AVATAR_HUES[id % FEEDBACK_AVATAR_HUES.length]}" aria-hidden="true">${escapeHtmlSafe(feedbackInitials(name))}</span><span class="ui-who-text"><b title="${escapeHtmlSafe(name)}">${escapeHtmlSafe(name)}</b>${feedbackEmailLine(feedback)}</span></span></td>
-            <td class="ui-num">${Number(feedback.visits) || 1}</td>
-            <td class="fb-wrap">${pledge ? `<span class="ui-clamp">${escapeHtmlSafe(pledge)}</span>` : '<span class="ui-muted">No pledge</span>'}</td>
-            <td class="fb-wrap">${typed ? `<span class="ui-clamp">${escapeHtmlSafe(typed)}</span>` : '<span class="ui-muted">No typed feedback</span>'}${answers ? `<button type="button" class="ui-link" data-fb-answers>${answers} ${answers === 1 ? 'answer' : 'answers'}</button>` : ''}</td>
-            <td>${feedbackKeptBadge(feedback)}</td>
-            <td><span class="ui-thumbs">${feedbackThumb(feedback, 'raw')}${feedbackThumb(feedback, 'processed')}</span></td>
-            <td class="ui-time fb-date-cell">${escapeHtmlSafe(feedbackDateText(feedback))}</td>
-            <td><span class="ui-actions">${canDelete ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-fb-delete title="Delete this submission" aria-label="Delete the submission of ${escapeHtmlSafe(name)}">${uiIcon('trash', 15)}</button>` : ''}</span></td>
-        </tr>`;
-    }).join('');
-
-    updateFeedbackPaginationControls(filteredFeedbackData.length, totalPages);
-    updateEncryptionButtons();
-    syncFeedbackPanel();
-}
-
-// one listener for the whole list: a click or Enter on a row opens its panel, the bin deletes, "3 answers" opens the panel at the answers
-function feedbackRowAction(event) {
-    const row = event.target.closest('tr[data-feedback-id]');
-    if (!row) return;
-    const id = Number(row.dataset.feedbackId);
-    if (event.type === 'keydown') {
-        if ((event.key !== 'Enter' && event.key !== ' ') || event.target !== row) return;
-        event.preventDefault();
-        return openFeedbackPanel(id);
-    }
-    if (event.target.closest('[data-fb-delete]')) return deleteFeedback(id);
-    if (event.target.closest('a, input, select')) return;
-    if (String(window.getSelection ? window.getSelection() : '').trim()) return; // text was selected by dragging: not a click on the row
-    openFeedbackPanel(id, event.target.closest('[data-fb-answers]') ? 'answers' : undefined);
-}
-
-function updateFeedbackPaginationControls(totalItems, totalPages) {
-    const prevBtn = document.getElementById('prev-feedback-btn');
-    const nextBtn = document.getElementById('next-feedback-btn');
-    const pageInfo = document.getElementById('feedback-page-info');
-
-    if (prevBtn) prevBtn.disabled = feedbackCurrentPage <= 1;
-    if (nextBtn) nextBtn.disabled = feedbackCurrentPage >= totalPages || totalPages === 0;
-
-    if (pageInfo) {
-        const first = (feedbackCurrentPage - 1) * feedbackItemsPerPage + 1;
-        const last = Math.min(totalItems, feedbackCurrentPage * feedbackItemsPerPage);
-        const filtered = totalItems !== allFeedbackData.length ? ` (${allFeedbackData.length} in total)` : '';
-        pageInfo.textContent = totalItems > 0 ? `Showing ${first} to ${last} of ${totalItems}${filtered}` : 'Nothing to show';
-    }
-}
-
-// ---- the side panel: one submission in full
-
-function feedbackPanelPhoto(feedback, kind) {
-    const rel = kind === 'raw' ? feedback.photo_path : feedback.processed_photo_path;
-    const what = kind === 'raw' ? 'Raw photo' : 'Processed photo';
-    if (!rel) return `<figure class="fb-photo-box"><div class="fb-photo fb-photo-none">${uiIcon('image', 22)}<span>No ${what.toLowerCase()}</span></div><figcaption><span>${what}</span></figcaption></figure>`;
-    const url = '/uploads/' + String(rel).split('/').map(encodeURIComponent).join('/');
-    const ext = (String(rel).match(/\.[a-z0-9]+$/i) || ['.png'])[0];
-    const open = kind === 'raw' ? 'viewRawPhoto' : 'viewProcessedPhoto';
-    return `<figure class="fb-photo-box">
-        <button type="button" class="fb-photo" onclick="${open}(${Number(feedback.id)})" title="Open the full photo"><img src="${escapeHtmlSafe(url)}" loading="lazy" decoding="async" alt="${what} of ${escapeHtmlSafe(feedback.name || 'Anonymous')}" onerror="this.closest('.fb-photo').classList.add('fb-photo-missing')"></button>
-        <figcaption><span>${what}</span><button type="button" class="ui-link" data-fb-download="${escapeHtmlSafe(url)}" data-fb-file="feedback_${Number(feedback.id)}_${kind}_photo${escapeHtmlSafe(ext)}">Download</button></figcaption>
-    </figure>`;
-}
-
-function feedbackPanelHtml(feedback) {
-    const id = Number(feedback.id);
-    const name = feedback.name || 'Anonymous';
-    const pledge = String(feedback.pledge || '').trim();
-    const typed = getFeedbackAnswerPreview(feedback);
-    const answers = Array.isArray(feedback.question_answers) ? feedback.question_answers : [];
-    const index = filteredFeedbackData.findIndex((item) => Number(item.id) === id);
-    const retention = feedback.data_retention || 'longterm';
-    const admin = sessionStorage.getItem('userRole') === 'system_admin';
-    const email = decryptedEmailMap[feedback.id]
-        ? `<span class="fb-email fb-email-open">${uiIcon('unlock', 12)}${escapeHtmlSafe(decryptedEmailMap[feedback.id])}</span>`
-        : feedbackHasEmail(feedback)
-            ? `<span class="fb-email">${uiIcon('lock', 12)}Encrypted</span>${admin ? ` <button type="button" class="ui-link" onclick="decryptOneFeedbackEmail(${id})">Decrypt</button>` : ''}`
-            : 'No email provided';
-    const answerRows = answers.map((answer, n) => {
-        const value = answer && (answer.option_label || answer.answer_value);
-        const type = String((answer && answer.question_type) || '').toLowerCase();
-        const translate = value && type === 'text'
-            ? `<button type="button" class="ui-link" onclick="translateAdminTextToEnglish('feedback-panel-answer-${n}', 'feedback-panel-answer-english-${n}', this)">Translate to English</button><div class="ui-text fb-translated" id="feedback-panel-answer-english-${n}" aria-live="polite"></div>`
-            : '';
-        return `<li><small>${escapeHtmlSafe((answer && answer.question_text) || `Question ${n + 1}`)}</small><span id="feedback-panel-answer-${n}">${value ? formatAnswer(String(value), type) : '<em>No answer</em>'}</span>${translate}</li>`;
-    }).join('');
-    return `
-        <header class="ui-sidepanel-head">
-            <div>
-                <h3 id="feedback-panel-title" tabindex="-1">${escapeHtmlSafe(name)}</h3>
-                <p>Submitted ${escapeHtmlSafe(feedbackDateText(feedback))}</p>
-            </div>
-            <button type="button" class="ui-btn ui-btn-icon" onclick="closeFeedbackPanel()" title="Close" aria-label="Close this submission">${uiIcon('close', 16)}</button>
-        </header>
-        <div class="ui-sidepanel-body">
-            <div class="fb-photos">${feedbackPanelPhoto(feedback, 'raw')}${feedbackPanelPhoto(feedback, 'processed')}</div>
-            <section>
-                <h4>Pledge</h4>
-                ${pledge
-                    ? `<div class="ui-text fb-quote" id="feedback-panel-pledge">${escapeHtmlSafe(pledge)}</div>
-                       <button type="button" class="ui-link" onclick="translateAdminTextToEnglish('feedback-panel-pledge', 'feedback-panel-pledge-english', this)">Translate to English</button>
-                       <div class="ui-text fb-translated" id="feedback-panel-pledge-english" aria-live="polite"></div>`
-                    : '<div class="ui-text ui-muted">No pledge</div>'}
-            </section>
-            <section>
-                <h4>Typed feedback</h4>
-                <div class="ui-text${typed ? '' : ' ui-muted'}">${typed ? escapeHtmlSafe(typed) : 'No typed feedback'}</div>
-            </section>
-            <section id="feedback-panel-answers">
-                <h4>Questions and answers</h4>
-                ${answerRows ? `<ul class="fb-answers">${answerRows}</ul>` : '<div class="ui-text ui-muted">No answers</div>'}
-            </section>
-            <dl class="ui-kv fb-facts">
-                <dt>Email</dt><dd>${email}</dd>
-                <dt>Visits</dt><dd>${Number(feedback.visits) || 1}</dd>
-                <dt>Data retention</dt><dd>${retention === '7days' || retention === '7day' ? '7 days' : 'Long-term use'}</dd>
-                <dt>Submitted</dt><dd>${escapeHtmlSafe(feedbackDateText(feedback))}</dd>
-            </dl>
-        </div>
-        <footer class="ui-sidepanel-foot">
-            ${feedbackCanDelete() ? `<button type="button" class="ui-btn ui-btn-danger" onclick="deleteFeedback(${id})">${uiIcon('trash', 15)}Delete this submission</button>` : '<span class="ui-muted">View only</span>'}
-            <span class="ui-spacer"></span>
-            <button type="button" class="ui-btn ui-btn-secondary" onclick="stepFeedbackPanel(-1)"${index <= 0 ? ' disabled' : ''}>Previous</button>
-            <button type="button" class="ui-btn ui-btn-secondary" onclick="stepFeedbackPanel(1)"${index < 0 || index >= filteredFeedbackData.length - 1 ? ' disabled' : ''}>Next</button>
-        </footer>`;
-}
-
-// part: 'answers' scrolls the panel to the questions and answers
-function openFeedbackPanel(feedbackId, part) {
-    const id = Number(feedbackId);
-    const feedback = filteredFeedbackData.find((item) => Number(item.id) === id);
-    const panel = document.getElementById('feedback-panel');
-    if (!feedback || !panel) return;
-    feedbackPanelId = id;
-    panel.innerHTML = feedbackPanelHtml(feedback);
-    panel.hidden = false;
-    document.querySelectorAll('#feedback-table-body tr.is-open').forEach((row) => row.classList.remove('is-open'));
-    document.getElementById('feedback-data-page')?.classList.add('ui-has-sidepanel');
-    const openRow = document.querySelector(`#feedback-table-body tr[data-feedback-id="${id}"]`);
-    if (openRow) { openRow.classList.add('is-open'); openRow.scrollIntoView({ block: 'nearest' }); }
-    if (part === 'answers') document.getElementById('feedback-panel-answers')?.scrollIntoView({ block: 'start' });
-    else panel.querySelector('.ui-sidepanel-body').scrollTop = 0;
-    document.getElementById('feedback-panel-title')?.focus({ preventScroll: true });
-}
-
-// refocus: false when the list is about to be drawn again (a page turn), so the keyboard is not sent to a row that is going away
-function closeFeedbackPanel(refocus = true) {
-    const panel = document.getElementById('feedback-panel');
-    const id = feedbackPanelId;
-    feedbackPanelId = null;
-    if (panel) { panel.hidden = true; panel.innerHTML = ''; }
-    document.getElementById('feedback-data-page')?.classList.remove('ui-has-sidepanel');
-    if (!refocus) return;
-    const row = id === null ? null : document.querySelector(`#feedback-table-body tr[data-feedback-id="${id}"]`);
-    document.querySelectorAll('#feedback-table-body tr.is-open').forEach((open) => open.classList.remove('is-open'));
-    if (row) row.focus({ preventScroll: true }); // back to where the reader was in the list
-}
-
-// Previous / Next walk the filtered list in its current order, turning the page of the table when needed
-function stepFeedbackPanel(step) {
-    const index = filteredFeedbackData.findIndex((item) => Number(item.id) === feedbackPanelId);
-    const next = filteredFeedbackData[index + step];
-    if (index < 0 || !next) return;
-    const page = Math.floor((index + step) / feedbackItemsPerPage) + 1;
-    if (page !== feedbackCurrentPage) {
-        feedbackCurrentPage = page;
-        feedbackPanelId = Number(next.id);
-        decryptedEmailMap = {}; // a new page: its emails are locked, exactly as when the pager turns the page
-        isAnyEmailDecrypted = false;
-        renderFeedbackPage();
-    }
-    openFeedbackPanel(next.id);
-}
-
-// Decrypt the email of one visitor, from the panel (the toolbar button does the whole page)
-async function decryptOneFeedbackEmail(feedbackId) {
-    if (sessionStorage.getItem('userRole') !== 'system_admin') return;
-    const password = await showPasswordPrompt('Decrypt the email of this visitor?\n\nEnter your System Admin password:');
-    if (!password) return;
-    try {
-        const username = sessionStorage.getItem('loggedUser');
-        const response = await fetch('/api/admin/decrypt-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-username': username },
-            body: JSON.stringify({ feedbackId, password, username })
-        });
-        const data = await response.json();
-        if (!data.success || !data.decryptedEmail) return alert(data.error || 'The email could not be decrypted. Check the password and try again.');
-        decryptedEmailMap[feedbackId] = data.decryptedEmail;
-        isAnyEmailDecrypted = true;
-        renderFeedbackPage();
-    } catch (error) {
-        alert('The email could not be decrypted: ' + error.message);
-    }
-}
-
-// After a delete (feedbackDeletion.js): the list stays on its page, and an open panel moves on to the next submission
-function feedbackDeleted(feedbackId) {
-    const id = Number(feedbackId);
-    const index = filteredFeedbackData.findIndex((item) => Number(item.id) === id);
-    const gone = allFeedbackData.find((item) => Number(item.id) === id);
-    const neighbour = index >= 0 ? (filteredFeedbackData[index + 1] || filteredFeedbackData[index - 1] || null) : null;
-    allFeedbackData = allFeedbackData.filter((item) => Number(item.id) !== id);
-    filteredFeedbackData = filteredFeedbackData.filter((item) => Number(item.id) !== id);
-    const pages = Math.max(1, Math.ceil(filteredFeedbackData.length / feedbackItemsPerPage));
-    if (feedbackCurrentPage > pages) feedbackCurrentPage = pages;
-    const panelWasOnIt = feedbackPanelId === id;
-    if (panelWasOnIt && !neighbour) closeFeedbackPanel(false);
-    if (panelWasOnIt && neighbour) feedbackPanelId = Number(neighbour.id);
-    renderFeedbackPage();
-    const status = document.getElementById('feedback-status');
-    if (status) {
-        status.textContent = `Deleted the submission of ${gone && gone.name ? gone.name : 'the visitor'}.`;
-        clearTimeout(feedbackDeleted.timer);
-        feedbackDeleted.timer = setTimeout(() => { status.textContent = ''; }, 6000);
-    }
-    // the keyboard lands on the panel that moved on, or on the row that took the deleted row's place
-    if (feedbackPanelId !== null) return document.getElementById('feedback-panel-title')?.focus({ preventScroll: true });
-    const rows = document.querySelectorAll('#feedback-table-body tr[data-feedback-id]');
-    const at = index >= 0 ? index - (feedbackCurrentPage - 1) * feedbackItemsPerPage : 0;
-    (rows[Math.max(0, Math.min(rows.length - 1, at))] || document.getElementById('feedback-search-input'))?.focus({ preventScroll: true });
-}
-
-// after the list was drawn again (a filter, a sort, emails decrypted, a delete): the open panel follows, or closes when its submission is gone
-function syncFeedbackPanel() {
-    if (feedbackPanelId === null) return;
-    const panel = document.getElementById('feedback-panel');
-    const feedback = filteredFeedbackData.find((item) => Number(item.id) === feedbackPanelId);
-    if (!feedback) return closeFeedbackPanel();
-    if (!panel || panel.hidden) return;
-    const scroll = panel.querySelector('.ui-sidepanel-body')?.scrollTop || 0;
-    panel.innerHTML = feedbackPanelHtml(feedback);
-    const body = panel.querySelector('.ui-sidepanel-body');
-    if (body) body.scrollTop = scroll;
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const tbody = document.getElementById('feedback-table-body');
-    if (tbody) { tbody.addEventListener('click', feedbackRowAction); tbody.addEventListener('keydown', feedbackRowAction); }
-    const panel = document.getElementById('feedback-panel');
-    if (panel) panel.addEventListener('click', (event) => {
-        const download = event.target.closest('[data-fb-download]');
-        if (download) downloadPhoto(download.dataset.fbDownload, download.dataset.fbFile);
-    });
-    // icons of the fixed markup (uiKit.js is loaded before this file)
-    document.querySelectorAll('#feedback-data-page [data-fb-icon]').forEach((slot) => { slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.tagName === 'BUTTON' ? 15 : 14); });
-    // the date chip's small window opens under the chip
-    const pop = document.getElementById('feedback-date-pop');
-    const chip = document.getElementById('feedback-date-button');
-    if (pop && chip) pop.addEventListener('toggle', (event) => {
-        if (event.newState !== 'open') return;
-        const at = chip.getBoundingClientRect();
-        pop.style.top = `${Math.round(at.bottom + 6)}px`;
-        pop.style.left = `${Math.round(Math.max(8, Math.min(at.left, window.innerWidth - pop.offsetWidth - 8)))}px`;
-    });
-});
-// Esc closes the panel, unless a window above it (photo viewer, password, email, delete check) is open: that one closes first.
-// The key is looked at on its way down (capture), before such a window removes itself, so one Esc never closes both.
-document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || feedbackPanelId === null) return;
-    if (document.querySelector('.photo-popup, .pledge-popup, .qa-popup, .email-popup, .delete-access-modal, .password-prompt-modal, #ui-info-pop:popover-open, #feedback-date-pop:popover-open')) return;
-    closeFeedbackPanel();
-}, true);
-// <Jun Kai end>
-
 // Navigate to previous page
 function prevFeedbackPage() {
     if (feedbackCurrentPage > 1) {
-        closeFeedbackPanel(false); // <Jun Kai/> the open submission is not on the next page
+        feedbackView.close(false); // <Jun Kai/> the open submission is not on the next page
         feedbackCurrentPage--;
         decryptedEmailMap = {}; // Reset decryption
         isAnyEmailDecrypted = false;
@@ -618,7 +268,7 @@ function prevFeedbackPage() {
 function nextFeedbackPage() {
     const totalPages = Math.ceil(filteredFeedbackData.length / feedbackItemsPerPage);
     if (feedbackCurrentPage < totalPages) {
-        closeFeedbackPanel(false); // <Jun Kai/> the open submission is not on the next page
+        feedbackView.close(false); // <Jun Kai/> the open submission is not on the next page
         feedbackCurrentPage++;
         decryptedEmailMap = {}; // Reset decryption
         isAnyEmailDecrypted = false;

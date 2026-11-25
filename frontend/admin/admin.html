@@ -630,7 +630,7 @@
                                     <button type="button" onclick="setFeedbackDateRangePreset('today')">Today</button>
                                     <button type="button" onclick="setFeedbackDateRangePreset('week')">This week</button>
                                     <button type="button" onclick="setFeedbackDateRangePreset('month')">This month</button>
-                                    <button type="button" onclick="clearFeedbackDateRange()">Any date</button>
+                                    <button type="button" onclick="feedbackView.clearDates()">Any date</button>
                                 </div>
                                 <label class="ui-filter-field">From <input type="date" id="feedback-filter-date-from" class="ui-input" onchange="filterFeedbackData()"></label>
                                 <label class="ui-filter-field">To <input type="date" id="feedback-filter-date-to" class="ui-input" onchange="filterFeedbackData()"></label>
@@ -4832,7 +4832,8 @@
     <script src="/admin/js/audit.js"></script>
     <script src="/admin/js/lostFound.js"></script>
     <script src="/admin/js/dashboard.js"></script>
-    <script src="/admin/js/feedback.js"></script>
+    <script src="/admin/js/submissionList.js"></script><!-- <Jun Kai/> the list and side panel of Feedback and Archived Feedback -->
+<script src="/admin/js/feedback.js"></script>
     <script src="/admin/js/archive.js"></script>
     <script src="/admin/js/feedbackFilters.js"></script>
     <script src="/admin/js/encryption.js"></script>
