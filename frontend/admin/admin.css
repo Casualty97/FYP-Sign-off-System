@@ -8941,3 +8941,25 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 @media (max-width: 1280px) { .fb-table th:nth-child(4), .fb-table td:nth-child(4) { display: none; } }
 @media (max-width: 1024px) { .fb-table th:nth-child(6), .fb-table td:nth-child(6), .fb-table th:nth-child(5), .fb-table td:nth-child(5) { display: none; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> AI Settings page: a row per feature with what it runs on and what happens when it is off */
+.ai-card { margin-bottom: 18px; }
+.ai-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 6px; }
+.ai-card-head h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--theme-text-color); }
+.ai-settings-status { font-size: 13px; color: var(--color-dark-gray); }
+.ai-settings-status.is-error { color: #b91c1c; }
+.ai-rows { padding: 4px 20px 10px; }
+.ai-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 18px; padding: 16px 0; }
+.ai-rows .ai-row + .ai-row { border-top: 1px solid var(--theme-border-color); }
+.ai-row-master { padding: 18px 20px; cursor: pointer; }
+.ai-row-text { display: grid; gap: 3px; min-width: 0; }
+.ai-row-text b { font-size: 15px; font-weight: 700; color: var(--theme-text-color); }
+.ai-row-text small { font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+.ai-row-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; font-size: 13px; }
+.ai-row-facts dt { color: var(--color-dark-gray); font-weight: 600; }
+.ai-row-facts dd { margin: 0; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.ai-row.is-off .ai-row-text b { color: var(--color-dark-gray); }
+.ai-row-switch input:disabled + .ui-switch-track { opacity: 0.5; cursor: not-allowed; }
+.ai-kiosk-line { margin: 0 0 8px; font-size: 13px; color: var(--color-dark-gray); }
+@media (max-width: 760px) { .ai-row { grid-template-columns: minmax(0, 1fr) auto; } .ai-row-state { grid-column: 1; grid-row: 2; } }
+/* <Jun Kai end> */

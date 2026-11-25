@@ -95,6 +95,7 @@ function applySidebarRole(role) {
     }
     navRefreshGroups();
     navMirrorBadges();
+    if (typeof refreshAdminAiState === 'function') refreshAdminAiState(); // the AI Settings switches (aiSettings.js)
     const input = document.getElementById('nav-search');
     navFilter(input ? input.value : '');
 }

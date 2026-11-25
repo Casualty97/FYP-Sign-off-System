@@ -308,6 +308,11 @@
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg></span>
                             <span class="nav-label">Assets</span>
                         </a>
+                        <!-- <Jun Kai/> AI Settings: every AI feature on or off (System Admins) -->
+                        <a href="#" onclick="showPage('ai-settings'); loadAiSettingsPage();" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"></path><line x1="9" y1="22" x2="15" y2="22"></line></svg></span>
+                            <span class="nav-label">AI Settings</span>
+                        </a>
                     </nav></div>
                 </div>
                 <div class="sidebar-section nav-group" data-group="data">
@@ -767,7 +772,7 @@
                                 </div>
                             </div>
                             <!-- <Jun Kai start> shown while the Local AI models switch is off (analysis.js refreshAnalysisModes) -->
-                            <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are off because Local AI models is switched off in the incident settings (Incidents page, Settings, Local AI advisor). Rule-Based Analysis still works.</div>
+                            <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are switched off on the AI Settings page. Rule-Based Analysis still works.</div>
                             <!-- <Jun Kai end> -->
 
                             <div id="feedback-analysis-results" style="display: none; margin-top: 20px;">
@@ -3433,6 +3438,36 @@
 
                 <!-- <Jun Kai start> -->
                 <!-- Incidents (Role 3): what the anomaly detection found, on a page of their own (they were a panel on System Health) -->
+                <!-- <Jun Kai start> AI Settings: one switch for every AI feature and one per feature (js/aiSettings.js) -->
+                <div id="ai-settings-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>AI Settings<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What counts as AI here"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What counts as AI here"><p>A feature is listed when it runs an AI model (on this PC or online) or sends text to an online service that works with AI.</p><p>The hardware forecast and the anomaly detection of Incidents are statistics: they need no model, so they always stay on.</p><p>The server refuses a feature that is off, so a switch here works even for a page that is open in another browser.</p></template></span></h2>
+                            <p>Switch the AI features of the kiosk on or off. A switch saves as soon as it is flipped.</p>
+                        </div>
+                    </div>
+
+                    <div class="ui-card ai-card">
+                        <label class="ai-row ai-row-master">
+                            <span class="ai-row-text">
+                                <b>All AI features</b>
+                                <small>Off: no AI model runs and nothing is sent to an online AI service, whatever the switches below say. Each switch keeps its own setting for when this is on again.</small>
+                            </span>
+                            <span class="ai-row-state" id="ai-settings-all-state"></span>
+                            <span class="ui-switch ai-row-switch"><input type="checkbox" id="ai-settings-all" aria-label="All AI features"><span class="ui-switch-track"></span></span>
+                        </label>
+                    </div>
+
+                    <div class="ui-card ai-card">
+                        <div class="ai-card-head"><h3>Features</h3><span class="ui-pager-status ai-settings-status" id="ai-settings-status" role="status"></span></div>
+                        <div class="ai-rows" id="ai-settings-rows"></div>
+                    </div>
+
+                    <p class="ai-kiosk-line">Face check before a photo and the photo props run on the kiosk tablets. Their switches come with the Feedback Screen update.</p>
+                    <p class="ai-kiosk-line" id="ai-settings-who" hidden>Only a System Admin can change these switches.</p>
+                </div>
+                <!-- <Jun Kai end> -->
+
                 <div id="incidents-page" class="page">
                     <div class="ui-page-header">
                         <div>
@@ -3502,12 +3537,10 @@
                                         <select class="ui-select" id="incidents-advisor-model"></select>
                                         <span class="ui-fact-hint" id="incidents-advisor-help"></span>
                                     </div>
-                                    <!-- every local AI model of the app; with it off no AI model runs on this PC for the admin pages -->
-                                    <label class="inc-toggle-row">
-                                        <span class="ui-switch"><input type="checkbox" id="incidents-local-ai"><span class="ui-switch-track"></span></span>
-                                        <span class="inc-toggle-text"><strong>Local AI models (Ollama and Xenova)</strong><small id="incidents-local-ai-text">The AI models that run on this PC. Ollama runs the advisor above and the Qwen AI, Gemma AI and LocalGPT modes in Feedback Reports. Xenova runs the Xenova AI mode there. Off: none of them runs. The advisor gives rule-based advice, Feedback Reports offers Rule-Based Analysis only, and System Health shows Ollama as off.</small></span>
-                                    </label>
-                                    <div class="inc-drawer-callout inc-drawer-callout-quiet" id="incidents-ai-all-off" hidden>The advisor and the local AI models are both off, so no AI model runs on this PC for the admin pages. Not covered here: the kiosk's pledge check and face detection keep their own models, and Translate to English uses Google's online service.</div>
+                                    <!-- <Jun Kai start> the switch for all AI models is on the AI Settings page now -->
+                                    <p class="inc-drawer-note" id="incidents-ai-link">Every AI feature, the advisor included, can also be switched on or off on the <button type="button" class="inline-link-btn" onclick="closeIncidentSettings(); showPage('ai-settings'); loadAiSettingsPage();">AI Settings</button> page.</p>
+                                    <div class="inc-drawer-callout inc-drawer-callout-quiet" id="incidents-ai-all-off" hidden>All AI features are switched off on the AI Settings page, so the advisor gives rule-based advice.</div>
+                                    <!-- <Jun Kai end> -->
                                 </section>
                                 <section class="inc-drawer-section">
                                     <div class="inc-drawer-title">Timing and keeping</div>
@@ -4866,6 +4899,7 @@
     <script src="/admin/js/health.js"></script>
     <!-- <Jun Kai start> -->
     <script src="/admin/js/incidents.js"></script>
+    <script src="/admin/js/aiSettings.js"></script><!-- <Jun Kai/> AI Settings -->
     <script src="/admin/js/hardware.js"></script>
     <script src="/admin/js/visitorArchive.js"></script>
     <!-- <Jun Kai end> -->

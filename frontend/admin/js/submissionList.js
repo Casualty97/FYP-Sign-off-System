@@ -211,7 +211,7 @@ function makeSubmissionList(cfg) {
         const answerRows = answers.map((answer, n) => {
             const value = answer && (answer.option_label || answer.answer_value);
             const type = String((answer && answer.question_type) || '').toLowerCase();
-            const translate = value && type === 'text'
+            const translate = value && type === 'text' && adminAiAllows('translate')
                 ? `<button type="button" class="ui-link" onclick="translateAdminTextToEnglish('${p}-answer-${n}', '${p}-answer-english-${n}', this)">Translate to English</button><div class="ui-text fb-translated" id="${p}-answer-english-${n}" aria-live="polite"></div>`
                 : '';
             return `<li><small>${escapeHtmlSafe((answer && answer.question_text) || `Question ${n + 1}`)}</small><span id="${p}-answer-${n}">${value ? formatAnswer(String(value), type) : '<em>No answer</em>'}</span>${translate}</li>`;
@@ -229,9 +229,9 @@ function makeSubmissionList(cfg) {
             <section>
                 <h4>Pledge</h4>
                 ${pledge
-                    ? `<div class="ui-text fb-quote" id="${p}-pledge">${escapeHtmlSafe(pledge)}</div>
+                    ? `<div class="ui-text fb-quote" id="${p}-pledge">${escapeHtmlSafe(pledge)}</div>${adminAiAllows('translate') ? `
                        <button type="button" class="ui-link" onclick="translateAdminTextToEnglish('${p}-pledge', '${p}-pledge-english', this)">Translate to English</button>
-                       <div class="ui-text fb-translated" id="${p}-pledge-english" aria-live="polite"></div>`
+                       <div class="ui-text fb-translated" id="${p}-pledge-english" aria-live="polite"></div>` : ''}`
                     : '<div class="ui-text ui-muted">No pledge</div>'}
             </section>
             <section>
