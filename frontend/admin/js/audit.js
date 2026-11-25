@@ -30,12 +30,15 @@ async function loadAuditLogs() {
 
             // Apply filters and display
             filterAuditLogs();
+        } else {
+            // <Jun Kai/> a refusal (for example a session that ran out) used to leave the list on "Loading"
+            throw new Error(data.error || data.message || `the server answered ${response.status}`);
         }
     } catch (error) {
         console.error('❌ Error loading audit logs:', error);
         allAuditLogs = [];
         filteredAuditLogs = [];
-        updateAuditTable([]);
+        showAuditLoadError(error.message); // <Jun Kai/> says the load failed, not "No audit logs have been recorded yet"
     }
 }
 
@@ -48,6 +51,7 @@ function populateUserFilter() {
     const uniqueUsers = [...new Set(allAuditLogs.map(log => log.admin_username))].filter(Boolean).sort();
 
     // Clear existing options except the first one ("Admin: any" on the redesigned page)
+    const chosen = userFilter.value; // <Jun Kai/> kept when the list is loaded again
     userFilter.innerHTML = '<option value="">Admin: any</option>';
 
     // Add user options
@@ -57,6 +61,7 @@ function populateUserFilter() {
         option.textContent = username;
         userFilter.appendChild(option);
     });
+    if (chosen && uniqueUsers.includes(chosen)) userFilter.value = chosen; // <Jun Kai/>
 }
 
 // Filter audit logs based on all criteria
@@ -394,6 +399,25 @@ function showAuditFilterState() {
     const label = document.getElementById('audit-date-label');
     if (label) label.textContent = from && to ? (from === to ? day(from) : `${day(from)} to ${day(to)}`) : from ? `From ${day(from)}` : to ? `Until ${day(to)}` : 'Any date';
     document.getElementById('audit-date-button')?.classList.toggle('is-set', !!(from || to));
+}
+
+// the Order chip: the timeline has no columns to sort, so it sorts by time only, newest or oldest first
+function setAuditOrder(direction) {
+    currentSortField = 'created_at';
+    currentSortDirection = direction === 'asc' ? 'asc' : 'desc';
+    filterAuditLogs();
+}
+
+// a load that failed says so, with a button to try again, instead of an empty list
+function showAuditLoadError(message) {
+    const body = document.getElementById('audit-logs-body');
+    if (body) body.innerHTML = `<p class="ui-empty audit-empty audit-error" role="alert">Could not load the audit log: ${escapeHtml(String(message || 'no answer').replace(/\.$/, ''))}. <button type="button" class="ui-link" onclick="loadAuditLogs()">Try again</button></p>`;
+    const info = document.getElementById('audit-page-info');
+    if (info) info.textContent = 'Nothing to show';
+    for (const id of ['prev-audit-btn', 'next-audit-btn']) {
+        const button = document.getElementById(id);
+        if (button) button.disabled = true;
+    }
 }
 
 // "Any date" in the date pop-up

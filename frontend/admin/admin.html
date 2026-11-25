@@ -1802,7 +1802,7 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Audit Logs</h2>
-                            <p>Important actions and security events, grouped by day, newest first.</p>
+                            <p>Important actions and security events, grouped by day.</p>
                         </div>
                     </div>
 
@@ -1854,6 +1854,10 @@
                             </label>
                             <button type="button" class="ui-link" id="audit-clear-filters" onclick="clearAllFilters()" hidden>Clear filters</button>
                             <span class="ui-spacer"></span>
+                            <select id="audit-order" class="ui-filter ui-filter-select" aria-label="Order" onchange="setAuditOrder(this.value)">
+                                <option value="desc">Newest first</option>
+                                <option value="asc">Oldest first</option>
+                            </select>
                             <button type="button" class="ui-btn ui-btn-icon" onclick="loadAuditLogs()" title="Load the audit log again" aria-label="Load the audit log again" data-fb-icon="refresh"></button>
                         </div>
 
