@@ -164,9 +164,9 @@
 //     router.post('/data-export/unlock' - Unlock data export with password verification (System Admin only) (DONE BY PRETI)
 //
 // 12. EXPORT/DOWNLOAD ROUTES
-//     router.get('/download-excel'    - Download feedback as CSV with decrypted emails (DONE BY PRETI)
-//     router.get('/download-archive-excel' - Download archived feedback as CSV with decryption (DONE BY PRETI)
-//     router.get('/download-photos'   - Download photos as ZIP archive (DONE BY PRETI)
+//     router.post('/download-excel'   - Download feedback as CSV with decrypted emails (DONE BY PRETI)
+//     router.post('/download-archive-excel' - Download archived feedback as CSV with decryption (DONE BY PRETI)
+//     router.post('/download-photos'  - Download photos as ZIP archive (DONE BY PRETI)
 //     router.get('/download-audit-excel' - Download audit logs as CSV (DONE BY PRETI)
 //
 // 13. OVERLAY MANAGEMENT ROUTES
@@ -254,6 +254,8 @@ const auth = require('../../core/auth');
 // <Jun Kai start>
 const rememberMe = require('../../core/rememberMe');
 const adminSessions = require('../../core/adminSessions'); // <Jun Kai/> ends the sign-ins of a deleted or changed account
+const { forLog } = require('../../core/log'); // <Jun Kai/> request values are printed without line breaks
+const requestLimit = require('../../core/requestLimit'); // <Jun Kai/> request limits per address
 const loginLimit = require('../../core/loginLimit'); // a limit on wrong passwords at the sign-in
 const { csvCell } = require('../../core/csv'); // one CSV cell: 0 is kept, dates in Singapore time, no formulas
 // <Jun Kai end>
@@ -263,6 +265,7 @@ const db = require('../../core/db');
 const multer = require('multer');
 const path = require('path');
 const paths = require('../../core/paths');
+const { insideUploads } = require('../../core/photoFiles'); // <Jun Kai/> stored photo paths stay inside the uploads folder
 const fs = require('fs');
 const https = require('https');
 const { createZipArchive } = require('../../core/zip');
@@ -2356,7 +2359,7 @@ router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
         return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true });
     }
     // <Jun Kai end>
-    console.debug(`🧠 Generating feedback insights using mode: ${mode}`);
+    console.debug(`🧠 Generating feedback insights using mode: ${forLog(mode)}`); // <Jun Kai/>
 
     if (activeFeedbackAnalysisController) {
         activeFeedbackAnalysisController.abort();
@@ -2745,7 +2748,7 @@ router.get('/archive/stats', auth.requireAuth, auth.requireAdmin, async (req, re
 });
 
 // Bulk Decrypt Archive Emails
-router.post('/bulk-decrypt-archive', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
+router.post('/bulk-decrypt-archive', auth.requireAuth, auth.requireAdmin, requestLimit.passwordChecks, async (req, res) => { // <Jun Kai/> system admins only
     try {
         const { password, emails } = req.body;
         const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
@@ -2796,7 +2799,7 @@ router.post('/bulk-decrypt-archive', auth.requireAuth, auth.requireAdmin, async 
                         decryptedEmails[item.id] = decrypted;
                     }
                 } catch (error) {
-                    console.error('Error decrypting email for ID %s:', item.id, error); // <Jun Kai/> the id is a value, not part of the format
+                    console.error('Error decrypting email for ID %s:', forLog(item.id), error); // <Jun Kai/> the id is a value, not part of the format
                 }
             }
         }
@@ -2822,7 +2825,7 @@ router.post('/bulk-decrypt-archive', auth.requireAuth, auth.requireAdmin, async 
 });
 
 // Download Archive Photos (ZIP)
-router.post('/download-archive-photos', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
+router.post('/download-archive-photos', auth.requireAuth, auth.requireAdmin, requestLimit.heavyWork, async (req, res) => { // <Jun Kai/> system admins only
     try {
         const { feedbackIds } = req.body;
         const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
@@ -2847,18 +2850,18 @@ router.post('/download-archive-photos', auth.requireAuth, auth.requireAdmin, asy
         // Collect all photo paths
         const photoPaths = [];
         for (const item of feedbackData) {
-            if (item.photo_path) {
+            if (insideUploads(item.photo_path)) { // <Jun Kai/> null when the stored path leaves the uploads folder
                 photoPaths.push({
                     id: item.id,
                     type: 'raw',
-                    path: path.join(paths.UPLOADS, item.photo_path)
+                    path: insideUploads(item.photo_path)
                 });
             }
-            if (item.processed_photo_path) {
+            if (insideUploads(item.processed_photo_path)) { // <Jun Kai/> null when the stored path leaves the uploads folder
                 photoPaths.push({
                     id: item.id,
                     type: 'processed',
-                    path: path.join(paths.UPLOADS, item.processed_photo_path)
+                    path: insideUploads(item.processed_photo_path)
                 });
             }
         }
@@ -2924,7 +2927,7 @@ router.post('/download-archive-photos', auth.requireAuth, auth.requireAdmin, asy
 });
 
 // Download file (for ZIP downloads)
-router.get('/download-file/:filename', auth.requireAuth, async (req, res) => {
+router.get('/download-file/:filename', auth.requireAuth, requestLimit.heavyWork, async (req, res) => {
     try {
         const filename = path.basename(req.params.filename || '');
         const tempDir = path.join(paths.UPLOADS, 'temp');
@@ -3036,7 +3039,7 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
 
 // Delete selected archived feedback (HARD DELETE)
 // POST /api/admin/archive/delete-selected
-router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
+router.post('/archive/delete-selected', auth.requireAuth, requestLimit.passwordChecks, (req, res) => {
     const { feedbackIds, password } = req.body;
     const username = req.session.user.username;
     const userRole = req.session.user.role;
@@ -3125,8 +3128,8 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
             const deletePhotos = (deletedIds) => feedbackData.filter(feedback => deletedIds.has(feedback.id)).forEach(feedback => {
             // <Jun Kai end>
                 if (feedback.photo_path) {
-                    const photoPath = path.join(paths.UPLOADS, feedback.photo_path);
-                    if (fs.existsSync(photoPath)) {
+                    const photoPath = insideUploads(feedback.photo_path); // <Jun Kai/> null when the stored path leaves the uploads folder
+                    if (photoPath && fs.existsSync(photoPath)) {
                         try {
                             fs.unlinkSync(photoPath);
                             console.debug(`🗑️ Deleted photo: ${feedback.photo_path}`);
@@ -3137,8 +3140,8 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                 }
 
                 if (feedback.processed_photo_path) {
-                    const processedPath = path.join(paths.UPLOADS, feedback.processed_photo_path);
-                    if (fs.existsSync(processedPath)) {
+                    const processedPath = insideUploads(feedback.processed_photo_path); // <Jun Kai/> null when the stored path leaves the uploads folder
+                    if (processedPath && fs.existsSync(processedPath)) {
                         try {
                             fs.unlinkSync(processedPath);
                             console.debug(`🗑️ Deleted processed photo: ${feedback.processed_photo_path}`);
@@ -3194,7 +3197,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
 
 // Delete archived feedback by date range (HARD DELETE)
 // POST /api/admin/archive/delete-by-date
-router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
+router.post('/archive/delete-by-date', auth.requireAuth, requestLimit.passwordChecks, (req, res) => {
     const { beforeDate, password } = req.body;
     const username = req.session.user.username;
     const userRole = req.session.user.role;
@@ -3283,8 +3286,8 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             const deletePhotos = (deletedIds) => feedbackData.filter(feedback => deletedIds.has(feedback.id)).forEach(feedback => {
             // <Jun Kai end>
                 if (feedback.photo_path) {
-                    const photoPath = path.join(paths.UPLOADS, feedback.photo_path);
-                    if (fs.existsSync(photoPath)) {
+                    const photoPath = insideUploads(feedback.photo_path); // <Jun Kai/> null when the stored path leaves the uploads folder
+                    if (photoPath && fs.existsSync(photoPath)) {
                         try {
                             fs.unlinkSync(photoPath);
                             photosDeleted++;
@@ -3296,8 +3299,8 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                 }
                 
                 if (feedback.processed_photo_path) {
-                    const processedPath = path.join(paths.UPLOADS, feedback.processed_photo_path);
-                    if (fs.existsSync(processedPath)) {
+                    const processedPath = insideUploads(feedback.processed_photo_path); // <Jun Kai/> null when the stored path leaves the uploads folder
+                    if (processedPath && fs.existsSync(processedPath)) {
                         try {
                             fs.unlinkSync(processedPath);
                             photosDeleted++;
@@ -3341,7 +3344,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                 // Log deletion
                 logAudit('DELETE_ARCHIVE_BY_DATE', username, 'archived_feedback', deletedCount, req);
                 
-                console.log(`✅ Successfully deleted ${deletedCount} archived feedback entries before ${beforeDate}`);
+                console.log(`✅ Successfully deleted ${deletedCount} archived feedback entries before ${forLog(beforeDate)}`); // <Jun Kai/>
                 console.log(`🗑️ Total photos deleted: ${photosDeleted}`);
                 
                 res.json({
@@ -3359,7 +3362,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
 // ==================== 10. PHOTO ACCESS & EMAIL DECRYPTION ROUTES ====================
 
 // Verify system admin password for photo access
-router.post('/verify-photo-access', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
+router.post('/verify-photo-access', auth.requireAuth, auth.requireAdmin, requestLimit.passwordChecks, (req, res) => { // <Jun Kai/> system admins only
     const { password } = req.body;
     const username = req.session.user.username; // <Jun Kai/> the signed-in system admin's own password, not always systemadmin's
     
@@ -3380,7 +3383,7 @@ router.post('/verify-photo-access', auth.requireAuth, auth.requireAdmin, (req, r
 });
 
 // POST /decrypt-email - Decrypt email (System Admin only)
-router.post('/decrypt-email', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
+router.post('/decrypt-email', auth.requireAuth, requestLimit.passwordChecks, (req, res) => { // <Jun Kai/> signed-in admins only
     const { feedbackId, password } = req.body;
     
     const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
@@ -3720,7 +3723,7 @@ router.delete('/users/:id', auth.requireAuth, auth.requireAdmin, (req, res) => {
     
     logAudit('DELETE_USER', username, 'user', id, req);
     
-    console.debug('🗑️ Attempting to SOFT DELETE user ID:', id, 'by:', username);
+    console.debug('🗑️ Attempting to SOFT DELETE user ID:', forLog(id), 'by:', username); // <Jun Kai/> no line breaks from the request
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -3800,7 +3803,7 @@ router.post('/users/:id/restore', auth.requireAuth, auth.requireAdmin, (req, res
     
     logAudit('RESTORE_USER', username, 'user', id, req);
     
-    console.debug('🔄 Attempting to RESTORE user ID:', id, 'by:', username);
+    console.debug('🔄 Attempting to RESTORE user ID:', forLog(id), 'by:', username); // <Jun Kai/>
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -3850,7 +3853,7 @@ router.delete('/users/:id/permanent', auth.requireAuth, auth.requireAdmin, (req,
     
     logAudit('PERMANENT_DELETE_USER', username, 'user', id, req);
     
-    console.debug('🗑️ Attempting to PERMANENTLY DELETE user ID:', id, 'by:', username);
+    console.debug('🗑️ Attempting to PERMANENTLY DELETE user ID:', forLog(id), 'by:', username); // <Jun Kai/>
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';
@@ -4165,7 +4168,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
 // POST /data-export/unlock lives in backend/features/archive/exportRoutes.js (mounted at /api/admin/data-export)
 
 // Re-check the logged-in admin's password before a destructive action (feedback delete).
-router.post('/verify-password', auth.requireAuth, (req, res) => {
+router.post('/verify-password', auth.requireAuth, requestLimit.passwordChecks, (req, res) => {
     const password = req.body && req.body.password;
     const username = req.session.user.username;
     if (!password) return res.status(400).json({ success: false, error: 'Password required' });
@@ -4185,8 +4188,8 @@ router.post('/verify-password', auth.requireAuth, (req, res) => {
 // ==================== 13. EXPORT/IMPORT ROUTES ====================
 
 // Excel download endpoint with email decryption
-router.get('/download-excel', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
-    const { password } = req.query;
+router.post('/download-excel', auth.requireAuth, auth.requireAdmin, requestLimit.passwordChecks, requestLimit.heavyWork, (req, res) => { // <Jun Kai/> system admins only
+    const { password } = req.body || {}; // <Jun Kai/> in the body: a password in the address is kept in logs and the browser history
     const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DOWNLOAD_EXCEL', username, null, null, req);
     
@@ -4276,8 +4279,8 @@ router.get('/download-excel', auth.requireAuth, auth.requireAdmin, (req, res) =>
 });
 
 // Archive Excel download endpoint with email decryption
-router.get('/download-archive-excel', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
-    const { password } = req.query;
+router.post('/download-archive-excel', auth.requireAuth, auth.requireAdmin, requestLimit.passwordChecks, requestLimit.heavyWork, (req, res) => { // <Jun Kai/> system admins only
+    const { password } = req.body || {}; // <Jun Kai/> in the body: a password in the address is kept in logs and the browser history
     const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DOWNLOAD_ARCHIVE_EXCEL', username, null, null, req);
     
@@ -4369,8 +4372,8 @@ router.get('/download-archive-excel', auth.requireAuth, auth.requireAdmin, (req,
 });
 
 // Update the download-photos endpoint in adminRoutes.js with correct path
-router.get('/download-photos', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
-    const { password } = req.query;
+router.post('/download-photos', auth.requireAuth, auth.requireAdmin, requestLimit.passwordChecks, requestLimit.heavyWork, async (req, res) => { // <Jun Kai/> system admins only
+    const { password } = req.body || {}; // <Jun Kai/> in the body: a password in the address is kept in logs and the browser history
     const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DOWNLOAD_PHOTOS', username, null, null, req);
     
@@ -4744,7 +4747,7 @@ router.delete('/overlays/:id', auth.requireAuth, auth.requireAdmin, (req, res) =
     const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DELETE_OVERLAY', username, 'overlay', id, req);
     
-    console.debug('🗑️ Attempting to delete overlay ID:', id);
+    console.debug('🗑️ Attempting to delete overlay ID:', forLog(id)); // <Jun Kai/>
     
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
     
@@ -5040,7 +5043,7 @@ router.delete('/questions/:id', auth.requireAuth, auth.requireAdmin, (req, res) 
 
     logAudit('DELETE_QUESTION', username, 'question', id, req);
     
-    console.debug('🗑️ Attempting to delete question ID:', id);
+    console.debug('🗑️ Attempting to delete question ID:', forLog(id)); // <Jun Kai/>
     
     // First, check if user exists and has system_admin role
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
@@ -5076,7 +5079,7 @@ router.delete('/questions/:id', auth.requireAuth, auth.requireAdmin, (req, res) 
                         return res.status(500).json({ error: 'Database error: ' + err.message });
                     }
                     
-                    console.debug(`✅ Question ID ${id} soft-deleted, historical answers preserved`);
+                    console.debug(`✅ Question ID ${forLog(id)} soft-deleted, historical answers preserved`); // <Jun Kai/>
                     
                     res.json({
                         success: true,
@@ -5099,7 +5102,7 @@ router.delete('/questions/:id', auth.requireAuth, auth.requireAdmin, (req, res) 
                         console.error('❌ Error deleting question:', err);
                         return res.status(500).json({ error: 'Database error: ' + err.message });
                     }
-                    console.debug(`✅ Question completely deleted (no historical answers): ${id}`);
+                    console.debug(`✅ Question completely deleted (no historical answers): ${forLog(id)}`); // <Jun Kai/>
                     res.json({
                         success: true,
                         message: 'Question and associated options deleted successfully (no historical answers)',
@@ -5116,7 +5119,7 @@ router.put('/questions/:id', auth.requireAuth, auth.requireAdmin, (req, res) => 
     const { question_text, display_order, is_required, is_active } = req.body;
     const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
-    console.debug('✏️ Safe editing question ID:', id);
+    console.debug('✏️ Safe editing question ID:', forLog(id)); // <Jun Kai/>
     
     // First, check if user exists and has system_admin role
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1';
@@ -5207,7 +5210,7 @@ function deleteUserPhotos(feedback, callback) {
         // Handle both absolute and relative paths
         let photoFullPath;
         if (feedback.photo_path.startsWith('photos/')) {
-            photoFullPath = path.join(paths.UPLOADS, feedback.photo_path);
+            photoFullPath = insideUploads(feedback.photo_path); // <Jun Kai/> null when the stored path leaves the uploads folder
         } else {
             photoFullPath = path.join(paths.UPLOADS, 'photos', path.basename(feedback.photo_path));
         }
@@ -5221,7 +5224,7 @@ function deleteUserPhotos(feedback, callback) {
     if (feedback.processed_photo_path) {
         let processedFullPath;
         if (feedback.processed_photo_path.startsWith('processed/')) {
-            processedFullPath = path.join(paths.UPLOADS, feedback.processed_photo_path);
+            processedFullPath = insideUploads(feedback.processed_photo_path); // <Jun Kai/> null when the stored path leaves the uploads folder
         } else {
             processedFullPath = path.join(paths.UPLOADS, 'processed', path.basename(feedback.processed_photo_path));
         }
@@ -5552,7 +5555,7 @@ router.post('/saved-themes', auth.requireAuth, (req, res) => {
                 });
             }
             
-            console.debug(`✅ Theme "${theme_name}" saved successfully for user ${adminUserId}`);
+            console.debug(`✅ Theme "${forLog(theme_name)}" saved successfully for user ${adminUserId}`); // <Jun Kai/>
             
             // Log audit trail
             logAudit('SAVE_THEME', req.session.user.username, 'saved_themes', this.lastID, req);
@@ -5616,7 +5619,7 @@ router.put('/saved-themes/:id/activate', auth.requireAuth, (req, res) => {
                     });
                 }
                 
-                console.debug(`✅ Theme ${themeId} activated for user ${adminUserId}`);
+                console.debug(`✅ Theme ${forLog(themeId)} activated for user ${adminUserId}`); // <Jun Kai/>
                 
                 // Log audit trail
                 logAudit('ACTIVATE_THEME', req.session.user.username, 'saved_themes', themeId, req);
@@ -5706,7 +5709,7 @@ router.put('/saved-themes/:id', auth.requireAuth, (req, res) => {
                 });
             }
             
-            console.debug(`✅ Theme ${themeId} renamed to "${theme_name}"`);
+            console.debug(`✅ Theme ${forLog(themeId)} renamed to "${forLog(theme_name)}"`); // <Jun Kai/>
             
             // Log audit trail
             logAudit('UPDATE_THEME', req.session.user.username, 'saved_themes', themeId, req);
@@ -5931,7 +5934,7 @@ router.delete('/vips/:name', auth.requireAuth, auth.requireAdmin, (req, res) => 
             return res.status(404).json({ success: false, error: 'VIP not found' });
         }
 
-        console.debug(`✅ VIP deleted: ${name}`);
+        console.debug(`✅ VIP deleted: ${forLog(name)}`); // <Jun Kai/>
         return res.json({
             success: true,
             message: 'VIP deleted successfully',
@@ -6520,7 +6523,7 @@ router.post('/parameters/background', auth.requireAdmin, uploadParameterBackgrou
 router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('leaf'), handleTreeBackgroundUploadErrors, (req, res) => {
     try {
         console.debug('🍃 Leaf upload endpoint hit');
-        console.debug('📦 Received file:', req.file);
+        console.debug('📦 Received file:', forLog(req.file && req.file.originalname)); // <Jun Kai/>
         
         if (!req.file) {
             console.error('❌ No file received in request');
@@ -6528,8 +6531,8 @@ router.post('/parameters/leaf', auth.requireAdmin, uploadParameterLeaf.single('l
         }
 
         const assetPath = `/assets/Tree/leaf/${req.file.filename}`;
-        console.debug('✅ File saved to:', req.file.path);
-        console.debug('🔗 Asset path:', assetPath);
+        console.debug('✅ File saved to:', forLog(req.file.path)); // <Jun Kai/>
+        console.debug('🔗 Asset path:', forLog(assetPath)); // <Jun Kai/>
 
         const config = parametersConfigStore.readParametersConfig();
         // Save current leaf image as previous before uploading new one
@@ -6659,11 +6662,11 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
         
         // Verify file exists
         if (!fs.existsSync(fullPath)) {
-            console.error('❌ Leaf image file does not exist:', fullPath);
+            console.error('❌ Leaf image file does not exist:', forLog(fullPath)); // <Jun Kai/>
             return res.status(400).json({ success: false, error: 'Leaf image file does not exist' });
         }
         
-        console.debug('✅ Leaf image verified:', leafImage);
+        console.debug('✅ Leaf image verified:', forLog(leafImage)); // <Jun Kai/>
         const assetPath = `/assets/Tree/leaf/${path.basename(leafImage)}`;
         
         const config = parametersConfigStore.readParametersConfig();
@@ -6681,7 +6684,7 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
             return res.status(500).json({ success: false, error: 'Failed to select leaf image' });
         }
         
-        console.debug('✅ Leaf image selected successfully:', assetPath);
+        console.debug('✅ Leaf image selected successfully:', forLog(assetPath)); // <Jun Kai/>
         
         if (req.session?.user?.username) {
             logAudit('PARAMETER_LEAF_SELECTED', req.session.user.username, 'config', 'visualAssets.leafImage', req);
@@ -6805,8 +6808,8 @@ router.post('/parameters/tree-background/upload', auth.requireAdmin, uploadTreeB
         }
 
         const assetPath = `/assets/Tree/background/${req.file.filename}`;
-        console.debug('✅ File saved to:', req.file.path);
-        console.debug('🔗 Asset path:', assetPath);
+        console.debug('✅ File saved to:', forLog(req.file.path)); // <Jun Kai/>
+        console.debug('🔗 Asset path:', forLog(assetPath)); // <Jun Kai/>
 
         const config = parametersConfigStore.readParametersConfig();
         config.visualAssets = { ...config.visualAssets, treeBackground: assetPath };
@@ -7565,7 +7568,7 @@ router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
   const scheduleId = parseInt(req.params.id);
   const { is_active } = req.body;
   
-  console.debug(`🔄 Toggling schedule ID ${scheduleId} to ${is_active}`);
+  console.debug(`🔄 Toggling schedule ID ${forLog(scheduleId)} to ${forLog(is_active)}`); // <Jun Kai/>
   
   try {
     const config = readSchedulesConfig();
@@ -7843,7 +7846,7 @@ const uploadParameterVipLeaf = multer({
 router.post('/parameters/vip-leaf', auth.requireAdmin, uploadParameterVipLeaf.single('vipLeaf'), handleTreeBackgroundUploadErrors, (req, res) => {
     try {
         console.debug('🍃 VIP leaf upload endpoint hit');
-        console.debug('📦 Received file:', req.file);
+        console.debug('📦 Received file:', forLog(req.file && req.file.originalname)); // <Jun Kai/>
 
         if (!req.file) {
             console.error('❌ No file received in VIP leaf upload request');
@@ -8117,7 +8120,7 @@ router.get('/server/mode', auth.requireAuth, (req, res) => {
 router.post('/server/mode', auth.requireAuth, (req, res) => {
   const { mode } = req.body;
   
-  console.debug(`🔄 Changing server control mode to: ${mode}`);
+  console.debug(`🔄 Changing server control mode to: ${forLog(mode)}`); // <Jun Kai/>
   
   // Validate mode
   if (!mode || !['auto', 'manual'].includes(mode)) {
