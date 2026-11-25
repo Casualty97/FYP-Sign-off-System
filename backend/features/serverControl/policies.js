@@ -260,6 +260,7 @@ const COLORS = ['blue', 'green', 'purple', 'orange', 'teal', 'rose', 'indigo', '
 function normalize(input, previous = {}) {
     const merged = { ...previous };
     for (const [key, value] of Object.entries(input || {})) {
+        if (['__proto__', 'constructor', 'prototype'].includes(key)) continue; // never a field of a policy
         if (value !== undefined && value !== null) merged[key] = value; // a missing or null field keeps its saved value
     }
     if (typeof merged.schedule_name !== 'string') return { error: 'Give the policy a name' };

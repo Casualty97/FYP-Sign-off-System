@@ -173,6 +173,7 @@ const aiopsEngine = require('./features/aiops/engine');
 const QRCode = require('qrcode');
 
 const app = express();
+require('./core/securityHeaders').apply(app); // <Jun Kai/> security headers on every answer
 // <Jun Kai start>
 const PORT = Number(process.env.PORT) || 3000;
 // <Jun Kai end>

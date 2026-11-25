@@ -73,7 +73,7 @@ function renderBluetoothAssets() {
         const lastSeen = formatAssetDate(asset.lastSeen || asset.addedAt);
         const statusClass = asset.isDetected ? 'detected' : 'offline';
         const statusText = asset.isDetected ? 'Detected Nearby' : 'Not Detected';
-        const safeBluetoothId = String(asset.bluetoothId || '').replace(/'/g, "\\'");
+        const safeBluetoothId = String(asset.bluetoothId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); // <Jun Kai/> the backslash first
 
         return `
             <article class="asset-card">
