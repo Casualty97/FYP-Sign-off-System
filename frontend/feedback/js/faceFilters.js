@@ -199,7 +199,7 @@ function drawPhotoTie(ctx, geometry) {
     const size = geometry.faceHeight;
     withAccessoryTransform(ctx, geometry.chin, geometry.angle, () => {
         ctx.scale(size, size);
-        ctx.translate(0, 0.17);
+        ctx.translate(0, 0.28);
         ctx.fillStyle = '#125c47';
         ctx.beginPath();
         ctx.moveTo(-0.067, 0.08);
@@ -277,92 +277,66 @@ function drawShoulderBear(ctx, geometry, _time, frameWidth = Infinity) {
     });
 }
 
-// Check finger extension from the wrist without assuming the hand is upright.
-function getOpenPalm(landmarks, width, height, handedness) {
-    const points = landmarks.map(({ x, y }) => ({ x: x * width, y: y * height }));
-    if (points.length < 21) return null;
-    const distance = (first, second) => Math.hypot(points[first].x - points[second].x, points[first].y - points[second].y);
-    const palmSize = distance(0, 9);
-    if (palmSize < 8 || ![8, 12, 16, 20].every(tip => distance(0, tip) > distance(0, tip - 2) + palmSize * 0.12)) return null;
-    // A frontal palm reverses the order of the index and pinky knuckles
-    // relative to the back of the same hand. Use the raw, unmirrored video.
-    const wrist = points[0];
-    const index = points[5];
-    const pinky = points[17];
-    const orientation = (index.x - wrist.x) * (pinky.y - wrist.y)
-        - (index.y - wrist.y) * (pinky.x - wrist.x);
-    const facing = handedness === 'Right' ? -orientation : handedness === 'Left' ? orientation : 0;
-    if (facing < palmSize ** 2 * 0.2) return null;
+const rpGestureLogo = new Image();
+rpGestureLogo.src = '/assets/props/rp-gesture-logo.png';
 
-    const x = (points[0].x + points[5].x + points[17].x) / 3;
-    const y = (points[0].y + points[5].y + points[17].y) / 3;
-    if (x < 0 || x >= width || y < 0 || y >= height) return null;
-    return { center: { x, y }, size: palmSize * 2.35 };
+function getRpGesturePlacement(landmarks, width, height) {
+    const wrist = getLandmarkPoint(landmarks, 0, width, height);
+    const middleKnuckle = getLandmarkPoint(landmarks, 9, width, height);
+    if (!wrist || !middleKnuckle) return null;
+    const palmSize = Math.hypot(middleKnuckle.x - wrist.x, middleKnuckle.y - wrist.y);
+    const x = (wrist.x + middleKnuckle.x) / 2;
+    const y = (wrist.y + middleKnuckle.y) / 2;
+    if (palmSize < 8 || x < 0 || x >= width || y < 0 || y >= height) return null;
+
+    const size = Math.min(Math.max(palmSize * 1.65, width * 0.07), Math.min(width, height) * 0.23);
+    const side = x > width / 2 ? -1 : 1;
+    const radius = size / 2;
+    return {
+        center: {
+            x: Math.max(radius, Math.min(width - radius, x + side * (palmSize * 0.7 + radius))),
+            y: Math.max(radius, Math.min(height - radius, y))
+        },
+        size,
+        palmSize
+    };
 }
 
-let scrollPalm = null;
-let scrollPalmVideoTime = -Infinity;
+let rpGesturePlacement = null;
+let rpGestureVideoTime = -Infinity;
 
 function drawCameraAccessory(ctx, video, landmarks, width, height, capture = false) {
-    if (selectedFaceAccessory !== 'grad-scroll') {
+    if (selectedFaceAccessory !== 'rp-gesture') {
         drawFaceAccessory(ctx, landmarks, width, height);
         return;
     }
     if (!bgHandLandmarker || video.readyState < 2) return;
     const time = video.currentTime;
-    if (capture || time < scrollPalmVideoTime || time - scrollPalmVideoTime >= 0.08) {
-        scrollPalmVideoTime = time;
-        scrollPalm = null;
+    if (capture || time < rpGestureVideoTime || time - rpGestureVideoTime >= 0.08) {
+        rpGestureVideoTime = time;
+        rpGesturePlacement = null;
         try {
-            const result = bgHandLandmarker.detect(video);
-            (result.landmarks || []).forEach((hand, index) => {
-                const handedness = result.handedness?.[index]?.[0];
-                if (!handedness || handedness.score < BG_HAND_CONFIDENCE) return;
-                const palm = getOpenPalm(hand, width, height, handedness.categoryName);
-                if (palm && (!scrollPalm || palm.size > scrollPalm.size)) scrollPalm = palm;
-            });
+            for (const hand of confidentBackgroundHands(bgHandLandmarker.detect(video))) {
+                const placement = getRpGesturePlacement(hand, width, height);
+                if (placement && (!rpGesturePlacement || placement.palmSize > rpGesturePlacement.palmSize)) {
+                    rpGesturePlacement = placement;
+                }
+            }
         } catch (error) {
-            console.warn('Scroll hand tracking failed:', error.message);
+            console.warn('RP logo hand tracking failed:', error.message);
         }
     }
-    if (scrollPalm) drawGraduationScroll(ctx, scrollPalm);
+    if (rpGesturePlacement) drawRpGestureLogo(ctx, rpGesturePlacement, isMirrored);
 }
 
-function drawGraduationScroll(ctx, { center, size }) {
-    withAccessoryTransform(ctx, center, -0.22, () => {
-        ctx.scale(size, size);
-        const paper = ctx.createLinearGradient(0, -0.11, 0, 0.11);
-        paper.addColorStop(0, '#fff8e3');
-        paper.addColorStop(1, '#e7cca0');
-        ctx.fillStyle = paper;
-        ctx.strokeStyle = '#af895b';
-        ctx.lineWidth = 0.013;
+function drawRpGestureLogo(ctx, { center, size }, mirrored = false) {
+    if (!rpGestureLogo.naturalWidth) return;
+    withAccessoryTransform(ctx, center, 0, () => {
+        if (mirrored) ctx.scale(-1, 1);
         ctx.beginPath();
-        ctx.moveTo(-0.27, -0.105);
-        ctx.lineTo(0.25, -0.105);
-        ctx.bezierCurveTo(0.34, -0.105, 0.34, 0.105, 0.25, 0.105);
-        ctx.lineTo(-0.27, 0.105);
-        ctx.bezierCurveTo(-0.33, 0.105, -0.33, -0.105, -0.27, -0.105);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.ellipse(0.25, 0, 0.035, 0.077, 0, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.fillStyle = '#17674d';
-        ctx.fillRect(-0.046, -0.108, 0.092, 0.216);
-        ctx.beginPath();
-        ctx.moveTo(-0.043, 0.07);
-        ctx.lineTo(-0.102, 0.215);
-        ctx.lineTo(-0.033, 0.177);
-        ctx.lineTo(0, 0.216);
-        ctx.lineTo(0.035, 0.177);
-        ctx.lineTo(0.10, 0.215);
-        ctx.lineTo(0.043, 0.07);
-        ctx.closePath();
-        ctx.fill();
+        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(rpGestureLogo, -size / 2, -size / 2, size, size);
     });
 }
 
@@ -396,7 +370,7 @@ function renderLiveFaceAccessory() {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (selectedFaceAccessory !== 'none' && selectedFaceAccessory !== 'grad-scroll') {
+        if (selectedFaceAccessory !== 'none' && selectedFaceAccessory !== 'rp-gesture') {
             if (video.currentTime !== latestFaceAccessoryVideoTime) {
                 latestFaceAccessoryLandmarks = detectFaceAccessoryLandmarks(video);
                 latestFaceAccessoryVideoTime = video.currentTime;
@@ -417,11 +391,11 @@ async function startFaceAccessoryPreview() {
     }
 
     try {
-        if (selectedFaceAccessory === 'grad-scroll') {
+        if (selectedFaceAccessory === 'rp-gesture') {
             const tracker = await ensureHandLandmarkerReady();
-            if (selectedFaceAccessory !== 'grad-scroll' || !stream) return;
+            if (selectedFaceAccessory !== 'rp-gesture' || !stream) return;
             if (!tracker) {
-                document.getElementById('grad-scroll-hint').textContent = 'Hand tracking is unavailable. Try selecting Grad Scroll again.';
+                document.getElementById('rp-gesture-hint').textContent = 'Hand tracking is unavailable. Try selecting RP Hand Sign again.';
                 return;
             }
         } else {
@@ -438,8 +412,8 @@ function stopFaceAccessoryPreview() {
         cancelAnimationFrame(faceAccessoryAnimationFrame);
         faceAccessoryAnimationFrame = null;
     }
-    scrollPalm = null;
-    scrollPalmVideoTime = -Infinity;
+    rpGesturePlacement = null;
+    rpGestureVideoTime = -Infinity;
     latestFaceAccessoryLandmarks = null;
     latestFaceAccessoryVideoTime = -1;
     clearFaceAccessoryCanvas();
@@ -452,10 +426,10 @@ function updateFaceAccessoryButtons() {
         button.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
 
-    const hint = document.getElementById('grad-scroll-hint');
+    const hint = document.getElementById('rp-gesture-hint');
     if (hint) {
-        hint.hidden = selectedFaceAccessory !== 'grad-scroll';
-        hint.textContent = hint.hidden ? '' : 'Open your hand with your palm facing the camera to hold the scroll.';
+        hint.hidden = selectedFaceAccessory !== 'rp-gesture';
+        hint.textContent = hint.hidden ? '' : 'Show a peace sign, a heart, or another hand pose to bring up the RP logo.';
     }
     const activeLabel = document.getElementById('face-filter-active');
     const option = FACE_ACCESSORY_OPTIONS.find(item => item.id === selectedFaceAccessory);
@@ -521,8 +495,10 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
         const context = preview?.getContext('2d');
         if (context) {
             context.clearRect(0, 0, preview.width, preview.height);
-            if (button.dataset.accessory === 'grad-scroll') {
-                drawGraduationScroll(context, { center: { x: 48, y: 25 }, size: 65 });
+            if (button.dataset.accessory === 'rp-gesture') {
+                const drawThumbnail = () => drawRpGestureLogo(context, { center: { x: 48, y: 28 }, size: 52 });
+                if (rpGestureLogo.complete) drawThumbnail();
+                else rpGestureLogo.addEventListener('load', drawThumbnail, { once: true });
             }
             FACE_ACCESSORY_RENDERERS[button.dataset.accessory]?.(context, {
                 eyeDistance: 42,
@@ -559,7 +535,7 @@ function setupFaceAccessorySelector() { // swipeable filter selector - changes m
 }
 
 async function getCurrentFaceAccessoryLandmarks() {
-    if (selectedFaceAccessory === 'grad-scroll') {
+    if (selectedFaceAccessory === 'rp-gesture') {
         await ensureHandLandmarkerReady();
         return null;
     }
