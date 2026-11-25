@@ -155,8 +155,8 @@ async function archiveStep(cookie) {
     {
       const list = await get(`${BASE}/api/admin/lost-found-reports`, { headers: { cookie } });
       const listed = list.body && Array.isArray(list.body.reports) ? list.body.reports.find((r) => Number(r.id) === Number(reportId)) : null;
-      check(!!listed && listed.has_contact === true && !('contact_info' in listed) && !('contact_info_encrypted' in listed),
-        'GET /api/admin/lost-found-reports sends has_contact and no contact', JSON.stringify(listed || {}).slice(0, 200));
+      check(!!listed && listed.has_contact === true && !('contact_info' in listed) && !('contact_info_encrypted' in listed) && !('feedback_progress' in listed) && !JSON.stringify(listed).includes(email),
+        'GET /api/admin/lost-found-reports sends has_contact, no contact and nothing with the visitor email', JSON.stringify(listed || {}).slice(0, 200));
       await expect('POST /api/admin/lost-found-reports/:id/contact with the admin password shows the contact', `${BASE}/api/admin/lost-found-reports/${reportId}/contact`,
         (r) => (r.body && r.body.contact === email) || `${r.status}`, send({ password: ADMIN_PASS }));
     }

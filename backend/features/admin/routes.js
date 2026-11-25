@@ -594,7 +594,9 @@ router.get('/lost-found-reports', auth.requireAdmin, (req, res) => {
 
         res.json({
             success: true,
-            reports: (reports || []).map(lostFoundContact.withoutContact) // <Jun Kai/> the contact only through the password check below
+            // <Jun Kai/> no contact (only through the password check below) and no feedback_progress, the kiosk answers
+            // saved with the report, which can hold the visitor's name and email; the page uses neither
+            reports: (reports || []).map((report) => { const listed = lostFoundContact.withoutContact(report); delete listed.feedback_progress; return listed; })
         });
     });
 });
