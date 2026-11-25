@@ -1852,6 +1852,79 @@ html[data-theme="dark"] .db-key-grey { background: rgb(100, 116, 139); }
     font-weight: 700;
 }
 
+/* <Jun Kai start> Feedback Reports A: flagged feedback with its red count, the analysis with a mode switch, and the AI
+   cache storage panel. The analysis output (analysis.js) uses these classes instead of inline colours, so dark mode works. */
+#feedback-report-page .ui-page-header .ui-btn svg, .fr-card-head .ui-btn svg { margin-right: 6px; }
+.fr-card { overflow: hidden; }
+.fr-card + .fr-card { margin-top: 20px; }
+.fr-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; padding: 18px 22px 14px; }
+.fr-card-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 600; color: var(--theme-card-text); }
+.fr-sub { margin: 4px 0 0; font-size: 13px; color: var(--color-dark-gray); }
+.fr-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700; }
+.fr-count[hidden] { display: none; }
+.fr-table-wrap { overflow-x: auto; border-top: 1px solid var(--theme-border-color); }
+.fr-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; }
+.fr-table th { padding: 10px 16px; text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-dark-gray); background: rgba(148, 163, 184, 0.08); border-bottom: 1px solid var(--theme-border-color); }
+.fr-table td { padding: 12px 16px; vertical-align: top; color: var(--theme-card-text); border-bottom: 1px solid var(--theme-border-color); overflow-wrap: break-word; }
+.fr-table tr:last-child td { border-bottom: 0; }
+.fr-table .fr-date { white-space: nowrap; }
+.fr-table .flagged-feedback-text, .fr-table .flagged-pledge-text { min-width: 180px; max-width: 340px; }
+.fr-table .flagged-keyword-list { display: flex; flex-wrap: wrap; gap: 6px; min-width: 110px; }
+.fr-none { color: var(--color-dark-gray); font-style: italic; }
+.fr-table td.fr-empty, .fr-wait { padding: 24px 16px; text-align: center; color: var(--color-dark-gray); }
+.fr-table td.fr-empty.is-error, .fr-wait.is-error { color: #dc2626; }
+.fr-analysis-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fr-modes { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border: 1px solid var(--theme-border-color); border-radius: 10px; background: rgba(148, 163, 184, 0.08); }
+.fr-modes button { padding: 6px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--color-dark-gray); font: inherit; font-size: 13px; cursor: pointer; }
+.fr-modes button[aria-checked="true"] { background: var(--theme-card-bg); color: var(--theme-card-text); font-weight: 600; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14); }
+.fr-modes button:disabled { opacity: 0.5; cursor: not-allowed; }
+.fr-modes button:focus-visible { outline: 2px solid var(--l3-focus, #3b82f6); outline-offset: 1px; }
+#feedback-report-page .analysis-mode-note { margin: 0 22px 14px; }
+.fr-results { padding: 18px 22px 22px; border-top: 1px solid var(--theme-border-color); }
+.fr-result-top { display: grid; grid-template-columns: minmax(240px, 0.9fr) minmax(280px, 1.1fr); gap: 22px; }
+.fr-chart { position: relative; height: 300px; padding: 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; }
+.fr-summary { padding: 18px 20px; border: 1px solid var(--theme-border-color); border-radius: 12px; background: rgba(148, 163, 184, 0.06); }
+.fr-summary h4, .fr-panel h4, .fr-trend h4 { margin: 0 0 10px; font-size: 15px; font-weight: 600; color: var(--theme-card-text); }
+.fr-sentiments { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.fr-sentiments button { padding: 6px 12px; border: 1px solid; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.fr-sentiments .is-positive { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #047857; }
+.fr-sentiments .is-neutral { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #92400e; }
+.fr-sentiments .is-negative { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); color: #991b1b; }
+.fr-summary-text { margin: 0 0 14px; line-height: 1.6; color: var(--theme-card-text); }
+.fr-shares { display: grid; gap: 8px; margin-bottom: 14px; font-size: 14px; color: var(--theme-card-text); }
+.fr-shares .is-positive, .fr-panel.is-positive h4, .fr-panel.is-positive .fr-panel-count { color: #047857; }
+.fr-shares .is-neutral { color: #b45309; }
+.fr-shares .is-negative, .fr-panel.is-negative h4, .fr-panel.is-negative .fr-panel-count { color: #b91c1c; }
+.fr-panel.is-action h4 { color: #1d4ed8; }
+.fr-facts { display: grid; gap: 4px; padding-top: 12px; border-top: 1px solid var(--theme-border-color); font-size: 13px; color: var(--color-dark-gray); }
+.fr-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 18px; }
+.fr-panel { padding: 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; }
+.fr-panel-item { padding: 12px 0; border-top: 1px solid var(--theme-border-color); }
+.fr-panel-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; color: var(--theme-card-text); }
+.fr-panel-count { font-weight: 800; }
+.fr-panel blockquote { margin: 8px 0 0; padding-left: 10px; border-left: 3px solid var(--theme-border-color); font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.fr-panel.is-negative blockquote { border-left-color: #fca5a5; }
+.fr-panel.is-positive blockquote { border-left-color: #6ee7b7; }
+.fr-panel p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.fr-panel .fr-panel-empty { margin: 8px 0 0; }
+.fr-trend { margin-top: 20px; padding: 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; }
+.fr-trend-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.fr-trend-head h4 { margin: 0; }
+.fr-ranges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.fr-ranges .btn-range { padding: 5px 12px; border: 1px solid var(--theme-border-color); border-radius: 7px; background: transparent; color: var(--theme-card-text); font: inherit; font-size: 12px; cursor: pointer; }
+.fr-ranges .btn-range.active { background: #2563eb; border-color: #2563eb; color: #ffffff; }
+.fr-trend-chart { position: relative; height: 250px; }
+@media (min-width: 1100px) { #feedback-report-page.ui-has-sidepanel { padding-right: 494px; } }
+@media (max-width: 900px) { .fr-result-top { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { #feedback-report-page { padding: 20px 14px; } .fr-card-head, .fr-results { padding-left: 14px; padding-right: 14px; } .fr-analysis-tools { width: 100%; } }
+html[data-theme="dark"] .fr-count { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+html[data-theme="dark"] .fr-sentiments .is-positive, html[data-theme="dark"] .fr-shares .is-positive, html[data-theme="dark"] .fr-panel.is-positive h4, html[data-theme="dark"] .fr-panel.is-positive .fr-panel-count { color: #6ee7b7; }
+html[data-theme="dark"] .fr-sentiments .is-neutral, html[data-theme="dark"] .fr-shares .is-neutral { color: #fcd34d; }
+html[data-theme="dark"] .fr-sentiments .is-negative, html[data-theme="dark"] .fr-shares .is-negative, html[data-theme="dark"] .fr-panel.is-negative h4, html[data-theme="dark"] .fr-panel.is-negative .fr-panel-count { color: #fca5a5; }
+html[data-theme="dark"] .fr-panel.is-action h4 { color: #93c5fd; }
+html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] .fr-wait.is-error { color: #fca5a5; }
+/* <Jun Kai end> */
+
 /* Toolbar with search and filters */
 .header-actions {
     display: flex;
@@ -8936,6 +9009,12 @@ html[data-theme="dark"] .users-btn.ui-danger:hover:not(:disabled) { background: 
 .users-layout .idle-body { grid-template-columns: 1fr; align-items: start; }
 /* one column below 1300px: next to the card the table would push its buttons out of view */
 @media (max-width: 1299px) { .users-layout { grid-template-columns: 1fr; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Lost & Found: the encrypted contact with its Decrypt and Hide links */
+.lf-locked { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--color-dark-gray); white-space: nowrap; }
+.lf-contact { overflow-wrap: anywhere; }
+.lf-contact-btn { display: block; margin-top: 2px; font-size: 12px; }
 /* <Jun Kai end> */
 
 /* <Jun Kai start> Data Export A: the unlock bar on top and the nine downloads in four groups. Locked, the cards are

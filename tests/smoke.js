@@ -151,6 +151,17 @@ async function archiveStep(cookie) {
     }
     // <Jun Kai end>
 
+    // <Jun Kai start> the Lost & Found contact is stored encrypted: the admin list sends none, the password shows it
+    {
+      const list = await get(`${BASE}/api/admin/lost-found-reports`, { headers: { cookie } });
+      const listed = list.body && Array.isArray(list.body.reports) ? list.body.reports.find((r) => Number(r.id) === Number(reportId)) : null;
+      check(!!listed && listed.has_contact === true && !('contact_info' in listed) && !('contact_info_encrypted' in listed) && !('feedback_progress' in listed) && !JSON.stringify(listed).includes(email),
+        'GET /api/admin/lost-found-reports sends has_contact, no contact and nothing with the visitor email', JSON.stringify(listed || {}).slice(0, 200));
+      await expect('POST /api/admin/lost-found-reports/:id/contact with the admin password shows the contact', `${BASE}/api/admin/lost-found-reports/${reportId}/contact`,
+        (r) => (r.body && r.body.contact === email) || `${r.status}`, send({ password: ADMIN_PASS }));
+    }
+    // <Jun Kai end>
+
     // 2 years old, past the default 12 months; last_visit and updated_at reset on every UPDATE unless they are set too
     const old = new Date(Date.now() - 2 * 365 * 24 * 3600 * 1000);
     await conn.query('UPDATE feedback SET created_at = ? WHERE id = ?', [old, row.id]);
@@ -380,6 +391,12 @@ async function archiveStep(cookie) {
     await expect('GET /api/admin/feedback without a session is refused', `${BASE}/api/admin/feedback`, (r) => r.status === 401);
     await expect('GET /api/admin/users without a session is refused', `${BASE}/api/admin/users`, (r) => r.status === 401);
     await expect('GET /api/admin/audit-logs without a session is refused', `${BASE}/api/admin/audit-logs`, (r) => r.status === 401);
+    // <Jun Kai start> the Lost & Found contact and the CSV export with the contacts need a session and the password
+    await expect('POST /api/admin/lost-found-reports/:id/contact without a session is refused', `${BASE}/api/admin/lost-found-reports/1/contact`, (r) => r.status === 401,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'x' }) });
+    await expect('POST /api/admin/lost-found-reports/export.csv without a session is refused', `${BASE}/api/admin/lost-found-reports/export.csv`, (r) => r.status === 401,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'x' }) });
+    // <Jun Kai end>
     await expect('POST /api/admin/users without a session is refused, whatever the x-username header says', `${BASE}/api/admin/users`, (r) => r.status === 401,
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': ADMIN_USER }, body: JSON.stringify({ username: 'smoke_nobody', full_name: 'Smoke Nobody', role: 'system_admin', password: 'SmokeNobody123!' }) });
     // the admin page's pledge routes: the same router is on the kiosk server, where nobody signs in

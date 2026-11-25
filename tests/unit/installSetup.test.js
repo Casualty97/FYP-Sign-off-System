@@ -55,6 +55,9 @@ test('a new encryption key only when nothing stored depends on the current one',
     assert.equal(setup.keySafe({ appUser: true, databaseExists: true, encryptedEmails: 0, archives: 0 }), true);
     assert.equal(setup.keySafe({ appUser: true, databaseExists: true, encryptedEmails: 3, archives: 0 }), false);
     assert.equal(setup.keySafe({ appUser: true, databaseExists: true, encryptedEmails: 0, archives: 1 }), false);
+    // <Jun Kai/> encrypted Lost & Found contacts (migration 010) need the key too
+    assert.equal(setup.keySafe({ appUser: true, databaseExists: true, encryptedEmails: 0, archives: 0, encryptedContacts: 2 }), false);
+    assert.equal(setup.keySafe({ appUser: true, databaseExists: true, encryptedEmails: 0, archives: 0, encryptedContacts: 0 }), true);
 });
 
 test('install fills only empty keys and sets automation by role', () => {
