@@ -73,5 +73,10 @@ function captureEvents(processName, { dir = LOG_DIR, maxBytes = 5 * 1024 * 1024 
     return active;
 }
 
-module.exports = { setupLogging, captureEvents, eventFile };
+// A value from a request, made safe to print: line breaks are taken out, so a value cannot start a fake log line
+function clean(value) {
+    return String(value).replace(/[\r\n]/g, '');
+}
+
+module.exports = { setupLogging, captureEvents, eventFile, clean };
 // <Jun Kai end>

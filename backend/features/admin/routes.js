@@ -3720,7 +3720,7 @@ router.delete('/users/:id', auth.requireAuth, auth.requireAdmin, (req, res) => {
     
     logAudit('DELETE_USER', username, 'user', id, req);
     
-    console.debug('🗑️ Attempting to SOFT DELETE user ID:', id, 'by:', username);
+    console.debug('🗑️ Attempting to SOFT DELETE user ID:', String(id).replace(/[\r\n]/g, ''), 'by:', username); // <Jun Kai/> no line breaks from the request
     
     // Check if current user is system admin
     const checkUserQuery = 'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_deleted = 0';

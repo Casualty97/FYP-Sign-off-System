@@ -126,6 +126,10 @@ const uploadsGate = require('./core/uploadsGate'); // visitor files: only for th
 
 const app = express();
 require('./core/securityHeaders').apply(app); // <Jun Kai/> security headers on every answer
+// <Jun Kai start> a limit on requests per address
+const { rateLimit } = require('express-rate-limit');
+app.use(rateLimit({ windowMs: 60 * 1000, limit: 3000, standardHeaders: 'draft-7', legacyHeaders: false, message: { success: false, error: 'Too many requests from this address. Wait a minute and try again.' } }));
+// <Jun Kai end>
 const PORT = 3003; // CHANGED: Now runs on 3003 (behind gateway on 3001)
 
 // ==================== NETWORK INTERFACE FUNCTIONS ====================
