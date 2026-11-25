@@ -359,6 +359,7 @@ function getCategory(category) {
  */
 function updateCategory(category, updates) {
   try {
+    if (['__proto__', 'constructor', 'prototype'].includes(String(category))) return false; // <Jun Kai/> never a settings group
     const config = readParametersConfig();
     config[category] = { ...config[category], ...updates };
     return writeParametersConfig(config);

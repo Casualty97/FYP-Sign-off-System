@@ -926,6 +926,11 @@ router.post('/login', (req, res) => {
         }
         loginLimit.success(username, req.ip); // <Jun Kai/>
         
+        // <Jun Kai start> a new session id at sign-in: an id that was handed out before the sign-in (for example one an
+        // attacker planted in the browser) never becomes a signed-in session (session fixation)
+        req.session.regenerate((sessionErr) => {
+        if (sessionErr) return res.status(500).json({ error: 'Could not start the session. Please try again.' });
+        // <Jun Kai end>
         // Store user in session
         req.session.user = {
             id: user.id,
@@ -942,6 +947,7 @@ router.post('/login', (req, res) => {
             res.json({ success: true, user: user, message: 'Login successful', rememberUntil: rememberUntil || null });
         });
         // <Jun Kai end>
+        }); // <Jun Kai/> end of session.regenerate
     });
 });
 
@@ -2780,7 +2786,7 @@ router.post('/bulk-decrypt-archive', auth.requireAuth, auth.requireAdmin, async 
         }
         
         // Decrypt emails
-        const decryptedEmails = {};
+        const decryptedEmails = Object.create(null); // <Jun Kai/> no prototype: an id can never be read as a built-in key
         
         for (const item of emails) {
             if (item.email_encrypted && item.email_encrypted.includes(':')) {
@@ -2790,7 +2796,7 @@ router.post('/bulk-decrypt-archive', auth.requireAuth, auth.requireAdmin, async 
                         decryptedEmails[item.id] = decrypted;
                     }
                 } catch (error) {
-                    console.error(`Error decrypting email for ID ${item.id}:`, error);
+                    console.error('Error decrypting email for ID %s:', item.id, error); // <Jun Kai/> the id is a value, not part of the format
                 }
             }
         }

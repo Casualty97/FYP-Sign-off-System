@@ -155,7 +155,7 @@ function updateActiveUsersTable(usersData) {
             </td>
             <td>
                 ${canEdit ? `
-                    <button class="btn-edit" onclick="editUser(${safeUser.id}, '${safeUser.username}', '${safeUser.role}', '${safeUser.full_name.replace(/'/g, "\\'")}')">
+                    <button class="btn-edit" onclick="editUser(${safeUser.id}, '${safeUser.username}', '${safeUser.role}', '${safeUser.full_name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">
                         ${isProtectedRootUser && isCurrentUser ? '🔐 Edit My Account' : 'Edit'}
                     </button>
                 ` : ''}

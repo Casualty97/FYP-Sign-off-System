@@ -1007,7 +1007,7 @@ async function reloadEmailService() {
         transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: { user, pass },
-            tls: { rejectUnauthorized: false }
+            // <Jun Kai/> the server's certificate is checked (it was switched off here before)
         });
 
         senderEmail = cfg.senderEmail || user;
@@ -1022,7 +1022,7 @@ async function reloadEmailService() {
             port: 587,
             secure: false,
             auth: { user, pass },
-            tls: { rejectUnauthorized: false }
+            // <Jun Kai/> the server's certificate is checked (it was switched off here before)
         });
 
         senderEmail = cfg.senderEmail || user;
@@ -1043,7 +1043,7 @@ async function reloadEmailService() {
             port,
             secure,
             auth: { user, pass },
-            tls: { rejectUnauthorized: false }
+            tls: { rejectUnauthorized: false } // <Jun Kai/> kept only for a custom mail server, which may use its own certificate
         });
 
         senderEmail = cfg.senderEmail || user;

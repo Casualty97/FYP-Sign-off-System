@@ -580,6 +580,20 @@ async function archiveStep(cookie) {
         photoId = r.body && r.body.photoId;
         if (r.status === 200 && photoId) pass('POST /api/feedback/save-photo'); else fail(`POST /api/feedback/save-photo (${r.status}): ${r.text.slice(0, 120)}`);
       } catch (e) { fail(`POST /api/feedback/save-photo: ${e.message}`); }
+      // <Jun Kai start> the device from the request is part of the file name: with "../" in it the photo must still
+      // land in uploads/photos (it used to be written three folders up). Only when this run started the servers.
+      if (!ARGS.has('--external')) {
+        try {
+          const before = new Set(fs.readdirSync(ROOT));
+          const r = await get(`${BASE}/api/feedback/save-photo`, json({ photo: tinyPng(), userName: 'CI Escape', device: '../../../escape' }));
+          const stray = fs.readdirSync(ROOT).filter((name) => !before.has(name));
+          const kept = fs.readdirSync(path.join(ROOT, 'uploads', 'photos')).filter((name) => name.startsWith('CI_Escape_'));
+          if (r.status === 200 && stray.length === 0 && kept.length > 0) pass('a photo whose device holds "../" stays inside uploads/photos');
+          else fail(`a photo whose device holds "../" left its folder: status ${r.status}, new in the project folder: ${stray.join(', ') || 'none'}, in uploads/photos: ${kept.length}`);
+          for (const name of [...kept.map((n) => path.join(ROOT, 'uploads', 'photos', n)), ...stray.map((n) => path.join(ROOT, n))]) fs.rmSync(name, { force: true });
+        } catch (e) { fail(`photo file name check: ${e.message}`); }
+      }
+      // <Jun Kai end>
       if (photoId) {
         const payload = {
           userData: { name: 'CI Smoke', email: `smoke+${stamp}@example.com`, pledge: 'I pledge to recycle and save energy every day', pledgeTopic: 'sustainable-living', photoId },
