@@ -141,7 +141,7 @@
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/feedback/feedback.css?v=kiosk-refresh-1">
+    <link rel="stylesheet" href="/feedback/feedback.css?v=kiosk-layout-2">
 </head>
 <body>
     <!-- Global language switcher: click/tap or use Alt+1 English, Alt+2 Chinese, Alt+3 Malay, Alt+4 Tamil (Done by Caeden) -->
@@ -335,16 +335,19 @@
     <!-- Feedback flow starts at Details; retention is saved as long-term automatically. -->
     <!-- Details Page -->
     <div id="details-page" class="container" style="display: none;">
-        <div class="consent-card">
-            <div class="consent-icon" style="background: #10b981;">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="20" fill="#10b981"/>
-                    <path d="M20 12C17.79 12 16 13.79 16 16C16 18.21 17.79 20 20 20C22.21 20 24 18.21 24 16C24 13.79 22.21 12 20 12ZM20 22C16.67 22 10 23.67 10 27V28C10 28.55 10.45 29 11 29H29C29.55 29 30 28.55 30 28V27C30 23.67 23.33 22 20 22Z" fill="white"/>
-                </svg>
-            </div>
-            
-            <h2 class="consent-title" id="details-title">Tell Us Who You Are</h2>
-            <p class="consent-description" id="details-description">Just the essentials so we can send your photo.</p>
+        <div class="consent-card experience-step experience-step--details">
+            <header class="experience-step-heading">
+                <div class="consent-icon" style="background: #10b981;">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#10b981"/>
+                        <path d="M20 12C17.79 12 16 13.79 16 16C16 18.21 17.79 20 20 20C22.21 20 24 18.21 24 16C24 13.79 22.21 12 20 12ZM20 22C16.67 22 10 23.67 10 27V28C10 28.55 10.45 29 11 29H29C29.55 29 30 28.55 30 28V27C30 23.67 23.33 22 20 22Z" fill="white"/>
+                    </svg>
+                </div>
+                <div class="experience-step-copy">
+                    <h2 class="consent-title" id="details-title">Tell Us Who You Are</h2>
+                    <p class="consent-description" id="details-description">Just the essentials so we can send your photo.</p>
+                </div>
+            </header>
             
             <form class="details-form" onsubmit="submitDetails(event)" novalidate>
                 <p id="details-form-alert" class="form-alert" role="alert"></p>
@@ -376,67 +379,75 @@
 
     <!-- Feedback Form Page -->
     <div id="feedback-page" class="container" style="display: none;">
-        <div class="feedback-form-card">
-            <div class="consent-icon" style="background: #10b981;">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="20" fill="#10b981"/>
-                    <path d="M28 12H12C10.9 12 10 12.9 10 14V26C10 27.1 10.9 28 12 28H28C29.1 28 30 27.1 30 26V14C30 12.9 29.1 12 28 12ZM28 26H12V14H28V26ZM14 20H26V22H14V20ZM14 16H26V18H14V16Z" fill="white"/>
-                </svg>
-            </div>
-            
-            <h2 class="consent-title" id="feedback-title">Share Your Feedback</h2>
-            <p class="consent-description" id="feedback-description">A few quick taps. Honest answers are perfect.</p>
+        <div class="feedback-form-card experience-step experience-step--feedback">
+            <header class="experience-step-heading">
+                <div class="consent-icon" style="background: #10b981;">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="#10b981"/>
+                        <path d="M28 12H12C10.9 12 10 12.9 10 14V26C10 27.1 10.9 28 12 28H28C29.1 28 30 27.1 30 26V14C30 12.9 29.1 12 28 12ZM28 26H12V14H28V26ZM14 20H26V22H14V20ZM14 16H26V18H14V16Z" fill="white"/>
+                    </svg>
+                </div>
+                <div class="experience-step-copy">
+                    <h2 class="consent-title" id="feedback-title">Share Your Feedback</h2>
+                    <p class="consent-description" id="feedback-description">A few quick taps. Honest answers are perfect.</p>
+                </div>
+            </header>
             
             <form class="feedback-form" onsubmit="submitFeedback(event)" novalidate>
                 <p id="feedback-form-alert" class="form-alert" role="alert"></p>
                 <div id="questions-container"></div>
 
-                <button type="submit" class="consent-button">
-                    <span id="continue-to-pledge-text">Continue to Pledge</span>
-                    <span class="arrow">→</span>
-                </button>
+                <div class="experience-form-actions">
+                    <button type="submit" class="consent-button">
+                        <span id="continue-to-pledge-text">Continue to Pledge</span>
+                        <span class="arrow">→</span>
+                    </button>
 
-                <!--skip feedback button added (zihan)-->
-                 <button type="button" id="skip-feedback-button" class="skip-pledge-button" onclick="skipFeedback()" style="margin-top: 15px;">
-                    <span id="skip-feedback-text">Skip Feedback</span>
-                </button>
-                
-                <button type="button" class="secondary-button" onclick="goBackToDetails()" style="margin-top: 15px;">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15 10H5M5 10L8.33333 7M5 10L8.33333 13" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span id="back-from-feedback-text">Back</span>
-                </button>
+                    <!--skip feedback button added (zihan)-->
+                     <button type="button" id="skip-feedback-button" class="skip-pledge-button" onclick="skipFeedback()" style="margin-top: 15px;">
+                        <span id="skip-feedback-text">Skip Feedback</span>
+                    </button>
 
-                <!-- Home button for feedback form done by nick -->
-                <button type="button" class="secondary-button" onclick="goHomeFromFeedbackForm()" style="margin-top: 15px;">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 9.5L10 4L17 9.5V16C17 16.55 16.55 17 16 17H12.5V12H7.5V17H4C3.45 17 3 16.55 3 16V9.5Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span id="home-from-feedback-text">Home</span>
-                </button>
+                    <button type="button" class="secondary-button" onclick="goBackToDetails()" style="margin-top: 15px;">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 10H5M5 10L8.33333 7M5 10L8.33333 13" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span id="back-from-feedback-text">Back</span>
+                    </button>
+
+                    <!-- Home button for feedback form done by nick -->
+                    <button type="button" class="secondary-button" onclick="goHomeFromFeedbackForm()" style="margin-top: 15px;">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 9.5L10 4L17 9.5V16C17 16.55 16.55 17 16 17H12.5V12H7.5V17H4C3.45 17 3 16.55 3 16V9.5Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span id="home-from-feedback-text">Home</span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
     <!-- Pledge Page -->
     <div id="pledge-page" class="container" style="display: none;">
-        <div class="consent-card">
-            <div class="consent-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="20" fill="url(#gradient)"/>
-                    <path d="M20 10L21.545 16.91H28.854L22.905 21.18L24.45 28.09L20 23.82L15.55 28.09L17.095 21.18L11.146 16.91H18.455L20 10Z" fill="white"/>
-                    <defs>
-                        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                            <stop offset="0%" stop-color="#667eea"/>
-                            <stop offset="100%" stop-color="#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </div>
-            
-            <h2 class="consent-title" id="pledge-title">Make Your Pledge</h2>
-            <p class="consent-description" id="pledge-description">Choose one action you can try after today.</p>
+        <div class="consent-card experience-step experience-step--pledge">
+            <header class="experience-step-heading">
+                <div class="consent-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="20" fill="url(#gradient)"/>
+                        <path d="M20 10L21.545 16.91H28.854L22.905 21.18L24.45 28.09L20 23.82L15.55 28.09L17.095 21.18L11.146 16.91H18.455L20 10Z" fill="white"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#667eea"/>
+                                <stop offset="100%" stop-color="#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="experience-step-copy">
+                    <h2 class="consent-title" id="pledge-title">Make Your Pledge</h2>
+                    <p class="consent-description" id="pledge-description">Choose one action you can try after today.</p>
+                </div>
+            </header>
 
             <div class="pledge-coach" id="pledge-coach" style="display: none;">
                 <div class="pledge-coach-header">
@@ -543,7 +554,7 @@
                     <p id="pledge-privacy-text">Your pledge will be displayed on our pledgeboard, inspiring others to take action</p>
                 </div>
                 
-                <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="experience-form-actions">
                     <button type="submit" class="consent-button" style="background: linear-gradient(135deg, #667eea, #764ba2);">
                         <span id="continue-to-photo-text">Continue to Photo</span>
                         <span class="arrow">→</span>
