@@ -2283,64 +2283,72 @@
                 <!-- <Jun Kai end> -->
 
                 <div id="badge-email-templates-page" class="page">
-                    <div class="page-header">
-                        <h2>Badge Emails</h2>
-                        <p>Tailor badge emails and personalized exhibit highlights for each reward.</p>
-                    </div>
-
-                    <div class="badge-template-hero">
+                    <!-- <Jun Kai start> Badge Emails page (admin redesign, Badge Emails A): the badges on the left, the editor in the
+                         middle and a live preview of the email on the right, with a sample visitor. The ids of the fields, the
+                         badge list, the hidden picker and the status line are the old ones, so loading and saving work as before. -->
+                    <div class="ui-page-header">
                         <div>
-                            <span class="badge-template-kicker">Personalized Rewards</span>
-                            <h3>Match every badge with the right takeaway</h3>
-                            <p>Edit the email subject, reward message, and exhibit highlights shown when visitors earn each badge.</p>
+                            <h2>Badge Emails</h2>
+                            <p>The email a visitor gets with each badge.</p>
+                        </div>
+                        <div class="be-actions">
+                            <button class="ui-btn ui-btn-secondary" type="button" onclick="loadBadgeEmailTemplates()">Reset</button>
+                            <button class="ui-btn ui-btn-primary" type="button" onclick="saveBadgeEmailTemplates()">Save changes</button>
                         </div>
                     </div>
+                    <div id="badge-template-status" class="ui-status-slot be-status" aria-live="polite"></div>
 
-                    <div class="overlay-section user-section badge-email-template-section">
-                        <div class="section-header badge-template-section-header">
-                            <div>
-                                <h3>Badge Message Editor</h3>
-                                <p>Choose a badge, then save the version that should be sent to visitors.</p>
+                    <div class="be-grid">
+                        <section class="ui-card be-card" aria-labelledby="be-badges-title">
+                            <div class="be-card-head"><h3 id="be-badges-title">Badges</h3></div>
+                            <label class="ui-sr-only" for="badge-template-select">Badge</label>
+                            <select id="badge-template-select" class="ui-sr-only" tabindex="-1" aria-hidden="true" onchange="selectBadgeEmailTemplate()"></select>
+                            <div id="badge-template-badge-list" class="be-badge-list" role="list" aria-label="Badges"></div>
+                        </section>
+
+                        <section class="ui-card be-card" aria-labelledby="be-editor-title">
+                            <div class="be-card-head">
+                                <h3 id="be-editor-title">Badge</h3>
+                                <div class="be-card-sub" id="be-editor-desc"></div>
                             </div>
-                            <div class="header-actions">
-                                <button class="btn-secondary" type="button" onclick="loadBadgeEmailTemplates()">Reset</button>
-                                <button class="btn-primary" type="button" onclick="saveBadgeEmailTemplates()">Save Changes</button>
+                            <div class="be-card-body">
+                                <div class="ui-field">
+                                    <label class="ui-label" for="badge-template-subject">Email subject</label>
+                                    <input id="badge-template-subject" class="ui-input" type="text" maxlength="180" placeholder="Email subject">
+                                </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="badge-template-message">Badge message</label>
+                                    <textarea id="badge-template-message" class="ui-input" rows="5" maxlength="1200" placeholder="Main email message"></textarea>
+                                </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="badge-template-highlights">Exhibit highlights</label>
+                                    <textarea id="badge-template-highlights" class="ui-input" rows="6" placeholder="One highlight per line"></textarea>
+                                    <span class="ui-help">One highlight per line. They become the takeaway list in the badge email.</span>
+                                </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="badge-template-grid">
-                            <div class="form-group">
-                                <label for="badge-template-select">Badge</label>
-                                <select id="badge-template-select" onchange="selectBadgeEmailTemplate()"></select>
+                        <section class="ui-card be-card" aria-labelledby="be-preview-title">
+                            <div class="be-card-head">
+                                <h3 id="be-preview-title">Preview</h3>
+                                <div class="be-card-sub">With a sample visitor</div>
                             </div>
-
-                            <div class="badge-template-help">
-                                <strong>Tip</strong>
-                                <p>Write one exhibit highlight per line. These become the personalized takeaway list in the badge email.</p>
+                            <div class="be-card-body">
+                                <div class="be-mail" id="be-preview" aria-live="polite">
+                                    <div class="be-mail-kicker">Republic Polytechnic · RP Xperience Centre</div>
+                                    <div class="be-mail-subject" id="be-preview-subject"></div>
+                                    <div class="be-mail-text">Dear Alex,</div>
+                                    <div class="be-mail-text" id="be-preview-message"></div>
+                                    <div id="be-preview-takeaways">
+                                        <div class="be-mail-kicker">Your takeaways</div>
+                                        <ul class="be-mail-list" id="be-preview-highlights"></ul>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <div id="badge-template-badge-list" class="badge-template-badge-list" aria-label="Available badges"></div>
-
-                        <div class="form-group">
-                            <label for="badge-template-subject">Email Subject</label>
-                            <input id="badge-template-subject" type="text" maxlength="180" placeholder="Email subject">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="badge-template-message">Badge Message</label>
-                            <textarea id="badge-template-message" rows="5" maxlength="1200" placeholder="Main email message"></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="badge-template-highlights">Personalized Exhibit Highlights / Takeaway Messages</label>
-                            <textarea id="badge-template-highlights" rows="7" placeholder="One highlight per line"></textarea>
-                        </div>
-
-                        <div id="badge-template-status" class="fm-status fm-status--hidden" aria-live="polite"></div>
+                        </section>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
-
                 <!--  Management Page (DONE BY NADHIRAH)-->
                 <div id="form-management-page" class="page">
 
