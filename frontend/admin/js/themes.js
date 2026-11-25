@@ -1016,26 +1016,69 @@ function migrateOldColors() {
     }
 }
 
+// <Jun Kai start>
+// The frame of the admin page (top bar and sidebar) is frosted glass since the redesign. The frame colours of a theme
+// tint that glass: admin.css mixes the two background colours with the page behind them, and the rest are used as
+// they are. THEME_GLASS_FRAME is the default set (light glass, dark text).
+const THEME_GLASS_FRAME = {
+    'admin-header-bg': '#ffffff',
+    'primary-header-text': '#0f172a',
+    'secondary-header-text': '#64748b',
+    'navbar-background': '#ffffff',
+    'navbar-primary-text': '#64748b',
+    'navbar-secondary-text': '#334155',
+    'navbar-active-selection': '#fffffff2',
+    'navbar-hover': '#ffffff99'
+};
+// The default frame before the redesign (dark bar, dark sidebar, light text)
+const THEME_OLD_FRAME = {
+    'admin-header-bg': '#262626',
+    'primary-header-text': '#ffffff',
+    'secondary-header-text': '#b0b0b0',
+    'navbar-background': '#16181d',
+    'navbar-primary-text': '#808080',
+    'navbar-secondary-text': '#a0a0a0',
+    'navbar-active-selection': '#2a2d3a',
+    'navbar-hover': '#1f2229'
+};
+// the colour of the page under the colour wash: pale grey now, plain white before
+const THEME_GLASS_PAGE = '#f3f6fa';
+const THEME_OLD_PAGE = '#ffffff';
+// the options that only set a variable for the glass (admin.css reads them)
+const THEME_GLASS_VARIABLES = { 'admin-header-bg': '--l3-header-tint', 'navbar-background': '--l3-nav-tint' };
+
+function themeSameColor(a, b) {
+    const plain = (value) => String(value || '').trim().toLowerCase().replace(/^(#[0-9a-f]{6})ff$/, '$1');
+    return plain(a) === plain(b);
+}
+
+// A saved theme or a browser's saved settings from before the redesign still hold the old dark frame. When every one
+// of its eight frame colours is still the old default, nobody chose them, so the whole set moves to the glass
+// defaults. A frame somebody changed (even one colour) is left alone: its backgrounds and its text were picked to be
+// read together, and it then shows as tinted glass.
+function themeAdoptGlassFrame(colors) {
+    if (!colors) return;
+    const keys = Object.keys(THEME_OLD_FRAME);
+    if (!keys.every((key) => themeSameColor(colors[key], THEME_OLD_FRAME[key]))) return;
+    for (const key of keys) colors[key] = THEME_GLASS_FRAME[key];
+    // the page colour under the wash moves with it, when it is still the old white
+    if (themeSameColor(colors['page-background'], THEME_OLD_PAGE)) colors['page-background'] = THEME_GLASS_PAGE;
+}
+// <Jun Kai end>
+
 // Custom default theme - modify these colors to your preference
 function getCustomDefaultColors() {
     return {
         // ==================== GENERAL COLORS ====================
-        'page-background': '#ffffffff',            // White page background
+        'page-background': THEME_GLASS_PAGE,       // <Jun Kai/> pale grey under the colour wash (was white)
         'primary-text': '#000000ff',               // Black primary text
         'secondary-text': '#959595ff',             // Gray secondary text
         
-        // ==================== ADMIN HEADER COLORS ====================
-        'admin-header-bg': '#262626',              // Dark gray header background
-        'primary-header-text': '#ffffff',          // White primary header text
-        'secondary-header-text': '#b0b0b0',        // Light gray secondary header text
-        
-        // ==================== NAVBAR COLORS ====================
-        'navbar-background': '#16181d',            // Dark navbar background
-        'navbar-primary-text': '#808080',          // Gray navbar section headers
-        'navbar-secondary-text': '#a0a0a0',        // Light gray navbar items
-        'navbar-active-selection': '#2a2d3a',      // Dark gray active item background
-        'navbar-hover': '#1f2229',                 // Dark gray hover background
-        
+        // <Jun Kai start> the header and the sidebar are glass panels since the redesign: these colours tint the glass
+        // (THEME_GLASS_FRAME below), with dark text on it. The dark frame they replace is THEME_OLD_FRAME.
+        ...THEME_GLASS_FRAME,
+        // <Jun Kai end>
+
         // ==================== CARD COLORS ====================
         'card-background': '#f7f7f7ff',            // Light gray card background
         'card-header-background': '#ffffffff',     // White card header background
@@ -1721,14 +1764,19 @@ function applyThemeSettings() {
     }
     
     let css = '';
-    
+
+    // <Jun Kai start> a frame nobody changed since before the redesign becomes the glass frame
+    themeAdoptGlassFrame(themeSettings.global && themeSettings.global.colors);
+    themeAdoptGlassFrame(themeSettings['admin-dashboard'] && themeSettings['admin-dashboard'].colors);
+    // <Jun Kai end>
+
     themeConfig.sections.forEach(section => {
         const sectionSettings = themeSettings[section.id];
         if (!sectionSettings) return;
-        
+
         const useGlobal = section.isGlobal ? false : (sectionSettings.useGlobal ?? true);
         const colors = useGlobal && themeSettings.global ? themeSettings.global.colors : sectionSettings.colors;
-        
+
         if (!colors) return;
         
         const mapping = themeConfig.selectorMapping[section.id];
@@ -1741,10 +1789,29 @@ function applyThemeSettings() {
                 const color = colors[optionId];
                 
                 if (!color || !selectors || selectors.length === 0) return;
-                
+
                 let cssProperty = 'color';
                 let cssValue = color;
-                
+
+                // <Jun Kai start> glass frame (redesign): the header and sidebar colours tint the frosted panels,
+                // and the overall page colour sits under the colour wash, so none of them is painted solid. A page
+                // with its own colours switched on is still painted in its own page colour.
+                if (THEME_GLASS_VARIABLES[optionId]) {
+                    // a dark colour stays nearly solid: mixed with the pale page it would turn pale, and the
+                    // light text picked for it could no longer be read
+                    const solid = isDarkThemeColor(cssValue) ? ` ${THEME_GLASS_VARIABLES[optionId]}-share: 92%;` : '';
+                    css += `:root { ${THEME_GLASS_VARIABLES[optionId]}: ${cssValue};${solid} }\n`;
+                    return;
+                }
+                if (optionId === 'page-background') {
+                    if (section.isGlobal) {
+                        css += `:root { --l3-page-tint: ${cssValue}; }\n#theme-settings-page .theme-preview { background-color: ${cssValue} !important; }\n`;
+                        return;
+                    }
+                    if (useGlobal) return;
+                }
+                // <Jun Kai end>
+
                 if (optionId.includes('background') || optionId.includes('-bg') || optionId === 'page-background' || 
                     optionId === 'card-background' || optionId === 'navbar-background' || 
                     optionId === 'navbar-hover' ||

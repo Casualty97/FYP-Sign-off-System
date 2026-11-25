@@ -183,158 +183,165 @@
         <!-- Main Content (DONE BY PRETI)-->
         <div class="admin-content">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="admin-sidebar">
+                <!-- <Jun Kai start> the sidebar of the redesign (navigation N1): the same pages regrouped by task, groups that fold,
+                     plainer names and a page search (Ctrl K). data-was is the earlier name, so the search still finds it;
+                     data-admin-only marks a page only a System Admin sees. Folding, search and roles: js/sidebar.js -->
+                <div class="nav-search" id="nav-search-box">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="search" id="nav-search" placeholder="Search pages" autocomplete="off" spellcheck="false" aria-label="Search pages" aria-controls="admin-sidebar">
+                    <kbd>Ctrl K</kbd>
+                </div>
+                <div class="nav-search-empty" id="nav-search-empty" role="status" hidden>No page matches</div>
                 <div class="sidebar-section" id="main-section">
-                    <h3>MAIN</h3>
                     <nav>
-                        <a href="#" class="nav-item active" onclick="showPage('dashboard')">
+                        <a href="#" onclick="showPage('dashboard')" class="nav-item active">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span>
-                            Dashboard
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('feedback-data')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
-                            Feedback Data
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('digital-tree')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 5 11h3.5L5 17h5v5h4v-5h5l-3.5-6H19z"></path></svg></span>
-                            Digital Tree
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('pledgeboard')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
-                            Pledgeboard
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('theme-settings')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
-                            Style & Theme Settings
+                            <span class="nav-label">Dashboard</span>
                         </a>
                     </nav>
                 </div>
-
-                <div class="sidebar-section" id="content-section">
-                    <h3>REPORTS</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('feedback-report')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
-                            Feedback Reports
+                <div class="sidebar-section nav-group" data-group="visitors">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-visitors"><span class="nav-group-name">VISITORS</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-visitors">
+                        <a href="#" onclick="showPage('feedback-data')" class="nav-item" data-was="Feedback Data">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
+                            <span class="nav-label">Feedback</span>
+                        </a>
+                        <a href="#" onclick="showPage('pledgeboard')" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
+                            <span class="nav-label">Pledgeboard</span>
                         </a>
                         <!-- Lost and found admin report page - changes made by nick -->
-                        <a href="#" class="nav-item" onclick="showPage('lost-found')">
+                        <a href="#" onclick="showPage('lost-found')" class="nav-item" data-admin-only data-was="Lost and Found Reports">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
-                            Lost &amp; Found Reports
+                            <span class="nav-label">Lost &amp; Found</span>
                         </a>
-                    </nav>
+                        <a href="#" onclick="showPage('feedback-report')" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
+                            <span class="nav-label">Feedback Reports</span>
+                        </a>
+                        <a href="#" onclick="showPage('archive')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
+                            <span class="nav-label">Archived Feedback</span>
+                        </a>
+                    </nav></div>
                 </div>
-
-                <div class="sidebar-section" id="monitor-section">
-                    <h3>SYSTEM</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('health')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
-                            System Health
+                <div class="sidebar-section nav-group" data-group="tree">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-tree"><span class="nav-group-name">TREE</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-tree">
+                        <a href="#" onclick="showPage('digital-tree')" class="nav-item" data-was="Digital Tree">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 5 11h3.5L5 17h5v5h4v-5h5l-3.5-6H19z"></path></svg></span>
+                            <span class="nav-label">Tree Leaves</span>
                         </a>
-                        <!-- <Jun Kai start> the Incidents page; the badge counts the incidents that need a look -->
-                        <a href="#" class="nav-item" onclick="showPage('incidents')">
+                        <a href="#" onclick="showPage('tree-adjustment')" class="nav-item" data-was="Digital Tree Adjustment">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
+                            <span class="nav-label">Tree Settings</span>
+                        </a>
+                        <a href="/tree-demo" target="_blank" rel="noopener" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg></span>
+                            <span class="nav-label">Tree Animation Demo</span>
+                        </a>
+                        <a href="#" onclick="showPage('vip')" class="nav-item" data-admin-only data-was="VIP Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+                            <span class="nav-label">VIPs</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <div class="sidebar-section nav-group" data-group="kiosk">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-kiosk"><span class="nav-group-name">KIOSK SCREENS</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-kiosk">
+                        <a href="#" onclick="showPage('questions')" class="nav-item" data-admin-only data-was="Question Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+                            <span class="nav-label">Questions</span>
+                        </a>
+                        <a href="#" onclick="showPage('parameter-adjustment')" class="nav-item" data-admin-only data-was="Parameter Adjustment">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+                            <span class="nav-label">Kiosk Settings</span>
+                        </a>
+                        <a href="#" onclick="showPage('form-management')" class="nav-item" data-admin-only data-was="Form Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span>
+                            <span class="nav-label">Start Screen Text</span>
+                        </a>
+                        <a href="#" onclick="showPage('overlay')" class="nav-item" data-admin-only data-was="Overlay Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
+                            <span class="nav-label">Photo Overlays</span>
+                        </a>
+                        <a href="#" onclick="showPage('timer-countdown')" class="nav-item" data-admin-only data-was="Timer Countdown">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
+                            <span class="nav-label">Photo Timer</span>
+                        </a>
+                        <a href="#" onclick="showPage('Feedback-page-QR')" class="nav-item" data-admin-only data-was="Feedback Page QR Code">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14h1v1M14 20h1v1M20 20h1v1M17 20h1v1M20 17h1v1"></path></svg></span>
+                            <span class="nav-label">Feedback QR Code</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <div class="sidebar-section nav-group" data-group="email">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-email"><span class="nav-group-name">EMAIL</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-email">
+                        <a href="#" onclick="showPage('email-management')" class="nav-item" data-admin-only data-was="Email Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
+                            <span class="nav-label">Mail Account</span>
+                        </a>
+                        <a href="#" onclick="showPage('badge-email-templates')" class="nav-item" data-admin-only data-was="Badge Email Templates">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
+                            <span class="nav-label">Badge Emails</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <div class="sidebar-section nav-group" data-group="monitoring">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-monitoring"><span class="nav-group-name">MONITORING</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-monitoring">
+                        <a href="#" onclick="showPage('health')" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+                            <span class="nav-label">System Health</span>
+                        </a>
+                        <a href="#" onclick="showPage('incidents')" class="nav-item">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
-                            Incidents
+                            <span class="nav-label">Incidents</span>
                             <span class="inc-nav-badge" id="incidents-nav-badge" hidden></span>
                         </a>
-                        <!-- <Jun Kai end> -->
-                        <!-- <Jun Kai start> -->
-                        <a href="#" class="nav-item" onclick="showPage('hardware')">
+                        <a href="#" onclick="showPage('hardware')" class="nav-item">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span>
-                            Hardware
+                            <span class="nav-label">Hardware</span>
                         </a>
-                        <!-- <Jun Kai end> -->
-                    </nav>
-                </div>
-
-                <div class="sidebar-section" id="adjust-section">
-                    <h3>ADJUSTMENTS</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('tree-adjustment')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
-                            Digital Tree Adjustment
-                        </a>
-                        <a href="/tree-demo" class="nav-item" target="_blank" rel="noopener">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg></span>
-                            Tree Animation Demo
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('parameter-adjustment')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
-                            Parameter Adjustment
-                        </a>
-                    </nav>
-                </div>
-                
-                <div class="sidebar-section" id="admin-section">
-                    <h3>ADMINISTRATION</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('asset')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg></span>
-                            Assets Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('overlay')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
-                            Overlay Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('questions')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
-                            Question Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('users')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-                            User Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('vip')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
-                            VIP Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('email-management')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
-                            Email Management
-                        </a>
-                    <a href="#" class="nav-item" onclick="showPage('badge-email-templates')">
-                        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
-                        Badge Email Templates
-                    </a>
-                        <a href="#" class="nav-item" onclick="showPage('form-management')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span>
-                            Form Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('archive')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
-                            <!-- <Jun Kai start> -->
-                            Archived Feedback
-                            <!-- <Jun Kai end> -->
-                        </a>
-                        <!-- <Jun Kai start> -->
-                        <a href="#" class="nav-item" onclick="showPage('visitor-archive')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
-                            Visitor Data Archive
-                        </a>
-                        <!-- <Jun Kai end> -->
-                        <a href="#" class="nav-item" onclick="showPage('audit')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
-                            Audit Logs
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('data-export')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
-                            Data Export
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('timer-countdown')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
-                            Timer Countdown
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('server-schedule')">
+                        <a href="#" onclick="showPage('server-schedule')" class="nav-item" data-admin-only data-was="Server Schedule">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span>
-                            Server Schedule
+                            <span class="nav-label">Operating Hours</span>
                         </a>
-                        <a href="#" class="nav-item" onclick="showPage('Feedback-page-QR')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14h1v1M14 20h1v1M20 20h1v1M17 20h1v1M20 17h1v1"></path></svg></span>
-                            Feedback Page QR Code
+                        <a href="#" onclick="showPage('asset')" class="nav-item" data-admin-only data-was="Assets Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg></span>
+                            <span class="nav-label">Assets</span>
                         </a>
-                    </nav>
+                    </nav></div>
                 </div>
+                <div class="sidebar-section nav-group" data-group="data">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-data"><span class="nav-group-name">DATA &amp; ACCESS</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-data">
+                        <a href="#" onclick="showPage('visitor-archive')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
+                            <span class="nav-label">Visitor Data Archive</span>
+                        </a>
+                        <a href="#" onclick="showPage('data-export')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+                            <span class="nav-label">Data Export</span>
+                        </a>
+                        <a href="#" onclick="showPage('audit')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
+                            <span class="nav-label">Audit Logs</span>
+                        </a>
+                        <a href="#" onclick="showPage('users')" class="nav-item" data-admin-only data-was="User Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+                            <span class="nav-label">Users</span>
+                        </a>
+                        <a href="#" onclick="showPage('theme-settings')" class="nav-item" data-was="Style and Theme Settings">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
+                            <span class="nav-label">Style &amp; Theme</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <!-- <Jun Kai end> -->
             </aside>
 
             <!-- Page Content (DONE BY PRETI)-->
@@ -4893,6 +4900,9 @@
     <script src="/admin/js/dataExport.js"></script>
     <script src="/admin/js/feedbackDeletion.js"></script>
     <script src="/admin/js/navigation.js"></script>
+    <!-- <Jun Kai start> the sidebar: folding groups, page search, pages per role -->
+    <script src="/admin/js/sidebar.js"></script>
+    <!-- <Jun Kai end> -->
     <script src="/admin/js/tree.js"></script>
     <script src="/admin/js/init.js"></script>
     <script src="/admin/js/themes.js"></script>

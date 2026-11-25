@@ -7652,7 +7652,9 @@ input:checked + .slider:before {
 .ui-page-header h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6px; color: var(--theme-text-color); }
 .ui-page-header p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-dark-gray); max-width: 760px; }
 
-.ui-card { background: var(--theme-card-bg); border: 1px solid var(--theme-border-color); border-radius: 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+/* <Jun Kai start> redesign (look L3): rounder, and a little of the colour wash shows through; the values are with the frame rules at the end of this file */
+.ui-card { background: var(--l3-card); border: 1px solid var(--l3-card-edge); border-radius: 18px; box-shadow: var(--l3-card-shadow); }
+/* <Jun Kai end> */
 .ui-card + .ui-card, .ui-card + .ui-grid-2, .ui-grid-2 + .ui-card { margin-top: 20px; }
 .ui-card-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--theme-border-color); }
 .ui-card-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
@@ -8994,4 +8996,121 @@ button.policy-cal-day:hover { border-color: #b8c4d3; }
 .idle-countdown { margin: 0; font-size: 14px; color: var(--color-dark-gray); }
 .idle-countdown strong { margin-left: 6px; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--theme-text-color); }
 @media (max-width: 640px) { .idle-body { grid-template-columns: 1fr; align-items: start; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Admin redesign, look L3 (soft glass frame) and navigation N1 (regrouped sidebar that folds, with a page search).
+   The top bar and the sidebar are frosted panels that float over a soft colour wash, and cards are rounder and let a
+   little of the wash through. Every colour is a variable with a light set and a dark set, the way the login page
+   above does it. The three "tint" variables are written by Style & Theme Settings (themes.js, light mode only), so a
+   saved theme tints the glass instead of painting over it (a dark colour is kept nearly solid, so its light text
+   stays readable); each one has a fallback for dark mode, where the saved theme rests. Blur is on the two panels only: on every card it would be heavy for the wall PC to draw and shows no
+   difference over a smooth wash. */
+:root {
+    --l3-page: var(--l3-page-tint, #f3f6fa);
+    --l3-wash: radial-gradient(900px 520px at 8% 0%, #d9f2e4 0%, transparent 60%), radial-gradient(900px 600px at 100% 12%, #dbe8ff 0%, transparent 62%), radial-gradient(800px 600px at 60% 100%, #f3e8ff 0%, transparent 60%);
+    --l3-header: color-mix(in srgb, var(--l3-header-tint, #ffffff) var(--l3-header-tint-share, 62%), transparent);
+    --l3-nav: color-mix(in srgb, var(--l3-nav-tint, #ffffff) var(--l3-nav-tint-share, 55%), transparent);
+    --l3-edge: rgba(255, 255, 255, 0.9);
+    --l3-shadow: 0 8px 30px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    --l3-head-text: #0f172a; --l3-head-muted: #64748b;
+    --l3-nav-heading: #64748b; --l3-nav-text: #334155; --l3-nav-strong: #0f172a;
+    --l3-nav-hover: rgba(255, 255, 255, 0.6); --l3-nav-active: rgba(255, 255, 255, 0.95); --l3-nav-active-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+    --l3-field: rgba(255, 255, 255, 0.7); --l3-field-edge: rgba(15, 23, 42, 0.12);
+    --l3-btn: rgba(255, 255, 255, 0.8); --l3-btn-hover: #ffffff; --l3-btn-text: #0f172a; --l3-btn-edge: rgba(15, 23, 42, 0.12);
+    --l3-avatar: #64748b; --l3-focus: #2563eb;
+    --l3-card: rgba(255, 255, 255, 0.78); --l3-card-edge: rgba(255, 255, 255, 0.95);
+    --l3-card-shadow: 0 6px 24px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+html[data-theme="dark"] {
+    --l3-page: #0b1120;
+    --l3-wash: radial-gradient(900px 520px at 8% 0%, #0f3d2e 0%, transparent 60%), radial-gradient(900px 600px at 100% 12%, #172a54 0%, transparent 62%);
+    --l3-header: rgba(17, 26, 43, 0.6);
+    --l3-nav: rgba(17, 26, 43, 0.6);
+    --l3-edge: rgba(148, 163, 184, 0.22);
+    --l3-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --l3-head-text: #f1f5f9; --l3-head-muted: #a7b4c4;
+    --l3-nav-heading: #94a3b8; --l3-nav-text: #cbd5e1; --l3-nav-strong: #f8fafc;
+    --l3-nav-hover: rgba(148, 163, 184, 0.12); --l3-nav-active: rgba(148, 163, 184, 0.2); --l3-nav-active-shadow: none;
+    --l3-field: rgba(15, 23, 42, 0.55); --l3-field-edge: rgba(148, 163, 184, 0.28);
+    --l3-btn: rgba(30, 41, 59, 0.85); --l3-btn-hover: #334155; --l3-btn-text: #e2e8f0; --l3-btn-edge: rgba(148, 163, 184, 0.3);
+    --l3-avatar: #475569; --l3-focus: #60a5fa;
+    --l3-card: rgba(17, 26, 43, 0.72); --l3-card-edge: rgba(148, 163, 184, 0.2);
+    --l3-card-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* the wash is one fixed layer behind the page, so scrolling does not redraw it */
+body { background: var(--l3-page); }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--l3-wash); pointer-events: none; }
+
+/* top bar: a fixed height, so the content area below can still fill exactly the rest of the screen */
+.admin-header { position: relative; z-index: 3; box-sizing: border-box; height: 64px; margin: 14px 14px 0; padding: 0 22px; border: 1px solid var(--l3-edge); border-radius: 20px; background: var(--l3-header); box-shadow: var(--l3-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); }
+.admin-header .header-left h1 { margin-bottom: 2px; font-size: 18px; letter-spacing: -0.01em; color: var(--l3-head-text); }
+.admin-header .header-left p { font-size: 12px; color: var(--l3-head-muted); }
+.admin-header .header-right { gap: 16px; }
+.admin-header .username { color: var(--l3-head-text); }
+.admin-header .user-role { color: var(--l3-head-muted); }
+.admin-header .theme-toggle { color: var(--l3-head-text); }
+.admin-header .user-avatar { width: 36px; height: 36px; font-size: 14px; background: var(--l3-avatar); }
+.admin-header .logout-btn { padding: 9px 16px; border: 1px solid var(--l3-btn-edge); border-radius: 10px; background: var(--l3-btn); color: var(--l3-btn-text); transition: background-color 0.15s ease; }
+.admin-header .logout-btn:hover { background: var(--l3-btn-hover); }
+.admin-header .logout-btn:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; }
+.admin-content { min-height: calc(100vh - 78px); }
+
+/* sidebar: stays in view while a long page scrolls, and scrolls by itself when every group is unfolded */
+.sidebar { position: sticky; top: 14px; align-self: flex-start; flex-shrink: 0; box-sizing: border-box; width: 248px; max-height: calc(100vh - 106px); margin: 14px 0 14px 14px; padding: 14px 0 10px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.45) transparent; border: 1px solid var(--l3-edge); border-radius: 20px; background: var(--l3-nav); box-shadow: var(--l3-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); }
+.sidebar-section { margin-bottom: 4px; }
+.sidebar-section[hidden], .sidebar-section.nav-section-miss { display: none; }
+#main-section { margin-bottom: 8px; }
+.sidebar-section h3 { margin: 0; padding: 0 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--l3-nav-heading); }
+.nav-item { gap: 11px; margin: 1px 10px; padding: 9px 12px; border-left: 0; border-radius: 12px; color: var(--l3-nav-text); transition: background-color 0.15s ease, color 0.15s ease; }
+.nav-item:hover { background: var(--l3-nav-hover); color: var(--l3-nav-strong); }
+.nav-item.active { background: var(--l3-nav-active); color: var(--l3-nav-strong); font-weight: 600; box-shadow: var(--l3-nav-active-shadow); }
+.nav-item:focus-visible, .nav-item.nav-cursor { outline: 2px solid var(--l3-focus); outline-offset: -2px; }
+.nav-item[hidden], .nav-item.nav-miss { display: none; }
+.nav-label { flex: 1; min-width: 0; }
+/* a page the search found by the name it had before the redesign shows that name on a second line */
+.nav-item.nav-hit-was { flex-wrap: wrap; row-gap: 2px; }
+.nav-item.nav-hit-was::after { content: "Was: " attr(data-was); flex-basis: 100%; padding-left: 29px; font-size: 11px; font-weight: 400; opacity: 0.8; }
+
+/* a group heading is a button that folds the group; folded, it shows how many pages it holds */
+.nav-group-toggle { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 12px; border: 0; border-radius: 10px; background: transparent; font: inherit; letter-spacing: inherit; color: inherit; text-align: left; cursor: pointer; transition: background-color 0.15s ease; }
+.nav-group-toggle:hover { background: var(--l3-nav-hover); }
+.nav-group-toggle:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: -2px; }
+.nav-group-count { display: none; font-style: normal; font-weight: 600; opacity: 0.8; }
+.nav-group.is-folded .nav-group-count { display: inline; }
+.nav-group-badge { display: none; align-items: center; justify-content: center; min-width: 18px; height: 18px; margin-left: 4px; padding: 0 5px; border-radius: 999px; background-color: #d97706; font-size: 10px; font-weight: 700; line-height: 1; letter-spacing: 0; color: #ffffff; font-variant-numeric: tabular-nums; }
+.nav-group-badge.is-critical { background-color: #dc2626; }
+.nav-group.is-folded .nav-group-badge:not([hidden]) { display: inline-flex; }
+.nav-group-chevron { flex-shrink: 0; margin-left: auto; opacity: 0.75; transition: transform 0.2s ease; }
+.nav-group.is-folded .nav-group-chevron { transform: rotate(-90deg); }
+/* the folded group that holds the open page keeps a mark, so it is clear where the open page is */
+.nav-group.is-folded:has(.nav-item.active) .nav-group-name::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%; background: var(--l3-focus); vertical-align: 1px; }
+.nav-group-body { display: grid; grid-template-rows: 1fr; }
+.nav-group-body > nav { min-height: 0; overflow: hidden; padding-bottom: 4px; }
+.nav-group.is-folded .nav-group-body { grid-template-rows: 0fr; }
+.nav-group.is-folded .nav-group-body > nav { padding-bottom: 0; }
+.sidebar.nav-ready .nav-group-body { transition: grid-template-rows 0.2s ease; }
+/* while a search runs, every group shows its matches and the headings are plain labels */
+.sidebar.is-searching .nav-group.is-folded .nav-group-body { grid-template-rows: 1fr; }
+.sidebar.is-searching .nav-group-toggle { pointer-events: none; }
+.sidebar.is-searching :is(.nav-group-count, .nav-group-badge, .nav-group-chevron) { display: none; }
+.sidebar.is-searching .nav-group-name::after { display: none; }
+
+.nav-search { display: flex; align-items: center; gap: 8px; height: 36px; margin: 0 12px 12px; padding: 0 10px; border: 1px solid var(--l3-field-edge); border-radius: 11px; background: var(--l3-field); color: var(--l3-nav-heading); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.nav-search:focus-within { border-color: var(--l3-focus); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22); }
+.nav-search svg { flex-shrink: 0; }
+.nav-search input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; color: var(--l3-nav-strong); }
+.nav-search input::placeholder { color: var(--l3-nav-heading); opacity: 1; }
+.nav-search kbd { flex-shrink: 0; padding: 3px 6px; border: 1px solid var(--l3-field-edge); border-radius: 5px; font: 600 10px/1 'Segoe UI', sans-serif; color: var(--l3-nav-heading); }
+.nav-search:focus-within kbd, .sidebar.is-searching .nav-search kbd { display: none; }
+.nav-search-empty { margin: 0 22px 12px; font-size: 13px; color: var(--l3-nav-heading); }
+.nav-search-empty[hidden] { display: none; }
+
+@media (max-width: 1024px) {
+    .sidebar { position: static; align-self: stretch; width: auto; max-height: none; margin: 14px 14px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .nav-item, .nav-group-toggle, .nav-group-chevron, .nav-search, .admin-header .logout-btn, .sidebar.nav-ready .nav-group-body { transition: none; }
+}
 /* <Jun Kai end> */

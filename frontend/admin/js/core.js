@@ -1143,23 +1143,18 @@ function updateUIForUser(username, role) {
     document.getElementById('logged-role').textContent = formatRoleName(role);
     document.querySelector('.user-avatar').textContent = username[0].toUpperCase();
     
-    // MAIN section: Always visible for ALL roles
-    // Contains: Dashboard, Feedback Data, Digital Tree, Pledgeboard, Style & Theme Settings
+    // Dashboard: always visible for ALL roles
     const mainSection = document.getElementById('main-section');
     if (mainSection) {
         mainSection.style.display = 'block';
     }
-    
-    // ADMINISTRATION section: ONLY visible for system_admin
-    // Contains: Overlay Management, Question Management, User Management, Archive, Audit Logs, Data Export
-    const adminSection = document.getElementById('admin-section');
-    if (role === 'system_admin') {
-        if (adminSection) adminSection.style.display = 'block';
-    } else {
-        // Hide for IT_staff and IT_admin
-        if (adminSection) adminSection.style.display = 'none';
-    }
-    
+
+    // <Jun Kai start> The sidebar is grouped by task since the redesign, so there is no ADMINISTRATION section to
+    // hide any more. Each link that only a System Admin may open is marked data-admin-only in admin.html, and
+    // sidebar.js takes those links out of the groups and out of the page search for IT staff and IT admins.
+    if (typeof applySidebarRole === 'function') applySidebarRole(role);
+    // <Jun Kai end>
+
     // Show/hide ONLY decrypt/download buttons based on role
     // Filter buttons should be visible for ALL roles
     const decryptButtons = document.querySelectorAll('#decrypt-emails-btn, #re-encrypt-btn, #decrypt-archive-emails-btn, #re-encrypt-archive-btn');
@@ -1169,10 +1164,6 @@ function updateUIForUser(username, role) {
         decryptButtons.forEach(btn => btn.style.display = 'none');
     }
 
-    // Lost & Found and Parameter Adjustment are system-admin pages that sit in the all-roles sidebar sections
-    document.querySelectorAll(".nav-item[onclick*=\"showPage('lost-found')\"], .nav-item[onclick*=\"showPage('parameter-adjustment')\"]")
-        .forEach(item => { item.style.display = role === 'system_admin' ? '' : 'none'; });
-    
     // If current page is an admin page and user is not system admin, redirect to dashboard
     const currentPage = document.querySelector('.page.active');
     if (currentPage && !currentPage.id.includes('dashboard') && role !== 'system_admin') {
