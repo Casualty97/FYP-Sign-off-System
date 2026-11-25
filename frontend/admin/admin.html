@@ -1640,7 +1640,7 @@
                     <div class="ui-card idle-card" id="idle-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Sign-in</h3>
+                                <h3>Sign-in<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Signing in and out" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Signing in and out"><ul><li>With no click or key press for the chosen time, the admin page signs out. A notice shows 2 minutes before (1 minute when the time is under 10 minutes).</li><li>One setting for every admin: 5 minutes to 8 hours, or Never. Only a System Admin can change it.</li><li><b>Keep me signed in</b> lasts 24 hours on that browser and is not signed out by this timer. It ends at Logout or when the password changes. The password itself is never stored in the browser.</li><li>5 wrong passwords within 15 minutes lock that username from that computer for 15 minutes.</li></ul></template></span></h3>
                                 <p>How long the admin page may sit untouched before it signs the admin out.</p>
                             </div>
                         </div>
@@ -2497,7 +2497,7 @@
                             <div class="ui-card">
                                 <div class="ui-card-header">
                                     <div>
-                                        <h3>Mail account</h3>
+                                        <h3>Mail account<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: About the mail account" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="About the mail account"><ul><li>A saved password is never sent back to this page. It shows as ********, and leaving it like that keeps the stored one.</li><li>The sender address is what visitors see as From. Left empty, the mail login is used. Gmail shows its own address unless the sender address is a verified alias.</li><li>Save reloads the mail service at once, with no restart. Settings that the mail server rejects are not saved, and the ones that worked stay.</li></ul></template></span></h3>
                                         <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
                                     </div>
                                 </div>
@@ -2523,7 +2523,7 @@
                             <div class="ui-card">
                                 <div class="ui-card-header">
                                     <div>
-                                        <h3>Test message</h3>
+                                        <h3>Test message<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Test message" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Test message"><div>Sends one short email with the saved settings, so save first. It goes out as "RP ESG Centre" from the sender address, like the real emails.</div></template></span></h3>
                                         <p>Sends a short email with the saved settings. Save first, then test.</p>
                                     </div>
                                 </div>
@@ -2542,8 +2542,8 @@
                         <div class="ui-card email-preview-card">
                             <div class="ui-card-header">
                                 <div>
-                                    <h3>Preview</h3>
-                                    <p>The thank-you email a visitor gets, with a sample visitor. The wording is set under Kiosk Settings; the visitor's photo is attached in the real email.</p>
+                                    <h3>Preview<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What the preview shows" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What the preview shows"><div>The thank you email a visitor gets, filled in with a sample visitor. The wording comes from Kiosk Settings, Email Content. In the real email the visitor's photo is attached.</div></template></span></h3>
+                                    <p>The thank-you email a visitor gets, with a sample visitor.</p>
                                 </div>
                                 <button type="button" class="ui-btn ui-btn-secondary" onclick="loadEmailPreview()">Refresh</button>
                             </div>
@@ -3748,8 +3748,10 @@
                 <div id="hardware-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>Hardware</h2>
-                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 minute</span> and kept for <span id="hardware-retention-text">30 days</span>; a summary of each day is kept for good (<!-- <Jun Kai start> -->longer ranges and forecasts use it<!-- <Jun Kai end> -->). <!-- <Jun Kai start> -->While this page is open the part cards update every second, and the graphs and the forecast every minute.<!-- <Jun Kai end> --></p>
+                            <h2>Hardware<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Where the numbers come from" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Where the numbers come from"><ul><li>The server measures the PC at the sampling interval (every minute unless changed) and stores each sample. The graphs draw averages of those samples.</li><li>Samples are kept for 30 days unless changed. One summary of each day is kept for good, for long ranges and long forecasts.</li><li>The four part cards update every second from a live reading that is not stored. The graphs and the forecast update every minute.</li><li>A hatched stretch on a graph means no samples: the PC was asleep or the server was stopped.</li></ul><div>Sample every and Keep samples for are under Settings.</div></template></span></h2>
+                            <!-- <Jun Kai start> one short line, so the whole page shows without scrolling; the rest is in the note beside the title -->
+                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 minute</span> and kept for <span id="hardware-retention-text">30 days</span>.</p>
+                            <!-- <Jun Kai end> -->
                         </div>
                         <div class="ui-row">
                             <span id="hardware-sampler-pill" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Loading</span>
@@ -3764,7 +3766,7 @@
                     <div class="hw-room">
                         <!-- <Jun Kai start> the cards' column: how fresh the numbers are, then the cards -->
                         <div class="hw-side">
-                        <div class="hw-live" id="hardware-live-note"><span class="hw-live-dot" aria-hidden="true"></span><span id="hardware-live-text">Loading</span></div>
+                        <div class="hw-live" id="hardware-live-note"><span class="hw-live-dot" aria-hidden="true"></span><span id="hardware-live-text">Loading</span><span class="ui-info ui-info-flush"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Normal, High and Critical" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Normal, High and Critical"><div>A part is <b>High</b> at or above its amber line and <b>Critical</b> at or above its red line: 85 % and 95 % unless changed.</div><div>Each part has its own two lines, under Settings, Alert lines. Only a System Admin can change them. System Health uses the same lines for its Disk space and Server PC cards.</div></template></span></div>
                         <!-- <Jun Kai end> -->
                         <div class="hw-keys" role="group" aria-label="Part of the PC to show">
                             <button type="button" class="hw-key hw-key-all" data-part="all" aria-pressed="true" onclick="setHardwarePart('all')">
@@ -3816,6 +3818,7 @@
                                         <button type="button" class="hw-seg-btn active" data-mode="past" aria-pressed="true" onclick="setHardwareMode('past')">Past</button>
                                         <button type="button" class="hw-seg-btn" data-mode="forecast" aria-pressed="false" onclick="setHardwareMode('forecast')">Forecast</button>
                                     </div>
+                                    <span class="ui-info ui-info-flush"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How the forecast is made" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How the forecast is made"><div>Statistics only, no AI.</div><ul><li><b>Up to 2 days ahead</b>: CPU, memory and GPU follow the level and the trend of the last 24 hours in 10 minute averages (Holt's damped trend). The disk gets a straight line through its growth of the last 30 days. It needs about an hour of samples.</li><li><b>Further ahead</b>: it uses one average per day and shows the usual level and range, not a prediction for one day. Only the disk line carries a trend on. It needs 6 days with samples.</li><li><b>Rough guide</b> means the history is shorter than the forecast looks ahead, so treat it with care.</li></ul></template></span>
                                     <span class="hw-range-word" id="hardware-range-word" aria-hidden="true">Last</span>
                                     <div class="hw-range" id="hardware-range-wrap">
                                         <div class="hw-segment" id="hardware-range" role="group" aria-label="Show the last">
@@ -4053,7 +4056,7 @@
                     <div class="ui-card">
                         <div class="ui-card-header va-history-head">
                             <div>
-                                <h3 id="va-history-title" tabindex="-1">History</h3>
+                                <h3 id="va-history-title" tabindex="-1">History<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Reading the History" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Reading the History"><div>Every archive run made on this PC, newest first. The 5 newest show until you press Show all.</div><ul><li><b>Archived</b>: the zip passed its check. The records were deleted, unless the run was export only.</li><li><b>Saved, records kept</b>: the zip is good, but the records stayed, for example because one changed during the run.</li><li><b>Failed</b>: the zip could not be written or checked. Nothing was deleted.</li><li><b>Interrupted</b>: the server stopped before the archive file was finished. Nothing was deleted.</li><li><b>File missing</b>: the zip is no longer in the folder.</li></ul><div>Row buttons: View records, Download, Check file (checks the zip against its fingerprints again) and Delete file. Viewing and downloading ask for your password first and stay open for 10 minutes.</div></template></span></h3>
                                 <p>Every archive made on this PC, newest first. Records are deleted only after their file has been checked.</p>
                             </div>
                             <span class="ui-fact-hint" id="va-history-totals"></span>
@@ -4080,7 +4083,7 @@
                             <div class="ui-card">
                                 <div class="ui-card-header">
                                     <div>
-                                        <h3 id="va-settings-title" tabindex="-1">What to archive</h3>
+                                        <h3 id="va-settings-title" tabindex="-1">What to archive<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Which records are archived" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Which records are archived"><div>A record is due once it is older than its keep period (12 months unless you change it), counted to the start of that day in Singapore time.</div><ul><li>A visitor who still has newer feedback is kept.</li><li>A VIP (gold) leaf is never archived and stays on the tree.</li><li>For feedback given with 7 day consent, the photos are not copied.</li></ul><div><b>Nothing is deleted unless the zip passes its check.</b> The check reads the whole file back and compares every record. Deleting happens in one step: either every record of the run goes, or none.</div></template></span></h3>
                                         <p>A record is due once it is older than its keep period. Automatic archiving takes every due record; Archive now starts from these choices.</p>
                                     </div>
                                 </div>
@@ -4172,7 +4175,7 @@
                                 <div class="ui-card-body">
                                     <div class="va-types">
                                         <div class="ui-field">
-                                            <label class="ui-label" for="va-leaves">Leaves on the tree</label>
+                                            <div class="ui-label-row"><label class="ui-label" for="va-leaves">Leaves on the tree</label><span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What happens to the leaf" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What happens to the leaf"><ul><li><b>Keep the leaf, without a name</b>: the leaf stays and shows "Visitor". Only its date, badge and VIP mark are kept.</li><li><b>Keep the leaf, with initials</b>: a visitor whose name was shown keeps initials such as "J. T.". Chinese, Japanese and Korean names and words of one letter show "Visitor", because initials would give the name away.</li><li><b>Remove the leaf</b>: the leaf leaves the tree with the records. The year book still counts it as archived.</li></ul><div>A change only affects later archives.</div></template></span></div>
                                             <select class="ui-select" id="va-leaves" aria-describedby="va-leaves-help va-leaves-choices">
                                                 <option value="keep" selected>Keep the leaf, without a name</option>
                                                 <option value="initials">Keep the leaf, with initials</option>
@@ -4192,7 +4195,7 @@
                                 <div class="ui-card">
                                     <div class="ui-card-header">
                                         <div>
-                                            <h3>Schedule</h3>
+                                            <h3>Schedule<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How automatic archiving runs" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How automatic archiving runs"><div>Off until you switch it on. It needs "Delete the records from the database", because an export only run would save the same records again every time.</div><ul><li>The server looks every 15 minutes whether a run is due.</li><li>A run missed while the PC was asleep or off happens at the first look after it is on again.</li><li>A run that could not finish is tried again after 1 hour, at most 3 times for that period.</li></ul><div>Archive now works at any time, with the schedule on or off.</div></template></span></h3>
                                             <p>Archive due records on a schedule. Archive now works at any time.</p>
                                         </div>
                                     </div>
@@ -4258,7 +4261,7 @@
                                 <div class="ui-card">
                                     <div class="ui-card-header">
                                         <div>
-                                            <h3>Storage</h3>
+                                            <h3>Storage<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What an archive file is" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What an archive file is"><div>Each archive run saves <b>one .zip file</b> in the archive folder on this PC, with a <b>.sha256 file</b> beside it. The .sha256 file is a fingerprint that shows later whether the zip was changed.</div><div>Inside the zip:</div><ul><li><span class="ui-code">README.txt</span> explains what is inside</li><li><span class="ui-code">data/</span> the records as JSON (visitors, feedback, lost &amp; found, questions)</li><li><span class="ui-code">csv/</span> the same records as CSV, which Excel opens</li><li><span class="ui-code">photos/</span> visitor photos and lost &amp; found photos, when Include photos is on</li><li><span class="ui-code">manifest.json</span> the counts, the record ids and a SHA-256 checksum of every other file</li></ul><div><b>The zip has no password.</b> Names, pledges, answers and photos inside are readable by anyone who has the file. Emails and lost &amp; found contact details stay encrypted and need the <span class="ui-code">ENCRYPTION_KEY</span> from <span class="ui-code">backend\.env</span>.</div></template></span></h3>
                                             <p>Where the zip files are kept on this PC, and for how long.</p>
                                         </div>
                                     </div>
@@ -4514,7 +4517,7 @@
                     <div class="ui-page-header">
                         <div>
                             <h2>Operating Hours</h2>
-                            <p>Policies decide when the kiosk runs. In automatic mode each switch-off is recorded and the kiosk server is started when a policy needs it. History also says when the kiosk stopped and started, and why. Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</p>
+                            <p>Policies decide when the kiosk runs. History says when it stopped and started, and why.</p>
                         </div>
                         <!-- <Jun Kai start> what the automation did: a drawer from the right -->
                         <div class="ui-row">
@@ -4527,7 +4530,7 @@
                     <!-- <Jun Kai start> -->
                     <div class="policy-tiles">
                         <div class="ui-card policy-tile policy-tile-stop">
-                            <span class="policy-tile-label">Next stop</span>
+                            <span class="policy-tile-label">Next stop<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Next stop and next start" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Next stop and next start"><div>Worked out from the policies in automatic mode. In manual mode, or when automation is switched off on this machine, nothing runs by itself and the tiles say so.</div></template></span></span>
                             <span class="policy-tile-value" id="automation-next-stop">–</span>
                             <span class="policy-tile-hint" id="automation-next-stop-hint">Off hours begin</span>
                         </div>
@@ -4578,7 +4581,7 @@
                     <div class="ui-card" id="policies-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Policies</h3>
+                                <h3>Policies<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Which policy decides" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Which policy decides"><div>For any moment, the <b>first enabled policy from the top</b> that covers it decides. Active means the kiosk runs. Stop, or no policy at all, means off.</div><ul><li>A new policy is placed for you: one date goes above days of the week, above months, above every day. At the same level a Stop goes above an Active.</li><li>Drag the handle to change the order yourself.</li><li>A window may pass midnight, for example 22:00 to 06:00.</li></ul></template></span></h3>
                                 <p>The first policy in the list that covers a moment decides it. Drag the handle to change the order.</p>
                             </div>
                             <div class="ui-row">
@@ -4606,7 +4609,7 @@
                     <div class="ui-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Controls</h3>
+                                <h3>Controls<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Automatic and manual mode" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Automatic and manual mode"><ul><li><b>Automatic</b>: the policies decide. While they say the kiosk runs, the server starts the kiosk server whenever it does not answer, and each switch-off is recorded.</li><li><b>Manual</b>: the policies are paused and the Start kiosk, Restart application and Stop and hibernate buttons appear. Stop and hibernate puts the whole PC to sleep.</li></ul><div>In off hours the kiosk programs keep running. The kiosk screens show "The kiosk is closed" with the next opening time, and come back by themselves.</div><div>Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</div></template></span></h3>
                                 <!-- <Jun Kai start> -->
                                 <p>Automatic mode follows the policies. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
                                 <!-- <Jun Kai end> -->
@@ -4645,10 +4648,10 @@
                         <div class="inc-drawer-inner">
                             <div class="inc-drawer-head">
                                 <div>
-                                    <h3 id="schedule-history-title">History</h3>
+                                    <h3 id="schedule-history-title">History<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What History records" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What History records"><ul><li>When a policy switched the kiosk on or off.</li><li>When the kiosk itself stopped and started, and why: the program was closed, the PC was shut down, the power was cut, or it slept.</li></ul><div>It keeps the newest 500 lines. The filter shows All, Starts and stops, or Schedule.</div></template></span></h3>
                                     <div class="inc-drawer-sub" id="schedule-history-sub">When the kiosk started and stopped and why, and what the schedule did. Newest first.</div>
                                 </div>
-                                <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeScheduleHistory()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                                <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeScheduleHistory()" aria-label="Close" title="Close" autofocus><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             </div>
                             <div class="inc-drawer-body" id="automation-card">
                                 <section class="inc-drawer-section">

@@ -57,3 +57,123 @@ function uiIcon(name, size = 16) {
 function uiPill(tone, text) {
     return `<span class="ui-pill ui-pill-${tone}"><span class="ui-dot"></span>${escapeHtmlSafe(text)}</span>`;
 }
+
+// <Jun Kai start>
+// The "i" button (admin redesign): a small round button beside a card title or a control. A click opens a short note
+// about that card, right beside the button; Esc, a click anywhere else or another "i" closes it. The long explaining
+// text that used to sit under titles lives in these notes.
+// In admin.html an "i" is written as:
+//   <span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: TITLE">ICON</button>
+//   <template class="ui-info-body" data-title="TITLE">the note as HTML</template></span>
+// A page script that draws its own cards gets the same markup from uiInfo(). The note text is fixed text written
+// in the code, never something a visitor or an admin typed.
+function uiInfo(title, html) {
+    const safeTitle = escapeHtmlSafe(title);
+    return `<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: ${safeTitle}" title="How this works">${uiIcon('info', 15)}</button><template class="ui-info-body" data-title="${safeTitle}">${html}</template></span>`;
+}
+
+let uiInfoOpenButton = null;
+// closes the note when its button leaves the screen: another page was opened, or it was scrolled away
+const uiInfoWatcher = typeof IntersectionObserver === 'function'
+    ? new IntersectionObserver((entries) => { if (entries.some((entry) => entry.target === uiInfoOpenButton && !entry.isIntersecting)) closeUiInfo(); })
+    : null;
+
+// one note box for the whole page, made on first use
+function uiInfoBox() {
+    let box = document.getElementById('ui-info-pop');
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'ui-info-pop';
+    box.className = 'ui-info-pop';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'false');
+    box.setAttribute('aria-labelledby', 'ui-info-title');
+    // a "manual" popover is drawn above everything, also above an open side panel or pop-up window
+    if (typeof box.showPopover === 'function') box.setAttribute('popover', 'manual');
+    else box.hidden = true;
+    box.innerHTML = '<div class="ui-info-head"><h5 id="ui-info-title"></h5><kbd>Esc</kbd></div><div class="ui-info-text"></div>';
+    document.body.appendChild(box);
+    return box;
+}
+
+// Under the button, opening towards the side of the screen with more room; above the button when there is no room below
+function placeUiInfo() {
+    const button = uiInfoOpenButton;
+    const box = document.getElementById('ui-info-pop');
+    if (!button || !box) return;
+    const at = button.getBoundingClientRect();
+    if (!button.isConnected || (at.width === 0 && at.height === 0)) { closeUiInfo(); return; } // its page or panel was closed
+    const gap = 10;
+    const edge = 12;
+    const width = Math.min(380, window.innerWidth - edge * 2);
+    box.style.width = `${width}px`;
+    box.style.maxHeight = `${Math.max(160, window.innerHeight - edge * 2)}px`;
+    const height = box.offsetHeight;
+    // towards the side with more room: a button on the left half of the screen gets its note to the right of it
+    const middle = at.left + at.width / 2;
+    let left = middle < window.innerWidth / 2 ? at.left - 6 : at.right + 6 - width;
+    left = Math.min(Math.max(edge, left), window.innerWidth - edge - width);
+    let top = at.bottom + gap;
+    const above = top + height > window.innerHeight - edge && at.top - gap - height >= edge;
+    if (above) top = at.top - gap - height;
+    else top = Math.max(edge, Math.min(top, window.innerHeight - edge - height));
+    box.style.left = `${Math.round(left)}px`;
+    box.style.top = `${Math.round(top)}px`;
+    box.classList.toggle('is-above', above);
+    // the little pointer sits under (or over) the middle of the button
+    box.style.setProperty('--ui-info-pointer', `${Math.round(Math.min(Math.max(at.left + at.width / 2 - left, 18), width - 18))}px`);
+}
+
+function closeUiInfo() {
+    const box = document.getElementById('ui-info-pop');
+    if (uiInfoOpenButton) uiInfoOpenButton.setAttribute('aria-expanded', 'false');
+    if (uiInfoWatcher) uiInfoWatcher.disconnect();
+    uiInfoOpenButton = null;
+    if (!box) return;
+    if (box.hasAttribute('popover')) { if (box.matches(':popover-open')) box.hidePopover(); } else box.hidden = true;
+}
+
+function openUiInfo(button) {
+    const body = button.parentElement && button.parentElement.querySelector('.ui-info-body');
+    if (!body) return;
+    closeUiInfo();
+    const box = uiInfoBox();
+    // inside an open side panel the note has to be part of that panel, or the panel would treat it as outside
+    const home = button.closest('dialog[open]') || document.body;
+    if (box.parentElement !== home) home.appendChild(box);
+    box.querySelector('#ui-info-title').textContent = body.dataset.title || '';
+    box.querySelector('.ui-info-text').innerHTML = body.innerHTML;
+    uiInfoOpenButton = button;
+    button.setAttribute('aria-expanded', 'true');
+    if (box.hasAttribute('popover')) box.showPopover(); else box.hidden = false;
+    box.scrollTop = 0;
+    placeUiInfo();
+    if (uiInfoWatcher) uiInfoWatcher.observe(button);
+}
+
+document.addEventListener('click', (event) => {
+    const button = event.target.closest ? event.target.closest('.ui-info-btn') : null;
+    if (button) {
+        event.preventDefault();
+        if (uiInfoOpenButton === button) closeUiInfo(); else openUiInfo(button);
+        return;
+    }
+    if (uiInfoOpenButton && !(event.target.closest && event.target.closest('#ui-info-pop'))) closeUiInfo();
+});
+// Esc closes the note first; the side panel or window it sits in stays open
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !uiInfoOpenButton) return;
+    const button = uiInfoOpenButton;
+    event.preventDefault();
+    event.stopPropagation();
+    closeUiInfo();
+    button.focus();
+}, true);
+document.addEventListener('cancel', (event) => {
+    if (!uiInfoOpenButton) return;
+    event.preventDefault();
+    closeUiInfo();
+}, true);
+window.addEventListener('scroll', () => { if (uiInfoOpenButton) placeUiInfo(); }, { capture: true, passive: true });
+window.addEventListener('resize', () => { if (uiInfoOpenButton) placeUiInfo(); });
+// <Jun Kai end>
