@@ -335,6 +335,44 @@ test('services flags a slow database answer against the last 24 hours', () => {
     assert.deepEqual(d.detectServices({ runs: short, now: NOW, sensitivity: 5, quiet: false }), [], 'needs a baseline first');
 });
 
+test('tablets: unnamed devices are ignored, one named tablet offline is a warning', () => {
+    const devices = [
+        { device_id: 'a1', name: 'Lobby', seconds_ago: 840 },
+        { device_id: 'b2', name: '', seconds_ago: 99999 },
+        { device_id: 'c3', name: null, seconds_ago: 99999 },
+        { device_id: 'd4', name: 'Lab A', seconds_ago: 30 }
+    ];
+    const found = d.detectTablets({ devices, now: NOW, sensitivity: 3, quiet: false });
+    assert.equal(found.length, 1);
+    checkShape(found[0]);
+    assert.equal(found[0].fingerprint, 'tablets:offline:a1');
+    assert.equal(found[0].severity, 'warn');
+    assert.equal(found[0].title, 'Tablet Lobby offline for 14 min');
+    assert.match(found[0].explanation, /The tablet Lobby last reported 14 min ago\. .* more than 10 minutes/);
+    assert.equal(found[0].evidence.unit, 'min');
+    assert.equal(found[0].evidence.value, 14);
+    assert.deepEqual(d.detectTablets({ devices, now: NOW, sensitivity: 1, quiet: false }), [], '30-minute limit at very low sensitivity');
+    assert.deepEqual(d.detectTablets({ devices, now: NOW, sensitivity: 3, quiet: true }), [], 'quiet hours');
+    assert.deepEqual(d.detectTablets({ devices: [], now: NOW, sensitivity: 3, quiet: false }), []);
+});
+
+test('tablets: every named tablet offline is one critical incident', () => {
+    const devices = [
+        { device_id: 'a1', name: 'Lobby', seconds_ago: 840 },
+        { device_id: 'd4', name: 'Lab A', seconds_ago: 4000 },
+        { device_id: 'z9', name: '', seconds_ago: 10 }
+    ];
+    const found = d.detectTablets({ devices, now: NOW, sensitivity: 3, quiet: false });
+    assert.equal(found.length, 1);
+    checkShape(found[0]);
+    assert.equal(found[0].fingerprint, 'tablets:all-offline:-');
+    assert.equal(found[0].severity, 'critical');
+    assert.equal(found[0].title, 'All 2 named tablets offline');
+    assert.match(found[0].explanation, /None of the 2 named tablets \(Lobby and Lab A\) has reported for more than 10 minutes\. The most recent report was 14 min ago\./);
+    const one = d.detectTablets({ devices: [devices[0]], now: NOW, sensitivity: 3, quiet: false });
+    assert.equal(one[0].kind, 'offline', 'a single named tablet offline stays a warning');
+});
+
 const event = (minutesAgo, level, message, process = 'server') => ({ at: new Date(NOW - minutesAgo * MINUTE).toISOString(), process, level, message });
 
 test('logs: a burst of errors in 5 minutes is a warning, three times the limit is critical', () => {
@@ -412,13 +450,14 @@ test('logs: novelty is learning below 24 hours of history while bursts still cou
 
 test('runAll reports off, muted, no-data and a detector that crashed without throwing', () => {
     const settings = { intervalSeconds: 60, detectors: { spike: { enabled: false, sensitivity: 3 }, logs: { enabled: true, sensitivity: 3 } } };
-    const input = { now: new Date(NOW), intervalSeconds: 60, hourSeries: { cpu: 'not a series' }, quiet: true };
+    const input = { now: new Date(NOW), intervalSeconds: 60, hourSeries: { cpu: 'not a series' }, tablets: { devices: [{ device_id: 'a', name: 'Lobby', seconds_ago: 9999 }] }, quiet: true };
     const r = d.runAll(input, settings);
     assert.deepEqual(r.anomalies, []);
     assert.equal(r.states.spike, 'off');
     assert.equal(r.notes.spike, 'Switched off');
     assert.equal(r.states.timeOfDay, 'error');
     assert.match(r.notes.timeOfDay, /^Detector failed: /);
+    assert.equal(r.states.tablets, 'muted');
     assert.equal(r.states.services, 'no-data');
     assert.equal(r.states.logs, 'no-data');
     assert.equal(r.states.drift, 'no-data');
@@ -436,6 +475,7 @@ test('runAll collects anomalies and states from every detector', () => {
         driftSeries: { memory: tenMinuteMeans((i) => 70 + (22 * i) / 143), disk: [] },
         disk: { points: diskPoints(30, 100, 2), totalGb: 200, percent: 96 },
         health: { runs: [run(5, [down('database')]), run(0, [down('database')])] },
+        tablets: { devices: [{ device_id: 'a1', name: 'Lobby', seconds_ago: 840 }] },
         logs: { events: Array.from({ length: 7 }, (_, i) => event(1, 'error', `Fresh error ${i}`)), known: new Set(), historyHours: 48 },
         quiet: false
     };
@@ -446,9 +486,10 @@ test('runAll collects anomalies and states from every detector', () => {
     assert.ok(fingerprints.includes('drift:rising:memory'));
     assert.ok(fingerprints.includes('disk:full:-'));
     assert.ok(fingerprints.includes('services:down:database'));
+    assert.ok(fingerprints.includes('tablets:offline:a1'));
     assert.ok(fingerprints.includes('logs:burst:-'));
     assert.ok(fingerprints.some((f) => f.startsWith('logs:new:')));
-    assert.deepEqual(r.states, { spike: 'ok', timeOfDay: 'learning', drift: 'ok', disk: 'ok', services: 'ok', logs: 'ok' });
+    assert.deepEqual(r.states, { spike: 'ok', timeOfDay: 'learning', drift: 'ok', disk: 'ok', services: 'ok', tablets: 'ok', logs: 'ok' });
     assert.equal(r.notes.timeOfDay, 'CPU: Needs 3 days of samples for this hour (has 1)');
     assert.equal(r.notes.spike, undefined, 'nothing to say when a detector is fully working');
 });
@@ -458,7 +499,7 @@ test('runAll falls back to defaults when settings or input are missing', () => {
     assert.deepEqual(r.anomalies, []);
     for (const key of d.DETECTOR_KEYS) assert.equal(r.states[key], 'no-data', key);
     const bare = d.runAll(undefined, undefined);
-    assert.equal(Object.keys(bare.states).length, 6);
+    assert.equal(Object.keys(bare.states).length, 7);
 });
 test('runAll says which incidents nothing looked at (held) and which belong to a switched-off detector (closed)', () => {
     const all = Object.fromEntries(d.DETECTOR_KEYS.map((key) => [key, { enabled: true, sensitivity: 3 }]));
@@ -466,16 +507,16 @@ test('runAll says which incidents nothing looked at (held) and which belong to a
 
     const normal = d.runAll({ now: NOW, health: twoRuns }, { detectors: all });
     assert.deepEqual(normal.held, []);
-    assert.deepEqual(normal.closed, d.RETIRED_PREFIXES, 'only the detectors that were taken out of the app');
+    assert.deepEqual(normal.closed, []);
 
-    const quiet = d.runAll({ now: NOW, health: twoRuns, quiet: true }, { detectors: all });
-    assert.deepEqual(quiet.held, ['services:down:kiosk'], 'quiet hours: the kiosk check is not looked at');
+    const quiet = d.runAll({ now: NOW, health: twoRuns, quiet: true, tablets: { devices: [{ device_id: 'a1', name: 'Lobby', seconds_ago: 9999 }] } }, { detectors: all });
+    assert.deepEqual(quiet.held.sort(), ['services:down:kiosk', 'tablets:'], 'quiet hours: the kiosk check and the tablets are not looked at');
 
     const fresh = d.runAll({ now: NOW, health: { runs: [run(0, [ok('database')])] } }, { detectors: all });
     assert.deepEqual(fresh.held, ['services:'], 'one health run is not enough to say a service is back');
 
     const off = d.runAll({ now: NOW, health: twoRuns, hourSeries: { cpu: 'not a series' } }, { detectors: { ...all, spike: { enabled: false, sensitivity: 3 } } });
-    assert.deepEqual(off.closed, [...d.RETIRED_PREFIXES, 'spike:']);
+    assert.deepEqual(off.closed, ['spike:']);
     assert.deepEqual(off.held, ['timeOfDay:'], 'a detector that failed keeps its incidents as they are');
 });
 
@@ -497,7 +538,25 @@ test('runAll leaves the hardware readings to settle for 15 minutes after a start
     assert.deepEqual(unknown.anomalies.map((a) => a.fingerprint), ['spike:high:cpu'], 'no settle period when the awake time is unknown');
 });
 
-test('levels() gives the settings page the real number behind each of the 5 sensitivity steps of all 6 detectors', () => {
+test('tablets: only the time the kiosk has been watched counts, so a night in hibernation is not an outage', () => {
+    const devices = [{ device_id: 'a1', name: 'Lobby', seconds_ago: 15 * 3600 }];
+    assert.deepEqual(d.detectTablets({ devices, now: NOW, sensitivity: 3, quiet: false, watchSeconds: 5 * 60 }), [], 'watched for 5 minutes only');
+    const [late] = d.detectTablets({ devices, now: NOW, sensitivity: 3, quiet: false, watchSeconds: 11 * 60 });
+    assert.equal(late.fingerprint, 'tablets:offline:a1');
+    assert.match(late.title, /offline for 15 h/, 'the text keeps the real time since the last report');
+    assert.equal(d.detectTablets({ devices, now: NOW, sensitivity: 3, quiet: false, watchSeconds: null }).length, 1, 'no cap when the watch time is unknown');
+
+    const all = Object.fromEntries(d.DETECTOR_KEYS.map((key) => [key, { enabled: true, sensitivity: 3 }]));
+    const early = d.runAll({ now: NOW, tablets: { devices }, watchSeconds: 5 * 60 }, { detectors: all });
+    assert.equal(early.states.tablets, 'ok');
+    assert.match(early.notes.tablets, /Watching again for 5 min: a tablet counts as offline after 10 quiet minutes/);
+    assert.ok(early.held.includes('tablets:'), 'an open tablet incident is not closed while the watch time is too short to tell');
+    const later = d.runAll({ now: NOW, tablets: { devices }, watchSeconds: 11 * 60 }, { detectors: all });
+    assert.ok(!later.held.includes('tablets:'));
+    assert.equal(later.anomalies.length, 1);
+});
+
+test('levels() gives the settings page the real number behind each of the 5 sensitivity steps of all 7 detectors', () => {
     const levels = d.levels();
     assert.deepEqual(Object.keys(levels), d.DETECTOR_KEYS);
     for (const [key, level] of Object.entries(levels)) {
@@ -508,18 +567,8 @@ test('levels() gives the settings page the real number behind each of the 5 sens
     assert.deepEqual(levels.spike.short, [1, 2, 3, 4, 5].map((s) => `${d.K[s]}×`), 'straight from the tables the detectors use');
     assert.equal(levels.drift.short[4], `${d.H[5]}×`);
     assert.equal(levels.disk.long[0], `${d.D[1]} days`);
+    assert.equal(levels.tablets.long[2], `${d.M[3]} minutes`);
     assert.equal(levels.logs.long[4], `${d.B[5]} errors`);
     assert.match(levels.spike.sentence, new RegExp(`CPU or GPU over ${d.FLOORS.cpu} %`));
-});
-
-test('the tablets detector is gone: it never runs, and what it opened on an earlier version is closed', () => {
-    assert.equal(d.DETECTOR_KEYS.includes('tablets'), false);
-    assert.deepEqual(d.RETIRED_PREFIXES, ['tablets:']);
-    // settings saved by an earlier version may still switch it on, and old input may still carry devices
-    const r = d.runAll({ now: NOW, tablets: { devices: [{ device_id: 'a1', name: 'Lobby', seconds_ago: 99999 }] } }, { detectors: { tablets: { enabled: true, sensitivity: 5 } } });
-    assert.equal('tablets' in r.states, false);
-    assert.deepEqual(r.anomalies.filter((a) => a.detector === 'tablets'), []);
-    assert.ok(r.closed.includes('tablets:'), 'an open incident with a tablets fingerprint is closed by the engine');
-    assert.equal(r.held.some((prefix) => prefix.startsWith('tablets')), false, 'and never held open');
 });
 // <Jun Kai end>

@@ -80,6 +80,7 @@ test('a third false alarm from the incidents panel tunes the detector, and the s
         hardware: () => ({ read: () => ({ intervalSeconds: 60 }) }),
         control: () => ({ readModeConfig: () => ({ mode: 'manual' }), readSchedulesConfig: () => ({ schedules: [] }) }),
         policies: () => ({ status: () => ({ on: true }) }),
+        tabletNames: () => ({ all: () => ({}) }),
         settings: () => settings.DEFAULTS,
         audit: () => {},
         files: () => [path.join(dir, 'a.jsonl')],

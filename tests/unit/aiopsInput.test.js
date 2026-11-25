@@ -60,6 +60,7 @@ test('assembleInput with nothing loaded gives the full shape and no detector fai
     assert.deepEqual(built.driftSeries, { memory: [], disk: [] });
     assert.deepEqual(built.disk, { points: [], totalGb: null, percent: null });
     assert.deepEqual(built.health, { runs: [] });
+    assert.deepEqual(built.tablets, { devices: [] });
     assert.deepEqual(built.logs, { events: [], known: new Set(), historyHours: 0 });
     assert.equal(built.quiet, false);
     const result = detectors.runAll(built, settings.DEFAULTS);
@@ -79,6 +80,7 @@ test('assembleInput converts a day of MySQL rows into series the detectors read 
         diskPoints: buckets(HOUR, 30 * 24, '340.8'),
         totalGb: '480.0', percent: '71.0',
         runs: [{ at: new Date(NOW - 5 * MINUTE).toISOString(), results: [{ key: 'database', status: 'ok', latencyMs: 4, summary: 'ok' }] }],
+        devices: [{ device_id: 'tablet-1', name: 'Entrance', seconds_ago: '30' }],
         events: [{ at: new Date(NOW - MINUTE).toISOString(), process: 'server', level: 'warn', message: 'slow query 123 ms' }],
         known: ['slow query # ms'], historyHours: '30.5', quiet: 'yes'
     });
@@ -101,6 +103,7 @@ test('assembleInput converts a day of MySQL rows into series the detectors read 
     assert.equal(result.states.spike, 'ok', result.notes.spike);
     assert.equal(result.states.drift, 'ok', result.notes.drift);
     assert.equal(result.states.disk, 'ok', result.notes.disk);
+    assert.equal(result.states.tablets, 'ok', result.notes.tablets);
     assert.equal(result.states.logs, 'ok', result.notes.logs);
     assert.equal(result.states.timeOfDay, 'learning', 'one day of the same hour is not a baseline yet');
     assert.equal(result.states.services, 'learning', 'one health run is not enough');

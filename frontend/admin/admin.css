@@ -7474,6 +7474,8 @@ input:checked + .slider:before {
 .health-card-summary { margin-top: 12px; font-size: 14px; color: var(--theme-text-color); line-height: 1.45; }
 .health-card-detail { margin-top: 8px; font-size: 12px; line-height: 1.55; color: var(--color-dark-gray); }
 .health-cached { font-size: 11px; color: var(--color-muted); margin-left: 6px; }
+.health-row-offline td { color: var(--color-muted); }
+.health-device { font-weight: 600; color: var(--theme-text-color); }
 
 @media (max-width: 720px) {
     .ui-page-header { flex-direction: column; align-items: flex-start; }
@@ -7634,6 +7636,16 @@ input:checked + .slider:before {
 .health-card-link { padding: 0; border: 0; background: none; font: inherit; color: var(--theme-btn-primary-bg); font-weight: 500; cursor: pointer; }
 .health-card-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 .health-card-link:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; border-radius: 3px; }
+/* "Offline" with the time under it keeps the Status column narrow, so tablet names stay on one line */
+.health-ago { margin-top: 4px; font-size: 12px; white-space: nowrap; }
+/* Offline after, on the right of the Tablets header (a System Admin changes it, others see it greyed).
+   On a narrow screen it drops under the text instead of squeezing it into a thin column. */
+#health-tablets-card .ui-card-header { flex-wrap: wrap; }
+#health-tablets-card .ui-card-header > div:first-child { flex: 1 1 320px; min-width: 0; }
+.health-offline-after { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+.health-offline-after .ui-label { margin: 0; white-space: nowrap; }
+.health-offline-after .ui-select { width: auto; min-width: 104px; }
+.health-offline-after .ui-select:disabled { background-color: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
 .health-skel { display: block; height: 10px; margin-top: 14px; border-radius: 5px; background: linear-gradient(90deg, #eef2f6 25%, #f7f9fb 37%, #eef2f6 63%); background-size: 400% 100%; animation: healthShimmer 1.4s ease infinite; }
 .health-skel + .health-skel { margin-top: 10px; }
 @keyframes healthShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
@@ -7990,17 +8002,25 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 /* <Jun Kai end> */
 
 /* <Jun Kai start> */
-/* Custom values in the hardware Settings drawer, and the close button of the health options */
+/* Custom values in the hardware Settings drawer, tablet names, and the close button of the health options */
 .hw-custom { display: flex; gap: 8px; }
 .hw-custom[hidden], .hw-custom-hint[hidden] { display: none; }
 .hw-custom .ui-input { flex: 1 1 auto; min-width: 0; }
 .hw-custom .ui-select { flex: 0 0 auto; width: auto; min-width: 116px; }
 .hw-custom-unit { display: inline-flex; align-items: center; height: 38px; padding: 0 14px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-bg-color); color: var(--color-dark-gray); font-size: 14px; font-weight: 400; box-sizing: border-box; }
 .hw-custom-hint { margin: 0; }
-.hw-custom-hint.is-error { color: #b91c1c; }
+.hw-custom-hint.is-error, .health-rename .ui-help.is-error { color: #b91c1c; }
 .ui-input[aria-invalid="true"] { border-color: #dc2626; }
 .ui-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
-.health-customise-close:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 1px; }
+.health-device-cell { display: flex; align-items: center; gap: 6px; }
+.health-device-text { min-width: 0; }
+.health-rename-btn { width: 28px; height: 28px; flex-shrink: 0; color: var(--color-muted); }
+.health-rename-btn:focus-visible, .health-customise-close:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 1px; }
+.health-nowrap { white-space: nowrap; }
+.health-rename { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 6px; }
+.health-rename .ui-input { grid-column: 1 / -1; width: 100%; min-width: 180px; height: 34px; }
+.health-rename .ui-help { grid-column: 1 / -1; margin: 0 0 2px; }
+.health-rename .ui-btn { height: 32px; padding: 0 12px; }
 .hw-range { position: relative; }
 .hw-range-form { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: 290px; display: grid; gap: 8px; padding: 14px; background: var(--theme-card-bg); border: 1px solid var(--theme-border-color); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16); }
 .hw-range-form[hidden] { display: none; }

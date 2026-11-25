@@ -12,9 +12,12 @@ const serverControl = require('../serverControl/control');
 const scheduler = require('../serverControl/scheduler');
 const emailService = require('../email/service');
 // <Jun Kai start>
-// the alert lines of each part (Hardware page, Alert lines)
+const tabletNames = require('./tabletNames');
+// the alert lines of each part (Hardware page, Alert lines) and when a tablet counts as offline (Tablets, Offline after)
 const hardwareSettings = require('../hardware/settings');
+const healthSettings = require('./settings');
 const aiopsSettings = require('../aiops/settings');
+const tabletWindowSeconds = () => healthSettings.read().tabletOfflineMinutes * 60;
 // <Jun Kai end>
 
 const OLLAMA_URL = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
@@ -190,6 +193,36 @@ async function checkServer() {
     };
 }
 
+// <Jun Kai start>
+let heartbeatTableWarned = false;
+async function checkTablets() {
+    const base = { key: 'tablets', label: 'Tablets' };
+    try {
+        const rows = await query('all', `
+            SELECT device_id, label, page, user_agent, ip, first_seen, last_seen,
+                   TIMESTAMPDIFF(SECOND, last_seen, NOW()) AS seconds_ago
+            FROM device_heartbeats
+            ORDER BY last_seen DESC
+            LIMIT 50`, []);
+        const names = tabletNames.all();
+        const windowSeconds = tabletWindowSeconds(); // <Jun Kai/> Offline after, on the Tablets list (3 minutes by default)
+        const devices = tabletNames.sortDevices(rows.map((r) => ({ ...r, name: names[r.device_id] || null, online: r.seconds_ago <= windowSeconds })));
+        const online = devices.filter((d) => d.online);
+        let status = 'ok';
+        let summary = `${online.length} online of ${devices.length} known`;
+        if (!devices.length) { status = 'unknown'; summary = 'No tablet has reported yet'; }
+        else if (!online.length) { status = 'warn'; summary = `None of the ${devices.length} known tablets reported in the last ${windowSeconds / 60} minutes`; }
+        return { ...base, status, summary, detail: { devices, onlineWindowSeconds: windowSeconds }, latencyMs: null };
+    } catch (error) {
+        if (error.code === 'ER_NO_SUCH_TABLE') {
+            if (!heartbeatTableWarned) { heartbeatTableWarned = true; console.warn('⚠️ device_heartbeats table is missing: run npm run db:migrate'); }
+            return { ...base, status: 'unknown', summary: 'Heartbeat table missing: run npm run db:migrate', detail: { devices: [] }, latencyMs: null };
+        }
+        return { ...base, status: 'unknown', summary: 'Could not read the heartbeats', detail: { devices: [], error: error.message }, latencyMs: null };
+    }
+}
+// <Jun Kai end>
+
 function checkAutomation() {
     const base = { key: 'automation', label: 'Schedules' };
     return new Promise((resolve) => {
@@ -226,7 +259,7 @@ function checkAutomation() {
 async function runAll({ refreshEmail = false, skip = [] } = {}) {
     const all = {
         database: checkDatabase, kiosk: checkKiosk, disk: checkDisk, server: checkServer,
-        ollama: checkOllama, email: () => checkEmail(refreshEmail), automation: checkAutomation
+        ollama: checkOllama, email: () => checkEmail(refreshEmail), tablets: checkTablets, automation: checkAutomation
     };
     const checks = await Promise.all(Object.keys(all).filter((key) => !skip.includes(key)).map((key) => all[key]()));
     // <Jun Kai end>
@@ -240,4 +273,4 @@ async function runAll({ refreshEmail = false, skip = [] } = {}) {
     };
 }
 
-module.exports = { runAll, checkDatabase, checkOllama, checkDisk, checkKiosk, checkEmail, checkServer, checkAutomation, OLLAMA_URL };
+module.exports = { runAll, checkDatabase, checkOllama, checkDisk, checkKiosk, checkEmail, checkServer, checkTablets, checkAutomation, OLLAMA_URL };

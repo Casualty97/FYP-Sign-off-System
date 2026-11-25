@@ -1,6 +1,6 @@
 // Owner: Role 3, Jun Kai.
 // Anomaly detectors behind the Incidents panel of the System Health page: plain statistics on the PC's own
-// samples, health checks and server logs (median/MAD z-scores, CUSUM, the disk forecast, counts).
+// samples, health checks, tablet heartbeats and server logs (median/MAD z-scores, CUSUM, the disk forecast, counts).
 // Pure functions with no clock, database or network, unit-tested in tests/unit/aiopsDetectors.test.js.
 // <Jun Kai start>
 const crypto = require('crypto');
@@ -9,14 +9,12 @@ const forecast = require('../hardware/forecast');
 const K = { 1: 6, 2: 4.5, 3: 3.5, 4: 2.8, 5: 2.2 };          // robust z threshold
 const H = { 1: 8, 2: 6.5, 3: 5, 4: 4, 5: 3 };                // CUSUM limit, in sigmas
 const D = { 1: 3, 2: 7, 3: 14, 4: 21, 5: 30 };               // disk: days until full
+const M = { 1: 30, 2: 20, 3: 10, 4: 5, 5: 3 };               // tablets: minutes without a heartbeat
 const B = { 1: 15, 2: 10, 3: 6, 4: 4, 5: 3 };                // logs: errors in 5 minutes
 const FLOORS = { cpu: 60, memory: 80, gpu: 60 };
 const DRIFT_FLOORS = { cpu: 60, memory: 80, gpu: 60, disk: 70 };
 const SEVERITY_ORDER = ['info', 'warn', 'critical'];
-const DETECTOR_KEYS = ['spike', 'timeOfDay', 'drift', 'disk', 'services', 'logs'];
-// Detectors that were taken out. An incident one of them opened on an earlier version is closed at the next check.
-// tablets: watching named tablets went away with the Tablets section of System Health (25 Nov 2026).
-const RETIRED_PREFIXES = ['tablets:'];
+const DETECTOR_KEYS = ['spike', 'timeOfDay', 'drift', 'disk', 'services', 'tablets', 'logs'];
 const SERVICES = {
     database: { severity: 'critical', title: 'Database down', what: 'the MySQL database' },
     kiosk: { severity: 'critical', title: 'Kiosk server down', what: 'the kiosk server' },
@@ -122,6 +120,24 @@ const hoursText = (h) => (h < 1 ? 'under an hour' : h < 1.5 ? 'about an hour' : 
 const daysText = (d) => (d < 1 ? 'less than a day' : d === 1 ? '1 day' : `${d} days`);
 const minutesText = (seconds) => `${Math.round(seconds / 60)} minutes`;
 const times = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
+function durationText(seconds) {
+    const minutes = seconds / 60;
+    if (minutes < 60) return `${Math.round(minutes)} min`;
+    if (minutes < 24 * 60) {
+        const h = Math.floor(minutes / 60);
+        const m = Math.round(minutes % 60);
+        return m ? `${h} h ${m} min` : `${h} h`;
+    }
+    const days = Math.floor(minutes / (24 * 60));
+    const h = Math.round((minutes % (24 * 60)) / 60);
+    return h ? `${days} d ${h} h` : `${days} d`;
+}
+function listText(names) {
+    const shown = names.slice(0, 5);
+    const rest = names.length - shown.length;
+    const text = shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}` : shown.join('');
+    return rest > 0 ? `${text} and ${rest} more` : text;
+}
 
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 // old console messages start with an emoji; incident texts quote the words only
@@ -379,6 +395,38 @@ function detectServices({ runs, now, sensitivity, quiet }) {
     return out;
 }
 
+const namedTablets = (devices) => (devices || []).filter((d) => d && typeof d.name === 'string' && d.name.trim() !== '');
+
+// devices: [{ device_id, name, seconds_ago }] from the heartbeats. Only named tablets count; all of them silent
+// (2 or more) is one critical incident, otherwise one warning per tablet. Nothing while the kiosk should be off.
+// watchSeconds: how long the PC has been awake with the kiosk meant to be on. A tablet only counts as offline once it
+// has been quiet for the limit within that time, so a night in hibernation does not turn every tablet into
+// "offline for 15 hours" the moment the PC wakes up. Unknown (null) means no such cap.
+function detectTablets({ devices, now, sensitivity, quiet, watchSeconds }) {
+    if (quiet) return [];
+    const limitMinutes = M[sens(sensitivity)];
+    const watched = watchSeconds === null || watchSeconds === undefined || !Number.isFinite(Number(watchSeconds)) ? Infinity : Number(watchSeconds);
+    const named = namedTablets(devices);
+    const offline = named.filter((d) => Number.isFinite(Number(d.seconds_ago)) && Math.min(Number(d.seconds_ago), watched) > limitMinutes * 60);
+    if (!offline.length) return [];
+    if (named.length >= 2 && offline.length === named.length) {
+        const newest = Math.min(...offline.map((d) => Number(d.seconds_ago)));
+        const names = offline.map((d) => d.name.trim());
+        return [anomaly('tablets', 'all-offline', null, 'critical', `All ${named.length} named tablets offline`,
+            `None of the ${named.length} named tablets (${listText(names)}) has reported for more than ${limitMinutes} minutes. The most recent report was ${durationText(newest)} ago.`,
+            { metric: 'seconds_ago', value: round1(newest / 60), unit: 'min', limitMinutes, count: named.length, names })];
+    }
+    return offline.map((d) => {
+        const seconds = Number(d.seconds_ago);
+        const name = d.name.trim();
+        // a name such as "Tablet 9" already says what it is
+        const shown = /^tablet\b/i.test(name) ? cut(name, 36) : `Tablet ${cut(name, 30)}`;
+        return anomaly('tablets', 'offline', d.device_id, 'warn', `${shown} offline for ${durationText(seconds)}`,
+            `${/^tablet\b/i.test(name) ? name : `The tablet ${name}`} last reported ${durationText(seconds)} ago. A named tablet that is quiet for more than ${limitMinutes} minutes counts as offline at this sensitivity.`,
+            { metric: 'seconds_ago', value: round1(seconds / 60), unit: 'min', limitMinutes, name, device_id: d.device_id });
+    });
+}
+
 const processText = (name) => (name === 'kiosk' ? 'The kiosk server' : name === 'server' ? 'The admin server' : 'The server');
 
 // events: warn/error lines of the last 24 h from both processes. Burst: errors in the last 5 minutes against the
@@ -459,7 +507,7 @@ function combine(results) {
 }
 
 // input: see the Interfaces section of the design (now, intervalSeconds, samples, hourSeries, driftSeries, disk,
-// health, logs, quiet); settings.detectors[key] = { enabled, sensitivity }. Never throws: a detector that
+// health, tablets, logs, quiet); settings.detectors[key] = { enabled, sensitivity }. Never throws: a detector that
 // crashes gets state 'error' and its message in notes.
 function runAll(input, settings) {
     const data = input || {};
@@ -475,7 +523,7 @@ function runAll(input, settings) {
     const states = {};
     const notes = {};
     const held = [];   // fingerprint prefixes nothing looked at in this check: their open incidents stay as they are
-    const closed = [...RETIRED_PREFIXES]; // prefixes of detectors that are switched off or were taken out: their open incidents are closed
+    const closed = []; // prefixes of detectors that are switched off: their open incidents are closed
     const metrics = (group, keys, detect, sensitivity) => combine(keys.map((metric) => ({
         metric, result: detect({ series: (group || {})[metric], metric, now, sensitivity, intervalSeconds })
     })));
@@ -496,6 +544,18 @@ function runAll(input, settings) {
             const kioskHeld = quiet ? ['services:down:kiosk'] : [];
             if (quiet && !found.length) return { anomalies: found, state: 'muted', note: 'Kiosk server check muted in quiet hours; database and mail still watched', held: kioskHeld };
             return { anomalies: found, state: 'ok', note: null, held: kioskHeld };
+        },
+        tablets: (sensitivity) => {
+            const devices = (data.tablets && data.tablets.devices) || [];
+            const found = detectTablets({ devices, now, sensitivity, quiet, watchSeconds: data.watchSeconds });
+            if (quiet) return { anomalies: found, state: 'muted', note: 'Muted in quiet hours: the kiosk is meant to be off', held: ['tablets:'] };
+            // right after a wake-up or the end of quiet hours no tablet can have been quiet long enough yet
+            const watch = data.watchSeconds === null || data.watchSeconds === undefined ? NaN : Number(data.watchSeconds);
+            if (Number.isFinite(watch) && watch <= M[sensitivity] * 60 && namedTablets(devices).length) {
+                return { anomalies: found, state: 'ok', note: `Watching again for ${Math.max(0, Math.round(watch / 60))} min: a tablet counts as offline after ${M[sensitivity]} quiet minutes`, held: ['tablets:'] };
+            }
+            if (!namedTablets(devices).length) return { anomalies: found, state: 'no-data', note: 'No named tablets yet' };
+            return { anomalies: found, state: 'ok', note: null };
         },
         logs: (sensitivity) => {
             const logs = data.logs || {};
@@ -542,13 +602,14 @@ function levels() {
         drift: { short: times(H), sentence: `Alarms after a steady climb of {v} the usual swing (memory over ${DRIFT_FLOORS.memory} %, disk over ${DRIFT_FLOORS.disk} %).` },
         disk: { short: steps.map((s) => `${D[s]} d`), long: steps.map((s) => `${D[s]} days`), sentence: 'Alarms when the disk will be full within {v} at the current growth, and always at 90 % full.' },
         services: { short: times(K), sentence: `Down after 2 failed checks in a row at any level. Slow when the database answers {v} its usual swing slower than normal and takes at least ${LATENCY_FLOOR_MS} ms.` },
+        tablets: { short: steps.map((s) => `${M[s]} min`), long: steps.map((s) => `${M[s]} minutes`), sentence: 'Alarms when a named tablet has not reported for {v}.' },
         logs: { short: steps.map((s) => String(B[s])), long: steps.map((s) => `${B[s]} errors`), sentence: 'Alarms at {v} in 5 minutes (and 3 times the usual), and at any kind of error never seen before.' }
     };
 }
 
 module.exports = {
-    levels, K, H, D, B, FLOORS, DRIFT_FLOORS, SEVERITY_ORDER, DETECTOR_KEYS, RETIRED_PREFIXES, SETTLE_SECONDS,
-    median, mad, robustZ, windowMean, sgtHour, sgtWeekday, sgtDayKey, templateOf, templateHash, thin,
-    detectSpike, detectTimeOfDay, detectDrift, detectDisk, detectServices, detectLogs, runAll
+    levels, K, H, D, M, B, FLOORS, DRIFT_FLOORS, SEVERITY_ORDER, DETECTOR_KEYS, SETTLE_SECONDS,
+    median, mad, robustZ, windowMean, sgtHour, sgtWeekday, sgtDayKey, templateOf, templateHash, thin, namedTablets,
+    detectSpike, detectTimeOfDay, detectDrift, detectDisk, detectServices, detectTablets, detectLogs, runAll
 };
 // <Jun Kai end>

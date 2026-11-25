@@ -15,6 +15,7 @@ const ACTIONS = {
     'free-disk-space': 'Free disk space on the server PC (old files, the recycle bin, other programs)',
     'run-archive-now': 'Archive old visitor records and their photos (Visitor Data Archive page)',
     'check-mail-login': 'Check the mail account (Mail Account page)',
+    'check-tablet': 'Check the tablet: power, Wi-Fi and the kiosk page',
     'review-server-log': 'Read the server log lines around the error (logs folder)'
 };
 const LIKELIHOOD = ['high', 'medium', 'low'];
@@ -120,6 +121,7 @@ function ruleAdvice(incident) {
         if (subject === 'email') return advice('check-mail-login', 'The mail account cannot log in.', [['The password or app password changed', 'high'], ['No internet connection', 'medium']], 'Thank-you emails are not sent while the login fails.');
         return advice('review-server-log', 'A service check keeps failing.', [['The service stopped', 'medium']], 'The log shows what failed.');
     }
+    if (detector === 'tablets') return advice('check-tablet', kind === 'all-offline' ? 'None of the named tablets is reporting.' : 'A named tablet stopped reporting.', kind === 'all-offline' ? [['The Wi-Fi or the network is down', 'high'], ['The server PC changed its address', 'medium']] : [['The tablet is off, asleep or out of battery', 'high'], ['It lost the Wi-Fi', 'medium'], ['The kiosk page was closed', 'medium']], 'A tablet that does not report cannot take sign-offs.');
     if (detector === 'logs') return advice('review-server-log', kind === 'burst' ? 'The server is writing many errors at once.' : 'The server wrote a kind of error it never wrote before.', [['A feature failing again and again', 'high'], ['The database or a file was not reachable for a moment', 'medium']], 'The log lines say which part failed.');
     if (detector === 'drift' && subject === 'disk') return advice('run-archive-now', 'Disk use has been creeping up for hours.', [['Visitor photos and records piling up', 'high']], 'An archive frees space without losing records.');
     if (detector === 'drift') return advice('restart-kiosk-server', 'Memory use has been creeping up for hours.', [['A program slowly holding more memory', 'high'], ['Many browser tabs or apps left open', 'medium']], 'A restart gives the memory back if the kiosk server is the one holding it.');

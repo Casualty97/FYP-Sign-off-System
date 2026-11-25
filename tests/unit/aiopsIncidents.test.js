@@ -244,18 +244,18 @@ test('a reopened incident takes the text and the severity of the new episode', a
 
 test('held incidents stay open while nothing looks at them; incidents of a switched-off detector close at once', async () => {
     const { engine, store, plant, also, advance } = setup();
-    plant(anomaly(), anomaly({ detector: 'services', kind: 'down', subject: 'kiosk' }), anomaly({ detector: 'disk', kind: 'full' }));
+    plant(anomaly(), anomaly({ detector: 'tablets', kind: 'offline', subject: 'tab-1' }), anomaly({ detector: 'disk', kind: 'full' }));
     await engine.tick();
     assert.equal((await store.list()).length, 3);
 
-    // quiet hours: the kiosk check did not look, the others report nothing
+    // quiet hours: the tablets detector did not look, the others report nothing
     plant();
-    also({ held: ['services:down:kiosk'] });
+    also({ held: ['tablets:'] });
     advance(11 * MINUTE);
     let result = await engine.tick();
     assert.equal(result.resolved, 2, 'spike and disk went back to normal');
     let open = await store.list();
-    assert.deepEqual(open.map((i) => i.fingerprint), ['services:down:kiosk'], 'the held incident is neither resolved nor touched');
+    assert.deepEqual(open.map((i) => i.fingerprint), ['tablets:offline:tab-1'], 'the held incident is neither resolved nor touched');
     assert.equal(open[0].last_seen_at, at(0));
 
     // still held hours later
@@ -263,13 +263,13 @@ test('held incidents stay open while nothing looks at them; incidents of a switc
     result = await engine.tick();
     assert.equal(result.resolved, 0);
 
-    // the detector looks again and the kiosk is back: the normal rule closes it
+    // the detector looks again and the tablet is back: the normal rule closes it
     also({});
     advance(MINUTE);
     result = await engine.tick();
     assert.equal(result.resolved, 1);
-    const kiosk = (await store.list({ status: 'resolved' })).find((i) => i.detector === 'services');
-    assert.deepEqual((await store.events(kiosk.id)).at(-1).detail, { auto: true });
+    const tablet = (await store.list({ status: 'resolved' })).find((i) => i.detector === 'tablets');
+    assert.deepEqual((await store.events(tablet.id)).at(-1).detail, { auto: true });
 
     // a detector that is switched off: its open incident closes at once, with the reason
     plant(anomaly());

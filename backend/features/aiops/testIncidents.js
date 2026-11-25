@@ -51,6 +51,15 @@ const TEST_KINDS = {
             evidence: { metric: 'disk', value: 443, unit: 'GB', percent: 93, totalGb: 476, gbPerDay: 2.1, daysUntilFull: 6, spanDays: 9, points: points(nowMs, 60, 216, (i) => 424 + i * 0.32) }
         })
     },
+    tablet: {
+        label: 'Tablet offline',
+        build: () => ({
+            detector: 'tablets', kind: 'offline', subject: 'test-tablet', severity: 'warn',
+            title: 'Tablet Entrance offline for 25 minutes',
+            explanation: 'The tablet Entrance last reported 25 minutes ago. A named tablet that is quiet for more than 10 minutes counts as offline at this sensitivity.',
+            evidence: { metric: 'seconds_ago', value: 25, unit: 'min', limitMinutes: 10, name: 'Entrance', device_id: 'test-tablet' }
+        })
+    },
     errors: {
         label: 'Server errors',
         build: (nowMs) => ({

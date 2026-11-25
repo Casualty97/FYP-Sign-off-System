@@ -80,11 +80,11 @@ test('validate refuses out-of-range and non-whole numbers and names the field', 
             assert.match(result.error, /whole number/);
         }
     }
-    assert.equal(check({ detectors: { logs: { sensitivity: 1 } } }).settings.detectors.logs.sensitivity, 1);
-    assert.equal(check({ detectors: { logs: { sensitivity: 5 } } }).settings.detectors.logs.sensitivity, 5);
-    assert.equal(check({ detectors: { logs: { sensitivity: 6 } } }).field, 'detectors.logs.sensitivity');
-    assert.equal(check({ detectors: { logs: { sensitivity: 0 } } }).field, 'detectors.logs.sensitivity');
-    assert.equal(check({ detectors: { logs: { sensitivity: 2.5 } } }).field, 'detectors.logs.sensitivity');
+    assert.equal(check({ detectors: { tablets: { sensitivity: 1 } } }).settings.detectors.tablets.sensitivity, 1);
+    assert.equal(check({ detectors: { tablets: { sensitivity: 5 } } }).settings.detectors.tablets.sensitivity, 5);
+    assert.equal(check({ detectors: { tablets: { sensitivity: 6 } } }).field, 'detectors.tablets.sensitivity');
+    assert.equal(check({ detectors: { tablets: { sensitivity: 0 } } }).field, 'detectors.tablets.sensitivity');
+    assert.equal(check({ detectors: { tablets: { sensitivity: 2.5 } } }).field, 'detectors.tablets.sensitivity');
 });
 
 test('validate wants real booleans for the switches', () => {
@@ -109,30 +109,16 @@ test('validate refuses anything that is not an object', () => {
     }
 });
 
-test('settings saved by an earlier version still load: the tablets detector they hold is left out, the rest is kept', () => {
-    const old = { ...defaults(), intervalSeconds: 120 };
-    old.detectors = { ...old.detectors, spike: { enabled: false, sensitivity: 2 }, tablets: { enabled: true, sensitivity: 5 } };
-    const repaired = settings.repair(old);
-    assert.equal('tablets' in repaired.detectors, false);
-    assert.deepEqual(repaired.detectors.spike, { enabled: false, sensitivity: 2 });
-    assert.equal(repaired.intervalSeconds, 120);
-    assert.deepEqual(Object.keys(repaired.detectors), settings.DETECTORS.map((d) => d.key));
-    // the settings panel of an older page still open in a browser may send the old detector: it is ignored, not refused
-    const saved = check({ detectors: { tablets: { enabled: false, sensitivity: 1 } } }, repaired);
-    assert.ok(saved.settings, saved.error);
-    assert.equal('tablets' in saved.settings.detectors, false);
-});
-
 test('a partial body keeps the previous values and unknown keys are ignored', () => {
     const previous = { ...defaults(), intervalSeconds: 120, cooldownMinutes: 0 };
-    previous.detectors.logs.sensitivity = 5;
+    previous.detectors.tablets.sensitivity = 5;
     const result = check({ healthEverySeconds: 600, detectors: { spike: { enabled: false }, nope: { enabled: true } }, bogus: 1 }, previous);
     assert.ok(result.settings, result.error);
     assert.equal(result.settings.healthEverySeconds, 600);
     assert.equal(result.settings.intervalSeconds, 120);
     assert.equal(result.settings.cooldownMinutes, 0);
     assert.deepEqual(result.settings.detectors.spike, { enabled: false, sensitivity: 3 });
-    assert.deepEqual(result.settings.detectors.logs, { enabled: true, sensitivity: 5 });
+    assert.deepEqual(result.settings.detectors.tablets, { enabled: true, sensitivity: 5 });
     assert.equal('nope' in result.settings.detectors, false);
     assert.equal('bogus' in result.settings, false);
     assert.deepEqual(Object.keys(result.settings), Object.keys(settings.DEFAULTS));

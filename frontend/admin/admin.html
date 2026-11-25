@@ -3389,7 +3389,7 @@
                 <div id="health-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>System Health<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How the checks work" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How the checks work"><div>The seven checks run side by side every 30 seconds while this page is open, and when you press Check now.</div><ul><li><b>Green</b> healthy, <b>amber</b> needs attention, <b>red</b> down, <b>grey</b> unknown or switched off.</li><li>The strip under a card is the last 24 hours: 48 blocks of half an hour, each showing the worst result in it.</li><li>The strips come from background checks, every 5 minutes unless changed under Incidents, Settings.</li><li>Customise hides checks for your account only.</li></ul></template></span></h2>
+                            <h2>System Health<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How the checks work" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How the checks work"><div>The eight checks run side by side every 30 seconds while this page is open, and when you press Check now.</div><ul><li><b>Green</b> healthy, <b>amber</b> needs attention, <b>red</b> down, <b>grey</b> unknown or switched off.</li><li>The strip under a card is the last 24 hours: 48 blocks of half an hour, each showing the worst result in it.</li><li>The strips come from background checks, every 5 minutes unless changed under Incidents, Settings.</li><li>Customise hides checks for your account only.</li></ul></template></span></h2>
                             <!-- <Jun Kai start> -->
                             <p>The checks the kiosk depends on, with the open incidents in short. The full list is on the Incidents page.</p>
                             <!-- <Jun Kai end> -->
@@ -3445,6 +3445,41 @@
                         <span id="health-history-note">One block is half an hour of the background checks.</span>
                     </div>
                     <!-- <Jun Kai end> -->
+                    <!-- <Jun Kai start> the Tablets list is the one panel under the cards: the Server PC card points to the Hardware page instead -->
+                    <div id="health-panels">
+                    <!-- <Jun Kai end> -->
+                        <div class="ui-card" id="health-tablets-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Tablets<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How a tablet shows as online" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How a tablet shows as online"><div>Each kiosk screen reports once a minute while its page is open. Nobody has to press anything on the tablet.</div><ul><li><b>Online</b>: the last report is no older than "Offline after" (3 minutes unless changed, 2 to 30).</li><li>The server measures the time, so a tablet with a wrong clock still shows correctly.</li><li>The pencil gives a tablet a name or number. Only named tablets can raise an incident when they go quiet.</li></ul></template></span></h3>
+                                    <!-- <Jun Kai start> -->
+                                    <p>Each kiosk screen reports once a minute from the feedback page; one quiet for longer than Offline after shows as offline. Incidents use their own minutes (Incidents, Settings). Use the edit button next to a tablet to give it a name or a number.</p>
+                                    <!-- <Jun Kai end> -->
+                                </div>
+                                <!-- <Jun Kai start> when a quiet tablet counts as offline, for every admin (a System Admin changes it) -->
+                                <div class="health-offline-after">
+                                    <label class="ui-label" for="health-offline-after">Offline after</label>
+                                    <select class="ui-select" id="health-offline-after" onchange="saveHealthOfflineAfter()">
+                                        <option value="2">2 min</option>
+                                        <option value="3">3 min</option>
+                                        <option value="5">5 min</option>
+                                        <option value="10">10 min</option>
+                                        <option value="15">15 min</option>
+                                        <option value="30">30 min</option>
+                                    </select>
+                                </div>
+                                <!-- <Jun Kai end> -->
+                            </div>
+                            <div class="ui-table-wrap">
+                                <!-- <Jun Kai start> -->
+                                <table class="ui-table">
+                                    <thead><tr><th>Device</th><th>Page</th><th>Status</th><th>Address</th></tr></thead>
+                                    <tbody id="health-tablets"><tr><td colspan="4" class="ui-empty">No tablet has reported yet</td></tr></tbody>
+                                </table>
+                                <!-- <Jun Kai end> -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- <Jun Kai start> -->
@@ -3452,8 +3487,8 @@
                 <div id="incidents-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>Incidents<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How incidents are found" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How incidents are found"><div>Every 60 seconds the admin server compares this PC's own numbers with their own past: CPU, memory, GPU, disk, the services and the server logs. This page refreshes every 30 seconds while it is open.</div><ul><li>It uses plain statistics, so every incident comes with a number and a sentence. Nothing leaves this PC.</li><li><b>Critical</b>, <b>Attention</b> or <b>Info</b> says how far from normal it is.</li><li>An incident closes by itself once things have been normal for 10 minutes.</li><li>With Quiet hours on, the kiosk server is not watched while the policies say the kiosk is off.</li></ul><div>Each number can be changed under Settings.</div></template></span></h2>
-                            <p>Unusual behaviour of the server PC, its services and the server logs, found by comparing each with its own past.</p>
+                            <h2>Incidents<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How incidents are found" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How incidents are found"><div>Every 60 seconds the admin server compares this PC's own numbers with their own past: CPU, memory, GPU, disk, the services, the named tablets and the server logs. This page refreshes every 30 seconds while it is open.</div><ul><li>It uses plain statistics, so every incident comes with a number and a sentence. Nothing leaves this PC.</li><li><b>Critical</b>, <b>Attention</b> or <b>Info</b> says how far from normal it is.</li><li>An incident closes by itself once things have been normal for 10 minutes.</li><li>With Quiet hours on, the kiosk server and the tablets are not watched while the policies say the kiosk is off.</li></ul><div>Each number can be changed under Settings.</div></template></span></h2>
+                            <p>Unusual behaviour of the server PC, its services, the tablets and the server logs, found by comparing each with its own past.</p>
                         </div>
                         <div class="ui-row inc-header-actions">
                             <span class="inc-chips" id="incidents-chips"></span>
@@ -3529,7 +3564,7 @@
                                     <div class="inc-drawer-title">Timing and keeping</div>
                                     <label class="inc-toggle-row">
                                         <span class="ui-switch"><input type="checkbox" id="incidents-quiet"><span class="ui-switch-track"></span></span>
-                                        <span class="inc-toggle-text"><strong>Quiet hours</strong><small>No kiosk server alerts while the policies say the kiosk is off.</small></span>
+                                        <span class="inc-toggle-text"><strong>Quiet hours</strong><small>No tablet or kiosk alerts while the policies say the kiosk is off.</small></span>
                                     </label>
                                     <div class="inc-drawer-grid">
                                         <div class="ui-field">

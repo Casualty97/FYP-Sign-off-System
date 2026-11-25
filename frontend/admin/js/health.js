@@ -1,7 +1,7 @@
 // Owner: Role 3, Jun Kai.
 // System health page: GET /api/admin/health, a status line, the open incidents in short under it (incidents.js; the
 // full list is the Incidents page), one card per check (the ones that need a look first, each with its last 24 hours
-// from GET /api/admin/health/history).
+// from GET /api/admin/health/history) and the tablets table.
 // <Jun Kai start>
 // Since supervisor meeting 03 (4 Nov 2026) each admin chooses which checks the page shows and runs
 // (GET/PUT /api/admin/health/layout). Placeholder cards hold the layout while the checks run, so nothing jumps.
@@ -19,16 +19,24 @@ let healthHistoryNote = '';
 // off: switched off on purpose (Ollama while Local AI models is off), never counted as a problem
 const HEALTH_STATUS_LABEL = { ok: 'Healthy', warn: 'Attention', down: 'Down', unknown: 'Unknown', off: 'Off' };
 const HEALTH_STATUS_TONE = { ok: 'ok', warn: 'warn', down: 'down', unknown: 'muted', off: 'muted' };
-const HEALTH_ICON_NAME = { database: 'database', kiosk: 'monitor', disk: 'disk', server: 'server', ollama: 'brain', email: 'mail', automation: 'clock', incidents: 'alert' };
-const HEALTH_ORDER = ['database', 'kiosk', 'ollama', 'email', 'disk', 'server', 'automation', 'incidents'];
+const HEALTH_ICON_NAME = { database: 'database', kiosk: 'monitor', disk: 'disk', server: 'server', ollama: 'brain', email: 'mail', tablets: 'tablet', automation: 'clock', incidents: 'alert' };
+const HEALTH_ORDER = ['database', 'kiosk', 'ollama', 'email', 'disk', 'server', 'automation', 'tablets', 'incidents'];
 const HEALTH_LABEL = {
     database: 'MySQL database', kiosk: 'Kiosk server (:3003)', ollama: 'Ollama (local LLM)', email: 'Email (SMTP)',
-    disk: 'Disk space', server: 'Server PC', automation: 'Schedules', incidents: 'Incidents summary'
+    disk: 'Disk space', server: 'Server PC', automation: 'Schedules', tablets: 'Tablets', incidents: 'Incidents summary'
 };
 // 'incidents' is the incidents summary under the status line (incidents.js), never a card
 const HEALTH_PANEL_KEYS = ['incidents'];
 const HEALTH_BLOCK_WORD = { o: 'Healthy', w: 'Attention', d: 'Down', u: 'Unknown', '-': 'Not checked' };
 // <Jun Kai end>
+
+function healthRelativeTime(secondsAgo) {
+    if (secondsAgo === null || secondsAgo === undefined) return '–';
+    if (secondsAgo < 90) return `${Math.max(0, Math.round(secondsAgo))} s ago`;
+    if (secondsAgo < 3600) return `${Math.round(secondsAgo / 60)} min ago`;
+    if (secondsAgo < 86400) return `${Math.round(secondsAgo / 3600)} h ago`;
+    return `${Math.round(secondsAgo / 86400)} d ago`;
+}
 
 function healthDetailLines(check) {
     const d = check.detail || {};
@@ -48,6 +56,7 @@ function healthDetailLines(check) {
             { link: 'Graphs and forecast on the Hardware page', page: 'hardware' }
         ];
         // <Jun Kai end>
+        case 'tablets': return [d.devices && d.devices.length ? `Online means a report in the last ${Math.round((d.onlineWindowSeconds || 180) / 60)} minutes` : 'Tablets report from the feedback page once a minute'];
         case 'automation': return [d.nextStop ? `Next stop ${formatPlannedTime(d.nextStop)}` : null, d.nextStart ? `Next start ${formatPlannedTime(d.nextStart)}` : null];
         default: return [];
     }
@@ -91,6 +100,7 @@ const HEALTH_NOTES = {
     email: ['Email', '<div>Tries the mail login. The result is kept for 5 minutes and marked "cached", because every try talks to the mail provider. Check now tries again at once.</div>'],
     disk: ['Disk space', '<div>The used share of the drive the project is on. It turns amber and red at the alert lines set on the Hardware page (85 % and 95 % unless changed).</div>'],
     server: ['Server PC', '<div>CPU use measured over 0.4 seconds and the memory in use. Amber and red follow the alert lines of the Hardware page, where the graphs and the forecast are.</div>'],
+    tablets: ['Tablets', '<div>Counts the kiosk screens that reported in time. Amber when none of the known tablets reported within Offline after, grey when no tablet has reported yet.</div><div>The table under the cards lists each tablet, with its name and when it last reported.</div>'],
     automation: ['Schedules', '<div>Grey when automation is switched off on this machine. Amber in manual mode, or when automatic mode has no policy that is enabled and Active. Green otherwise, with the next stop and start.</div>']
 };
 const healthNote = (key) => (HEALTH_NOTES[key] ? uiInfo(HEALTH_NOTES[key][0], HEALTH_NOTES[key][1]) : '');
@@ -221,9 +231,14 @@ function renderHealthCards() {
     }
 }
 
-// The incidents summary under the status line (incidents.js) follows the Incidents summary option in Customise and
-// refreshes with every health cycle
+// The Tablets list is the one panel under the cards; it follows the Tablets check in Customise
 function renderHealthPanels() {
+    const showTablets = healthVisibleKeys().includes('tablets');
+    const tablets = document.getElementById('health-tablets-card');
+    if (tablets) tablets.hidden = !showTablets;
+    const tabletCheck = ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets');
+    if (showTablets && tabletCheck) renderHealthTablets(tabletCheck);
+    // the incidents summary (incidents.js) follows the Incidents summary option and refreshes with every health cycle
     const incidents = document.getElementById('health-incidents-summary');
     const showIncidents = healthVisibleKeys().includes('incidents');
     if (incidents) incidents.hidden = !showIncidents;
@@ -280,6 +295,186 @@ function renderHealthSummary() {
     if (counts.off) shown.push([counts.off, 'off']);
     setHealthStatus(state, line, sub, shown);
     if (at) at.textContent = `Checked at ${new Date(healthLast.checkedAt).toLocaleTimeString('en-SG', { hour12: false })}`;
+}
+// <Jun Kai end>
+
+// <Jun Kai start>
+let healthRenaming = null; // the tablet whose name is being typed
+let healthRenameError = '';
+const HEALTH_NAME_ORDER = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+
+function healthTabletCheck() {
+    return ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets') || null;
+}
+
+// same order as the server: named tablets first in number order, the rest as they came
+function healthSortDevices(devices) {
+    return devices.slice().sort((a, b) => {
+        if (!a.name || !b.name) return (a.name ? 0 : 1) - (b.name ? 0 : 1);
+        return HEALTH_NAME_ORDER.compare(a.name, b.name);
+    });
+}
+
+function healthDeviceCell(d) {
+    const agent = String(d.user_agent || '');
+    const kind = /android/i.test(agent) ? 'Android tablet' : /iphone|ipad/i.test(agent) ? 'iOS device' : /windows/i.test(agent) ? 'Windows PC' : 'Browser';
+    const deviceName = d.label || d.device_id;
+    const id = escapeHtmlSafe(d.device_id);
+    if (healthRenaming === d.device_id) {
+        return `<form class="health-rename" data-device="${id}" novalidate>
+                    <input class="ui-input" type="text" maxlength="40" autocomplete="off" value="${escapeHtmlSafe(d.name || '')}" placeholder="${escapeHtmlSafe(deviceName)}" aria-label="Name for ${escapeHtmlSafe(deviceName)}" aria-describedby="health-rename-help"${healthRenameError ? ' aria-invalid="true"' : ''}>
+                    <div class="ui-help${healthRenameError ? ' is-error' : ''}" id="health-rename-help"${healthRenameError ? ' role="alert"' : ''}>${escapeHtmlSafe(healthRenameError || 'A name or a number. Leave it empty to use the device name.')}</div>
+                    <button type="submit" class="ui-btn ui-btn-primary">Save</button>
+                    <button type="button" class="ui-btn ui-btn-secondary" data-rename-cancel>Cancel</button>
+                </form>`;
+    }
+    const shown = d.name || deviceName;
+    return `<div class="health-device-cell">
+                <div class="health-device-text">
+                    <div class="health-device">${escapeHtmlSafe(shown)}</div>
+                    <div class="ui-muted">${d.name ? `<span class="health-nowrap">${escapeHtmlSafe(deviceName)}</span> · ` : ''}<span class="health-nowrap">${escapeHtmlSafe(kind)}</span></div>
+                </div>
+                <button type="button" class="ui-btn ui-btn-icon health-rename-btn" data-rename="${id}" aria-label="Rename ${escapeHtmlSafe(shown)}" title="Rename">${uiIcon('edit', 15)}</button>
+            </div>`;
+}
+
+// <Jun Kai start>
+// ---- Offline after: when a quiet tablet counts as offline, for every admin (a System Admin changes it) ----
+let healthOfflineBusy = false;
+const healthIsSystemAdmin = () => { try { return sessionStorage.getItem('userRole') === 'system_admin'; } catch { return false; } };
+
+// The list shows the minutes the server used for this answer; not while it is being changed
+function renderHealthOfflineAfter(check) {
+    const select = document.getElementById('health-offline-after');
+    if (!select) return;
+    const admin = healthIsSystemAdmin();
+    select.disabled = !admin || healthOfflineBusy;
+    select.title = admin ? '' : 'Only a System Admin can change this';
+    const seconds = check && check.detail && check.detail.onlineWindowSeconds;
+    if (!seconds || healthOfflineBusy || document.activeElement === select) return;
+    const minutes = String(Math.round(seconds / 60));
+    if (![...select.options].some((option) => option.value === minutes)) select.add(new Option(`${minutes} min`, minutes));
+    select.value = minutes;
+    select.dataset.saved = minutes;
+}
+
+async function saveHealthOfflineAfter() {
+    const select = document.getElementById('health-offline-after');
+    if (!select || healthOfflineBusy || !healthIsSystemAdmin()) return;
+    const minutes = Number(select.value);
+    healthOfflineBusy = true;
+    select.disabled = true;
+    try {
+        const response = await fetch('/api/admin/health/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tabletOfflineMinutes: minutes }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'Save failed');
+        select.dataset.saved = String(minutes);
+        showNotification(`A tablet now counts as offline after ${minutes} minutes without a report`, 'success');
+    } catch (error) {
+        if (select.dataset.saved) select.value = select.dataset.saved;
+        showNotification(`Could not save: ${error.message}`, 'error');
+    } finally {
+        healthOfflineBusy = false;
+        select.disabled = !healthIsSystemAdmin();
+    }
+    loadHealth();
+}
+// <Jun Kai end>
+
+function renderHealthTablets(check, force) {
+    const body = document.getElementById('health-tablets');
+    if (!body) return;
+    bindHealthTablets();
+    renderHealthOfflineAfter(check); // <Jun Kai/>
+    // the 30-second refresh must not wipe a name that is being typed; the table catches up when it closes
+    if (!force && healthRenaming && body.querySelector('.health-rename')) return;
+    const devices = (check && check.detail && check.detail.devices) || [];
+    if (!devices.length) {
+        body.innerHTML = `<tr><td colspan="4" class="ui-empty">${escapeHtmlSafe(check && check.summary ? check.summary : 'No tablet has reported yet')}</td></tr>`;
+        return;
+    }
+    body.innerHTML = devices.map((d) => `<tr class="${d.online ? '' : 'health-row-offline'}">
+                    <td>${healthDeviceCell(d)}</td>
+                    <td>${escapeHtmlSafe(d.page || '–')}</td>
+                    <td>${d.online ? uiPill('ok', 'Online') : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(d.seconds_ago))}</div>`}</td>
+                    <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
+                </tr>`).join('');
+}
+
+function bindHealthTablets() {
+    const body = document.getElementById('health-tablets');
+    if (!body || body.dataset.bound) return;
+    body.dataset.bound = '1';
+    body.addEventListener('click', (event) => {
+        const open = event.target.closest('[data-rename]');
+        if (open) startHealthRename(open.dataset.rename);
+        else if (event.target.closest('[data-rename-cancel]')) stopHealthRename();
+    });
+    body.addEventListener('submit', (event) => {
+        const form = event.target.closest('.health-rename');
+        if (!form) return;
+        event.preventDefault();
+        saveHealthRename(form);
+    });
+    body.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && event.target.closest('.health-rename')) {
+            event.preventDefault();
+            stopHealthRename();
+        }
+    });
+}
+
+function startHealthRename(deviceId) {
+    healthRenaming = deviceId;
+    healthRenameError = '';
+    renderHealthTablets(healthTabletCheck(), true);
+    const input = document.querySelector('#health-tablets .health-rename input');
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
+function stopHealthRename() {
+    const deviceId = healthRenaming;
+    healthRenaming = null;
+    healthRenameError = '';
+    renderHealthTablets(healthTabletCheck(), true);
+    const button = deviceId && document.querySelector(`#health-tablets [data-rename="${deviceId}"]`);
+    if (button) button.focus();
+}
+
+async function saveHealthRename(form) {
+    const deviceId = form.dataset.device;
+    const typed = form.querySelector('input').value;
+    form.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    try {
+        const response = await fetch(`/api/admin/health/tablets/${encodeURIComponent(deviceId)}/name`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: typed })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Could not save the name');
+        const check = healthTabletCheck();
+        const devices = (check && check.detail && check.detail.devices) || [];
+        const device = devices.find((d) => d.device_id === deviceId);
+        if (device) {
+            device.name = data.name;
+            check.detail.devices = healthSortDevices(devices);
+        }
+        showNotification(data.name ? `Tablet renamed to "${data.name}"` : 'The tablet shows its device name again', 'success');
+        stopHealthRename();
+    } catch (error) {
+        healthRenameError = error.message;
+        renderHealthTablets(healthTabletCheck(), true);
+        const input = document.querySelector('#health-tablets .health-rename input');
+        if (input) {
+            input.value = typed;
+            input.focus();
+            input.select();
+        }
+    }
 }
 // <Jun Kai end>
 
