@@ -5,6 +5,13 @@
 // Check if user is already logged in
 window.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, checking login status...');
+    // <Jun Kai start> a link from a password reset email ("#reset=<token>") opens the new password step before
+    // anything else, also in a tab that is signed in: the reset is for the account in the email (passwordReset.js)
+    if (typeof takePasswordResetToken === 'function') {
+        const resetToken = takePasswordResetToken();
+        if (resetToken !== null) { startPasswordResetFromLink(resetToken); return; }
+    }
+    // <Jun Kai end>
     const loggedUser = sessionStorage.getItem('loggedUser');
     if (loggedUser) {
         console.log('User already logged in:', loggedUser);

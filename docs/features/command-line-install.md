@@ -100,6 +100,8 @@ folder is private to that user.
    `SESSION_SECRET` and `ENCRYPTION_KEY`, `schema.sql`, every migration, the database check.
 8. The first admin account (`setup.js set-admin`): `systemadmin` gets the typed password; another name becomes a
    System Admin of its own and `systemadmin` gets a long random password. The public default password never works.
+   The account has no email yet: add it on Users after the first sign in, so "Forgot password?" on the login card can
+   send it a reset code.
 9. `app.new` becomes `app`; on a Wall PC the Startup shortcut (`start-kiosk.cmd --logon`) and the desktop link.
 10. The kiosk is started and the installer waits until the admin page answers, then prints the admin and tablet
     addresses.

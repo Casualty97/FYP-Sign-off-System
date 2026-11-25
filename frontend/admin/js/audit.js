@@ -182,6 +182,11 @@ const AUDIT_SENTENCES = {
     LOGIN_FAILED: 'failed to sign in',
     LOGIN_LOCKED: 'was locked out after too many failed sign ins',
     PASSWORD_VERIFY_FAILED: 'typed a wrong password when asked to confirm an action',
+    PASSWORD_RESET_REQUESTED: 'asked for a password reset code by email',
+    PASSWORD_RESET_DONE: 'set a new password with a reset code or link',
+    PASSWORD_RESET_CODE_WRONG: 'typed a wrong password reset code',
+    PASSWORD_RESET_LIMITED: 'asked for too many password reset emails (none was sent)',
+    PASSWORD_RESET_EMAIL_FAILED: 'asked for a password reset, but the email could not be sent',
     ADMIN_IDLE_SIGNOUT_UPDATE: 'changed the idle sign out setting',
     ADD_USER: 'added a user',
     EDIT_USER: 'edited user {id}',
@@ -295,7 +300,7 @@ function auditSentence(log) {
 // decrypts, grey for sign in and out, blue for every other change
 function auditTone(action) {
     const a = String(action || '');
-    if (/FAILED|DENIED|_LOCKED$/.test(a)) return 'amber'; // _LOCKED at the end only: DATA_EXPORT_UNLOCKED is not a refusal
+    if (/FAILED|DENIED|_LOCKED$|_WRONG$|_LIMITED$/.test(a)) return 'amber'; // _LOCKED at the end only: DATA_EXPORT_UNLOCKED is not a refusal
     if (/DELETE|EXPIRE/.test(a)) return 'red';
     if (/^ADD_|^SAVE_|UPLOADED|^RESTORE_|^CREATE_/.test(a)) return 'green';
     if (/DOWNLOAD|EXPORT|DECRYPT|VIEW_|UNLOCK|ARCHIVE_RUN|ARCHIVE_AUTO/.test(a)) return 'purple';

@@ -78,5 +78,21 @@ const visitorLookup = rateLimit({
     message: answer('Too many lookups from this device. Wait a few minutes and try again.')
 });
 
-module.exports = { EVERY_REQUEST, passwordChecks, heavyWork, kioskForms, visitorLookup };
+// <Jun Kai start> a forgotten admin password (backend/features/passwordReset): asking for a code by email, and the
+// checks of a code or link. The per-account limits (5 emails an hour, 5 tries of a code) are in the reset itself.
+const resetRequests = rateLimit({
+    ...common,
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    message: answer('Too many reset requests from this address. Wait 15 minutes and try again.')
+});
+const resetChecks = rateLimit({
+    ...common,
+    windowMs: 15 * 60 * 1000,
+    limit: 40,
+    message: answer('Too many tries from this address. Wait 15 minutes and try again.')
+});
+// <Jun Kai end>
+
+module.exports = { EVERY_REQUEST, passwordChecks, heavyWork, kioskForms, visitorLookup, resetRequests, resetChecks };
 // <Jun Kai end>

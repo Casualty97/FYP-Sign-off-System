@@ -146,9 +146,48 @@
             </div>
             <!-- a wrong password shows here, under the field; a notice moves to the top of the card (admin.css) -->
             <p class="login-note" id="login-note" role="status" hidden></p>
+            <button type="button" class="login-forgot" id="login-forgot" onclick="openPasswordReset()">Forgot password?</button><!-- <Jun Kai/> passwordReset.js -->
             <label class="login-keep"><input type="checkbox" id="remember-me"><span>Keep me signed in on this computer for 1 day</span></label>
             <p class="login-hint">Press Enter or the arrow to sign in</p>
         </form>
+        <!-- <Jun Kai start> a forgotten password, in the same glass card: the username or email, then the 6 digit code from
+             the email (or the link in it), then the new password twice. Filled and moved along by passwordReset.js -->
+        <form id="reset-form" class="login-glass reset-glass" novalidate hidden>
+            <div class="login-crest"><img src="../../../assets/static/rp-logo.png" width="58" height="58" alt=""></div>
+            <h1 id="reset-title" tabindex="-1">Reset your password</h1>
+            <p class="login-lead" id="reset-lead">Enter your username or the email of your account. A 6 digit code and a link are sent to that email.</p>
+            <p class="login-note" id="reset-note" role="status" hidden></p>
+            <div class="reset-step" data-reset-step="ask">
+                <div class="win-field">
+                    <label class="login-sr" for="reset-identifier">Username or email</label>
+                    <input type="text" id="reset-identifier" autocomplete="username" placeholder="Username or email" maxlength="254" spellcheck="false">
+                </div>
+                <button type="submit" class="reset-btn" id="reset-send">Send code</button>
+            </div>
+            <div class="reset-step" data-reset-step="code" hidden>
+                <div class="win-field">
+                    <label class="login-sr" for="reset-code">6 digit code</label>
+                    <input type="text" id="reset-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6 digit code" maxlength="7" spellcheck="false">
+                </div>
+                <button type="submit" class="reset-btn" id="reset-check">Check code</button>
+                <button type="button" class="reset-link" id="reset-resend" onclick="resendPasswordResetCode()" disabled>Send a new code</button>
+            </div>
+            <div class="reset-step" data-reset-step="password" hidden>
+                <div class="win-field">
+                    <label class="login-sr" for="reset-password">New password</label>
+                    <input type="password" id="reset-password" autocomplete="new-password" placeholder="New password" maxlength="72">
+                </div>
+                <div class="win-field">
+                    <label class="login-sr" for="reset-confirm">The new password again</label>
+                    <input type="password" id="reset-confirm" autocomplete="new-password" placeholder="The new password again" maxlength="72">
+                </div>
+                <p class="reset-rule" id="reset-rule">At least 8 characters, and not the same as your username.</p>
+                <label class="login-keep reset-show"><input type="checkbox" id="reset-show" onchange="togglePasswordResetShow()"><span>Show the passwords</span></label>
+                <button type="submit" class="reset-btn" id="reset-save">Save new password</button>
+            </div>
+            <button type="button" class="reset-link reset-back" id="reset-back" onclick="closePasswordReset()">Back to sign in</button>
+        </form>
+        <!-- <Jun Kai end> -->
         <p class="login-foot">RP Xperience Centre Sign-Off · Republic Polytechnic</p>
     </div>
     <!-- <Jun Kai end> -->
@@ -4518,6 +4557,7 @@
     <script src="/admin/js/sidebar.js"></script>
     <!-- <Jun Kai end> -->
     <script src="/admin/js/tree.js"></script>
+    <script src="/admin/js/passwordReset.js"></script><!-- <Jun Kai/> a forgotten password (the login card); before init.js -->
     <script src="/admin/js/init.js"></script>
     <script src="/admin/js/themes.js"></script>
     <script src="/admin/js/archiveDeletion.js"></script>

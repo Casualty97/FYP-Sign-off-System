@@ -258,6 +258,15 @@ const { forLog } = require('../../core/log'); // <Jun Kai/> request values are p
 const requestLimit = require('../../core/requestLimit'); // <Jun Kai/> request limits per address
 const lostFoundContact = require('../lostFound/contact'); // <Jun Kai/> the encrypted Lost & Found contact
 const accountEmail = require('../../core/accountEmail'); // <Jun Kai/> account emails and the password rule
+const passwordReset = require('../passwordReset/routes'); // <Jun Kai/> an edit or delete ends an open password reset
+// <Jun Kai/> after an edit: a new email or a password set by an admin ends the open reset; the old address hears of a new email
+function afterAccountEdit(target, { emailChanged, newEmail, passwordChanged, by }) {
+    if (emailChanged || passwordChanged) passwordReset.endResetsOf(target.id).catch((err) => console.error('Ending a password reset failed:', err.message));
+    if (emailChanged && target.email && newEmail) {
+        const when = new Date().toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+        passwordReset.mailer.sendEmailChanged(target.email, { username: target.username, newEmail, by, when }).catch(() => {});
+    }
+}
 // <Jun Kai/> the email column (migration 011) exists before a user route reads or writes it
 const ensureEmailColumn = (req, res, next) => accountEmail.ensureColumn(db).then(() => next(), (err) => {
     console.error('Could not add the admin_users.email column:', err.message);
@@ -3849,6 +3858,7 @@ router.delete('/users/:id', auth.requireAuth, auth.requireAdmin, (req, res) => {
                     return res.status(404).json({ error: 'User not found or already deleted' });
                 }
                 adminSessions.end(targetUser.id); // <Jun Kai/> a deleted admin is signed out wherever it is signed in
+                passwordReset.endResetsOf(targetUser.id).catch(() => {}); // <Jun Kai/> and cannot finish a password reset
                 
                 res.json({ 
                     success: true, 
@@ -4144,6 +4154,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, ensureEmailColumn,
                     console.debug('✅ systemadmin account updated successfully:', { changes: this.changes, id });
                     // <Jun Kai start> a new password signs the account out everywhere but on this browser
                     adminSessions.accountChanged(req, targetUser, { passwordChanged: !!(password && password.trim() !== '') });
+                    afterAccountEdit(targetUser, { emailChanged, newEmail: email, passwordChanged: !!(password && password.trim() !== ''), by: currentUsername }); // <Jun Kai/>
                     // <Jun Kai end>
                     
                     // Get the updated user data
@@ -4230,6 +4241,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, ensureEmailColumn,
                     // <Jun Kai start> a session holds the name and role from the sign-in: an account with a new name,
                     // role or password signs in again; an admin who edited their own account stays signed in here
                     adminSessions.accountChanged(req, targetUser, { username, role, passwordChanged: !!(password && password.trim() !== '') });
+                    afterAccountEdit(targetUser, { emailChanged, newEmail: email, passwordChanged: !!(password && password.trim() !== ''), by: currentUsername }); // <Jun Kai/>
                     // <Jun Kai end>
                     
                     // Get the updated user data

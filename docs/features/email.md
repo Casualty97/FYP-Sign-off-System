@@ -12,6 +12,9 @@ Look (12 Nov 2026, picked by the user from mock-ups): a status line on top says 
 
 **What it does**
 
+The email account set up on this page also sends the emails of a forgotten admin password (the code and link, "your
+password was changed", and "your email was changed" to the old address): see docs/features/users.md.
+
 Sends the thank-you and badge emails through Gmail, Outlook or custom SMTP from the settings saved in the admin page; badge rules decide which badge a visitor earns.
 
 **Routes** (from tests/contracts/routes.snapshot.txt)
