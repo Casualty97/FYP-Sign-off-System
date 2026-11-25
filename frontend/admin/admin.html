@@ -3447,6 +3447,25 @@
                     <!-- <Jun Kai start> the Tablets list is the one panel under the cards: the Server PC card points to the Hardware page instead -->
                     <div id="health-panels">
                     <!-- <Jun Kai end> -->
+                        <dialog class="va-dialog va-dialog-small health-remove-dialog" id="health-remove-dialog" aria-labelledby="health-remove-title" aria-describedby="health-remove-description">
+                            <form class="va-dialog-inner" method="dialog">
+                                <div class="va-dialog-head">
+                                    <div>
+                                        <h3 id="health-remove-title">Remove device?</h3>
+                                        <div class="va-dialog-sub" id="health-remove-description">This clears the device from the tablet list. It will reappear if its feedback page checks in again.</div>
+                                    </div>
+                                </div>
+                                <div class="va-dialog-body">
+                                    <div class="va-delete-file">
+                                        <strong id="health-remove-name"></strong>
+                                    </div>
+                                </div>
+                                <div class="va-dialog-foot">
+                                    <button type="submit" class="ui-btn ui-btn-secondary" value="cancel" autofocus>Cancel</button>
+                                    <button type="submit" class="ui-btn ui-btn-danger" value="remove">Remove device</button>
+                                </div>
+                            </form>
+                        </dialog>
                         <div class="ui-card" id="health-tablets-card">
                             <div class="ui-card-header">
                                 <div>

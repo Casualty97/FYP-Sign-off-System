@@ -8298,6 +8298,13 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 .health-battery-label .ui-muted { font-size: 0.8rem; }
 .health-battery-meter { width: 100%; height: 9px; }
 
+.health-remove-label { display: none; }
+.health-device-swiped [data-remove-tablet] { gap: 5px; width: auto; padding-inline: 9px; border-color: #fecaca; color: #b91c1c; }
+.health-device-swiped .health-remove-label { display: inline; }
+.health-remove-dialog #health-remove-name { overflow-wrap: anywhere; }
+@media (pointer: coarse) {
+    .health-device-cell[data-tablet-swipe] { touch-action: pan-y; }
+}
 .health-device-cell { display: flex; align-items: center; gap: 6px; }
 .health-device-text { min-width: 0; }
 .health-rename-btn { width: 28px; height: 28px; flex-shrink: 0; color: var(--color-muted); }

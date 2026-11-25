@@ -288,6 +288,7 @@ function renderHealthSummary() {
 // <Jun Kai start>
 let healthRenaming = null; // the tablet whose name is being typed
 let healthRenameError = '';
+let healthSwipedTablet = null;
 const HEALTH_NAME_ORDER = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
 function healthTabletCheck() {
@@ -316,13 +317,15 @@ function healthDeviceCell(d) {
                 </form>`;
     }
     const shown = d.name || deviceName;
-    return `<div class="health-device-cell">
+    const canRemove = sessionStorage.getItem('userRole') === 'system_admin';
+    const revealed = canRemove && healthSwipedTablet === d.device_id;
+    return `<div class="health-device-cell${revealed ? ' health-device-swiped' : ''}"${canRemove ? ` data-tablet-swipe="${id}"` : ''}>
                 <div class="health-device-text">
                     <div class="health-device">${escapeHtmlSafe(shown)}</div>
                     <div class="ui-muted">${d.name ? `<span class="health-nowrap">${escapeHtmlSafe(deviceName)}</span> · ` : ''}<span class="health-nowrap">${escapeHtmlSafe(kind)}</span></div>
                 </div>
                 <button type="button" class="ui-btn ui-btn-icon health-rename-btn" data-rename="${id}" aria-label="Rename ${escapeHtmlSafe(shown)}" title="Rename">${uiIcon('edit', 15)}</button>
-                ${sessionStorage.getItem('userRole') === 'system_admin' ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-remove-tablet="${id}" aria-label="Remove ${escapeHtmlSafe(shown)}" title="Remove">${uiIcon('trash', 15)}</button>` : ''}
+                ${canRemove ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-remove-tablet="${id}" aria-label="Remove ${escapeHtmlSafe(shown)}" title="Remove">${uiIcon('trash', 15)}<span class="health-remove-label">Remove</span></button>` : ''}
             </div>`;
 }
 
@@ -411,6 +414,29 @@ function bindHealthTablets() {
     const body = document.getElementById('health-tablets');
     if (!body || body.dataset.bound) return;
     body.dataset.bound = '1';
+    let swipe = null;
+    body.addEventListener('touchstart', (event) => {
+        const cell = event.target.closest('[data-tablet-swipe]');
+        const touch = event.touches[0];
+        swipe = cell && event.touches.length === 1 && !event.target.closest('button')
+            ? { id: cell.dataset.tabletSwipe, touchId: touch.identifier, x: touch.clientX, y: touch.clientY }
+            : null;
+    }, { passive: true });
+    body.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
+    body.addEventListener('touchend', (event) => {
+        const start = swipe;
+        swipe = null;
+        if (!start) return;
+        const touch = [...event.changedTouches].find(item => item.identifier === start.touchId);
+        if (!touch) return;
+        const dx = touch.clientX - start.x;
+        const dy = touch.clientY - start.y;
+        if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        healthSwipedTablet = dx < 0 ? start.id : null;
+        for (const cell of body.querySelectorAll('[data-tablet-swipe]')) {
+            cell.classList.toggle('health-device-swiped', cell.dataset.tabletSwipe === healthSwipedTablet);
+        }
+    }, { passive: true });
     body.addEventListener('click', (event) => {
         const open = event.target.closest('[data-rename]');
         const remove = event.target.closest('[data-remove-tablet]');
@@ -437,12 +463,14 @@ async function removeHealthTablet(deviceId) {
     const device = check?.detail?.devices.find(item => item.device_id === deviceId);
     if (!device) return;
     const name = device.name || device.label || deviceId;
-    const confirmed = await showConfirmDialog(
-        'Remove device?',
-        `Remove "${name}" from the tablet list? It will reappear if its feedback page sends another check-in.`,
-        'Remove',
-        'danger'
-    );
+    const dialog = document.getElementById('health-remove-dialog');
+    if (!dialog || dialog.open) return;
+    document.getElementById('health-remove-name').textContent = name;
+    dialog.returnValue = '';
+    const confirmed = await new Promise(resolve => {
+        dialog.addEventListener('close', () => resolve(dialog.returnValue === 'remove'), { once: true });
+        dialog.showModal();
+    });
     if (!confirmed) return;
 
     try {
@@ -455,6 +483,7 @@ async function removeHealthTablet(deviceId) {
             if (!currentCheck.detail.devices.length) currentCheck.summary = 'No tablet has reported yet';
             renderHealthTablets(currentCheck);
         }
+        if (healthSwipedTablet === deviceId) healthSwipedTablet = null;
         showNotification('Device removed', 'success');
         void loadHealth();
     } catch (error) {
