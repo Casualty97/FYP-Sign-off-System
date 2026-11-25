@@ -8762,6 +8762,12 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 @media (max-width: 1024px) {
     .sidebar { position: static; align-self: stretch; width: auto; max-height: none; margin: 14px 14px 0; }
 }
+/* a phone: the name and role leave the top bar (the avatar stays), so Logout fits inside the window */
+@media (max-width: 520px) {
+    .admin-header { padding: 0 14px; }
+    .admin-header .header-right { gap: 10px; }
+    .admin-header .user-details { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
     .nav-item, .nav-group-toggle, .nav-group-chevron, .nav-search, .admin-header .logout-btn, .sidebar.nav-ready .nav-group-body { transition: none; }
 }
@@ -8829,6 +8835,8 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
    are what only the Feedback page has. Only UI kit colours and variables are used, so the saved theme and dark mode
    reach these pages like the others. */
 .fb-card { overflow: hidden; }
+/* the scroll box holds the hidden screen reader labels too: without a position they escaped it and widened the page */
+.ui-table-wrap { position: relative; }
 .ui-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--theme-border-color); }
 .ui-spacer { flex: 1 1 auto; }
 .ui-search { position: relative; flex: 1 1 260px; max-width: 340px; min-width: 200px; }
