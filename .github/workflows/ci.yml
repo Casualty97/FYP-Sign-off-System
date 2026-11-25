@@ -428,9 +428,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: C:\rpkb\cache
-          key: kiosk-runtime-${{ hashFiles('scripts/install/runtime.json') }}
+          key: kiosk-runtime-${{ hashFiles('scripts/install/runtime.js') }}
       - name: Build the offline package
-        run: node scripts/install/build-package.js --out C:\rpkb --allow-unpinned
+        run: node scripts/install/build-package.js --out C:\rpkb
       - name: Passphrase lock and installer checks (no install)
         shell: powershell
         run: |

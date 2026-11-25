@@ -18,7 +18,9 @@ const { finished } = require('stream/promises');
 const { checkTree } = require('./pe-imports');
 
 const REPO = path.resolve(__dirname, '..', '..');
-const RUNTIME = JSON.parse(fs.readFileSync(path.join(__dirname, 'runtime.json'), 'utf8'));
+const RUNTIME = require('./runtime');
+// npm itself, started with node.exe (no cmd.exe in between); setup-node and the Node.js installer put it here
+const NPM_CLI = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
 const NAME = 'rp-xperience-kiosk';
 const ZIP = 'rp-xperience-kiosk-windows-x64';
 const MODEL = 'Xenova/bert-base-multilingual-uncased-sentiment';
@@ -42,6 +44,16 @@ const VC_DLLS = ['msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll', 'vcruntime1
 function arg(name, fallback) {
     const i = process.argv.indexOf(name);
     return i > 0 ? process.argv[i + 1] : fallback;
+}
+// --out and --cache become arguments of tar and npm: a plain local folder only
+function folderArg(name, fallback) {
+    const value = path.resolve(arg(name, fallback));
+    if (!/^[A-Za-z]:\\[A-Za-z0-9 ._\\-]*$/.test(value)) throw new Error(`${name} must be a plain local folder (letters, digits, spaces, dots, dashes): ${value}`);
+    return value;
+}
+function checkRuntime() {
+    if (!/^\d+\.\d+\.\d+$/.test(RUNTIME.node.version) || !/^8\.4\.\d+$/.test(RUNTIME.mysql.version)) throw new Error('scripts/install/runtime.js holds a version that is not x.y.z (MySQL must be 8.4.x)');
+    if (RUNTIME.mysql.sha256 && !/^[0-9a-f]{64}$/.test(RUNTIME.mysql.sha256)) throw new Error('the MySQL sha256 in scripts/install/runtime.js is not 64 hex characters');
 }
 const say = (t) => console.log(`   ${t}`);
 const step = (t) => console.log(`\n== ${t}`);
@@ -110,7 +122,7 @@ async function download(url, file) {
 async function getNode(cache) {
     const v = RUNTIME.node.version;
     const nvmrc = fs.readFileSync(path.join(REPO, '.nvmrc'), 'utf8').trim().replace(/^v/, '');
-    if (v.split('.')[0] !== nvmrc.split('.')[0]) throw new Error(`runtime.json has Node.js ${v}, but .nvmrc asks for ${nvmrc}`);
+    if (v.split('.')[0] !== nvmrc.split('.')[0]) throw new Error(`runtime.js has Node.js ${v}, but .nvmrc asks for ${nvmrc}`);
     if (process.versions.node.split('.')[0] !== v.split('.')[0]) throw new Error(`build with Node.js ${v.split('.')[0]} (this is ${process.version}): the packages must match the Node.js inside`);
     const name = `node-v${v}-win-x64.zip`;
     const file = path.join(cache, name);
@@ -142,10 +154,10 @@ async function getMySql(cache) {
     if (!want) {
         // Oracle's download page shows the MD5 of each file (it refuses automated reading): compare it by eye, then pin
         const md5 = crypto.createHash('md5').update(fs.readFileSync(file)).digest('hex');
-        if (!process.argv.includes('--allow-unpinned')) throw new Error(`runtime.json has no sha256 for MySQL ${v}; this download is sha256 ${have}, md5 ${md5}. Compare the md5 with Oracle's download page, then pin the sha256.`);
+        if (!process.argv.includes('--allow-unpinned')) throw new Error(`runtime.js has no sha256 for MySQL ${v}; this download is sha256 ${have}, md5 ${md5}. Compare the md5 with Oracle's download page, then pin the sha256.`);
         say(`MySQL ${v}: NOT PINNED, sha256 ${have}, md5 ${md5} (compare the md5 with dev.mysql.com, then pin the sha256)`);
     } else if (have !== want) {
-        throw new Error(`${name} does not match the sha256 pinned in runtime.json`);
+        throw new Error(`${name} does not match the sha256 pinned in runtime.js`);
     } else say(`MySQL ${v}: checksum matches the pinned one`);
     return file;
 }
@@ -222,8 +234,9 @@ async function makePackage({ out, stageApp, stageMysql, info, zipName }) {
 
 async function main() {
     if (process.platform !== 'win32') throw new Error('the package is built on Windows (its native modules are for Windows x64)');
-    const out = path.resolve(arg('--out', path.join(path.parse(REPO).root, 'rpkb')));
-    const cache = path.resolve(arg('--cache', path.join(out, 'cache')));
+    checkRuntime();
+    const out = folderArg('--out', path.join(path.parse(REPO).root, 'rpkb'));
+    const cache = folderArg('--cache', path.join(out, 'cache'));
     const commit = git(['rev-parse', 'HEAD']);
     const build = Number(arg('--build', 0)) || Number(git(['rev-list', '--count', 'HEAD']));
     const stage = path.join(out, 'stage');
@@ -243,7 +256,8 @@ async function main() {
     say(`${files.length} files, no .env, certificates, runtime data, photos or email settings`);
 
     step('packages for Windows x64 (npm ci --omit=dev)');
-    run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm ci --omit=dev --no-audit --no-fund'], { cwd: stageApp });
+    if (!fs.existsSync(NPM_CLI)) throw new Error(`npm was not found next to node.exe (${NPM_CLI})`);
+    run(process.execPath, [NPM_CLI, 'ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: stageApp });
     // the AI runtime ships builds for every system; only Windows x64 is used here
     for (const other of ['darwin', 'linux', path.join('win32', 'arm64')]) {
         const p = path.join(stageApp, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v3', other);
@@ -262,8 +276,9 @@ async function main() {
     const mysqlZip = await getMySql(cache);
     run(TAR, ['-xf', mysqlZip, '-C', tmp]);
     const mysqlDir = path.join(tmp, `mysql-${RUNTIME.mysql.version}-winx64`);
-    // the server, the client tools the installer uses, their DLLs, plugins and messages; no headers, docs or .lib
-    for (const rel of walkRel(path.join(mysqlDir, 'bin'))) if (/\.(exe|dll)$/i.test(rel)) copyFile(path.join(mysqlDir, 'bin', rel), path.join(stageMysql, 'bin', rel));
+    // the server, the client tools the installer uses, their DLLs, plugins and messages; no headers, docs or .lib,
+    // and not the debug builds of the libraries (they need Visual Studio's debug runtime and the server never loads them)
+    for (const rel of walkRel(path.join(mysqlDir, 'bin'))) if (/\.(exe|dll)$/i.test(rel) && !/-debug\.dll$/i.test(rel)) copyFile(path.join(mysqlDir, 'bin', rel), path.join(stageMysql, 'bin', rel));
     copyDir(path.join(mysqlDir, 'share'), path.join(stageMysql, 'share'));
     if (fs.existsSync(path.join(mysqlDir, 'lib', 'plugin'))) {
         for (const rel of walkRel(path.join(mysqlDir, 'lib', 'plugin'))) if (!/\.(pdb|lib)$/i.test(rel) && !/^debug[\\/]/i.test(rel)) copyFile(path.join(mysqlDir, 'lib', 'plugin', rel), path.join(stageMysql, 'lib', 'plugin', rel));
@@ -275,7 +290,9 @@ async function main() {
     fs.rmSync(tmp, { recursive: true, force: true });
 
     step('every program finds its DLLs on a fresh Windows');
-    const check = checkTree([path.join(stageApp, 'runtime'), path.join(stageApp, 'node_modules'), stageMysql], { nodeDir: path.join(stageApp, 'runtime', 'node') });
+    // MySQL's plugins (lib\plugin) and SASL modules (bin\sasl2) load into mysqld.exe or mysql.exe: their DLLs come from bin
+    const hosts = [{ root: stageMysql, dir: path.join(stageMysql, 'bin'), programs: ['mysqld.exe', 'mysql.exe'] }];
+    const check = checkTree([path.join(stageApp, 'runtime'), path.join(stageApp, 'node_modules'), stageMysql], { nodeDir: path.join(stageApp, 'runtime', 'node'), hosts });
     for (const w of check.warnings) say(`note: ${w}`);
     if (check.problems.length) throw new Error(`missing DLLs:\n  ${check.problems.join('\n  ')}`);
     say(`${check.checked} x64 programs and libraries checked, nothing missing`);

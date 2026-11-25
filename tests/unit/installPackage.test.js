@@ -136,6 +136,18 @@ test('a Node.js addon may use node.exe and the DLLs next to node.exe; a delay lo
     assert.match(r.warnings[0], /later\.dll/);
 });
 
+test("a MySQL plugin finds its DLLs in MySQL's bin folder and may use mysqld.exe itself", (t) => {
+    const sys = tempDir(t);
+    const mysql = tempDir(t);
+    fs.mkdirSync(path.join(mysql, 'bin'));
+    fs.mkdirSync(path.join(mysql, 'lib', 'plugin'), { recursive: true });
+    fs.writeFileSync(path.join(mysql, 'bin', 'libssl-3-x64.dll'), '');
+    fs.writeFileSync(path.join(mysql, 'lib', 'plugin', 'auth.dll'), fakePe({ imports: ['mysqld.exe', 'libssl-3-x64.dll'] }));
+    assert.equal(pe.checkTree([mysql], { system32: sys }).problems.length, 2, 'without the rule both are missing');
+    const hosts = [{ root: mysql, dir: path.join(mysql, 'bin'), programs: ['mysqld.exe'] }];
+    assert.deepEqual(pe.checkTree([mysql], { system32: sys, hosts }).problems, []);
+});
+
 test('set-env keeps a moved value exactly as written, and the last line of a key wins', () => {
     const values = setup.rawEnvLines('DB_PORT=3307\nSMTP_PASS="has # and spaces"\n# note\nNOT A LINE\nDB_PORT=3310\r\n');
     assert.deepEqual([...values], [['DB_PORT', '3310'], ['SMTP_PASS', '"has # and spaces"']]);
@@ -163,7 +175,7 @@ test('the package files the build adds exist and the install command files keep 
     const attributes = fs.readFileSync(path.join(__dirname, '..', '..', '.gitattributes'), 'utf8');
     assert.match(attributes, /^\*\.cmd text eol=crlf/m);
     assert.match(attributes, /^\*\.bat text eol=crlf/m);
-    const runtime = JSON.parse(fs.readFileSync(path.join(pkg, '..', 'runtime.json'), 'utf8'));
+    const runtime = require('../../scripts/install/runtime');
     const nvmrc = fs.readFileSync(path.join(__dirname, '..', '..', '.nvmrc'), 'utf8').trim();
     assert.equal(runtime.node.version.split('.')[0], nvmrc.split('.')[0], 'the packed Node.js is the version in .nvmrc');
     assert.match(runtime.mysql.version, /^8\.4\.\d+$/);

@@ -171,7 +171,7 @@ node scripts/install/build-package.js --out C:\rpkb [--with-ai-model]
 
 Runs on Windows with Node.js 22 and git (Visual Studio's redistributable folder gives the Visual C++ runtime; the
 GitHub Windows runner has it). Node.js is checked against nodejs.org's `SHASUMS256.txt`; MySQL against the SHA256
-pinned in `scripts/install/runtime.json`. The result is in `C:\rpkb\dist`.
+pinned in `scripts/install/runtime.js`. The result is in `C:\rpkb\dist`.
 
 `release.yml` builds both zips after CI passes on main and publishes them, with `get-kiosk.ps1`, as a normal GitHub
 Release, so `releases/latest/download/<name>` always gives the newest one. The zips are never committed.

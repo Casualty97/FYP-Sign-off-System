@@ -35,11 +35,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - name: Cache the Node.js and MySQL downloads
-        uses: actions/cache@v5
-        with:
-          path: C:\rpkb\cache
-          key: kiosk-runtime-${{ hashFiles('scripts/install/runtime.json') }}
+      # no download cache here: a job that may publish must not read files a pull request could have cached
       - name: Build the package, with and without the offline AI model
         run: node scripts/install/build-package.js --out C:\rpkb --with-ai-model
       - name: Publish the release

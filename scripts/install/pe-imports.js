@@ -82,7 +82,9 @@ function walk(dir, out = []) {
 
 // Every x64 .exe, .dll and .node under each root, with the DLLs it needs that are nowhere to be found.
 // nodeDir: where node.exe is (an addon may load DLLs from there and links against node.exe itself).
-function checkTree(roots, { system32 = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32'), nodeDir } = {}) {
+// hosts: libraries that a program loads into itself, e.g. MySQL's plugins: { root, dir, programs }. Windows looks
+// for their DLLs in the program's folder (dir) too, and they may use the program's own exports (programs).
+function checkTree(roots, { system32 = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32'), nodeDir, hosts = [] } = {}) {
     const files = roots.flatMap((r) => walk(r));
     const inPackage = new Set(files.map((f) => path.basename(f).toLowerCase()));
     const problems = [];
@@ -98,6 +100,11 @@ function checkTree(roots, { system32 = path.join(process.env.SystemRoot || 'C:\\
             const lower = dll.toLowerCase();
             if (fs.existsSync(path.join(dir, lower))) return true;
             if (/\.node$/i.test(file) && (lower === 'node.exe' || (nodeDir && fs.existsSync(path.join(nodeDir, lower))))) return true;
+            for (const h of hosts) {
+                if (!(file.toLowerCase() + '').startsWith(path.resolve(h.root).toLowerCase() + path.sep)) continue;
+                if ((h.programs || []).map((p) => p.toLowerCase()).includes(lower)) return true;
+                if (fs.existsSync(path.join(h.dir, lower))) return true;
+            }
             return isWindowsDll(lower, system32);
         };
         for (const dll of info.imports) if (!found(dll)) problems.push(`${file} needs ${dll}${inPackage.has(dll.toLowerCase()) ? ' (it is in the package, but not next to this file)' : ''}`);
