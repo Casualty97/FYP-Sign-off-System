@@ -64,6 +64,19 @@ function Show-MySqlError($m) {
     Write-Info "service state: $(Get-ServiceState)"
     $events = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Service Control Manager'; StartTime = (Get-Date).AddMinutes(-10) } -MaxEvents 20 -ErrorAction SilentlyContinue | Where-Object { $_.Message -match [regex]::Escape($ServiceDisplay) -or $_.Message -match $ServiceName })
     foreach ($e in @($events | Select-Object -First 3)) { Write-Info "  Windows: $($e.Message)" }
+    foreach ($e in @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddMinutes(-10) } -MaxEvents 30 -ErrorAction SilentlyContinue | Where-Object { $_.ProviderName -match 'MySQL' } | Select-Object -First 5)) {
+        Write-Info "  MySQL in the event log: $($e.Message)"
+    }
+    foreach ($p in @($m.Ini, $m.Data, $err, (Join-Path $m.Data 'ibdata1'))) {
+        if (Test-Path -LiteralPath $p) { Write-Info "  rights of ${p}: $((& icacls.exe $p 2>&1 | Select-Object -Skip 0 -First 6) -join ' ; ')" }
+    }
+    # the same server in a console for a few seconds (as administrator): it prints the reason it stops
+    $out = Join-Path $env:TEMP ('rpk-mysqld-' + [guid]::NewGuid().ToString('N') + '.txt')
+    try {
+        $p = Start-Process -FilePath $m.Mysqld -ArgumentList @((ConvertTo-Arg "--defaults-file=$($m.Ini)"), '--console') -RedirectStandardError $out -RedirectStandardOutput "$out.out" -PassThru -WindowStyle Hidden
+        if (-not $p.WaitForExit(15000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; Write-Info '  in a console as administrator MySQL keeps running (so the service account is the problem)' }
+        foreach ($line in @(Get-Content -LiteralPath $out -Tail 15 -ErrorAction SilentlyContinue)) { Write-Info "  console: $line" }
+    } catch { Write-Info "  console run failed: $($_.Exception.Message)" } finally { Remove-Item -LiteralPath $out, "$out.out" -Force -ErrorAction SilentlyContinue }
 }
 
 function Install-MySqlFiles {
@@ -161,9 +174,13 @@ function Set-MySqlRights {
     $grant = @($m.Base, '/grant', "$($script:SvcAccount):(OI)(CI)RX")
     if ($UserSid) { $grant += "*${UserSid}:(OI)(CI)RX" }
     $codes += Invoke-Native 'icacls.exe' ($grant + '/Q') -Quiet
-    # the data files: only the service, SYSTEM and administrators (a data folder from a laptop install is taken over)
+    # the data files: only the service, SYSTEM and administrators. The folder gets the rights once and everything in
+    # it takes them from the folder (a kept data folder, or one taken over from a laptop install, is reset to that).
     $codes += Invoke-Native 'icacls.exe' @($m.Data, '/setowner', "*$SidAdmins", '/T', '/Q') -Quiet
-    $codes += Invoke-Native 'icacls.exe' @($m.Data, '/inheritance:r', '/grant:r', "*${SidSystem}:(OI)(CI)F", "*${SidAdmins}:(OI)(CI)F", "$($script:SvcAccount):(OI)(CI)F", '/T', '/Q') -Quiet
+    $codes += Invoke-Native 'icacls.exe' @($m.Data, '/inheritance:r', '/grant:r', "*${SidSystem}:(OI)(CI)F", "*${SidAdmins}:(OI)(CI)F", "$($script:SvcAccount):(OI)(CI)F", '/Q') -Quiet
+    if (@(Get-ChildItem -LiteralPath $m.Data -Force -ErrorAction SilentlyContinue).Count) {
+        $codes += Invoke-Native 'icacls.exe' @((Join-Path $m.Data '*'), '/reset', '/T', '/Q') -Quiet
+    }
     if (@($codes | Where-Object { $_ -ne 0 }).Count) { throw 'icacls could not set the rights on the MySQL folders' }
     Write-Ok "rights set: only administrators change the MySQL files, the service runs as $($script:SvcAccount)"
 }
