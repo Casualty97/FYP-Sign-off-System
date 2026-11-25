@@ -84,16 +84,26 @@ function setConfirmationValue(id, value) { // changes made by nick
 
 // Update confirmation page with user data
 function updateConfirmationDetails() {
-    // Update confirmation page with user data
-    const focusList = formatPledgeTopicList(userData.pledgeTopics || (userData.pledgeTopic ? [userData.pledgeTopic] : []));
-    const pledgeSummary = userData.pledgeSkipped
-        ? 'Skipped - Feedback Contributor badge'
-        : `${userData.pledge || 'Not provided'}${focusList ? ` | Focus: ${focusList}` : ''}`;
+    const pledgeList = document.getElementById('confirm-pledge');
+    if (pledgeList) {
+        const choices = String(userData.pledge || '').split('\n').map(text => text.trim()).filter(Boolean);
+        const items = userData.pledgeSkipped ? ['Skipped'] : (choices.length ? choices : ['Not provided']);
+        pledgeList.replaceChildren(...items.map(text => {
+            const item = document.createElement('li');
+            item.textContent = text;
+            return item;
+        }));
+    }
+
     setConfirmationValue('confirm-name', userData.name || 'Not provided');
     setConfirmationValue('confirm-email', userData.email || 'Not provided');
-    setConfirmationValue('confirm-pledge', pledgeSummary);
     setConfirmationValue('confirm-theme', userData.photoSkipped ? 'Not selected' : selectedTheme);
     setConfirmationValue('confirm-retention', selectedRetention === 'longterm' ? 'Long-Term' : getTemporaryRetentionLabel());
+    const hasPhoto = !userData.photoSkipped && Boolean(photoData || userData.processedPhoto);
+    for (const id of ['confirm-theme-row', 'confirm-email-photo-row', 'confirmation-note-text']) {
+        const element = document.getElementById(id);
+        if (element) element.hidden = !hasPhoto;
+    }
     const photoReady = document.getElementById('confirm-photo-ready');
     const emailPhotoReady = document.getElementById('confirm-email-photo-ready');
     if (userData.photoSkipped) {

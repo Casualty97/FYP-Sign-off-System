@@ -141,7 +141,7 @@
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/feedback/feedback.css?v=esg-multiple-1">
+    <link rel="stylesheet" href="/feedback/feedback.css?v=confirmation-review-1">
 </head>
 <body>
     <!-- Global language switcher: click/tap or use Alt+1 English, Alt+2 Chinese, Alt+3 Malay, Alt+4 Tamil (Done by Caeden) -->
@@ -896,76 +896,60 @@
 
     <!-- Confirmation Page -->
     <div id="confirmation-page" class="container" style="display: none;">
-        <div class="consent-card">
-            <div class="consent-icon" style="background: #34d399;">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="20" fill="#34d399"/>
-                    <path d="M16 20L18 22L24 16" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-            
-            <h2 class="consent-title" id="confirmation-title" style="color: #059669;">Confirm Submission</h2>
-            <p class="consent-description" id="confirmation-description">Please review your information before submitting:</p>
+        <div class="consent-card confirmation-card">
+            <header class="review-header">
+                <h2 class="consent-title" id="confirmation-title">Confirm Submission</h2>
+                <p class="consent-description" id="confirmation-description">Please review your information before submitting:</p>
+            </header>
             <p id="confirmation-form-alert" class="form-alert" role="alert"></p>
-            
-            <div class="submission-details">
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-name-label">Name:</span>
-                    <span class="detail-value" id="confirm-name"></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-email-label">Email:</span>
-                    <span class="detail-value" id="confirm-email"></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-questions-label">Questions Answered:</span>
-                    <span class="detail-value" id="confirm-questions"></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-theme-label">Theme:</span>
-                    <span class="detail-value" id="confirm-theme"></span>
-                </div>
-                <!-- Confirmation retention row required by updateConfirmationDetails - changes made by nick -->
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-retention-label">Data Retention:</span>
-                    <span class="detail-value" id="confirm-retention"></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-pledge-label">Pledge:</span>
-                    <span class="detail-value" id="confirm-pledge"></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-photo-label">Photo:</span>
-                    <span class="detail-value" id="confirm-photo-ready">✅ Ready to be uploaded</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label" id="confirm-email-photo-label">Email Photo:</span>
-                    <span class="detail-value" id="confirm-email-photo-ready">✅ Will be sent to your email</span>
-                </div>
-            </div>
-            
-            <div class="privacy-notice" style="background: #fef3c7; border-left: 3px solid #f59e0b;">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 2L3 5V8C3 11 5.5 13.5 8 14C10.5 13.5 13 11 13 8V5L8 2Z" fill="#f59e0b"/>
-                </svg>
-                <p id="confirmation-note-text" style="color: #92400e;">💡 You can go back to change the theme if needed</p>
-            </div>
-            
-            <!-- Final lost and found reminder - changes made by nick -->
-            <!-- <div class="lost-found-reminder">
-                <div>
-                    <strong>Did you lose or find something during your visit?</strong>
-                    <p>Report it now without losing your feedback progress.</p>
-                </div>
-                <button type="button" onclick="openLostFoundModal()">Report Lost Item</button>
-            </div>-->
 
-            <div style="display: flex; gap: 15px;">
-                <button class="consent-button" onclick="finalSubmit()" style="flex: 1; background: #34d399;">
-                    <span id="submit-feedback-text">Submit Feedback</span>
-                </button>
-                <button class="secondary-button" onclick="goBackToStyle()" style="flex: 1;">
+            <section class="review-panel review-pledges" aria-labelledby="confirm-pledge-label">
+                <h3 id="confirm-pledge-label">Pledge:</h3>
+                <ul id="confirm-pledge"></ul>
+            </section>
+
+            <div class="review-grid">
+                <dl class="review-panel">
+                    <div class="review-field">
+                        <dt id="confirm-name-label">Name:</dt>
+                        <dd id="confirm-name"></dd>
+                    </div>
+                    <div class="review-field">
+                        <dt id="confirm-email-label">Email:</dt>
+                        <dd id="confirm-email"></dd>
+                    </div>
+                    <div class="review-field">
+                        <dt id="confirm-questions-label">Questions Answered:</dt>
+                        <dd id="confirm-questions"></dd>
+                    </div>
+                    <div class="review-field">
+                        <dt id="confirm-retention-label">Data Retention:</dt>
+                        <dd id="confirm-retention"></dd>
+                    </div>
+                </dl>
+                <dl class="review-panel">
+                    <div class="review-field">
+                        <dt id="confirm-photo-label">Photo:</dt>
+                        <dd id="confirm-photo-ready"></dd>
+                    </div>
+                    <div class="review-field" id="confirm-theme-row">
+                        <dt id="confirm-theme-label">Theme:</dt>
+                        <dd id="confirm-theme"></dd>
+                    </div>
+                    <div class="review-field" id="confirm-email-photo-row">
+                        <dt id="confirm-email-photo-label">Email Photo:</dt>
+                        <dd id="confirm-email-photo-ready"></dd>
+                    </div>
+                    <div class="review-photo-note" id="confirmation-note-text" hidden>You can go back to change the theme if needed</div>
+                </dl>
+            </div>
+
+            <div class="review-actions">
+                <button type="button" class="secondary-button" onclick="goBackToStyle()">
                     <span id="back-from-confirmation-text">Back</span>
+                </button>
+                <button type="button" class="consent-button" onclick="finalSubmit()">
+                    <span id="submit-feedback-text">Submit Feedback</span>
                 </button>
             </div>
         </div>
@@ -1240,7 +1224,7 @@
     <script src="/feedback/js/submit.js?v=esg-multiple-1"></script>
     <script src="/feedback/js/photo.js"></script>
     <script src="/feedback/js/overlays.js"></script>
-    <script src="/feedback/js/navigation.js"></script>
+    <script src="/feedback/js/navigation.js?v=confirmation-review-1"></script>
     <script src="/feedback/js/backNavigation.js"></script>
     <script src="/feedback/js/events.js"></script>
     <script src="/feedback/js/config.js"></script>

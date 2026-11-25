@@ -5304,3 +5304,40 @@ textarea::placeholder {
 .pledge-selected-list li { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 8px 0; }
 .pledge-selected-list li + li { border-top: 1px solid #e2e8f0; }
 .pledge-selected-list button { flex-shrink: 0; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #334155; cursor: pointer; }
+
+
+/* Confirmation review */
+#confirmation-page .confirmation-card { text-align: left; }
+.confirmation-card .review-header { margin: 0 0 20px; }
+.confirmation-card .review-header .consent-title {
+    margin: 0 0 6px;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    line-height: 1.15;
+    text-align: left;
+}
+.confirmation-card .review-header .consent-description { margin: 0; text-align: left; }
+.confirmation-card .review-panel {
+    min-width: 0;
+    margin: 0;
+    padding: clamp(16px, 3vw, 24px);
+    border: 1px solid #d4e4d9;
+    border-radius: 16px;
+    background: #fff;
+    color: #17382b;
+}
+.confirmation-card .review-pledges { background: #f1f8f3; border-inline-start: 4px solid #43805a; }
+.review-pledges h3 { margin: 0 0 12px; font-size: 1.05rem; }
+.review-pledges ul { display: grid; gap: 8px; margin: 0; padding-inline-start: 1.25rem; }
+.review-pledges li { padding-inline-start: 4px; line-height: 1.55; overflow-wrap: anywhere; }
+.review-pledges li::marker { color: #388255; }
+.review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); gap: 14px; margin-top: 14px; align-items: start; }
+.review-field + .review-field { margin-top: 12px; }
+.review-field dt { color: #52685c; font-size: 0.86rem; }
+.review-field dd { margin: 3px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.review-photo-note { margin: 14px 0 0; color: #52685c; font-size: 0.85rem; }
+.confirmation-card [hidden] { display: none; }
+.review-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; margin-top: 20px; }
+#confirmation-page .review-actions button { min-width: 0; min-height: 48px; margin: 0; }
+@media (max-width: 540px) {
+    .review-grid { grid-template-columns: minmax(0, 1fr); }
+}
