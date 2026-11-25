@@ -914,7 +914,7 @@ function updateDailyLeafPledgeSummary(data) {
     }
 
     listEl.innerHTML = labels.map((label, index) => {
-        const displayDate = escapeHtmlSafe(String(label).replace('\n', ' '));
+        const displayDate = escapeHtmlSafe(String(label).replace(/\n/g, ' '));
         const leaves = Number(leafData[index] || 0);
         const pledges = Number(pledgeData[index] || 0);
         return `
