@@ -1383,6 +1383,8 @@
                                 <button type="button" role="tab" class="ui-tab" id="users-tab-deleted" data-tab="deleted" aria-selected="false" aria-controls="deleted-users-section" tabindex="-1" onclick="switchUserTab('deleted')">Deleted <b class="ui-tab-count" id="users-count-deleted">0</b></button>
                             </div>
 
+                            <!-- <Jun Kai/> accounts without an email cannot reset a forgotten password: filled by usersShowEmailNote() -->
+                            <p class="users-email-note" id="users-email-note" role="status" hidden></p>
                             <div id="active-users-section" role="tabpanel" aria-labelledby="users-tab-active">
                                 <div class="ui-table-wrap">
                                     <table class="ui-table users-table">

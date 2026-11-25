@@ -5,6 +5,7 @@ CREATE TABLE `admin_users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `full_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(254) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `role` enum('IT_staff','IT_admin','system_admin') COLLATE utf8mb4_unicode_ci DEFAULT 'system_admin',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -15,6 +16,7 @@ CREATE TABLE `admin_users` (
   `deleted_by` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `uq_admin_users_email` (`email`),
   KEY `idx_username` (`username`),
   KEY `idx_role` (`role`),
   KEY `idx_is_deleted` (`is_deleted`)
