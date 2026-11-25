@@ -1878,67 +1878,70 @@
 
                 <!-- Lost and Found Reports Page - changes made by nick -->
                 <div id="lost-found-page" class="page">
-                    <div class="page-header">
-                        <h2>Lost &amp; Found</h2>
-                        <p>Reports submitted from the visitor feedback form</p>
+                    <!-- <Jun Kai start> Lost & Found page (admin redesign, Lost & Found A): Nick's four usage numbers as tiles,
+                         the status filter as chips with counts, and a table where each report shows only its next step
+                         (Mark reviewed, then Mark resolved); a new report can still be resolved at once from its ... menu.
+                         The ids of the search box, the type filter, the summary, the table body and the usage numbers are
+                         the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Lost &amp; Found</h2>
+                            <p>Reports that visitors sent from the feedback form.</p>
+                        </div>
                     </div>
 
-                    <div class="lost-found-admin-section">
-                        <div class="section-header">
-                            <h3>All Reports</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="downloadLostFoundCsv()">Export CSV</button>
-                                <button class="btn-primary" onclick="loadLostFoundReports()">Refresh</button>
-                            </div>
+                    <!-- Nick feature usage analytics (DONE BY NICK), as tiles -->
+                    <div class="ui-stats" id="nick-usage-analytics">
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Captures</span>
+                            <strong class="ui-stat-value" id="nick-analytics-captures">--</strong>
+                            <span class="ui-stat-note">photos and boomerangs taken</span>
                         </div>
-
-                        <!-- Nick feature usage analytics cards (DONE BY NICK) -->
-                        <div class="lost-found-analytics-grid" id="nick-usage-analytics">
-                            <div class="lost-found-analytics-card">
-                                <span>Captures</span>
-                                <strong id="nick-analytics-captures">--</strong>
-                            </div>
-                            <div class="lost-found-analytics-card">
-                                <span>Boomerangs</span>
-                                <strong id="nick-analytics-boomerangs">--</strong>
-                            </div>
-                            <div class="lost-found-analytics-card">
-                                <span>Filters Used</span>
-                                <strong id="nick-analytics-filters">--</strong>
-                            </div>
-                            <div class="lost-found-analytics-card">
-                                <span>Lost &amp; Found Photos</span>
-                                <strong id="nick-analytics-lost-found-photos">--</strong>
-                            </div>
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Boomerangs</span>
+                            <strong class="ui-stat-value" id="nick-analytics-boomerangs">--</strong>
+                            <span class="ui-stat-note">short looping videos</span>
                         </div>
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Filters used</span>
+                            <strong class="ui-stat-value" id="nick-analytics-filters">--</strong>
+                            <span class="ui-stat-note">times a photo filter was picked</span>
+                        </div>
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Lost &amp; Found photos</span>
+                            <strong class="ui-stat-value" id="nick-analytics-lost-found-photos">--</strong>
+                            <span class="ui-stat-note">reports that came with a photo</span>
+                        </div>
+                    </div>
 
-                        <div class="toolbar">
-                            <input type="text" id="lost-found-search-input" class="search-input"
-                                   placeholder="Search item, location, contact, or details..."
-                                   oninput="filterLostFoundReports()">
-                            <select id="lost-found-type-filter" class="filter-select" onchange="filterLostFoundReports()">
-                                <option value="">All Types</option>
-                                <option value="lost">Lost Items</option>
-                                <option value="found">Found Items</option>
+                    <div class="ui-card lf-card">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the Lost and Found reports">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the reports</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="lost-found-search-input" placeholder="Search item, location, contact or details" autocomplete="off" oninput="filterLostFoundReports()">
+                            </label>
+                            <div class="ui-chips lf-status" role="radiogroup" aria-label="Status">
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="" checked onchange="filterLostFoundReports()"><span>All <b class="lf-count" id="lost-found-count-all">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="new" onchange="filterLostFoundReports()"><span>New <b class="lf-count" id="lost-found-count-new">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="reviewed" onchange="filterLostFoundReports()"><span>Reviewed <b class="lf-count" id="lost-found-count-reviewed">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="resolved" onchange="filterLostFoundReports()"><span>Resolved <b class="lf-count" id="lost-found-count-resolved">0</b></span></label>
+                            </div>
+                            <select id="lost-found-type-filter" class="ui-filter ui-filter-select" aria-label="Type" onchange="filterLostFoundReports()">
+                                <option value="">Type: any</option>
+                                <option value="lost">Lost items</option>
+                                <option value="found">Found items</option>
                             </select>
-                            <select id="lost-found-status-filter" class="filter-select" onchange="filterLostFoundReports()">
-                                <option value="">All Statuses</option>
-                                <option value="new">New</option>
-                                <option value="reviewed">Reviewed</option>
-                                <option value="resolved">Resolved</option>
-                            </select>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="downloadLostFoundCsv()"><span data-fb-icon="download"></span>Export CSV</button>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="loadLostFoundReports()" title="Load the reports again" aria-label="Load the reports again" data-fb-icon="refresh"></button>
                         </div>
 
-                        <div class="lost-found-summary" id="lost-found-summary">
-                            0 reports
-                        </div>
-
-                        <div class="data-table lost-found-admin-table">
-                            <table>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table lf-table">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Tracking</th>
+                                        <th>Report</th>
                                         <th>Type</th>
                                         <th>Item</th>
                                         <th>Photo</th>
@@ -1946,19 +1949,25 @@
                                         <th>Contact</th>
                                         <th>Details</th>
                                         <th>Status</th>
-                                        <th>Actions</th>
+                                        <th class="lf-actions"><span class="ui-sr-only">Next step</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="lost-found-reports-body">
-                                    <tr>
-                                        <td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading Lost &amp; Found reports...
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="9" class="ui-empty">Loading the reports</td></tr>
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="ui-pager">
+                            <span><span id="lost-found-summary" aria-live="polite">Loading</span><span class="ui-pager-status" id="lost-found-status" role="status"></span></span>
+                        </div>
                     </div>
+
+                    <!-- one small menu for every row's ... button: placed and filled by openLostFoundMenu() in lostFound.js -->
+                    <div class="ui-menu" id="lost-found-menu" popover role="menu" aria-label="More for this report">
+                        <button type="button" role="menuitem" data-lf-menu-status="resolved">Mark resolved now</button>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Data Export Page (DONE BY PRETI)-->
