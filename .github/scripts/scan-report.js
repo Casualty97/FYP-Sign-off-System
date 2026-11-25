@@ -9,7 +9,7 @@ const path = require('path');
 const [mode, target] = process.argv.slice(2);
 const lines = [];
 const say = (line = '') => { lines.push(line); console.log(line); };
-const cell = (text) => String(text ?? '').replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim();
+const cell = (text) => String(text ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim();
 function finish(code) {
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
     process.exit(code);

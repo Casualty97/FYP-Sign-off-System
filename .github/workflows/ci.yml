@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - id: filter
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4, pinned to the commit
         with:
           filters: |
             backend:
@@ -192,12 +192,12 @@ jobs:
       # occasional EPERM while Defender scans the unzipped folder. Both attempts failing still fails the job.
       - id: mysql-first-try
         if: runner.os != 'Windows' || steps.win-mysql.outputs.started != 'true'
-        uses: ankane/setup-mysql@v1
+        uses: ankane/setup-mysql@d771aa74d6ea539d50a55296b7d18ac9feb9fd23 # v1, pinned to the commit
         continue-on-error: true
         with:
           mysql-version: '8.4'
       - if: steps.mysql-first-try.outcome == 'failure'
-        uses: ankane/setup-mysql@v1
+        uses: ankane/setup-mysql@d771aa74d6ea539d50a55296b7d18ac9feb9fd23 # v1, pinned to the commit
         with:
           mysql-version: '8.4'
       - run: npm ci
@@ -293,6 +293,10 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
+          # the tests and the CI scripts never run on the kiosk PC, so their findings would only hide the real ones
+          config: |
+            paths-ignore:
+              - tests
       - uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
@@ -334,7 +338,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - uses: ankane/setup-mysql@v1
+      - uses: ankane/setup-mysql@d771aa74d6ea539d50a55296b7d18ac9feb9fd23 # v1, pinned to the commit
         with:
           mysql-version: '8.4'
       - run: npm ci
