@@ -32,6 +32,22 @@ function Write-Checksums {
 }
 
 try {
+    # every command the package scripts call is a function of theirs or a real cmdlet (a missing helper only shows up
+    # when its line runs, often in a failure path)
+    $scripts = @(Get-ChildItem $src -Filter '*.ps1') + @(Get-Item (Join-Path $repo 'scripts\install\get-kiosk.ps1'))
+    $defined = @{}
+    $calls = @()
+    foreach ($s in $scripts) {
+        $ast = [Management.Automation.Language.Parser]::ParseFile($s.FullName, [ref]$null, [ref]$null)
+        foreach ($f in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] }, $true)) { $defined[$f.Name] = $true }
+        foreach ($c in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.CommandAst] }, $true)) {
+            $name = $c.GetCommandName()
+            if ($name -and $name -match '^[A-Za-z]+-[A-Za-z0-9]+$') { $calls += [pscustomobject]@{ Name = $name; File = $s.Name; Line = $c.Extent.StartLineNumber } }
+        }
+    }
+    $unknown = @($calls | Where-Object { -not $defined.ContainsKey($_.Name) -and -not (Get-Command $_.Name -CommandType Cmdlet, Function -ErrorAction SilentlyContinue) } | ForEach-Object { "$($_.Name) ($($_.File):$($_.Line))" } | Sort-Object -Unique)
+    Test-That 'every command the install scripts call exists' ($unknown.Count -eq 0) ($unknown -join ', ')
+
     New-Item -ItemType Directory -Path (Join-Path $pkg 'installer'), (Join-Path $pkg 'payload'), (Join-Path $work 'content') -Force | Out-Null
     Copy-Item (Join-Path $src '*.ps1') (Join-Path $pkg 'installer')
     Copy-Item (Join-Path $src 'root\*') $pkg

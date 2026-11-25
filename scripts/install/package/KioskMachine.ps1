@@ -35,6 +35,7 @@ function Add-Made([string]$Type, [string]$Id, [string]$Text, [string]$UndoKind, 
     if ($UndoKind) { [void]$undo.Insert(0, [pscustomobject]@{ kind = $UndoKind; value = $UndoValue }) }
     Write-Ok $Text
 }
+function Save-Result { Write-JsonFile $ResultFile ([pscustomobject]$result) }
 function Invoke-Undo($Step) {
     switch ($Step.kind) {
         'tree' { [void](Remove-Tree $Step.value) }
@@ -106,11 +107,24 @@ function Install-MySqlService {
         [void](Invoke-CimMethod -InputObject $svc -MethodName Change -Arguments @{ PathName = $binary; StartMode = 'Automatic' })
         Write-Ok "Windows service $ServiceName is already there"
     }
-    # its own low rights account (a virtual account): even a changed program file could not act as SYSTEM
+    # its own low rights account (a virtual account): even a changed program file could not act as SYSTEM.
+    # sc.exe is the documented way to set one (WMI refuses it); LocalService is the fallback if Windows refuses too.
+    $script:SvcAccount = $ServiceAccount
     $svc = Get-CimInstance Win32_Service -Filter "Name = '$ServiceName'"
     if ($svc.StartName -ne $ServiceAccount) {
-        $change = Invoke-CimMethod -InputObject $svc -MethodName Change -Arguments @{ StartName = $ServiceAccount; StartPassword = '' }
-        if ($change.ReturnValue -ne 0) { throw "the service could not be given its own account $ServiceAccount (WMI result $($change.ReturnValue))" }
+        [void](Invoke-Native 'sc.exe' @('config', $ServiceName, 'obj=', $ServiceAccount) -Quiet)
+        $svc = Get-CimInstance Win32_Service -Filter "Name = '$ServiceName'"
+    }
+    if ($svc.StartName -ne $ServiceAccount) {
+        # an empty password as its own argument, which PowerShell 5.1 would drop on the way to sc.exe
+        & cmd.exe /d /c "sc.exe config $ServiceName obj= `"$ServiceAccount`" password= `"`"" 2>&1 | ForEach-Object { Write-Log 'OUT' "$_" }
+        $svc = Get-CimInstance Win32_Service -Filter "Name = '$ServiceName'"
+    }
+    if ($svc.StartName -ne $ServiceAccount) {
+        $change = Invoke-CimMethod -InputObject $svc -MethodName Change -Arguments @{ StartName = 'NT AUTHORITY\LocalService'; StartPassword = '' }
+        if ($change.ReturnValue -ne 0) { throw "the service could not be given a low rights account (WMI result $($change.ReturnValue))" }
+        $script:SvcAccount = 'NT AUTHORITY\LocalService'
+        Write-Note "Windows did not take the account $ServiceAccount; the service runs as NT AUTHORITY\LocalService (also low rights)"
     }
     [void](Invoke-Native 'sc.exe' @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/5000/restart/10000/restart/60000') -Quiet)
     # the installing user may start, stop and look at this one service (updates and the start script need that)
@@ -133,14 +147,14 @@ function Set-MySqlRights {
     # program files: administrators change them, the service and the user only read and run them
     $codes += Invoke-Native 'icacls.exe' @($m.Base, '/setowner', "*$SidAdmins", '/T', '/Q') -Quiet
     $codes += Invoke-Native 'icacls.exe' @($m.Base, '/reset', '/T', '/Q') -Quiet
-    $grant = @($m.Base, '/grant', "${ServiceAccount}:(OI)(CI)RX")
+    $grant = @($m.Base, '/grant', "$($script:SvcAccount):(OI)(CI)RX")
     if ($UserSid) { $grant += "*${UserSid}:(OI)(CI)RX" }
     $codes += Invoke-Native 'icacls.exe' ($grant + '/Q') -Quiet
     # the data files: only the service, SYSTEM and administrators (a data folder from a laptop install is taken over)
     $codes += Invoke-Native 'icacls.exe' @($m.Data, '/setowner', "*$SidAdmins", '/T', '/Q') -Quiet
-    $codes += Invoke-Native 'icacls.exe' @($m.Data, '/inheritance:r', '/grant:r', "*${SidSystem}:(OI)(CI)F", "*${SidAdmins}:(OI)(CI)F", "${ServiceAccount}:(OI)(CI)F", '/T', '/Q') -Quiet
+    $codes += Invoke-Native 'icacls.exe' @($m.Data, '/inheritance:r', '/grant:r', "*${SidSystem}:(OI)(CI)F", "*${SidAdmins}:(OI)(CI)F", "$($script:SvcAccount):(OI)(CI)F", '/T', '/Q') -Quiet
     if (@($codes | Where-Object { $_ -ne 0 }).Count) { throw 'icacls could not set the rights on the MySQL folders' }
-    Write-Ok "rights set: only administrators change the MySQL files, the service runs as $ServiceAccount"
+    Write-Ok "rights set: only administrators change the MySQL files, the service runs as $($script:SvcAccount)"
 }
 
 function Install-FirewallRule {
@@ -184,7 +198,7 @@ try {
             if ($state -eq 'new') {
                 Add-Made 'folder' 'mysql-data' "MySQL data folder $($m.Data) with the database $DbName and its user" 'tree' $m.Data
                 # the files mysqld --initialize made get the service's rights; the root password file stays administrators only
-                [void](Invoke-Native 'icacls.exe' @($m.Data, '/grant', "${ServiceAccount}:(OI)(CI)F", '/T', '/Q') -Quiet)
+                [void](Invoke-Native 'icacls.exe' @($m.Data, '/grant', "$($script:SvcAccount):(OI)(CI)F", '/T', '/Q') -Quiet)
             } else { Write-Ok "the MySQL data folder $($m.Data) is kept" }
             $result.mysql = $state
             if ((Get-ServiceState) -ne 'Running') { & sc.exe start $ServiceName 2>&1 | Out-Null }

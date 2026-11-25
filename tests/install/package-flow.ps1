@@ -100,9 +100,15 @@ try {
     Test-That 'the Startup shortcut starts this install' (Test-OwnShortcut $StartupLink $Root) $StartupLink
     foreach ($sub in @('mysql', 'mysql-data')) {
         $acl = Get-Acl -LiteralPath (Join-Path $Root $sub)
-        $writers = @($acl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and ($_.FileSystemRights -band [Security.AccessControl.FileSystemRights]'Write, Delete, ChangePermissions, TakeOwnership') } | ForEach-Object { $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value } | Sort-Object -Unique)
-        $allowed = @($SidSystem, $SidAdmins)
-        if ($sub -eq 'mysql-data') { $allowed += (New-Object Security.Principal.NTAccount($ServiceAccount)).Translate([Security.Principal.SecurityIdentifier]).Value }
+        $writers = @()
+        foreach ($ace in @($acl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and ($_.FileSystemRights -band [Security.AccessControl.FileSystemRights]'Write, Delete, ChangePermissions, TakeOwnership') })) {
+            $id = $ace.IdentityReference
+            try { $writers += $id.Translate([Security.Principal.SecurityIdentifier]).Value } catch { $writers += "$id" }
+        }
+        $writers = @($writers | Sort-Object -Unique)
+        # CREATOR OWNER only covers what someone who may already write there creates later
+        $allowed = @($SidSystem, $SidAdmins, $SidCreatorOwner)
+        if ($sub -eq 'mysql-data') { try { $allowed += (New-Object Security.Principal.NTAccount($ServiceAccount)).Translate([Security.Principal.SecurityIdentifier]).Value } catch { } }
         $others = @($writers | Where-Object { $allowed -notcontains $_ })
         Test-That "only administrators (and for the data the service) may change $sub" ($others.Count -eq 0) ($others -join ', ')
     }
@@ -156,11 +162,12 @@ try {
     $code = Invoke-Ps (Join-Path $Root 'app\scripts\install\package\Show-KioskStatus.ps1') @()
     Test-That 'kiosk-status runs' ($code -eq 0) "exit $code"
     $export = Join-Path $work 'moved.rpxkdata'
-    & cmd.exe /d /c "`"$Root\app\export-data.cmd`" -OutFile `"$export`" -NonInteractive" 2>&1 | ForEach-Object { Write-Host "     | $_" }
+    # PowerShell runs a .cmd through cmd.exe and quotes it right (cmd /c "..." with several quoted paths loses quotes)
+    & (Join-Path $Root 'app\export-data.cmd') -OutFile $export -NonInteractive 2>&1 | ForEach-Object { Write-Host "     | $_" }
     Test-That 'export-data.cmd makes the locked data file' ($LASTEXITCODE -eq 0 -and (Test-Path $export)) "exit $LASTEXITCODE"
 
     Write-Part 'Uninstall, keeping the visitor data'
-    & cmd.exe /d /c "`"$Root\app\uninstall.cmd`" -NonInteractive" 2>&1 | ForEach-Object { Write-Host "     | $_" }
+    & (Join-Path $Root 'app\uninstall.cmd') -NonInteractive 2>&1 | ForEach-Object { Write-Host "     | $_" }
     Test-That 'uninstall.cmd finishes (exit 0)' ($LASTEXITCODE -eq 0) "exit $LASTEXITCODE"
     Test-NothingLeft $Root 'after uninstall' $true
     Test-That 'the photo and the uploaded picture are kept in data\kept' ((Test-Path (Join-Path $Root 'data\kept\app\uploads\photos\ci-marker.txt')) -and (Test-Path (Join-Path $Root 'data\kept\app\assets\backgrounds\ci-uploaded.png'))) 'not kept'
