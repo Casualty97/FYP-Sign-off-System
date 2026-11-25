@@ -95,6 +95,8 @@ function filterLostFoundReports() { // changes made by nick
             (!typeFilter || report.report_type === typeFilter);
     };
     filteredLostFoundReports = allLostFoundReports.filter((report) => matchesSearchAndType(report) && (!statusFilter || report.status === statusFilter));
+    // <Jun Kai/> newest first as the server sends them, or oldest first after a click on the Report heading
+    if (lostFoundOldestFirst) filteredLostFoundReports.reverse();
 
     // <Jun Kai start> the number on each status chip
     const counts = { all: 0, new: 0, reviewed: 0, resolved: 0 };
@@ -237,6 +239,16 @@ async function updateLostFoundReportStatus(reportId, status, button) { // change
 let lostFoundLoadError = ''; // the reason the last load failed, empty after a good load
 let lostFoundPageReady = false;
 let lostFoundSayTimer = null;
+let lostFoundOldestFirst = false;
+
+// the Report heading: newest first (the server's order) or oldest first
+function sortLostFoundByDate() {
+    lostFoundOldestFirst = !lostFoundOldestFirst;
+    const indicator = document.getElementById('lost-found-sort-date');
+    if (indicator) indicator.className = `sort-indicator ${lostFoundOldestFirst ? 'asc' : 'desc'}`;
+    indicator?.closest('th')?.setAttribute('aria-sort', lostFoundOldestFirst ? 'ascending' : 'descending');
+    filterLostFoundReports();
+}
 const LOST_FOUND_STATUS_TONES = { new: 'red', reviewed: 'amber', resolved: 'green' };
 
 // once: the icons of the filter bar, the clicks on the next step and ... buttons, broken photos, and the menu
