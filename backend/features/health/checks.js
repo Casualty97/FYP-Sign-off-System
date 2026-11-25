@@ -123,7 +123,7 @@ function checkKiosk() {
             const ms = Date.now() - started;
             resolve(result.running
                 ? { ...base, status: 'ok', summary: `Reachable, ${ms} ms`, detail: { status: result.status, source: result.source }, latencyMs: ms }
-                : { ...base, status: 'down', summary: 'Not reachable', detail: { status: result.status, source: result.source, hint: 'Start it from Server Schedule or check logs/' }, latencyMs: ms });
+                : { ...base, status: 'down', summary: 'Not reachable', detail: { status: result.status, source: result.source, hint: 'Start it from Operating Hours or check logs/' }, latencyMs: ms });
         });
     });
 }
@@ -137,7 +137,7 @@ async function checkEmail(force = false) {
         const { value, ms } = await timed(() => withTimeout(emailService.checkEmailService(), 15000, 'SMTP check'));
         result = value.available && value.verified
             ? { ...base, status: 'ok', summary: `${value.service || 'SMTP'} login works, ${ms} ms`, detail: { provider: value.service, sender: value.sender }, latencyMs: ms }
-            : { ...base, status: 'down', summary: 'Cannot log in to the mail server', detail: { sender: value.sender, error: value.error || 'verification failed', hint: 'Check Email Management' }, latencyMs: ms };
+            : { ...base, status: 'down', summary: 'Cannot log in to the mail server', detail: { sender: value.sender, error: value.error || 'verification failed', hint: 'Check the Mail Account page' }, latencyMs: ms };
     } catch (error) {
         result = { ...base, status: 'down', summary: 'Cannot reach the mail server', detail: { error: error.message }, latencyMs: null };
     }

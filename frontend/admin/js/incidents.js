@@ -1584,7 +1584,7 @@ function incidentsApplyFixesState() {
     }
     if (note) {
         const text = automation === 'off'
-            ? 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so a fix waits for an approval whatever is chosen here. An approval on the incident still runs, like Start kiosk on Server Schedule.'
+            ? 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so a fix waits for an approval whatever is chosen here. An approval on the incident still runs, like Start kiosk on Operating Hours.'
             : automation === 'dry-run' ? 'KIOSK_AUTOMATION=dry-run in backend/.env: what would run by itself is only recorded. An approval on the incident still runs.' : '';
         note.textContent = text;
         note.hidden = !text;

@@ -187,25 +187,25 @@ const themeConfig = {
         { id: 'global', name: 'Admin Overall Theme', icon: '🌐', isGlobal: true },
         { id: 'admin-dashboard', name: 'Admin Panel (Header + Sidebar)', icon: '⚙️' },
         { id: 'dashboard-page', name: 'Dashboard', icon: '📊' },
-        { id: 'feedback-data-page', name: 'Feedback Data', icon: '💬' },
-        { id: 'digital-tree-page', name: 'Digital Tree', icon: '🌳' },
+        { id: 'feedback-data-page', name: 'Feedback', icon: '💬' },
+        { id: 'digital-tree-page', name: 'Tree Leaves', icon: '🌳' },
         { id: 'pledgeboard-page', name: 'Pledgeboard', icon: '🏆' },
         { id: 'pulse-page', name: 'Live Pulse', icon: 'LIVE' },
-        { id: 'overlay-page', name: 'Overlay Management', icon: '🎨', requiredRole: 'system_admin' },
-        { id: 'questions-page', name: 'Question Management', icon: '❓', requiredRole: 'system_admin' },
-        { id: 'users-page', name: 'User Management', icon: '👥', requiredRole: 'system_admin' },
-        { id: 'vip-page', name: 'VIP Management', icon: '👑', requiredRole: 'system_admin' },
-        { id: 'email-management-page', name: 'Email Management', icon: '📧', requiredRole: 'system_admin' },
-        { id: 'badge-email-templates-page', name: 'Badge Email Templates', icon: 'Mail', requiredRole: 'system_admin' },
-        { id: 'form-management-page', name: 'Form Management', icon: '📝', requiredRole: 'system_admin' },
+        { id: 'overlay-page', name: 'Photo Overlays', icon: '🎨', requiredRole: 'system_admin' },
+        { id: 'questions-page', name: 'Questions', icon: '❓', requiredRole: 'system_admin' },
+        { id: 'users-page', name: 'Users', icon: '👥', requiredRole: 'system_admin' },
+        { id: 'vip-page', name: 'VIPs', icon: '👑', requiredRole: 'system_admin' },
+        { id: 'email-management-page', name: 'Mail Account', icon: '📧', requiredRole: 'system_admin' },
+        { id: 'badge-email-templates-page', name: 'Badge Emails', icon: 'Mail', requiredRole: 'system_admin' },
+        { id: 'form-management-page', name: 'Start Screen Text', icon: '📝', requiredRole: 'system_admin' },
         // <Jun Kai start>
         { id: 'archive-page', name: 'Archived Feedback', icon: '📚', requiredRole: 'system_admin' },
         // <Jun Kai end>
         { id: 'audit-page', name: 'Audit Logs', icon: '📋', requiredRole: 'system_admin' },
         { id: 'data-export-page', name: 'Data Export', icon: '📦', requiredRole: 'system_admin' },
-        { id: 'timer-countdown-page', name: 'Timer Countdown', icon: '🕔', requiredRole: 'system_admin' },
-        { id: 'server-schedule-page', name: 'Server Schedule', icon: '❗', requiredRole: 'system_admin' },
-        { id: 'theme-settings-page', name: 'Style & Theme Settings', icon: '🎨' }
+        { id: 'timer-countdown-page', name: 'Photo Timer', icon: '🕔', requiredRole: 'system_admin' },
+        { id: 'server-schedule-page', name: 'Operating Hours', icon: '❗', requiredRole: 'system_admin' },
+        { id: 'theme-settings-page', name: 'Style & Theme', icon: '🎨' }
     ],
     
     // Selector mapping grouped

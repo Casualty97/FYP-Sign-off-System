@@ -333,7 +333,7 @@ async function install(opts) {
         return 1;
     }
     say.ok(`database ${cfg.database}: ${stats.tables} tables, ${stats.admins} admin account(s), every migration applied`);
-    if (fresh) say.note('first login on the admin page: systemadmin / SystemAdmin123! (change the password in User Management)');
+    if (fresh) say.note('first login on the admin page: systemadmin / SystemAdmin123! (change the password on the Users page)');
     return 0;
 }
 

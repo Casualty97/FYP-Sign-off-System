@@ -10,11 +10,11 @@
 const ACTIONS = {
     none: 'Nothing to do yet: keep an eye on it',
     'close-heavy-apps': 'Close programs that use a lot of CPU or memory on the server PC',
-    'restart-kiosk-server': 'Restart the kiosk server (Server Schedule page)',
+    'restart-kiosk-server': 'Restart the kiosk server (Operating Hours page)',
     'check-mysql': 'Check that the MySQL service is running (Windows Services)',
     'free-disk-space': 'Free disk space on the server PC (old files, the recycle bin, other programs)',
     'run-archive-now': 'Archive old visitor records and their photos (Visitor Data Archive page)',
-    'check-mail-login': 'Check the mail account (Email Management)',
+    'check-mail-login': 'Check the mail account (Mail Account page)',
     'check-tablet': 'Check the tablet: power, Wi-Fi and the kiosk page',
     'review-server-log': 'Read the server log lines around the error (logs folder)'
 };
