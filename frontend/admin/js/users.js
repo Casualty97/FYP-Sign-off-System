@@ -8,35 +8,27 @@ let currentUserTab = 'active'; // 'active' or 'deleted'
 // Switch between active and deleted users tabs
 function switchUserTab(tab) {
     currentUserTab = tab;
-    
-    // Update tab buttons
-    const tabs = document.querySelectorAll('.user-tab');
-    tabs.forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    // Show/hide sections
+
+    // <Jun Kai start> the redesigned tabs: each knows its tab by data-tab (the old code read the global "event")
+    document.querySelectorAll('#users-page [role="tab"]').forEach((button) => {
+        const on = button.dataset.tab === tab;
+        button.setAttribute('aria-selected', String(on));
+        button.tabIndex = on ? 0 : -1;
+    });
     const activeSection = document.getElementById('active-users-section');
     const deletedSection = document.getElementById('deleted-users-section');
-    
-    if (tab === 'active') {
-        activeSection.style.display = 'block';
-        deletedSection.style.display = 'none';
-        loadActiveUsers();
-    } else {
-        activeSection.style.display = 'none';
-        deletedSection.style.display = 'block';
-        loadDeletedUsers();
-    }
+    if (activeSection) activeSection.hidden = tab !== 'active';
+    if (deletedSection) deletedSection.hidden = tab === 'active';
+    if (tab === 'active') loadActiveUsers();
+    else loadDeletedUsers();
+    // <Jun Kai end>
 }
 
 // Load user management data (wrapper function)
 async function loadUserManagementData() {
-    // Load based on current tab
-    if (currentUserTab === 'active') {
-        await loadActiveUsers();
-    } else {
-        await loadDeletedUsers();
-    }
+    // <Jun Kai/> both lists, so both tab counts are right (the page shows the current tab)
+    prepareUsersPage();
+    await Promise.all([loadActiveUsers(), loadDeletedUsers()]);
 }
 
 // Load active users
@@ -55,11 +47,11 @@ async function loadActiveUsers() {
         if (data.success && data.users) {
             updateActiveUsersTable(data.users);
         } else {
-            alert('Error loading active users: ' + (data.error || 'Unknown error'));
+            showUsersLoadError('active', data.error || 'the server answered without the list'); // <Jun Kai/>
         }
     } catch (error) {
         console.error('Error loading active users:', error);
-        alert('Error connecting to server: ' + error.message);
+        showUsersLoadError('active', error.message); // <Jun Kai/> in the table instead of an alert box
     }
 }
 
@@ -79,185 +71,146 @@ async function loadDeletedUsers() {
         if (data.success && data.users) {
             updateDeletedUsersTable(data.users);
         } else {
-            alert('Error loading deleted users: ' + (data.error || 'Unknown error'));
+            showUsersLoadError('deleted', data.error || 'the server answered without the list'); // <Jun Kai/>
         }
     } catch (error) {
         console.error('Error loading deleted users:', error);
-        alert('Error connecting to server: ' + error.message);
+        showUsersLoadError('deleted', error.message); // <Jun Kai/>
     }
+}
+
+// <Jun Kai start> Users A (admin redesign): the two tables. Every value is escaped, and the buttons carry the account in
+// data attributes (read by prepareUsersPage), instead of inline onclick strings that a quote in a name would break.
+// Who may do what is unchanged: a System Admin edits and deletes accounts, the root account "systemadmin" is edited only
+// by itself and is never deleted, nobody deletes their own account.
+function usersEmptyRow(text) {
+    return `<tr><td colspan="5" class="ui-empty">${text}</td></tr>`;
+}
+
+function usersSafe(user) {
+    return {
+        id: user.id || 0,
+        username: user.username || 'Unknown',
+        full_name: user.full_name || user.username || 'Unknown',
+        role: user.role || 'IT_staff',
+        department: user.department || 'IT',
+        is_active: user.is_active !== undefined ? user.is_active : 1,
+        deleted_at: user.deleted_at,
+        deleted_by: user.deleted_by || 'Unknown'
+    };
+}
+
+// data-* values for a button: the account the action is for
+function usersButtonData(user) {
+    return `data-id="${Number(user.id)}" data-username="${escapeHtml(user.username)}" data-role="${escapeHtml(user.role)}" data-full-name="${escapeHtml(user.full_name)}"`;
+}
+
+function usersNameCell(user) {
+    const root = user.username === 'systemadmin' ? ' <span class="ui-tag is-green">Root</span>' : '';
+    return `<b>${escapeHtml(user.username)}</b>${root}`;
 }
 
 // Update active users table
 function updateActiveUsersTable(usersData) {
     const tbody = document.getElementById('active-users-tbody');
-    if (!tbody) {
-        console.error('Active users table tbody not found');
+    if (!tbody) return;
+    const list = Array.isArray(usersData) ? usersData : [];
+    usersSetCount('active', list.length);
+    if (!list.length) {
+        tbody.innerHTML = usersEmptyRow('No active accounts. <button type="button" class="ui-link" onclick="loadActiveUsers()">Load again</button>');
         return;
     }
-    
-    tbody.innerHTML = '';
-    
-    if (!usersData || !Array.isArray(usersData) || usersData.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">👤</div>
-                    <h3 style="color: #64748b; margin-bottom: 10px;">No Active Users Found</h3>
-                    <p>No active user data available.</p>
-                    <button class="btn-primary" onclick="loadActiveUsers()" style="margin-top: 15px;">
-                        Retry Loading
-                    </button>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
     const currentUser = sessionStorage.getItem('loggedUser');
-    const currentUserRole = sessionStorage.getItem('userRole');
-    const isSystemAdmin = currentUserRole === 'system_admin';
-    
-    usersData.forEach(user => {
-        const row = document.createElement('tr');
-        
-        const safeUser = {
-            id: user.id || 0,
-            username: user.username || 'Unknown',
-            full_name: user.full_name || user.username || 'Unknown',
-            role: user.role || 'IT_staff',
-            department: user.department || 'IT',
-            is_active: user.is_active !== undefined ? user.is_active : 1
-        };
-        
-        const isCurrentUser = safeUser.username === currentUser;
-        const isProtectedRootUser = safeUser.username === 'systemadmin';
-        
-        // MODIFIED LOGIC: Allow systemadmin to edit itself, but prevent others from editing systemadmin
-        // - If it's the root account (systemadmin), only systemadmin itself can edit it
-        // - If it's a regular account, any system_admin can edit it
-        const canEdit = isSystemAdmin && (!isProtectedRootUser || isCurrentUser);
-        
-        // KEEP SAME: Cannot delete root account, cannot delete yourself
-        const canDelete = isSystemAdmin && !isProtectedRootUser && !isCurrentUser;
-        
-        row.innerHTML = `
-            <td>
-                ${safeUser.username}
-                ${isProtectedRootUser ? ' <span style="color: #10b981; font-size: 10px; margin-left: 5px;">(ROOT)</span>' : ''}
-            </td>
-            <td>${safeUser.full_name}</td>
-            <td>${formatRoleName(safeUser.role)}</td>
-            <td>${safeUser.department}</td>
-            <td>
-                <span class="badge ${safeUser.is_active ? 'badge-active' : 'badge-warning'}">
-                    ${safeUser.is_active ? 'ACTIVE' : 'INACTIVE'}
-                </span>
-            </td>
-            <td>
-                ${canEdit ? `
-                    <button class="btn-edit" onclick="editUser(${safeUser.id}, '${safeUser.username}', '${safeUser.role}', '${safeUser.full_name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">
-                        ${isProtectedRootUser && isCurrentUser ? '🔐 Edit My Account' : 'Edit'}
-                    </button>
-                ` : ''}
-                ${canDelete ? `
-                    <button class="btn-delete" onclick="deleteUser(${safeUser.id}, '${safeUser.username}')">
-                        Delete
-                    </button>
-                ` : ''}
-                ${!canEdit && !canDelete ? `
-                    <span class="text-muted font-size-12">${isProtectedRootUser ? '🔒 Protected' : 'No actions'}</span>
-                ` : ''}
-            </td>
-        `;
-        
-        tbody.appendChild(row);
-    });
+    const isSystemAdmin = sessionStorage.getItem('userRole') === 'system_admin';
+    tbody.innerHTML = list.map((raw) => {
+        const user = usersSafe(raw);
+        const isCurrentUser = user.username === currentUser;
+        const isRoot = user.username === 'systemadmin';
+        const canEdit = isSystemAdmin && (!isRoot || isCurrentUser);
+        const canDelete = isSystemAdmin && !isRoot && !isCurrentUser;
+        const name = escapeHtml(user.username);
+        let actions = '';
+        if (canEdit && isRoot) actions += `<button type="button" class="ui-btn ui-btn-secondary users-btn" data-user-action="edit" ${usersButtonData(user)}>${uiIcon('lock', 14)}Edit my account</button>`;
+        else if (canEdit) actions += `<button type="button" class="ui-btn ui-btn-icon" data-user-action="edit" ${usersButtonData(user)} aria-label="Edit ${name}" title="Edit">${uiIcon('edit', 16)}</button>`;
+        if (canDelete) actions += `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-user-action="delete" ${usersButtonData(user)} aria-label="Delete ${name}" title="Delete">${uiIcon('trash', 16)}</button>`;
+        if (!actions) actions = `<span class="ui-muted">${isRoot ? 'Protected' : 'No actions'}</span>`;
+        return `<tr>
+            <td>${usersNameCell(user)}</td>
+            <td>${escapeHtml(user.full_name)}</td>
+            <td class="users-role">${escapeHtml(formatRoleName(user.role))} <span class="users-sub">${escapeHtml(user.department)}</span></td>
+            <td><span class="ui-tag is-${user.is_active ? 'green' : 'amber'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td><span class="ui-actions">${actions}</span></td>
+        </tr>`;
+    }).join('');
 }
 
 // Update deleted users table
 function updateDeletedUsersTable(usersData) {
     const tbody = document.getElementById('deleted-users-tbody');
-    if (!tbody) {
-        console.error('Deleted users table tbody not found');
+    if (!tbody) return;
+    const list = Array.isArray(usersData) ? usersData : [];
+    usersSetCount('deleted', list.length);
+    if (!list.length) {
+        tbody.innerHTML = usersEmptyRow('No deleted accounts.');
         return;
     }
-    
-    tbody.innerHTML = '';
-    
-    if (!usersData || !Array.isArray(usersData) || usersData.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🗑️</div>
-                    <h3 style="color: #64748b; margin-bottom: 10px;">No Deleted Users</h3>
-                    <p>There are no deleted users to display.</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    const currentUserRole = sessionStorage.getItem('userRole');
-    const isSystemAdmin = currentUserRole === 'system_admin';
-    
-    usersData.forEach(user => {
-        const row = document.createElement('tr');
-        
-        const safeUser = {
-            id: user.id || 0,
-            username: user.username || 'Unknown',
-            full_name: user.full_name || user.username || 'Unknown',
-            role: user.role || 'IT_staff',
-            department: user.department || 'IT',
-            is_active: user.is_active !== undefined ? user.is_active : 1,
-            deleted_at: user.deleted_at,
-            deleted_by: user.deleted_by || 'Unknown'
-        };
-        
-        const isProtectedRootUser = safeUser.username === 'systemadmin';
-        const canRestore = isSystemAdmin && !isProtectedRootUser;
-        const canPermanentDelete = isSystemAdmin && !isProtectedRootUser;
-        
-        const deletedDate = safeUser.deleted_at ? new Date(safeUser.deleted_at).toLocaleDateString() : 'Unknown';
-        
-        row.innerHTML = `
-            <td>
-                ${safeUser.username}
-                ${isProtectedRootUser ? ' <span style="color: #10b981; font-size: 10px; margin-left: 5px;">(ROOT)</span>' : ''}
-            </td>
-            <td>
-                ${safeUser.full_name}
-                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
-                    Deleted: ${deletedDate} by ${safeUser.deleted_by}
-                </div>
-            </td>
-            <td>${formatRoleName(safeUser.role)}</td>
-            <td>${safeUser.department}</td>
-            <td>
-                <span class="badge badge-danger">
-                    DELETED
-                </span>
-            </td>
-            <td>
-                ${canRestore ? `
-                    <button class="btn-success" onclick="restoreUser(${safeUser.id}, '${safeUser.username}')" style="background: #10b981;">
-                        🔄 Restore
-                    </button>
-                ` : ''}
-                ${canPermanentDelete ? `
-                    <button class="btn-delete" onclick="permanentDeleteUser(${safeUser.id}, '${safeUser.username}')">
-                        🗑️ Permanent Delete
-                    </button>
-                ` : ''}
-                ${!canRestore && !canPermanentDelete ? `
-                    <span class="text-muted font-size-12">No actions</span>
-                ` : ''}
-            </td>
-        `;
-        
-        tbody.appendChild(row);
+    const isSystemAdmin = sessionStorage.getItem('userRole') === 'system_admin';
+    tbody.innerHTML = list.map((raw) => {
+        const user = usersSafe(raw);
+        const isRoot = user.username === 'systemadmin';
+        const can = isSystemAdmin && !isRoot;
+        const name = escapeHtml(user.username);
+        const deletedDate = user.deleted_at ? new Date(user.deleted_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'an unknown date';
+        const actions = can
+            ? `<button type="button" class="ui-btn ui-btn-secondary users-btn" data-user-action="restore" ${usersButtonData(user)} aria-label="Restore ${name}">Restore</button><button type="button" class="ui-btn ui-btn-secondary users-btn ui-danger" data-user-action="purge" ${usersButtonData(user)} aria-label="Delete ${name} for good">Delete for good</button>`
+            : '<span class="ui-muted">No actions</span>';
+        return `<tr>
+            <td>${usersNameCell(user)}</td>
+            <td>${escapeHtml(user.full_name)} <span class="users-deleted-by">Deleted ${escapeHtml(deletedDate)} by ${escapeHtml(user.deleted_by)}</span></td>
+            <td class="users-role">${escapeHtml(formatRoleName(user.role))} <span class="users-sub">${escapeHtml(user.department)}</span></td>
+            <td><span class="ui-tag is-red">Deleted</span></td>
+            <td><span class="ui-actions">${actions}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+function usersSetCount(which, n) {
+    const count = document.getElementById(`users-count-${which}`);
+    if (count) count.textContent = String(n);
+}
+
+// a list that did not load says so in its table, with Try again
+function showUsersLoadError(which, message) {
+    const tbody = document.getElementById(`${which}-users-tbody`);
+    const again = which === 'active' ? 'loadActiveUsers()' : 'loadDeletedUsers()';
+    if (tbody) tbody.innerHTML = usersEmptyRow(`Could not load the accounts: ${escapeHtml(String(message || 'no answer').replace(/\.$/, ''))}. <button type="button" class="ui-link" onclick="${again}">Try again</button>`);
+}
+
+// once: the row buttons, and the arrow keys between the two tabs
+let usersPageReady = false;
+function prepareUsersPage() {
+    if (usersPageReady) return;
+    usersPageReady = true;
+    document.querySelectorAll('#users-page [data-fb-icon]').forEach((slot) => { slot.innerHTML = uiIcon(slot.dataset.fbIcon, 15); });
+    document.getElementById('users-page')?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-user-action]');
+        if (!button) return;
+        const { id, username, role, fullName } = button.dataset;
+        const action = button.dataset.userAction;
+        if (action === 'edit') editUser(Number(id), username, role, fullName);
+        if (action === 'delete') deleteUser(Number(id), username);
+        if (action === 'restore') restoreUser(Number(id), username);
+        if (action === 'purge') permanentDeleteUser(Number(id), username);
+    });
+    document.querySelector('#users-page [role="tablist"]')?.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        const next = currentUserTab === 'active' ? 'deleted' : 'active';
+        switchUserTab(next);
+        document.querySelector(`#users-page [data-tab="${next}"]`)?.focus();
+        event.preventDefault();
     });
 }
+// <Jun Kai end>
 
 // Legacy function for backward compatibility
 function updateUserManagementTable(usersData) {
@@ -459,7 +412,7 @@ async function handleAddUser(event) {
         if (data.success) {
             alert('✅ User added successfully!');
             closeAddUserModal();
-            loadActiveUsers(); // Reload active users
+            loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
             errorDiv.textContent = data.error || 'Failed to add user';
             errorDiv.style.display = 'block';
@@ -498,6 +451,9 @@ function editUser(userId, username, currentRole, fullName) {
         return;
     }
     
+    // <Jun Kai/> escaped copies for the window's HTML: a full name is free text
+    const usernameHtml = escapeHtml(username);
+    const fullNameHtml = escapeHtml(fullName || '');
     const modal = document.createElement('div');
     modal.className = 'edit-user-modal';
     modal.style.cssText = `
@@ -558,7 +514,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Username (locked)
                         </label>
                         <input type="text" id="edit-username" 
-                            value="${username}"
+                            value="${usernameHtml}"
                             disabled
                             style="
                                 width: 100%; 
@@ -580,7 +536,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Full Name
                         </label>
                         <input type="text" id="edit-full-name" 
-                            value="${fullName || 'System Administrator'}"
+                            value="${fullNameHtml || 'System Administrator'}"
                             placeholder="Enter full name"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
                             required>
@@ -668,7 +624,7 @@ function editUser(userId, username, currentRole, fullName) {
                 max-width: 500px;
             ">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <h3 style="margin: 0; color: #1e293b; font-size: 20px;">Edit User: ${username}</h3>
+                    <h3 style="margin: 0; color: #1e293b; font-size: 20px;">Edit User: ${usernameHtml}</h3>
                     <button onclick="closeEditUserModal()" style="
                         background: none;
                         border: none;
@@ -685,7 +641,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Username
                         </label>
                         <input type="text" id="edit-username" 
-                            value="${username}"
+                            value="${usernameHtml}"
                             placeholder="Enter username"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
                             required>
@@ -699,7 +655,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Full Name
                         </label>
                         <input type="text" id="edit-full-name" 
-                            value="${fullName || ''}"
+                            value="${fullNameHtml}"
                             placeholder="Enter full name"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
                             required>
@@ -837,7 +793,7 @@ async function handleEditUser(event, userId) {
         if (data.success) {
             alert('✅ User updated successfully!');
             closeEditUserModal();
-            loadActiveUsers(); // Reload active users
+            loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
             errorDiv.textContent = data.error || 'Failed to update user';
             errorDiv.style.display = 'block';
@@ -900,7 +856,7 @@ async function performUserDeletion(userId, username) {
         
         if (data.success) {
             alert(`✅ User "${username}" has been moved to Deleted Users.\n\nYou can restore this user from the "Deleted Users" tab.`);
-            loadActiveUsers(); // Reload active users
+            loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
             alert(`❌ Failed to delete user "${username}": ${data.error || 'Unknown error'}`);
         }
@@ -932,7 +888,7 @@ async function restoreUser(userId, username) {
             
             if (data.success) {
                 alert(`✅ User "${username}" has been restored successfully!`);
-                loadDeletedUsers(); // Reload deleted users list
+                loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
             } else {
                 alert(`❌ Failed to restore user "${username}": ${data.error || 'Unknown error'}`);
             }
@@ -987,7 +943,7 @@ async function permanentDeleteUser(userId, username) {
         
         if (data.success) {
             alert(`✅ User "${username}" has been permanently deleted from the database.`);
-            loadDeletedUsers(); // Reload deleted users list
+            loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
             alert(`❌ Failed to permanently delete user "${username}": ${data.error || 'Unknown error'}`);
         }

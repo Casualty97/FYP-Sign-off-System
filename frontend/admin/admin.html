@@ -1509,86 +1509,64 @@
 
                 <!-- User Management Page (DONE BY PRETI)-->
                 <div id="users-page" class="page">
-                    <div class="page-header">
-                        <h2>Users</h2>
-                        <p>Manage admin users and permissions</p>
-                    </div>
-
-                    <!-- Tab Navigation (DONE BY PRETI)-->
-                    <div class="user-tabs">
-                        <button class="user-tab active" onclick="switchUserTab('active')">
-                            👤 Active Users
-                        </button>
-                        <button class="user-tab" onclick="switchUserTab('deleted')">
-                            🗑️ Deleted Users
-                        </button>
-                    </div>
-
-                    <!-- Active Users Section (DONE BY PRETI)-->
-                    <div id="active-users-section" class="user-section">
-                        <div class="section-header">
-                            <h3>Active Admin Users</h3>
-                            <button class="btn-primary" onclick="addUser()">+ Add User</button>
+                    <!-- <Jun Kai start> Users page (admin redesign, Users A): the accounts on the left with Active and Deleted
+                         tabs, the Sign-in card on the right, so everything about access is on one screen. The ids of the two
+                         sections and table bodies are the old ones; the Add user and Edit user windows are unchanged. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Users</h2>
+                            <p>Admin accounts and how they sign in.</p>
                         </div>
-                        
-                        <div class="data-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Full Name</th>
-                                        <th>Role</th>
-                                        <th>Department</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="active-users-tbody">
-                                    <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                    <tr>
-                                        <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading active users...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <button type="button" class="ui-btn ui-btn-primary" onclick="addUser()"><span data-fb-icon="plus"></span>Add user</button>
                     </div>
 
-                    <!-- Deleted Users Section (DONE BY PRETI)-->
-                    <div id="deleted-users-section" class="user-section" style="display: none;">
-                        <div class="section-header">
-                            <h3>Deleted Admin Users</h3>
-                            <div class="header-info">
-                                <span style="color: #64748b; font-size: 14px;">
-                                    These users have been soft-deleted and can be restored
-                                </span>
+                    <div class="users-layout">
+                        <div class="ui-card users-card">
+                            <div class="ui-tabs" role="tablist" aria-label="Which accounts">
+                                <button type="button" role="tab" class="ui-tab" id="users-tab-active" data-tab="active" aria-selected="true" aria-controls="active-users-section" onclick="switchUserTab('active')">Active <b class="ui-tab-count" id="users-count-active">0</b></button>
+                                <button type="button" role="tab" class="ui-tab" id="users-tab-deleted" data-tab="deleted" aria-selected="false" aria-controls="deleted-users-section" tabindex="-1" onclick="switchUserTab('deleted')">Deleted <b class="ui-tab-count" id="users-count-deleted">0</b></button>
+                            </div>
+
+                            <div id="active-users-section" role="tabpanel" aria-labelledby="users-tab-active">
+                                <div class="ui-table-wrap">
+                                    <table class="ui-table users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Full name</th>
+                                                <th>Role</th>
+                                                <th>Status</th>
+                                                <th class="ui-th-actions"><span class="ui-sr-only">Actions</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="active-users-tbody">
+                                            <tr><td colspan="5" class="ui-empty">Loading the accounts</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div id="deleted-users-section" role="tabpanel" aria-labelledby="users-tab-deleted" hidden>
+                                <p class="users-note">A deleted account cannot sign in. Restore brings it back; Delete for good removes it from the database.</p>
+                                <div class="ui-table-wrap">
+                                    <table class="ui-table users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Full name</th>
+                                                <th>Role</th>
+                                                <th>Status</th>
+                                                <th class="ui-th-actions"><span class="ui-sr-only">Actions</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="deleted-users-tbody">
+                                            <tr><td colspan="5" class="ui-empty">Loading the deleted accounts</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="data-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Full Name</th>
-                                        <th>Role</th>
-                                        <th>Department</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="deleted-users-tbody">
-                                    <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                    <tr>
-                                        <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading deleted users...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <!-- <Jun Kai end> -->
 
                     <!-- <Jun Kai start> signing out after no activity, the same for every admin (a System Admin changes it) -->
                     <div class="ui-card idle-card" id="idle-card">
@@ -1617,6 +1595,7 @@
                         </div>
                     </div>
                     <!-- <Jun Kai end> -->
+                    </div><!-- <Jun Kai/> end of .users-layout -->
                 </div>
 
                 <!-- VIP Management (DONE BY ZAH) -->
