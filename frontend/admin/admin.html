@@ -3471,23 +3471,10 @@
                                 <div>
                                     <h3>Tablets</h3>
                                     <!-- <Jun Kai start> -->
-                                    <p>A device shows Offline after it misses check-ins for the selected time. Incident alerts have their own timing.</p>
+                                    <p>A device shows Not reporting after three minutes without a check-in.</p>
                                     <!-- <Jun Kai end> -->
-                                    <p>Open Feedback to register a device. Battery readings require HTTPS and browser support.<br>To remove an entry, drag or swipe its device name left, or click the trash icon.</p>
+                                    <p>Open Feedback to register a device. Battery readings require HTTPS and browser support.<br>Swipe or drag a row left to reveal Remove. With the keyboard, focus the row and press Left Arrow.</p>
                                 </div>
-                                <!-- <Jun Kai start> when a quiet tablet counts as offline, for every admin (a System Admin changes it) -->
-                                <div class="health-offline-after">
-                                    <label class="ui-label" for="health-offline-after">Offline after</label>
-                                    <select class="ui-select" id="health-offline-after" onchange="saveHealthOfflineAfter()">
-                                        <option value="2">2 min</option>
-                                        <option value="3">3 min</option>
-                                        <option value="5">5 min</option>
-                                        <option value="10">10 min</option>
-                                        <option value="15">15 min</option>
-                                        <option value="30">30 min</option>
-                                    </select>
-                                </div>
-                                <!-- <Jun Kai end> -->
                             </div>
                             <div class="ui-table-wrap">
                                 <!-- <Jun Kai start> -->

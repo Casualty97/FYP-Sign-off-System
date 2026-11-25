@@ -7922,10 +7922,6 @@ input:checked + .slider:before {
    On a narrow screen it drops under the text instead of squeezing it into a thin column. */
 #health-tablets-card .ui-card-header { flex-wrap: wrap; }
 #health-tablets-card .ui-card-header > div:first-child { flex: 1 1 320px; min-width: 0; }
-.health-offline-after { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
-.health-offline-after .ui-label { margin: 0; white-space: nowrap; }
-.health-offline-after .ui-select { width: auto; min-width: 104px; }
-.health-offline-after .ui-select:disabled { background-color: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
 .health-skel { display: block; height: 10px; margin-top: 14px; border-radius: 5px; background: linear-gradient(90deg, #eef2f6 25%, #f7f9fb 37%, #eef2f6 63%); background-size: 400% 100%; animation: healthShimmer 1.4s ease infinite; }
 .health-skel + .health-skel { margin-top: 10px; }
 @keyframes healthShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
@@ -8298,12 +8294,40 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 .health-battery-label .ui-muted { font-size: 0.8rem; }
 .health-battery-meter { width: 100%; height: 9px; }
 
-.health-remove-label { display: none; }
-.health-device-swiped [data-remove-tablet] { gap: 5px; width: auto; padding-inline: 9px; border-color: #fecaca; color: #b91c1c; }
-.health-device-swiped .health-remove-label { display: inline; }
 .health-remove-dialog #health-remove-name { overflow-wrap: anywhere; }
-.health-device-cell[data-tablet-swipe] { touch-action: pan-y; cursor: grab; }
-.health-device-cell[data-tablet-swipe]:active { cursor: grabbing; }
+#health-tablets [data-tablet-swipe] {
+    --tablet-action-width: 104px;
+    position: relative;
+    touch-action: pan-y;
+    cursor: grab;
+    transition: transform 170ms ease;
+}
+#health-tablets [data-tablet-swipe]:active { cursor: grabbing; }
+#health-tablets .health-device-swiped { transform: translateX(calc(-1 * var(--tablet-action-width))); }
+.health-row-remove {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    width: var(--tablet-action-width);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    visibility: hidden;
+    border: 0;
+    background: #b91c1c;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: right 170ms ease;
+}
+.health-device-swiped .health-row-remove { right: calc(-1 * var(--tablet-action-width)); visibility: visible; }
+.health-row-remove:hover { background: #991b1b; }
+.health-row-remove:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+@media (prefers-reduced-motion: reduce) {
+    #health-tablets [data-tablet-swipe], .health-row-remove { transition: none; }
+}
 .health-device-cell { display: flex; align-items: center; gap: 6px; }
 .health-device-text { min-width: 0; }
 .health-rename-btn { width: 28px; height: 28px; flex-shrink: 0; color: var(--color-muted); }

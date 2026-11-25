@@ -317,24 +317,23 @@ function healthDeviceCell(d) {
                 </form>`;
     }
     const shown = d.name || deviceName;
-    const canRemove = sessionStorage.getItem('userRole') === 'system_admin';
-    const revealed = canRemove && healthSwipedTablet === d.device_id;
-    return `<div class="health-device-cell${revealed ? ' health-device-swiped' : ''}"${canRemove ? ` data-tablet-swipe="${id}"` : ''}>
+    return `<div class="health-device-cell">
                 <div class="health-device-text">
                     <div class="health-device">${escapeHtmlSafe(shown)}</div>
                     <div class="ui-muted">${d.name ? `<span class="health-nowrap">${escapeHtmlSafe(deviceName)}</span> · ` : ''}<span class="health-nowrap">${escapeHtmlSafe(kind)}</span></div>
                 </div>
                 <button type="button" class="ui-btn ui-btn-icon health-rename-btn" data-rename="${id}" aria-label="Rename ${escapeHtmlSafe(shown)}" title="Rename">${uiIcon('edit', 15)}</button>
-                ${canRemove ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-remove-tablet="${id}" aria-label="Remove ${escapeHtmlSafe(shown)}" title="Remove">${uiIcon('trash', 15)}<span class="health-remove-label">Remove</span></button>` : ''}
             </div>`;
 }
 
 function healthBatteryCell(device) {
-    if (!device.online) return '<span class="ui-muted">Offline</span>';
-
     const level = device.battery_level;
     if (!Number.isInteger(level) || level < 0 || level > 100) {
         return '<span class="ui-muted">No battery reading</span>';
+    }
+
+    if (!device.online) {
+        return `<span class="ui-muted">Last reported <strong>${level}%</strong> · ${escapeHtmlSafe(healthRelativeTime(device.seconds_ago))}</span>`;
     }
 
     const state = device.charging === 1 || device.charging === true
@@ -346,54 +345,15 @@ function healthBatteryCell(device) {
             </div>`;
 }
 
-// <Jun Kai start>
-// ---- Offline after: when a quiet tablet counts as offline, for every admin (a System Admin changes it) ----
-let healthOfflineBusy = false;
-const healthIsSystemAdmin = () => { try { return sessionStorage.getItem('userRole') === 'system_admin'; } catch { return false; } };
-
-// The list shows the minutes the server used for this answer; not while it is being changed
-function renderHealthOfflineAfter(check) {
-    const select = document.getElementById('health-offline-after');
-    if (!select) return;
-    const admin = healthIsSystemAdmin();
-    select.disabled = !admin || healthOfflineBusy;
-    select.title = admin ? '' : 'Only a System Admin can change this';
-    const seconds = check && check.detail && check.detail.onlineWindowSeconds;
-    if (!seconds || healthOfflineBusy || document.activeElement === select) return;
-    const minutes = String(Math.round(seconds / 60));
-    if (![...select.options].some((option) => option.value === minutes)) select.add(new Option(`${minutes} min`, minutes));
-    select.value = minutes;
-    select.dataset.saved = minutes;
+function healthTabletStatus(device) {
+    return device.online ? uiPill('ok', 'Reporting')
+        : `${uiPill('muted', 'Not reporting')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(device.seconds_ago))}</div>`;
 }
-
-async function saveHealthOfflineAfter() {
-    const select = document.getElementById('health-offline-after');
-    if (!select || healthOfflineBusy || !healthIsSystemAdmin()) return;
-    const minutes = Number(select.value);
-    healthOfflineBusy = true;
-    select.disabled = true;
-    try {
-        const response = await fetch('/api/admin/health/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tabletOfflineMinutes: minutes }) });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) throw new Error(data.error || 'Save failed');
-        select.dataset.saved = String(minutes);
-        showNotification(`A tablet now counts as offline after ${minutes} minutes without a report`, 'success');
-    } catch (error) {
-        if (select.dataset.saved) select.value = select.dataset.saved;
-        showNotification(`Could not save: ${error.message}`, 'error');
-    } finally {
-        healthOfflineBusy = false;
-        select.disabled = !healthIsSystemAdmin();
-    }
-    loadHealth();
-}
-// <Jun Kai end>
 
 function renderHealthTablets(check, force) {
     const body = document.getElementById('health-tablets');
     if (!body) return;
     bindHealthTablets();
-    renderHealthOfflineAfter(check); // <Jun Kai/>
     // the 30-second refresh must not wipe a name that is being typed; the table catches up when it closes
     if (!force && healthRenaming && body.querySelector('.health-rename')) return;
     const devices = (check && check.detail && check.detail.devices) || [];
@@ -401,13 +361,18 @@ function renderHealthTablets(check, force) {
         body.innerHTML = `<tr><td colspan="5" class="ui-empty">${escapeHtmlSafe(check && check.summary ? check.summary : 'No tablet has reported yet')}</td></tr>`;
         return;
     }
-    body.innerHTML = devices.map((d) => `<tr class="${d.online ? '' : 'health-row-offline'}">
+    const canRemove = sessionStorage.getItem('userRole') === 'system_admin';
+    body.innerHTML = devices.map((d) => {
+        const id = escapeHtmlSafe(d.device_id);
+        const revealed = canRemove && healthSwipedTablet === d.device_id;
+        return `<tr class="${d.online ? '' : 'health-row-offline'}${revealed ? ' health-device-swiped' : ''}"${canRemove ? ` data-tablet-swipe="${id}" tabindex="0"` : ''}>
                     <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
-                    <td>${d.online ? uiPill('ok', 'Online') : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(d.seconds_ago))}</div>`}</td>
-                    <td data-battery-device="${escapeHtmlSafe(d.device_id)}">${healthBatteryCell(d)}</td>
-                    <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
-                </tr>`).join('');
+                    <td data-tablet-status>${healthTabletStatus(d)}</td>
+                    <td data-battery-device="${id}">${healthBatteryCell(d)}</td>
+                    <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}${canRemove ? `<button type="button" class="health-row-remove" data-remove-tablet="${id}" aria-label="Remove ${escapeHtmlSafe(d.name || d.label || d.device_id)}">${uiIcon('trash', 15)} Remove</button>` : ''}</td>
+                </tr>`;
+    }).join('');
 }
 
 function bindHealthTablets() {
@@ -415,9 +380,15 @@ function bindHealthTablets() {
     if (!body || body.dataset.bound) return;
     body.dataset.bound = '1';
     let swipe = null;
+    function revealDevice(id) {
+        healthSwipedTablet = id;
+        for (const row of body.querySelectorAll('[data-tablet-swipe]')) {
+            row.classList.toggle('health-device-swiped', row.dataset.tabletSwipe === id);
+        }
+    }
     body.addEventListener('pointerdown', (event) => {
         const cell = event.target.closest('[data-tablet-swipe]');
-        if (!cell || !event.isPrimary || event.button !== 0 || event.target.closest('button')) return;
+        if (!cell || !event.isPrimary || event.button !== 0 || event.target.closest('button, input, form')) return;
         swipe = { id: cell.dataset.tabletSwipe, pointerId: event.pointerId, x: event.clientX, y: event.clientY };
         body.setPointerCapture(event.pointerId);
         if (event.pointerType === 'mouse') event.preventDefault();
@@ -432,10 +403,7 @@ function bindHealthTablets() {
         const dx = event.clientX - start.x;
         const dy = event.clientY - start.y;
         if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-        healthSwipedTablet = dx < 0 ? start.id : null;
-        for (const cell of body.querySelectorAll('[data-tablet-swipe]')) {
-            cell.classList.toggle('health-device-swiped', cell.dataset.tabletSwipe === healthSwipedTablet);
-        }
+        revealDevice(dx < 0 ? start.id : null);
     });
     body.addEventListener('click', (event) => {
         const open = event.target.closest('[data-rename]');
@@ -451,6 +419,11 @@ function bindHealthTablets() {
         saveHealthRename(form);
     });
     body.addEventListener('keydown', (event) => {
+        if (event.target.matches('[data-tablet-swipe]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+            event.preventDefault();
+            revealDevice(event.key === 'ArrowLeft' ? event.target.dataset.tabletSwipe : null);
+            return;
+        }
         if (event.key === 'Escape' && event.target.closest('.health-rename')) {
             event.preventDefault();
             stopHealthRename();
@@ -759,7 +732,16 @@ async function refreshTabletBattery() {
             return;
         }
         for (const cell of cells) {
-            const markup = healthBatteryCell(devices.get(cell.dataset.batteryDevice));
+            const device = devices.get(cell.dataset.batteryDevice);
+            const row = cell.closest('tr');
+            const status = row.querySelector('[data-tablet-status]');
+            const statusMarkup = healthTabletStatus(device);
+            if (status.tabletMarkup !== statusMarkup) {
+                status.innerHTML = statusMarkup;
+                status.tabletMarkup = statusMarkup;
+                row.classList.toggle('health-row-offline', !device.online);
+            }
+            const markup = healthBatteryCell(device);
             if (cell.batteryMarkup !== markup) {
                 cell.innerHTML = markup;
                 cell.batteryMarkup = markup;
