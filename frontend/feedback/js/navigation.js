@@ -88,9 +88,12 @@ function updateConfirmationDetails() {
     if (pledgeList) {
         const choices = String(userData.pledge || '').split('\n').map(text => text.trim()).filter(Boolean);
         const items = userData.pledgeSkipped ? ['Skipped'] : (choices.length ? choices : ['Not provided']);
+        const categories = new Map(getPledgePresets().map(preset => [preset.text, preset.category]));
         pledgeList.replaceChildren(...items.map(text => {
             const item = document.createElement('li');
             item.textContent = text;
+            const category = categories.get(text);
+            if (category) item.dataset.category = category;
             return item;
         }));
     }
