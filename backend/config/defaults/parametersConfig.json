@@ -37,10 +37,10 @@
     ]
   },
   "emailContent": {
-    "thankYouSubject": "Thank you for visiting RP ESG Centre, {name}!",
-    "thankYouIntro": "Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.",
+    "thankYouSubject": "Thank you for visiting RP Xperience Centre, {name}!",
+    "thankYouIntro": "Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.",
     "thankYouClosing": "We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.",
-    "senderName": "ESG Centre Team",
+    "senderName": "RP Xperience Centre Team",
     "footerNote": "This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.",
     "visitSummaryTitle": "Your Visit Summary",
     "visitSummaryDateLabel": "Visit date",

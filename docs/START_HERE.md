@@ -5,7 +5,7 @@ Everything below is written for Windows with PowerShell, VS Code and GitHub.
 
 ## 1. What the system is
 
-A kiosk for the RP ESG Centre. Visitors use a tablet to give feedback, make a pledge and take a photo, then get an
+A kiosk for the RP Xperience Centre. Visitors use a tablet to give feedback, make a pledge and take a photo, then get an
 email. A big wall screen shows the digital tree and the pulse page. Staff manage all of it on the admin page.
 
 It is a plain Node.js app: Express for the server, MySQL 8.4 for the data, and normal HTML, CSS and JavaScript for

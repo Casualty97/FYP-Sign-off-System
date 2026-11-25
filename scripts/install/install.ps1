@@ -188,7 +188,7 @@ if (-not $Role) {
         Write-Host ''
         Write-Host 'Where will this copy run?'
         Write-Host '  1  Laptop   for development and testing (kiosk automation off, Windows left alone)'
-        Write-Host '  2  Wall PC  the kiosk server at the ESG Centre (starts at logon, desktop link, firewall rule)'
+        Write-Host '  2  Wall PC  the kiosk server at the RP Xperience Centre (starts at logon, desktop link, firewall rule)'
         $answer = Read-Host 'Type 1 or 2'
         if ($answer.Trim() -eq '2') { $Role = 'WallPC' } else { $Role = 'Laptop' }
     }

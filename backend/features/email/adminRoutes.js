@@ -73,7 +73,7 @@ router.get('/preview', auth.requireAuth, async (req, res) => {
         if (!message) return res.status(500).json({ success: false, error: (result && result.error) || 'The email could not be built' });
         const cfg = configStore.getSafeEmailConfig();
         const sender = cfg.senderEmail || (cfg[cfg.provider] && cfg[cfg.provider].user) || 'the sender address you save';
-        res.json({ success: true, preview: { subject: message.subject, from: `RP ESG Centre <${sender}>`, to: 'Alex <visitor@example.com>', html: message.html } });
+        res.json({ success: true, preview: { subject: message.subject, from: `RP Xperience Centre <${sender}>`, to: 'Alex <visitor@example.com>', html: message.html } });
     } catch (error) {
         console.error('❌ Email preview failed:', error);
         res.status(500).json({ success: false, error: `Email preview failed: ${error.message}` });

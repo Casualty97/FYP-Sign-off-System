@@ -821,7 +821,7 @@ function stripPhotoAttachmentSentence(text) {
         .replace(/\s*Attached below is your commemorative photo from your visit\./i, '')
         .trim();
 
-    return cleaned || 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback.';
+    return cleaned || 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback.';
 }
 
 function buildVisitSummary(options = {}) {
@@ -901,7 +901,7 @@ Congratulations on earning the "${badgeConfig.name}" badge.
 ${message}
 
 Key exhibits or takeaway messages:
-${highlights.map(item => `- ${item}`).join('\n') || '- Thank you for contributing to RP ESG Centre.'}
+${highlights.map(item => `- ${item}`).join('\n') || '- Thank you for contributing to RP Xperience Centre.'}
 
 Best regards,
 ESG Team`;
@@ -1076,11 +1076,11 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         const emailContent = parameterConfig.emailContent || {};
         const retentionDays = parameterConfig.contentSettings?.temporaryRetentionDays;
         const personalize = (value, fallback = '') => String(value || fallback).replace(/\{name\}/g, name || 'Visitor');
-        const emailIntro = personalize(emailContent.thankYouIntro, 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.');
+        const emailIntro = personalize(emailContent.thankYouIntro, 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.');
         const emailClosing = personalize(emailContent.thankYouClosing, 'We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.');
-        const senderName = personalize(emailContent.senderName, 'ESG Centre Team');
+        const senderName = personalize(emailContent.senderName, 'RP Xperience Centre Team');
         const footerNote = personalize(emailContent.footerNote, 'This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.');
-        const emailSubject = personalize(emailContent.thankYouSubject, `Thank you for visiting RP ESG Centre, ${name}!`);
+        const emailSubject = personalize(emailContent.thankYouSubject, `Thank you for visiting RP Xperience Centre, ${name}!`);
         let emailIntroText = emailIntro;
         const suppliedBadges = Array.isArray(visitOptions.badges) ? visitOptions.badges : [];
         const badgeSummaries = suppliedBadges.length > 0
@@ -1236,8 +1236,8 @@ ${footerNote}
 
         const photoMemoryHtml = fullPhotoPath
             ? `
-                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your ESG Centre memory</p>
-                                <img src="cid:visit_photo" alt="Your RP ESG Centre memory" style="display:block; max-width:100%; max-height:400px; height:auto; border:1px solid #e5e5e5;" />${pledgeHtml}`
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your RP Xperience Centre memory</p>
+                                <img src="cid:visit_photo" alt="Your RP Xperience Centre memory" style="display:block; max-width:100%; max-height:400px; height:auto; border:1px solid #e5e5e5;" />${pledgeHtml}`
             : (pledgeHtml || `
                                 <p style="margin:28px 0 0 0;">Your feedback has been recorded in your visitor passport.</p>`);
 
@@ -1248,7 +1248,7 @@ ${footerNote}
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Thank you for visiting RP ESG Centre</title>
+        <title>Thank you for visiting RP Xperience Centre</title>
     </head>
     <body style="margin:0; padding:24px 12px; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif; color:#111111;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
@@ -1257,8 +1257,8 @@ ${footerNote}
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px; border-collapse:collapse; background-color:#ffffff; border:1px solid #e5e5e5; text-align:left;">
                         <tr>
                             <td style="padding:32px 36px 0 36px;">
-                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; ESG Centre</p>
-                                <h1 style="margin:0; font-size:22px; line-height:1.35; font-weight:bold; color:#111111;">Thank you for visiting the RP ESG Centre, ${escapeHtml(name)}!</h1>
+                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                                <h1 style="margin:0; font-size:22px; line-height:1.35; font-weight:bold; color:#111111;">Thank you for visiting the RP Xperience Centre, ${escapeHtml(name)}!</h1>
                             </td>
                         </tr>
                         <tr>
@@ -1287,7 +1287,7 @@ ${footerNote}
         // <Jun Kai end>
 
         const mailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: email,
             replyTo: 'no-reply@rp.edu.sg',
             subject: emailSubject,
@@ -1415,16 +1415,16 @@ async function testEmailService(testEmail = 'test@example.com') {
         
         // Try to send a test email without attachment
         const testMailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: testEmail,
-            subject: 'Test Email from RP ESG Centre',
-            text: 'This is a test email from the RP ESG Centre system. If you receive this, email service is working correctly.',
+            subject: 'Test Email from RP Xperience Centre',
+            text: 'This is a test email from the RP Xperience Centre system. If you receive this, email service is working correctly.',
             // <Jun Kai start> the same clean, colour-free look as the thank-you email (12 Nov 2026)
             html: `
                 <div style="font-family:Arial, Helvetica, sans-serif; max-width:600px; margin:0 auto; padding:28px 32px; border:1px solid #e5e5e5; color:#333333; font-size:15px; line-height:1.6;">
-                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; ESG Centre</p>
-                    <h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.35; color:#111111;">Test Email from RP ESG Centre</h1>
-                    <p style="margin:0 0 10px 0;">This is a test email from the RP ESG Centre system.</p>
+                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                    <h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.35; color:#111111;">Test Email from RP Xperience Centre</h1>
+                    <p style="margin:0 0 10px 0;">This is a test email from the RP Xperience Centre system.</p>
                     <p style="margin:0 0 10px 0;">If you receive this, email service is working correctly.</p>
                     <p style="margin:0;"><strong style="color:#111111;">Server Time:</strong> ${new Date().toLocaleString()}</p>
                     <p style="margin:20px 0 0 0; padding-top:14px; border-top:1px solid #e5e5e5; font-size:12px; color:#777777;">This is an automated test message.</p>
@@ -1526,7 +1526,7 @@ async function sendLostFoundAlertEmail(report = {}) { // Staff Lost & Found aler
         `;
 
         const info = await emailTransporter.sendMail({
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: SENDER_EMAIL,
             subject: `Lost & Found report ${trackingCode}: ${type} item`,
             text: `New Lost & Found report ${trackingCode}\nType: ${type}\nItem: ${item}\nLocation: ${location}\nContact: ${contact}\nPage: ${page}\nDetails: ${details}`,
@@ -1586,7 +1586,7 @@ const sendBadgeEmail = async (recipientEmail, userData) => {
         }
 
         const mailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: recipientEmail,
             subject,
             text,

@@ -90,10 +90,10 @@ const DEFAULT_CONFIG = {
     ]
   },
   emailContent: {
-    thankYouSubject: "Thank you for visiting RP ESG Centre, {name}!",
-    thankYouIntro: "Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.",
+    thankYouSubject: "Thank you for visiting RP Xperience Centre, {name}!",
+    thankYouIntro: "Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.",
     thankYouClosing: "We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.",
-    senderName: "ESG Centre Team",
+    senderName: "RP Xperience Centre Team",
     footerNote: "This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.",
     visitSummaryTitle: "Your Visit Summary",
     visitSummaryDateLabel: "Visit date",
@@ -209,6 +209,24 @@ const DEFAULT_CONFIG = {
   }
 };
 
+// <Jun Kai start>
+// The centre was renamed from RP ESG Centre to RP Xperience Centre (18 Nov 2026). The three email texts below are saved
+// on each PC, so an installed PC would keep the old name. A saved text that is still exactly the old default is shown
+// as the new default; a text an admin wrote is never changed.
+const OLD_CENTRE_NAME_DEFAULTS = {
+  thankYouSubject: 'Thank you for visiting RP ESG Centre, {name}!',
+  thankYouIntro: 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.',
+  senderName: 'ESG Centre Team'
+};
+function withNewCentreName(emailContent) {
+  const out = { ...emailContent };
+  for (const [key, oldText] of Object.entries(OLD_CENTRE_NAME_DEFAULTS)) {
+    if (out[key] === oldText) out[key] = DEFAULT_CONFIG.emailContent[key];
+  }
+  return out;
+}
+// <Jun Kai end>
+
 function mergeWithDefaults(config) {
   return {
     ...DEFAULT_CONFIG,
@@ -216,7 +234,7 @@ function mergeWithDefaults(config) {
     feedbackMessages: { ...DEFAULT_CONFIG.feedbackMessages, ...(config.feedbackMessages || {}) },
     contentSettings: { ...DEFAULT_CONFIG.contentSettings, ...(config.contentSettings || {}) },
     campaignSettings: { ...DEFAULT_CONFIG.campaignSettings, ...(config.campaignSettings || {}) },
-    emailContent: { ...DEFAULT_CONFIG.emailContent, ...(config.emailContent || {}) },
+    emailContent: withNewCentreName({ ...DEFAULT_CONFIG.emailContent, ...(config.emailContent || {}) }), // <Jun Kai/> withNewCentreName
     featureFlags: { ...DEFAULT_CONFIG.featureFlags, ...(config.featureFlags || {}) },
     validationRules: { ...DEFAULT_CONFIG.validationRules, ...(config.validationRules || {}) },
     treeParameters: { ...DEFAULT_CONFIG.treeParameters, ...(config.treeParameters || {}) },
