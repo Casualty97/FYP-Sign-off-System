@@ -9069,8 +9069,16 @@ html[data-theme="dark"] .ui-menu { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); 
 /* the next step stays in view at the right edge when the table is wider than its box */
 .lf-table .lf-actions { position: sticky; right: 0; z-index: 1; text-align: right; background: var(--theme-card-bg); box-shadow: -8px 0 12px -10px rgba(15, 23, 42, 0.35); }
 .lf-table th.lf-actions { background: var(--theme-bg-color); }
+/* on a phone the pinned column would cover half the table: there it scrolls with the rest */
+@media (max-width: 720px) { .lf-table .lf-actions { position: static; box-shadow: none; } }
 .lf-next { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .lf-step { height: 32px; padding: 0 12px; font-size: 13px; }
 .ui-pager-status.is-error { color: #b91c1c; }
 html[data-theme="dark"] .ui-pager-status.is-error { color: #fca5a5; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> the rebuilt list pages and AI Settings use the same darker greys as Health and Hardware: their table
+   headings were 4.3:1 on the heading tint (the dark mode values stay the same as the rest of the page) */
+#feedback-data-page, #archive-page, #audit-page, #lost-found-page, #ai-settings-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] :is(#feedback-data-page, #archive-page, #audit-page, #lost-found-page, #ai-settings-page) { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
 /* <Jun Kai end> */
