@@ -86,6 +86,22 @@ function tinyPng() {
 // The archive runs with "Leaves on the tree" on initials (the saved choice is put back afterwards): the seeded leaf
 // must stay on GET /api/tree without the name or the pledge, and must not be counted as a deleted leaf.
 let archiveDir = null;
+
+// <Jun Kai start>
+// The pledge a smoke visitor submits. Since the pledge dropdown the server only takes one of the listed pledges, with
+// the topic of that pledge; the list comes with the default parameters. When the defaults have no list (before the
+// dropdown), any text is taken, so the typed pledge is used. which: 0 is the first listed pledge, -1 the last, so
+// two smoke visitors never share a pledge text.
+function smokePledge(typed, which = 0) {
+  try {
+    const presets = (require('../backend/config/defaults/parametersConfig.json').contentSettings || {}).pledgePresets;
+    const preset = Array.isArray(presets) && presets.length ? presets.at(which) : null;
+    if (preset && preset.text && preset.topic) return { pledge: String(preset.text), pledgeTopic: String(preset.topic) };
+  } catch { /* no defaults file here: the typed pledge */ }
+  return { pledge: typed, pledgeTopic: 'sustainable-living' };
+}
+// <Jun Kai end>
+
 async function archiveStep(cookie) {
   const crypto = require('crypto');
   const os = require('os');
@@ -114,14 +130,14 @@ async function archiveStep(cookie) {
     const stamp = Date.now();
     const name = 'Archive Smoke';
     const email = `archive+${stamp}@example.com`;
-    const pledge = `I pledge to keep old visitor data safe ${stamp}`;
+    const { pledge, pledgeTopic } = smokePledge(`I pledge to keep old visitor data safe ${stamp}`, -1);
     const photo = await get(`${BASE}/api/feedback/save-photo`, send({ photo: tinyPng(), userName: name, device: 'kiosk' }));
     const processed = await get(`${BASE}/api/feedback/save-processed-photo`, send({ photo: tinyPng(), userName: name, device: 'kiosk', theme: 'nature' }));
     const photoId = photo.body && photo.body.photoId;
     const processedPhotoId = processed.body && processed.body.processedPhotoId;
     const [[question]] = await conn.query('SELECT id FROM questions WHERE is_active = 1 ORDER BY display_order, id LIMIT 1');
     const submitted = await get(`${BASE}/api/feedback/submit-feedback`, send({
-      userData: { name, email, pledge, pledgeTopic: 'sustainable-living', photoId, processedPhotoId, answers: question ? { [question.id]: 'Yes' } : {} },
+      userData: { name, email, pledge, pledgeTopic, photoId, processedPhotoId, answers: question ? { [question.id]: 'Yes' } : {} },
       device: 'kiosk', theme: 'nature',
     }));
     // the row is written after the reply, so wait for it and its answer
@@ -581,15 +597,16 @@ async function archiveStep(cookie) {
         if (r.status === 200 && photoId) pass('POST /api/feedback/save-photo'); else fail(`POST /api/feedback/save-photo (${r.status}): ${r.text.slice(0, 120)}`);
       } catch (e) { fail(`POST /api/feedback/save-photo: ${e.message}`); }
       if (photoId) {
+        const smokeVisitor = smokePledge('I pledge to recycle and save energy every day');
         const payload = {
-          userData: { name: 'CI Smoke', email: `smoke+${stamp}@example.com`, pledge: 'I pledge to recycle and save energy every day', pledgeTopic: 'sustainable-living', photoId },
+          userData: { name: 'CI Smoke', email: `smoke+${stamp}@example.com`, pledge: smokeVisitor.pledge, pledgeTopic: smokeVisitor.pledgeTopic, photoId },
           device: 'kiosk', theme: 'nature',
         };
         await expect('POST /api/feedback/submit-feedback', `${BASE}/api/feedback/submit-feedback`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json(payload));
         let found = false;
         for (let i = 0; i < 6 && !found; i++) {
           const r = await get(`${BASE}/api/pledgeboard/pledges`);
-          found = /I pledge to recycle and save energy/.test(r.text);
+          found = r.text.includes(smokeVisitor.pledge);
           if (!found) await sleep(1000);
         }
         (found ? pass : fail)('the new pledge appears on /api/pledgeboard/pledges');
