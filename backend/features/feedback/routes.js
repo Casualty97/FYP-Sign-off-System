@@ -1402,7 +1402,7 @@ function saveFeedbackToDatabase(userData, device, theme, retention, callback) {
                 }
                 
                 const feedbackId = this.lastID;
-                console.log(`✅ Saved feedback with ID: ${forLog(feedbackId)}, Retention: ${forLog(retention)}, Pledge: ${userData.pledge ? 'Yes (' + userData.pledge.length + ' chars)' : 'No'}`); // <Jun Kai/>
+                console.log(`✅ Saved feedback with ID: ${forLog(feedbackId)}, Retention: ${forLog(retention)}, Pledge: ${userData.pledge ? 'Yes (' + forLog(userData.pledge.length) + ' chars)' : 'No'}`); // <Jun Kai/>
                 console.log(`Raw Photo Path: ${forLog(photoPath)}`); // <Jun Kai/>
                 console.log(`Processed Photo Path: ${forLog(processedPhotoPath)}`); // <Jun Kai/>
                 
