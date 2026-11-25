@@ -44,7 +44,7 @@
 //    router.post('/submit-feedback'   - Submit complete feedback with retention and email (DONE BY PRETI)
 //    router.post('/send-email'        - Send email endpoint (manual) (DONE BY PRETI)
 //    router.post('/feedback/:id/retry-email' - Retry sending email for feedback entry (DONE BY PRETI)
-//    router.get('/test-email'         - Test email endpoint (DONE BY PRETI)
+//    router.post('/test-email'        - Test email endpoint (DONE BY PRETI)
 //    router.get('/email-status'       - Check email service status (DONE BY PRETI)
 //
 // 6. DATABASE OPERATIONS
@@ -73,6 +73,9 @@ const fs = require('fs');
 const db = require('../../core/db'); // Import database connection
 const emailService = require('../email/service');
 const auth = require('../../core/auth');
+const { forLog, emailForLog } = require('../../core/log'); // <Jun Kai/> no line breaks from requests, emails masked
+const requestLimit = require('../../core/requestLimit'); // <Jun Kai/> request limits per address
+const { plainName } = require('../../core/photoFiles'); // <Jun Kai/> photo names from the kiosk are plain file names only
 const parametersConfigStore = require('../parameters/store');
 const { validateFeedbackSubmission } = require('./validationRules');
 const { analyzePledgeSentiment } = require('./pledgeSentiment');
@@ -450,7 +453,7 @@ router.get('/questions', (req, res) => {
 
 // ==================== 3. PHOTO UPLOAD ROUTES ====================
 // Upload and save raw photo
-router.post('/save-photo', (req, res) => {
+router.post('/save-photo', requestLimit.kioskForms, (req, res) => {
     try {
         const { photo, userName, device } = req.body;
         // Enforce capture feature flags and photo size validation before saving raw photos (DONE BY CAEDEN)
@@ -487,7 +490,7 @@ router.post('/save-photo', (req, res) => {
         // Save the file
         fs.writeFileSync(filepath, buffer);
 
-        console.log(`Photo saved to: ${filepath}`);
+        console.log(`Photo saved to: ${forLog(filepath)}`); // <Jun Kai/>
         uploadsGate.remember(req, `photos/${filename}`); // <Jun Kai/> for the photo download on the thank-you page
         
         res.json({ 
@@ -505,7 +508,7 @@ router.post('/save-photo', (req, res) => {
 });
 
 // Save processed photo with overlay
-router.post('/save-processed-photo', async (req, res) => {
+router.post('/save-processed-photo', requestLimit.kioskForms, async (req, res) => {
     try {
         const { photo, boomerangFrames, boomerangFrameDelayMs, userName, device, theme, captureMode, expectedFormat } = req.body;
         // Enforce capture feature flags and photo size validation before saving processed photos (DONE BY CAEDEN)
@@ -574,7 +577,7 @@ router.post('/save-processed-photo', async (req, res) => {
         // Save the processed file
         fs.writeFileSync(filepath, buffer);
 
-        console.log(`Processed photo saved to: ${filepath}`);
+        console.log(`Processed photo saved to: ${forLog(filepath)}`); // <Jun Kai/>
         uploadsGate.remember(req, `processed/${filename}`); // <Jun Kai/>
         
         res.json({ 
@@ -594,7 +597,7 @@ router.post('/save-processed-photo', async (req, res) => {
 
 // ==================== 4. FEEDBACK SUBMISSION ROUTES ====================
 // Save a Lost & Found report without interrupting feedback progress - changes made by nick
-router.post('/lost-found', async (req, res) => {
+router.post('/lost-found', requestLimit.kioskForms, async (req, res) => {
     const body = req.body || {};
     const report = body.report || body;
 
@@ -641,7 +644,7 @@ router.post('/lost-found', async (req, res) => {
 });
 
 // Submit complete feedback with retention and email
-router.post('/submit-feedback', async (req, res) => {
+router.post('/submit-feedback', requestLimit.kioskForms, async (req, res) => {
     const startTime = Date.now();
     const requestBody = req.body || {};
     const userData = requestBody.userData || {};
@@ -760,9 +763,9 @@ router.post('/submit-feedback', async (req, res) => {
                     
                     // Send combined visitor email AFTER database is committed.
                     if (shouldQueueEmail && result && result.feedbackId) {
-                        const photoToSend = userData.processedPhotoId || userData.photoId || null;
+                        const photoToSend = plainName(userData.processedPhotoId) || plainName(userData.photoId) || null; // <Jun Kai/> never a path out of the uploads folder
                         
-                        console.log(`📧 Starting thank-you email for ${userData.email}...`);
+                        console.log(`📧 Starting thank-you email for ${emailForLog(userData.email)}...`); // <Jun Kai/>
                         
                         setImmediate(async () => {
                             try {
@@ -788,7 +791,7 @@ router.post('/submit-feedback', async (req, res) => {
                                 );
                                 
                                 if (emailResult.success) {
-                                    console.log(`✅ Thank-you email sent to ${userData.email}`);
+                                    console.log(`✅ Thank-you email sent to ${emailForLog(userData.email)}`); // <Jun Kai/>
                                     
                                     // Update email flag (separate query, non-blocking)
                                     db.run(
@@ -835,7 +838,7 @@ router.post('/submit-feedback', async (req, res) => {
 });
 
 // Send email endpoint (manual)
-router.post('/send-email', async (req, res) => {
+router.post('/send-email', auth.requireAuth, async (req, res) => { // <Jun Kai/> signed-in admins only: it sends mail to any address
     try {
         const { name, email, photoFilename, pledgeText } = req.body;
         
@@ -846,7 +849,7 @@ router.post('/send-email', async (req, res) => {
             });
         }
         
-        console.log(`📧 Manual email request for ${email} with photo ${photoFilename}`);
+        console.log(`📧 Manual email request for ${emailForLog(email)} with photo ${forLog(photoFilename)}`); // <Jun Kai/>
 
         const result = await emailService.sendEmailAndUpdateFlag(
         db,
@@ -881,7 +884,7 @@ router.post('/send-email', async (req, res) => {
 });
 
 // Retry sending email for feedback entry
-router.post('/feedback/:id/retry-email', async (req, res) => {
+router.post('/feedback/:id/retry-email', auth.requireAuth, async (req, res) => { // <Jun Kai/> signed-in admins only
     const { id } = req.params;
     
     const query = `
@@ -986,9 +989,11 @@ router.post('/feedback/:id/retry-email', async (req, res) => {
 });
 
 // Test email endpoint
-router.get('/test-email', async (req, res) => {
+// <Jun Kai start> signed-in admins only, and a POST: a GET could be started from a link on another site
+router.post('/test-email', auth.requireAuth, async (req, res) => {
     try {
-        const testEmail = req.query.email || 'test@example.com';
+        const testEmail = (req.body && req.body.email) || 'test@example.com';
+// <Jun Kai end>
         
         console.log('🧪 Testing email service...');
         
@@ -1030,7 +1035,7 @@ router.get('/email-status', async (req, res) => {
 });
 
 // Visitor-facing passport mapped by submitted email address.
-router.post('/visitor-passport', (req, res) => {
+router.post('/visitor-passport', requestLimit.visitorLookup, (req, res) => {
     const email = String(req.body?.email || '').trim().toLowerCase();
 
     if (!isValidEmail(email)) {
@@ -1373,8 +1378,10 @@ function saveFeedbackToDatabase(userData, device, theme, retention, callback) {
             pledgeStatus: pledgeAnalysis.moderationStatus
         });
         
-        let photoPath = userData.photoId ? `photos/${userData.photoId}` : null;
-        let processedPhotoPath = userData.processedPhotoId ? `processed/${userData.processedPhotoId}` : null;
+        // <Jun Kai start> a name with a folder part or ".." is not saved, so no later delete or download can leave the uploads folder
+        let photoPath = plainName(userData.photoId) ? `photos/${plainName(userData.photoId)}` : null;
+        let processedPhotoPath = plainName(userData.processedPhotoId) ? `processed/${plainName(userData.processedPhotoId)}` : null;
+        // <Jun Kai end>
         
         db.run(
             `INSERT INTO feedback (user_id, comment, metadata, photo_path, processed_photo_path, data_retention, created_at) 
@@ -1387,16 +1394,16 @@ function saveFeedbackToDatabase(userData, device, theme, retention, callback) {
                 }
                 
                 const feedbackId = this.lastID;
-                console.log(`✅ Saved feedback with ID: ${feedbackId}, Retention: ${retention}, Pledge: ${userData.pledge ? 'Yes (' + userData.pledge.length + ' chars)' : 'No'}`);
-                console.log(`Raw Photo Path: ${photoPath}`);
-                console.log(`Processed Photo Path: ${processedPhotoPath}`);
+                console.log(`✅ Saved feedback with ID: ${forLog(feedbackId)}, Retention: ${forLog(retention)}, Pledge: ${userData.pledge ? 'Yes (' + userData.pledge.length + ' chars)' : 'No'}`); // <Jun Kai/>
+                console.log(`Raw Photo Path: ${forLog(photoPath)}`); // <Jun Kai/>
+                console.log(`Processed Photo Path: ${forLog(processedPhotoPath)}`); // <Jun Kai/>
                 
                 saveQuestionAnswers(userId, feedbackId, userData, (error) => {
                     if (error) {
                         console.log('⚠️ Some answers could not be saved');
                     }
                     console.log(`📊 Feedback saved successfully - User: ${userId}, Feedback: ${feedbackId}`);
-                    console.log(`📝 Pledge: ${userData.pledge ? userData.pledge.substring(0, 50) + '...' : 'None'}`);
+                    console.log(`📝 Pledge: ${userData.pledge ? forLog(userData.pledge.substring(0, 50)) + '...' : 'None'}`); // <Jun Kai/>
                     console.log(`📅 Retention: ${retention}`);
                     callback(null, { userId, feedbackId });
                 });
@@ -1593,7 +1600,7 @@ router.get('/', (req, res) => {
             questions: 'GET /api/feedback/questions',
             submit: 'POST /api/feedback/submit-feedback',
             sendEmail: 'POST /api/feedback/send-email',
-            testEmail: 'GET /api/feedback/test-email',
+            testEmail: 'POST /api/feedback/test-email',
             getFeedback: 'GET /api/feedback/feedback',
             getArchive: 'GET /api/feedback/archive',
             updateArchiveStatus: 'POST /api/feedback/archive/update-status',

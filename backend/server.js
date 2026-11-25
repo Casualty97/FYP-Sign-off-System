@@ -174,7 +174,10 @@ const QRCode = require('qrcode');
 
 const app = express();
 require('./core/securityHeaders').apply(app); // <Jun Kai/> security headers on every answer
-app.use(require('./core/requestLimit').everyRequest); // <Jun Kai/> a limit on requests per address
+// <Jun Kai start> a limit on requests per address (backend/core/requestLimit.js)
+const { rateLimit } = require('express-rate-limit');
+app.use(rateLimit(require('./core/requestLimit').EVERY_REQUEST));
+// <Jun Kai end>
 // <Jun Kai start>
 const PORT = Number(process.env.PORT) || 3000;
 // <Jun Kai end>

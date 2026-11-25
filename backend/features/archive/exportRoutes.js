@@ -61,6 +61,8 @@ const db = require('../../core/db');
 const fs = require('fs');
 const path = require('path');
 const paths = require('../../core/paths');
+const requestLimit = require('../../core/requestLimit'); // <Jun Kai/> request limits per address
+const { insideUploads } = require('../../core/photoFiles'); // <Jun Kai/> stored photo paths stay inside the uploads folder
 const { createZipArchive } = require('../../core/zip');
 
 const pledgeTopicsPath = paths.dataFile('pledge-topics.json');
@@ -123,7 +125,7 @@ function requireDataExportUnlocked(req, res, next) {
 // Verify password and unlock data export for 30 minutes
 // <Jun Kai start> signed-in admins only, and the password of the signed-in admin. Without a sign-in this route was a
 // password check for any account that anyone could try without the limit of the sign-in
-router.post('/unlock', auth.requireAuth, async (req, res) => {
+router.post('/unlock', auth.requireAuth, requestLimit.passwordChecks, async (req, res) => {
     const { password } = req.body;
     const username = req.session.user.username;
 // <Jun Kai end>
@@ -185,7 +187,7 @@ router.post('/unlock', auth.requireAuth, async (req, res) => {
 
 // GET /api/admin/data-export/feedback/full
 // Export all feedback (no archive filter) with DECRYPTED emails
-router.get('/feedback/full', requireDataExportUnlocked, async (req, res) => {
+router.get('/feedback/full', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_FEEDBACK_FULL', username, 'data_export', null, req);
     
@@ -210,7 +212,7 @@ router.get('/feedback/full', requireDataExportUnlocked, async (req, res) => {
 
 // GET /api/admin/data-export/feedback/not-archived
 // Export not_archived feedback only with DECRYPTED emails
-router.get('/feedback/not-archived', requireDataExportUnlocked, async (req, res) => {
+router.get('/feedback/not-archived', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_FEEDBACK_NOT_ARCHIVED', username, 'data_export', null, req);
     
@@ -235,7 +237,7 @@ router.get('/feedback/not-archived', requireDataExportUnlocked, async (req, res)
 
 // GET /api/admin/data-export/feedback/archived
 // Export archived feedback only with DECRYPTED emails
-router.get('/feedback/archived', requireDataExportUnlocked, async (req, res) => {
+router.get('/feedback/archived', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_FEEDBACK_ARCHIVED', username, 'data_export', null, req);
     
@@ -262,7 +264,7 @@ router.get('/feedback/archived', requireDataExportUnlocked, async (req, res) => 
 
 // GET /api/admin/data-export/photos/all
 // Export all photos
-router.get('/photos/all', requireDataExportUnlocked, async (req, res) => {
+router.get('/photos/all', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_PHOTOS_ALL', username, 'data_export', null, req);
     
@@ -276,7 +278,7 @@ router.get('/photos/all', requireDataExportUnlocked, async (req, res) => {
 
 // GET /api/admin/data-export/photos/not-archived
 // Export photos for not_archived feedback
-router.get('/photos/not-archived', requireDataExportUnlocked, async (req, res) => {
+router.get('/photos/not-archived', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_PHOTOS_NOT_ARCHIVED', username, 'data_export', null, req);
     
@@ -290,7 +292,7 @@ router.get('/photos/not-archived', requireDataExportUnlocked, async (req, res) =
 
 // GET /api/admin/data-export/photos/archived
 // Export photos for archived feedback
-router.get('/photos/archived', requireDataExportUnlocked, async (req, res) => {
+router.get('/photos/archived', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_PHOTOS_ARCHIVED', username, 'data_export', null, req);
     
@@ -306,7 +308,7 @@ router.get('/photos/archived', requireDataExportUnlocked, async (req, res) => {
 
 // GET /api/admin/data-export/audit-log
 // Export audit logs
-router.get('/audit-log', requireDataExportUnlocked, async (req, res) => {
+router.get('/audit-log', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_AUDIT_LOG', username, 'data_export', null, req);
     
@@ -335,7 +337,7 @@ router.get('/audit-log', requireDataExportUnlocked, async (req, res) => {
 
 // GET /api/admin/data-export/school-impact/csv
 // Export a school-friendly impact report with anonymized pledge samples.
-router.get('/school-impact/csv', requireDataExportUnlocked, async (req, res) => {
+router.get('/school-impact/csv', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_SCHOOL_IMPACT_CSV', username, 'data_export', null, req);
 
@@ -354,7 +356,7 @@ router.get('/school-impact/csv', requireDataExportUnlocked, async (req, res) => 
 
 // GET /api/admin/data-export/school-impact/pdf
 // Export a compact PDF summary suitable for staff sharing and FYP evidence.
-router.get('/school-impact/pdf', requireDataExportUnlocked, async (req, res) => {
+router.get('/school-impact/pdf', requireDataExportUnlocked, requestLimit.heavyWork, async (req, res) => {
     const username = req.session.user.username;
     logAudit('DATA_EXPORT_SCHOOL_IMPACT_PDF', username, 'data_export', null, req);
 
@@ -964,15 +966,15 @@ Notes:
             // Add photos
             feedbackRows.forEach(f => {
                 if (f.photo_path) {
-                    const rawPath = path.join(uploadsPath, f.photo_path);
-                    if (fs.existsSync(rawPath)) {
+                    const rawPath = insideUploads(f.photo_path, uploadsPath); // <Jun Kai/> null when the stored path leaves the uploads folder
+                    if (rawPath && fs.existsSync(rawPath)) {
                         archive.file(rawPath, { name: `photos/raw/${path.basename(f.photo_path)}` });
                     }
                 }
                 
                 if (f.processed_photo_path) {
-                    const processedPath = path.join(uploadsPath, f.processed_photo_path);
-                    if (fs.existsSync(processedPath)) {
+                    const processedPath = insideUploads(f.processed_photo_path, uploadsPath); // <Jun Kai/> null when the stored path leaves the uploads folder
+                    if (processedPath && fs.existsSync(processedPath)) {
                         archive.file(processedPath, { name: `photos/processed/${path.basename(f.processed_photo_path)}` });
                     }
                 }

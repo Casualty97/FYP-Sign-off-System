@@ -40,7 +40,7 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const db = require('./db');
-const { clean } = require('./log'); // <Jun Kai/> request values are printed without line breaks
+const { forLog } = require('./log'); // <Jun Kai/> request values are printed without line breaks
 const { isDeviceNearby } = require('../features/assets/bluetooth');
 
 // ==================== 1. CONFIGURATION ====================
@@ -262,7 +262,7 @@ function loginUser(username, password, callback) {
         }
         
         if (!row) {
-            console.log('❌ Login failed: User not found or inactive:', clean(username));
+            console.log('❌ Login failed: User not found or inactive:', forLog(username));
             return callback(new Error('Invalid username or password'), null);
         }
         
@@ -290,9 +290,9 @@ function loginUser(username, password, callback) {
             }
             
             if (passwordMatch) {
-                console.debug('✅ Login successful:', clean(username));
+                console.debug('✅ Login successful:', forLog(username));
                 if (upgradedPlainTextPassword) {
-                    console.debug('✅ Upgraded plain-text password hash for:', clean(username));
+                    console.debug('✅ Upgraded plain-text password hash for:', forLog(username));
                 }
                 
                 // Update last login time
@@ -312,7 +312,7 @@ function loginUser(username, password, callback) {
                 
                 callback(null, user);
             } else {
-                console.log('❌ Login failed: Invalid password for user:', clean(username));
+                console.log('❌ Login failed: Invalid password for user:', forLog(username));
                 callback(new Error('Invalid username or password'), null);
             }
         } catch (verifyError) {
