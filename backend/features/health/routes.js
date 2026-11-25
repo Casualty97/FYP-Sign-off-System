@@ -91,7 +91,13 @@ router.delete('/tablets/:deviceId', auth.requireAdmin, (req, res) => {
             console.error('❌ Could not remove tablet entry:', error.message);
             return res.status(500).json({ success: false, error: 'Could not remove the device entry' });
         }
-        res.json({ success: true });
+        try {
+            tabletNames.setName(deviceId, null);
+            res.json({ success: true });
+        } catch (error) {
+            console.error('❌ Could not clear tablet name:', error.message);
+            res.status(500).json({ success: false, error: 'The entry was removed, but its saved name could not be cleared.' });
+        }
     });
 });
 
@@ -99,14 +105,15 @@ router.delete('/tablets/:deviceId', auth.requireAdmin, (req, res) => {
 router.put('/tablets/:deviceId/name', auth.requireAuth, (req, res) => {
     const deviceId = String(req.params.deviceId || '');
     if (!tabletNames.isDeviceId(deviceId)) return res.status(400).json({ success: false, error: 'Not a device id' });
-    db.get('SELECT device_id FROM device_heartbeats WHERE device_id = ?', [deviceId], (err, row) => {
+    db.all('SELECT device_id FROM device_heartbeats', [], (err, rows) => {
         if (err) {
             console.error('❌ Could not look up the tablet:', err.message);
             return res.status(500).json({ success: false, error: 'Could not look up the tablet' });
         }
-        if (!row) return res.status(404).json({ success: false, error: 'No tablet with that id has reported yet' });
+        const knownDeviceIds = new Set(rows.map(row => row.device_id));
+        if (!knownDeviceIds.has(deviceId)) return res.status(404).json({ success: false, error: 'No tablet with that id has reported yet' });
         try {
-            const result = tabletNames.setName(deviceId, (req.body || {}).name);
+            const result = tabletNames.setName(deviceId, (req.body || {}).name, knownDeviceIds);
             if (result.error) return res.status(result.status || 400).json({ success: false, error: result.error });
             res.json({ success: true, deviceId, name: result.name });
         } catch (error) {

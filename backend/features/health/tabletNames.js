@@ -41,16 +41,23 @@ function sortDevices(devices) {
 }
 
 // Saves or clears one name: { name } or { error, status }
-function setName(deviceId, input) {
+function setName(deviceId, input, knownDeviceIds) {
     if (!isDeviceId(deviceId)) return { error: 'Not a device id', status: 400 };
     const result = clean(input);
     if (result.error) return { error: result.error, status: 400 };
     const names = all();
     if (result.name) {
-        const other = takenBy(names, deviceId, result.name);
-        if (other) return { error: `Another tablet is already called "${names[other]}"`, status: 409 };
+        // Reclaim names left by devices removed before deletion also cleared their names.
+        if (knownDeviceIds) {
+            for (const id of Object.keys(names)) {
+                if (!knownDeviceIds.has(id) && collator.compare(names[id], result.name) === 0) delete names[id];
+            }
+        }
+        const conflict = takenBy(names, deviceId, result.name);
+        if (conflict) return { error: `Another tablet is already called "${names[conflict]}"`, status: 409 };
         names[deviceId] = result.name;
     } else {
+        if (!Object.hasOwn(names, deviceId)) return { name: null };
         delete names[deviceId];
     }
     writeJsonAtomic(file(), { names });
