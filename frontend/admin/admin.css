@@ -8933,6 +8933,10 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
     #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(5), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(5),
     #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(6), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(6) { display: none; }
 }
+/* on a window narrower than 1400 px the date steps aside as well while the panel is open (the panel shows it), so the bin stays in view */
+@media (min-width: 1100px) and (max-width: 1399px) {
+    #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(7), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(7) { display: none; }
+}
 /* narrow windows: fewer columns (the panel shows everything), and the panel takes the full width */
 @media (max-width: 1280px) { .fb-table th:nth-child(4), .fb-table td:nth-child(4) { display: none; } }
 @media (max-width: 1024px) { .fb-table th:nth-child(6), .fb-table td:nth-child(6), .fb-table th:nth-child(5), .fb-table td:nth-child(5) { display: none; } }
