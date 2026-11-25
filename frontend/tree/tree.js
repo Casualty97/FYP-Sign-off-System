@@ -274,7 +274,7 @@ class TreeManager {
         `;
         treeContainer.appendChild(controls);
         document.body.classList.add('tree-demo-page');
-        document.title = 'ESG Digital Tree Animation Demo';
+        document.title = 'RP Xperience Centre Digital Tree Animation Demo';
     }
 
     // ==================== TREE TITLE BOX ====================
@@ -293,7 +293,7 @@ class TreeManager {
         // Update text content
         const titleEl = document.getElementById('treeTitle');
         const subtitleEl = document.getElementById('treeSubtitle');
-        if (titleEl) titleEl.textContent = settings?.titleText || '🌳 ESG Digital Tree';
+        if (titleEl) titleEl.textContent = settings?.titleText || '🌳 RP Xperience Centre Digital Tree';
         if (subtitleEl) subtitleEl.textContent = settings?.subtitleText || 'Growing with every visitor\'s contribution this year';
 
         // Defaults
@@ -1055,6 +1055,20 @@ class TreeManager {
         if (this.leafDetailSnippet) {
             this.leafDetailSnippet.textContent = snippet;
         }
+        // <Jun Kai start>
+        // a leaf kept after the Visitor Data Archive has no pledge to show: the month and year of the visit and one line
+        if (visitor.archived) {
+            const visited = new Date(visitor.created_at);
+            if (this.leafDetailDate) {
+                this.leafDetailDate.textContent = Number.isNaN(visited.getTime())
+                    ? 'Date unavailable'
+                    : visited.toLocaleDateString('en-SG', { month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' });
+            }
+            if (this.leafDetailSnippet) {
+                this.leafDetailSnippet.textContent = "This visitor's details were archived.";
+            }
+        }
+        // <Jun Kai end>
 
         this.leafDetailCard.classList.add('active');
         this.leafDetailCard.setAttribute('aria-hidden', 'false');
@@ -1160,7 +1174,7 @@ class TreeManager {
     updateTreeHeading() {
         if ((this.demoFallEnabled || this.manualDemoFallActive) && !this.isReviewMode) {
             if (this.treeTitle) {
-                this.treeTitle.textContent = 'ESG Digital Tree - Leaf Fall Demo';
+                this.treeTitle.textContent = 'RP Xperience Centre Digital Tree - Leaf Fall Demo';
             }
             if (this.treeSubtitle) {
                 this.treeSubtitle.textContent = `${this.visitors.length} demo leaves will fall. No live feedback data is changed.`;
@@ -1169,12 +1183,12 @@ class TreeManager {
         }
 
         const settings = this.visualAssets?.treeTitleBox;
-        const configTitle = settings?.titleText || '🌳 ESG Digital Tree';
+        const configTitle = settings?.titleText || '🌳 RP Xperience Centre Digital Tree';
         const configSubtitle = settings?.subtitleText || `Growing with every visitor's contribution in ${this.currentYear}`;
 
         if (this.treeTitle) {
             this.treeTitle.textContent = this.isReviewMode
-                ? `${this.selectedYear} ESG Tree Review`
+                ? `${this.selectedYear} RP Xperience Centre Tree Review`
                 : configTitle;
         }
 

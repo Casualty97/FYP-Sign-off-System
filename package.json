@@ -13,7 +13,9 @@
     "smoke:full": "node tests/smoke.js",
     "test": "npm run check",
     "test:pulse": "node tests/pulse-backend-check.js",
+    "aiops:replay": "node scripts/aiops-replay.js",
     "hooks:install": "node scripts/hooks-install.js",
+    "doctor": "node scripts/install/setup.js check",
     "db:migrate": "node database/migrate.js up",
     "db:status": "node database/migrate.js status",
     "db:new": "node database/migrate.js new",
@@ -34,7 +36,7 @@
     "express-session": "^1.18.2",
     "multer": "^2.5.0",
     "mysql2": "^3.24.6",
-    "nodemailer": "^7.0.11",
+    "nodemailer": "^10.6.1",
     "qrcode": "^1.5.4",
     "selfsigned": "^4.0.1",
     "sharp": "^0.35.5",
@@ -49,5 +51,16 @@
   "devDependencies": {
     "eslint": "^10.13.0",
     "globals": "^16.5.0"
+  },
+  "overrides": {
+    "archiver": {
+      "readdir-glob": "^4.0.0"
+    },
+    "@xenova/transformers": {
+      "sharp": "$sharp"
+    },
+    "onnx-proto": {
+      "protobufjs": "^7.6.3"
+    }
   }
 }

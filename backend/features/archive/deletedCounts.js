@@ -12,7 +12,8 @@ const TABLE = 'deleted_record_counts';
 const KINDS = Object.freeze({
     feedback: 'feedback',     // feedback rows with is_active = 1 (the kiosk's visitor number counts these)
     pledge: 'pledge',         // the same rows with a pledge written (the all-time pledge totals count these)
-    leaf: 'leaf',             // the same rows without flagged words in the pledge or answers (the tree draws these)
+    leaf: 'leaf',             // the same rows without flagged words in the pledge or answers (the tree draws these);
+                              // not counted when the archive keeps the leaf on the tree (table archived_leaves)
     visitor: 'visitor',       // users rows
     lostFound: 'lost_found'   // lost_found_reports rows
 });
@@ -85,17 +86,27 @@ async function save(tx, entries) {
          ON DUPLICATE KEY UPDATE record_count = ${TABLE}.record_count + added.record_count`, [entries]);
 }
 
+// kindsOf without the kind leaf for the rows whose leaf stays on the tree (the tree still draws those, so counting
+// them as deleted leaves would put them in the year book twice)
+function withoutKeptLeaves(kindsOf, keptIds) {
+    if (!keptIds || !keptIds.size) return kindsOf;
+    return (row) => kindsOf(row).filter((kind) => kind !== KINDS.leaf || !keptIds.has(row.id));
+}
+
 // Inside the caller's transaction: locks the rows of `table` with these ids, adds their counts, then deletes exactly
 // those rows. Returns how many rows went. A missing deleted_record_counts table fails the whole transaction, so a
 // delete never happens without its counts.
-async function deleteCounted(tx, table, ids) {
+// keepLeaves (the Visitor Data Archive only, see archivedLeaves.keeper): async (tx, rows, kindsOf) called with the
+// locked rows before they are counted; it writes the leaves that stay and returns the Set of their ids.
+async function deleteCounted(tx, table, ids, { keepLeaves = null } = {}) {
     const source = SOURCES[table];
     if (!source) throw new Error(`deleted counts: unknown table ${table}`);
     let deleted = 0;
     for (const part of chunks([...new Set(ids)])) {
         const rows = await source.load(tx, part);
         if (!rows.length) continue;
-        await save(tx, tally(rows, source.kinds));
+        const kept = keepLeaves ? await keepLeaves(tx, rows, source.kinds) : null;
+        await save(tx, tally(rows, withoutKeptLeaves(source.kinds, kept)));
         deleted += await tx.run(`DELETE FROM ${table} WHERE id IN (?)`, [rows.map((row) => row.id)]);
     }
     return deleted;
@@ -220,7 +231,7 @@ async function addToYearBook(yearMap, currentYear) {
 }
 
 module.exports = {
-    TABLE, KINDS, SOURCES, ANSWERS_SQL, VISITOR_NUMBER_SQL, ALL_PLEDGES_SQL, hasPledge, tally, deleteCounted, deleteWhere,
+    TABLE, KINDS, SOURCES, ANSWERS_SQL, VISITOR_NUMBER_SQL, ALL_PLEDGES_SQL, hasPledge, tally, withoutKeptLeaves, deleteCounted, deleteWhere,
     deleteFailure, total, byYear, allTimePledges, mergeYearBook, addToYearBook
 };
 // <Jun Kai end>

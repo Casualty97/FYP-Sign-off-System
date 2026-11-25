@@ -70,6 +70,15 @@ function sidePool(name, connectionLimit = 2) {
 
 // =================== 2. DATABASE CONNECTION TEST =================== 
 // Test connection on startup; retry a few times before giving up (MySQL may still be waking up)
+// <Jun Kai start>
+// A server that gives up here ends, startAll.js then stops the other server too, and nothing starts them again. After
+// a power cut Windows can sign in while MySQL is still starting, so a MySQL that does not answer yet is waited for 5
+// minutes instead of 30 seconds. A MySQL that answers with an error (wrong password, no such database) will not get
+// better by waiting: that still ends after 6 tries.
+const NOT_ANSWERING = ['ECONNREFUSED', 'ETIMEDOUT', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', 'PROTOCOL_CONNECTION_LOST'];
+const WAIT_FOR_MYSQL_MS = 5 * 60 * 1000;
+const firstTryAt = Date.now();
+// <Jun Kai end>
 function testConnection(attempt = 1) {
     pool.getConnection((err, connection) => {
         if (!err) {
@@ -77,8 +86,15 @@ function testConnection(attempt = 1) {
             connection.release();
             return;
         }
-        console.error(`❌ Error connecting to MySQL database (attempt ${attempt}/6):`, err.message);
-        if (attempt < 6) return setTimeout(() => testConnection(attempt + 1), 5000);
+        // <Jun Kai start>
+        const starting = NOT_ANSWERING.includes(err.code);
+        const again = starting ? Date.now() - firstTryAt < WAIT_FOR_MYSQL_MS : attempt < 6;
+        // every try at first, then one line a minute while MySQL is waited for
+        if (attempt <= 6 || attempt % 12 === 0 || !again) {
+            console.error(`❌ Error connecting to MySQL database (attempt ${attempt}${starting ? ', MySQL is not answering yet: trying for 5 minutes' : '/6'}):`, err.message);
+        }
+        if (again) return setTimeout(() => testConnection(attempt + 1), 5000);
+        // <Jun Kai end>
         console.error('   Please check:');
         console.error('   1. MySQL Server is running');
         console.error('   2. Database "dp_kiosk_db" exists');

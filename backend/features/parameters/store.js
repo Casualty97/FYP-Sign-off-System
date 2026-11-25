@@ -90,18 +90,18 @@ const DEFAULT_CONFIG = {
     ]
   },
   emailContent: {
-    thankYouSubject: "Thank you for visiting RP ESG Centre, {name}!",
-    thankYouIntro: "Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.",
+    thankYouSubject: "Thank you for visiting RP Xperience Centre, {name}!",
+    thankYouIntro: "Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.",
     thankYouClosing: "We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.",
-    senderName: "ESG Centre Team",
-    footerNote: "This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.",
+    senderName: "RP Xperience Centre Team",
+    footerNote: "This is an automated email sent from the RP Xperience Centre kiosk system. Please do not reply to this message.",
     visitSummaryTitle: "Your Visit Summary",
     visitSummaryDateLabel: "Visit date",
     visitSummaryTopicLabel: "Pledge topic",
     visitSummaryBadgeLabel: "Badge earned",
     visitSummaryRetentionLabel: "Data retention",
     visitSummaryTreeLabel: "Digital tree",
-    visitSummaryTreeMessage: "Your virtual leaf has been added to the RP ESG digital tree."
+    visitSummaryTreeMessage: "Your virtual leaf has been added to the RP Xperience Centre digital tree."
   },
   // Feature toggles configurable from the admin panel (DONE BY CAEDEN)
   featureFlags: {
@@ -209,8 +209,33 @@ const DEFAULT_CONFIG = {
   }
 };
 
+// <Jun Kai start>
+// The centre was renamed from RP ESG Centre to RP Xperience Centre (18 Nov 2026). The texts below are saved on each
+// PC, so an installed PC would keep the old name. A saved text that is still exactly the old default becomes the new
+// default; a text an admin wrote is never changed. [settings group, setting, the old default, the new default]
+const OLD_CENTRE_NAME_DEFAULTS = [
+  ['emailContent', 'thankYouSubject', 'Thank you for visiting RP ESG Centre, {name}!', 'Thank you for visiting RP Xperience Centre, {name}!'],
+  ['emailContent', 'thankYouIntro', 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.', 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.'],
+  ['emailContent', 'senderName', 'ESG Centre Team', 'RP Xperience Centre Team'],
+  ['emailContent', 'footerNote', 'This is an automated email sent from the RP ' + 'ESG kiosk system. Please do not reply to this message.', 'This is an automated email sent from the RP Xperience Centre kiosk system. Please do not reply to this message.'],
+  ['emailContent', 'visitSummaryTreeMessage', 'Your virtual leaf has been added to the RP ' + 'ESG digital tree.', 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'],
+  ['campaignSettings', 'title', 'ESG ' + 'Campaign', 'RP Xperience Centre Campaign'],
+  ['treeParameters', 'treeTitleBox.titleText', '\u{1F333} ESG ' + 'Digital Tree', '\u{1F333} RP Xperience Centre Digital Tree']
+];
+function withNewCentreName(merged) {
+  for (const [group, setting, oldText, newText] of OLD_CENTRE_NAME_DEFAULTS) {
+    const parts = setting.split('.');
+    const last = parts.pop();
+    let holder = merged[group];
+    for (const part of parts) holder = holder && holder[part];
+    if (holder && holder[last] === oldText) holder[last] = newText;
+  }
+  return merged;
+}
+// <Jun Kai end>
+
 function mergeWithDefaults(config) {
-  return {
+  return withNewCentreName({ // <Jun Kai/> withNewCentreName
     ...DEFAULT_CONFIG,
     ...config,
     feedbackMessages: { ...DEFAULT_CONFIG.feedbackMessages, ...(config.feedbackMessages || {}) },
@@ -233,7 +258,7 @@ function mergeWithDefaults(config) {
     overlaySettings: { ...DEFAULT_CONFIG.overlaySettings, ...(config.overlaySettings || {}) },
     visualAssets: { ...DEFAULT_CONFIG.visualAssets, ...(config.visualAssets || {}) },
     layoutSettings: { ...DEFAULT_CONFIG.layoutSettings, ...(config.layoutSettings || {}) }
-  };
+  });
 }
 
 /**
@@ -334,6 +359,7 @@ function getCategory(category) {
  */
 function updateCategory(category, updates) {
   try {
+    if (['__proto__', 'constructor', 'prototype'].includes(String(category))) return false; // <Jun Kai/> never a settings group
     const config = readParametersConfig();
     config[category] = { ...config[category], ...updates };
     return writeParametersConfig(config);

@@ -1,7 +1,7 @@
 // Owner: Role 3, Jun Kai. Previous team: XY (Xuanyang) (8), Caeden (4), Nick (4).
 // ============================================================
 // DONE BY XY - EMAIL BADGE SERVICE SUMMARY
-//  - Added the ESG Kiosk badge email system and badge configurations.
+//  - Added the RP Xperience Centre Kiosk badge email system and badge configurations.
 //  - Added topic-to-badge mapping for pledge topics selected in the feedback flow.
 //  - Added customized HTML email templates with badge visuals.
 //  - Added badge congratulation email sending and social sharing sections.
@@ -42,7 +42,7 @@ function getPhotoAttachmentContentType(filename) { // changes made by nick
 }
 
 // ==================== BADGE SYSTEM IMPLEMENTATION ====================
-// Done by XY - Complete badge awarding system for ESG Kiosk
+// Done by XY - Complete badge awarding system for RP Xperience Centre Kiosk
 //
 // SUMMARY OF CHANGES:
 // 1. Added comprehensive badge configurations with multiple dedicated badge types
@@ -86,7 +86,7 @@ const BADGE_CONFIGS = {
         icon: '📝',
         imageUrl: 'https://img.icons8.com/fluency/96/feedback.png',
         color: '#10b981',
-        textTemplate: `Hello!\n\nCongratulations on completing the feedback form! You've earned the "Feedback Contributor" badge.\n\nKeep up the great work!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on completing the feedback form! You've earned the "Feedback Contributor" badge.\n\nKeep up the great work!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: #f8fafc; padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -108,7 +108,7 @@ const BADGE_CONFIGS = {
                             🏆 Achievement Unlocked
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -149,7 +149,7 @@ const BADGE_CONFIGS = {
         icon: '🌱',
         imageUrl: 'https://img.icons8.com/fluency/96/leaf.png',
         color: '#059669',
-        textTemplate: `Hello!\n\nCongratulations! By making an environmental pledge, you've earned the "Eco Warrior" badge.\n\nYour commitment to sustainability makes a real difference!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making an environmental pledge, you've earned the "Eco Warrior" badge.\n\nYour commitment to sustainability makes a real difference!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #d1fae5); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -171,7 +171,7 @@ const BADGE_CONFIGS = {
                             🌍 Planet Protector 🛡️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -212,7 +212,7 @@ const BADGE_CONFIGS = {
         icon: '🤝',
         imageUrl: 'https://img.icons8.com/fluency/96/handshake.png',
         color: '#3b82f6',
-        textTemplate: `Hello!\n\nCongratulations on making a pledge commitment! You've earned the "Commitment Champion" badge.\n\nYour pledges help drive positive change!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on making a pledge commitment! You've earned the "Commitment Champion" badge.\n\nYour pledges help drive positive change!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #eff6ff, #dbeafe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -234,7 +234,7 @@ const BADGE_CONFIGS = {
                             💪 Commitment Champion
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -266,7 +266,7 @@ const BADGE_CONFIGS = {
         icon: '🌎',
         imageUrl: 'https://img.icons8.com/fluency/96/earth-globe.png',
         color: '#0ea5e9',
-        textTemplate: `Hello!\n\nCongratulations on pledging climate action! You've earned the "Climate Champion" badge.\n\nYour commitment to the climate helps protect our planet.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging climate action! You've earned the "Climate Champion" badge.\n\nYour commitment to the climate helps protect our planet.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfeff, #dbeafe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -288,7 +288,7 @@ const BADGE_CONFIGS = {
                             🌍 Climate Action Hero
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -329,7 +329,7 @@ const BADGE_CONFIGS = {
         icon: '⚡',
         imageUrl: 'https://img.icons8.com/fluency/96/solar-panel.png',
         color: '#22c55e',
-        textTemplate: `Hello!\n\nCongratulations on pledging renewable energy! You've earned the "Renewable Innovator" badge.\n\nYour commitment to clean power is energizing the future.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging renewable energy! You've earned the "Renewable Innovator" badge.\n\nYour commitment to clean power is energizing the future.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #e7f5ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -351,7 +351,7 @@ const BADGE_CONFIGS = {
                             ⚡ Clean Power Leader
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -392,7 +392,7 @@ const BADGE_CONFIGS = {
         icon: '🌿',
         imageUrl: 'https://img.icons8.com/fluency/96/leaf.png',
         color: '#16a34a',
-        textTemplate: `Hello!\n\nCongratulations on pledging sustainable living! You've earned the "Sustainable Living Advocate" badge.\n\nYour commitment to greener habits inspires others.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging sustainable living! You've earned the "Sustainable Living Advocate" badge.\n\nYour commitment to greener habits inspires others.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #eff6ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -414,7 +414,7 @@ const BADGE_CONFIGS = {
                             🌱 Green Lifestyle Leader
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -455,7 +455,7 @@ const BADGE_CONFIGS = {
         icon: '🌊',
         imageUrl: 'https://img.icons8.com/fluency/96/wave.png',
         color: '#0ea5e9',
-        textTemplate: `Hello!\n\nCongratulations on pledging ocean conservation! You've earned the "Ocean Guardian" badge.\n\nYour commitment to protecting marine life is truly inspiring.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging ocean conservation! You've earned the "Ocean Guardian" badge.\n\nYour commitment to protecting marine life is truly inspiring.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #eff6ff, #e0f2fe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -477,7 +477,7 @@ const BADGE_CONFIGS = {
                             🌊 Marine Protector
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -518,7 +518,7 @@ const BADGE_CONFIGS = {
         icon: '🤝',
         imageUrl: 'https://img.icons8.com/fluency/96/group.png',
         color: '#f59e0b',
-        textTemplate: `Hello!\n\nCongratulations! By making a social responsibility pledge, you've earned the "Social Champion" badge.\n\nYour commitment to community and inclusion makes a real difference!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making a social responsibility pledge, you've earned the "Social Champion" badge.\n\nYour commitment to community and inclusion makes a real difference!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -540,7 +540,7 @@ const BADGE_CONFIGS = {
                             🤝 Community Builder 🏘️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -581,7 +581,7 @@ const BADGE_CONFIGS = {
         icon: '⚖️',
         imageUrl: 'https://img.icons8.com/fluency/96/justice-scale.png',
         color: '#8b5cf6',
-        textTemplate: `Hello!\n\nCongratulations! By making a governance and ethics pledge, you've earned the "Governance Guardian" badge.\n\nYour commitment to transparency and accountability strengthens our society!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making a governance and ethics pledge, you've earned the "Governance Guardian" badge.\n\nYour commitment to transparency and accountability strengthens our society!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #f3e8ff, #e9d5ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -603,7 +603,7 @@ const BADGE_CONFIGS = {
                             ⚖️ Ethics Champion 🛡️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -821,7 +821,7 @@ function stripPhotoAttachmentSentence(text) {
         .replace(/\s*Attached below is your commemorative photo from your visit\./i, '')
         .trim();
 
-    return cleaned || 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback.';
+    return cleaned || 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback.';
 }
 
 function buildVisitSummary(options = {}) {
@@ -840,7 +840,7 @@ function buildVisitSummary(options = {}) {
         pledgeTopic: topicLabel,
         retention: formatRetentionSummary(options.retention, options.retentionDays),
         badgeName,
-        treeLeafMessage: options.treeLeafMessage || 'Your virtual leaf has been added to the RP ESG digital tree.'
+        treeLeafMessage: options.treeLeafMessage || 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'
     };
 }
 
@@ -856,29 +856,12 @@ function buildSummaryRows(summary, emailContent = {}) {
 
 function buildCombinedBadgeSectionHtml(badges = []) {
     if (!Array.isArray(badges) || badges.length === 0) return '';
-
-    const cards = badges.map((badge) => `
-        <article style="border:1px solid #dbe7df; border-radius:12px; padding:14px; background:#ffffff; box-shadow:0 6px 18px rgba(15,23,42,0.06);">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span style="width:42px; height:42px; border-radius:999px; background:${escapeHtml(badge.badgeColor || '#006937')}; display:inline-flex; align-items:center; justify-content:center; color:#ffffff; font-size:20px;">&#127942;</span>
-                <span>
-                    <strong style="display:block; color:#0f172a; font-size:15px;">${escapeHtml(badge.badgeName)}</strong>
-                    <small style="display:block; color:#64748b; line-height:1.4;">${escapeHtml(badge.badgeDescription || 'ESG badge earned from this visit.')}</small>
-                </span>
-            </div>
-        </article>
-    `).join('');
-
+    // <Jun Kai start> clean and colour-free (12 Nov 2026): the badge name and what it is for, no icon
+    const items = badges.map((badge) => `
+                                <p style="margin:0 0 10px 0; font-size:14px; line-height:1.5; color:#111111;"><strong>${escapeHtml(badge.badgeName)}</strong><br/><span style="color:#555555;">${escapeHtml(badge.badgeDescription || 'ESG badge earned from this visit.')}</span></p>`).join('');
     return `
-        <div style="margin:24px 0; padding:18px; border-radius:14px; background:#f0fdf4; border:1px solid #bbf7d0;">
-            <p style="margin:0 0 12px 0; color:#006937; font-size:13px; font-weight:700;">
-                Visitor passport badge${badges.length === 1 ? '' : 's'} unlocked
-            </p>
-            <div style="display:grid; gap:12px;">
-                ${cards}
-            </div>
-        </div>
-    `;
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Visitor passport badge${badges.length === 1 ? '' : 's'} unlocked</p>${items}`;
+    // <Jun Kai end>
 }
 
 function buildCombinedBadgeSectionText(badges = []) {
@@ -918,10 +901,10 @@ Congratulations on earning the "${badgeConfig.name}" badge.
 ${message}
 
 Key exhibits or takeaway messages:
-${highlights.map(item => `- ${item}`).join('\n') || '- Thank you for contributing to RP ESG Centre.'}
+${highlights.map(item => `- ${item}`).join('\n') || '- Thank you for contributing to RP Xperience Centre.'}
 
 Best regards,
-ESG Team`;
+RP Xperience Centre Team`;
 
     const html = `
         <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background:#f8fafc; padding:20px; border-radius:12px;">
@@ -942,7 +925,7 @@ ESG Team`;
                     ${highlightsHtml}
                 </div>
                 ${userData?.pledge ? `<p style="font-size:14px; color:#475569; line-height:1.6; margin:0 0 18px 0;"><strong>Your pledge:</strong> ${escapeHtml(userData.pledge)}</p>` : ''}
-                <p style="font-size:14px; color:#475569; line-height:1.6; margin:0;">Best regards,<br><strong>ESG Team</strong></p>
+                <p style="font-size:14px; color:#475569; line-height:1.6; margin:0;">Best regards,<br><strong>RP Xperience Centre Team</strong></p>
             </div>
         </div>
     `;
@@ -974,7 +957,7 @@ ${section.highlights.map(item => `  - ${item}`).join('\n')}`
 )).join('\n\n')}
 
 Best regards,
-ESG Team`;
+RP Xperience Centre Team`;
 
     const htmlSections = sections.map(section => `
         <div style="background:#ffffff; padding:18px; border-radius:10px; border-left:5px solid ${section.badgeConfig.color}; box-shadow:0 8px 22px rgba(15,23,42,0.08); margin-bottom:14px;">
@@ -1024,7 +1007,7 @@ async function reloadEmailService() {
         transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: { user, pass },
-            tls: { rejectUnauthorized: false }
+            // <Jun Kai/> the server's certificate is checked (it was switched off here before)
         });
 
         senderEmail = cfg.senderEmail || user;
@@ -1039,7 +1022,7 @@ async function reloadEmailService() {
             port: 587,
             secure: false,
             auth: { user, pass },
-            tls: { rejectUnauthorized: false }
+            // <Jun Kai/> the server's certificate is checked (it was switched off here before)
         });
 
         senderEmail = cfg.senderEmail || user;
@@ -1060,7 +1043,7 @@ async function reloadEmailService() {
             port,
             secure,
             auth: { user, pass },
-            tls: { rejectUnauthorized: false }
+            tls: { rejectUnauthorized: false } // <Jun Kai/> kept only for a custom mail server, which may use its own certificate
         });
 
         senderEmail = cfg.senderEmail || user;
@@ -1093,11 +1076,11 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         const emailContent = parameterConfig.emailContent || {};
         const retentionDays = parameterConfig.contentSettings?.temporaryRetentionDays;
         const personalize = (value, fallback = '') => String(value || fallback).replace(/\{name\}/g, name || 'Visitor');
-        const emailIntro = personalize(emailContent.thankYouIntro, 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.');
+        const emailIntro = personalize(emailContent.thankYouIntro, 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.');
         const emailClosing = personalize(emailContent.thankYouClosing, 'We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.');
-        const senderName = personalize(emailContent.senderName, 'ESG Centre Team');
-        const footerNote = personalize(emailContent.footerNote, 'This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.');
-        const emailSubject = personalize(emailContent.thankYouSubject, `Thank you for visiting RP ESG Centre, ${name}!`);
+        const senderName = personalize(emailContent.senderName, 'RP Xperience Centre Team');
+        const footerNote = personalize(emailContent.footerNote, 'This is an automated email sent from the RP Xperience Centre kiosk system. Please do not reply to this message.');
+        const emailSubject = personalize(emailContent.thankYouSubject, `Thank you for visiting RP Xperience Centre, ${name}!`);
         let emailIntroText = emailIntro;
         const suppliedBadges = Array.isArray(visitOptions.badges) ? visitOptions.badges : [];
         const badgeSummaries = suppliedBadges.length > 0
@@ -1127,16 +1110,19 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         const textSummary = summaryRows
             .map(([label, value]) => `${label}: ${value}`)
             .join('\n');
+        // <Jun Kai start> clean and colour-free (12 Nov 2026): a plain two-column list with hairlines
         const htmlSummaryRows = summaryRows
             .map(([label, value]) => `
-                <tr>
-                    <td style="padding:10px 12px; font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; width:34%; border-bottom:1px solid #e5e7eb;">${escapeHtml(label)}</td>
-                    <td style="padding:10px 12px; font-size:14px; color:#0f172a; font-weight:600; border-bottom:1px solid #e5e7eb;">${escapeHtml(value)}</td>
-                </tr>
-            `).join('');
+                                    <tr>
+                                        <td style="padding:10px 16px 10px 0; width:38%; border-top:1px solid #e5e5e5; font-size:13px; color:#666666; vertical-align:top;">${escapeHtml(label)}</td>
+                                        <td style="padding:10px 0; border-top:1px solid #e5e5e5; font-size:14px; color:#111111; vertical-align:top;">${escapeHtml(value)}</td>
+                                    </tr>`).join('');
+        // <Jun Kai end>
         console.debug(`📧 Preparing to send email to ${email}...`);
         
-        if (!emailTransporter) {
+        // <Jun Kai start> the Email page preview (visitOptions.previewTransport) keeps the message instead of sending it
+        if (!emailTransporter && !visitOptions.previewTransport) {
+        // <Jun Kai end>
             try {
                 await reloadEmailService();
             } catch (e) {
@@ -1240,29 +1226,20 @@ ${footerNote}
               .replace(/>/g, '&gt;')
   : '';
 
+        // <Jun Kai start> clean and colour-free (12 Nov 2026): greys only, plain headings, tables so every mail app lays it
+        // out the same; the words are the same as before
         const pledgeHtml = pledgeText
-  ? `<p style="
-        font-size:14px;
-        color:#444;
-        margin-top:14px;
-        font-style:italic;
-        text-align:center;
-      ">
-        &ldquo;${safePledgeText}&rdquo;
-     </p>`
-  : '';
+            ? `
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your pledge</p>
+                                <p style="margin:0; font-size:16px; line-height:1.55; color:#111111;">&ldquo;${safePledgeText}&rdquo;</p>`
+            : '';
 
         const photoMemoryHtml = fullPhotoPath
-            ? `<div style="text-align:center; margin:24px 0; padding:16px; background:#f9f9f9; border-radius:4px;">
-                    <p style="font-size:13px; color:#666; margin:0 0 12px 0; font-weight:600;">Your ESG Centre Memory</p>
-                    <img src="cid:visit_photo" alt="Your RP ESG Centre memory" style="max-width:100%; height:auto; border-radius:4px; border:1px solid #ddd; max-height:400px;" />
-                    ${pledgeHtml}
-                </div>`
-            : `<div style="text-align:center; margin:24px 0; padding:16px; background:#f9f9f9; border-radius:4px;">
-                    <p style="font-size:13px; color:#666; margin:0 0 8px 0; font-weight:600;">Your ESG Centre Visit</p>
-                    ${pledgeHtml || '<p style="font-size:14px; color:#555; margin:0;">Your feedback has been recorded in your visitor passport.</p>'}
-                </div>`;
-
+            ? `
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your RP Xperience Centre memory</p>
+                                <img src="cid:visit_photo" alt="Your RP Xperience Centre memory" style="display:block; max-width:100%; max-height:400px; height:auto; border:1px solid #e5e5e5;" />${pledgeHtml}`
+            : (pledgeHtml || `
+                                <p style="margin:28px 0 0 0;">Your feedback has been recorded in your visitor passport.</p>`);
 
         // HTML email template
         const htmlBody = `
@@ -1271,56 +1248,46 @@ ${footerNote}
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Thank you for visiting RP ESG Centre</title>
+        <title>Thank you for visiting RP Xperience Centre</title>
     </head>
-    <body style="font-family: Arial, sans-serif; background-color:#f5f5f5; padding:20px; margin:0;">
-        <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-            <div style="background:#006937; color:#ffffff; padding:16px 24px;">
-                <h2 style="margin:0; font-size:20px; font-weight:600;">Thank you for visiting the RP ESG Centre, ${name}!</h2>
-            </div>
-
-            <div style="padding:24px;">
-                <p style="font-size:14px; color:#333; margin:0 0 16px 0;">
-                    Dear ${name},
-                </p>
-                <p style="font-size:14px; color:#333; line-height:1.5; margin:0 0 16px 0;">
-                    ${emailIntroHtml}
-                </p>
-
-                ${photoMemoryHtml}
-
-                ${badgeSectionHtml}
-
-                <div style="margin:24px 0; border:1px solid #dbe7df; border-radius:10px; overflow:hidden; background:#f8fafc;">
-                    <div style="background:#ecfdf5; padding:14px 16px; border-bottom:1px solid #dbe7df;">
-                        <p style="margin:0; color:#006937; font-size:13px; font-weight:700;">${escapeHtml(summaryTitle)}</p>
-                    </div>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse; background:#ffffff;">
-                        ${htmlSummaryRows}
+    <body style="margin:0; padding:24px 12px; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif; color:#111111;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px; border-collapse:collapse; background-color:#ffffff; border:1px solid #e5e5e5; text-align:left;">
+                        <tr>
+                            <td style="padding:32px 36px 0 36px;">
+                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                                <h1 style="margin:0; font-size:22px; line-height:1.35; font-weight:bold; color:#111111;">Thank you for visiting the RP Xperience Centre, ${escapeHtml(name)}!</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:24px 36px 32px 36px; font-size:15px; line-height:1.6; color:#333333;">
+                                <p style="margin:0 0 14px 0;">Dear ${escapeHtml(name)},</p>
+                                <p style="margin:0;">${emailIntroHtml}</p>
+                                ${photoMemoryHtml}
+                                ${badgeSectionHtml}
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">${escapeHtml(summaryTitle)}</p>
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">${htmlSummaryRows}
+                                </table>
+                                <p style="margin:28px 0 0 0;">${emailClosingHtml}</p>
+                                <p style="margin:24px 0 0 0;">Warm regards,<br/><strong style="color:#111111;">${senderNameHtml}</strong><br/>Republic Polytechnic</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:18px 36px; border-top:1px solid #e5e5e5; font-size:12px; line-height:1.5; color:#777777;">${footerNoteHtml}</td>
+                        </tr>
                     </table>
-                </div>
-
-                <p style="font-size:13px; color:#555; line-height:1.5; margin:0 0 16px 0;">
-                    ${emailClosingHtml}
-                </p>
-
-                <p style="font-size:13px; color:#555; margin-top:24px; padding-top:16px; border-top:1px solid #eee;">
-                    Warm regards,<br/>
-                    <strong style="color:#006937;">${senderNameHtml}</strong><br/>
-                    Republic Polytechnic
-                </p>
-            </div>
-
-            <div style="background:#f0f0f0; padding:12px 24px; font-size:11px; color:#777; text-align:center; border-top:1px solid #ddd;">
-                ${footerNoteHtml}
-            </div>
-        </div>
+                </td>
+            </tr>
+        </table>
     </body>
 </html>
         `;
+        // <Jun Kai end>
 
         const mailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: email,
             replyTo: 'no-reply@rp.edu.sg',
             subject: emailSubject,
@@ -1338,7 +1305,9 @@ ${footerNote}
         };
 
         console.debug(`📤 Sending email to: ${email}`);
-        const info = await emailTransporter.sendMail(mailOptions);
+        // <Jun Kai start>
+        const info = await (visitOptions.previewTransport || emailTransporter).sendMail(mailOptions);
+        // <Jun Kai end>
         
         console.debug('✅ Email sent successfully!');
         console.debug('📨 Message ID:', info.messageId);
@@ -1446,20 +1415,22 @@ async function testEmailService(testEmail = 'test@example.com') {
         
         // Try to send a test email without attachment
         const testMailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: testEmail,
-            subject: 'Test Email from RP ESG Centre',
-            text: 'This is a test email from the RP ESG Centre system. If you receive this, email service is working correctly.',
+            subject: 'Test Email from RP Xperience Centre',
+            text: 'This is a test email from the RP Xperience Centre system. If you receive this, email service is working correctly.',
+            // <Jun Kai start> the same clean, colour-free look as the thank-you email (12 Nov 2026)
             html: `
-                <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto;">
-                    <h3 style="color:#006937;">Test Email from RP ESG Centre</h3>
-                    <p>This is a test email from the RP ESG Centre system.</p>
-                    <p>If you receive this, email service is working correctly.</p>
-                    <p><strong>Server Time:</strong> ${new Date().toLocaleString()}</p>
-                    <hr style="margin:20px 0; border:none; border-top:1px solid #ddd;">
-                    <p style="font-size:12px; color:#666;">This is an automated test message.</p>
+                <div style="font-family:Arial, Helvetica, sans-serif; max-width:600px; margin:0 auto; padding:28px 32px; border:1px solid #e5e5e5; color:#333333; font-size:15px; line-height:1.6;">
+                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                    <h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.35; color:#111111;">Test Email from RP Xperience Centre</h1>
+                    <p style="margin:0 0 10px 0;">This is a test email from the RP Xperience Centre system.</p>
+                    <p style="margin:0 0 10px 0;">If you receive this, email service is working correctly.</p>
+                    <p style="margin:0;"><strong style="color:#111111;">Server Time:</strong> ${new Date().toLocaleString()}</p>
+                    <p style="margin:20px 0 0 0; padding-top:14px; border-top:1px solid #e5e5e5; font-size:12px; color:#777777;">This is an automated test message.</p>
                 </div>
             `
+            // <Jun Kai end>
         };
         
         console.debug(`📤 Sending test email to: ${testEmail}`);
@@ -1555,7 +1526,7 @@ async function sendLostFoundAlertEmail(report = {}) { // Staff Lost & Found aler
         `;
 
         const info = await emailTransporter.sendMail({
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: SENDER_EMAIL,
             subject: `Lost & Found report ${trackingCode}: ${type} item`,
             text: `New Lost & Found report ${trackingCode}\nType: ${type}\nItem: ${item}\nLocation: ${location}\nContact: ${contact}\nPage: ${page}\nDetails: ${details}`,
@@ -1615,7 +1586,7 @@ const sendBadgeEmail = async (recipientEmail, userData) => {
         }
 
         const mailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: recipientEmail,
             subject,
             text,

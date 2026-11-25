@@ -35,6 +35,9 @@ const vaAfterClose = {};
 
 const VA_PAGE_SIZE = 25;
 const VA_HISTORY_STEP = 100;
+// the history shows the 5 newest archives until Show all is clicked (12 Nov 2026 design)
+const VA_HISTORY_FOLD = 5;
+let vaHistoryFolded = true;
 const VA_HISTORY_MAX = 1000;
 const VA_AUTO_NEEDS_DELETE = 'Automatic archiving needs Delete the records from the database. With export only, every run would save the same records again.';
 const VA_NETWORK_FOLDER = 'Choose a folder on this PC or on a drive plugged into it. Network folders are not supported.';
@@ -157,6 +160,30 @@ function vaRecordTotal(c) {
     const records = Number(c.feedback || 0) + Number(c.lostFound || 0);
     if (!records && Number(c.visitors)) return { n: Number(c.visitors), text: vaPlural(c.visitors, 'visitor') };
     return { n: records, text: vaPlural(records, 'record') };
+}
+
+// "12 leaves stay on the tree without names", "... with initials" or "..., 5 with initials"; '' when none stays
+function vaLeavesText(kept, initials) {
+    const n = Number(kept) || 0;
+    if (!n) return '';
+    const start = `${vaNum(n)} ${n === 1 ? 'leaf stays' : 'leaves stay'} on the tree`;
+    const named = Math.min(n, Number(initials) || 0);
+    if (!named) return `${start} without ${n === 1 ? 'a name' : 'names'}`;
+    return named === n ? `${start} with initials` : `${start}, ${vaNum(named)} with initials`;
+}
+
+// "1 VIP leaf is not archived and stays on the tree as it is"; '' when no VIP leaf matched
+function vaVipText(n) {
+    const count = Number(n || 0);
+    return count ? `${vaNum(count)} VIP ${count === 1 ? 'leaf is' : 'leaves are'} not archived and ${count === 1 ? 'stays' : 'stay'} on the tree as ${count === 1 ? 'it is' : 'they are'}` : '';
+}
+
+// the leaves of the previewed submissions under the saved "Leaves on the tree" choice; '' when nothing changes on the tree
+function vaLeavesPlan(c, mode, deleting) {
+    const leaves = Number(c.leaves || 0);
+    if (!deleting || !leaves) return '';
+    if (mode === 'remove') return `${vaPlural(leaves, 'leaf leaves', 'leaves leave')} the tree; its year book still counts ${leaves === 1 ? 'it' : 'them'}`;
+    return vaLeavesText(leaves, mode === 'initials' ? c.leavesNamed : 0);
 }
 
 function vaCountsText(c) {
@@ -321,6 +348,7 @@ function vaRenderSummary() {
     const on = [fb, lf].filter((x) => x.enabled);
     const total = on.reduce((sum, x) => sum + Number(x.count || 0), 0);
     const orphans = fb.enabled ? Number(due.orphanVisitors || 0) : 0;
+    const vip = fb.enabled ? vaVipText(fb.vipLeaves) : '';
     if (!on.length) {
         vaSetText('va-due-value', 'Off');
         vaSetText('va-due-hint', 'No record type is switched on', '');
@@ -336,8 +364,10 @@ function vaRenderSummary() {
         const tip = [
             fb.enabled ? `${vaPlural(fb.count, 'feedback submission')} before ${vaDayText(fb.beforeDay)}` : '',
             lf.enabled ? `${vaPlural(lf.count, 'lost & found report')} before ${vaDayText(lf.beforeDay)}` : '',
-            orphans ? `${vaPlural(orphans, 'visitor')} with no feedback left` : ''
+            orphans ? `${vaPlural(orphans, 'visitor')} with no feedback left` : '',
+            vip
         ].filter(Boolean).join(', ');
+        if (vip && !total && !orphans) hint = vip;
         vaSetText('va-due-value', value);
         vaSetText('va-due-hint', hint, tip);
     }
@@ -539,6 +569,7 @@ function vaFillForm(s) {
     check('va-include-photos', s.includePhotos);
     check('va-after-delete', s.deleteAfterArchive !== false);
     check('va-after-keep', s.deleteAfterArchive === false);
+    document.getElementById('va-leaves').value = ['initials', 'remove'].includes(s.leaves) ? s.leaves : 'keep';
     check('va-auto-enabled', auto.enabled);
     document.getElementById('va-auto-frequency').value = auto.frequency || 'monthly';
     document.getElementById('va-auto-weekday').value = String(auto.weekday ?? 1);
@@ -749,6 +780,7 @@ function vaReadForm() {
             lostFound: { enabled: lostFoundOn, keep: periods['lostfound-keep'], onlyResolved: document.getElementById('va-lostfound-resolved').checked },
             includePhotos: document.getElementById('va-include-photos').checked,
             deleteAfterArchive: deleteAfter,
+            leaves: document.getElementById('va-leaves').value,
             automatic: {
                 enabled: autoOn, frequency, dayOfMonth: Number(document.getElementById('va-auto-day').value),
                 weekday: Number(document.getElementById('va-auto-weekday').value), everyDays, time, enabledAt: savedAuto.enabledAt ?? null
@@ -998,6 +1030,8 @@ function vaRunRow(run) {
     if (file.state === 'deleted') fileNote = 'File deleted';
     else if (file.state === 'expired') fileNote = 'Expired';
     else if (file.state === 'present' && file.exists === false) fileNote = 'File missing';
+    // a run that left leaves on the digital tree says how many under its records
+    const leaves = vaLeavesText(c.leavesKept, c.leavesWithInitials);
     let note = '';
     if (run.error) note = `<div class="va-row-note" title="${escapeHtmlSafe(run.error)}">${escapeHtmlSafe(run.status === 'done' ? `With a warning: ${run.error}` : run.error)}</div>`;
     const when = vaDateTime(run.startedAt);
@@ -1005,7 +1039,7 @@ function vaRunRow(run) {
     return `<tr data-run="${escapeHtmlSafe(run.id)}">`
         + `<td class="ui-time va-nowrap">${escapeHtmlSafe(when)}</td>`
         + `<td>${escapeHtmlSafe(run.trigger === 'automatic' ? 'Automatic' : run.startedBy || '–')}</td>`
-        + `<td class="va-nowrap" title="${escapeHtmlSafe(vaCountsText(c))}">${escapeHtmlSafe(vaRecordsText(c))}</td>`
+        + `<td class="va-nowrap" title="${escapeHtmlSafe(vaCountsText(c))}">${escapeHtmlSafe(vaRecordsText(c))}${leaves ? `<div class="ui-muted va-row-note">${escapeHtmlSafe(leaves)}</div>` : ''}</td>`
         + `<td class="va-num">${file.size ? escapeHtmlSafe(vaBytes(file.size)) : '<span class="ui-muted">–</span>'}</td>`
         + `<td>${uiPill(tone, word)}${fileNote ? `<div class="ui-muted va-row-note">${fileNote}</div>` : ''}${note}</td>`
         + `<td><div class="ui-actions">${action('view', 'eye', 'View records')}${action('download', 'download', 'Download')}${action('verify', 'search', 'Check file')}${action('delete', 'trash', 'Delete file', true)}</div></td>`
@@ -1035,18 +1069,43 @@ function vaRenderHistory(failed) {
         vaUpdateTableFade();
         return;
     }
-    const markup = vaRuns.map(vaRunRow);
-    const sameRows = vaHistoryMarkup.length === markup.length && [...body.rows].every((row, i) => row.dataset.run === String(vaRuns[i].id));
+    const shown = vaHistoryFolded ? vaRuns.slice(0, VA_HISTORY_FOLD) : vaRuns;
+    const markup = shown.map(vaRunRow);
+    const sameRows = vaHistoryMarkup.length === markup.length && [...body.rows].every((row, i) => row.dataset.run === String(shown[i].id));
     if (sameRows) markup.forEach((html, i) => { if (vaHistoryMarkup[i] !== html) body.rows[i].outerHTML = html; });
     else body.innerHTML = markup.join('');
     vaHistoryMarkup = markup;
-    // Show more adds 100 rows at a time, up to the server's limit of 1,000
-    foot.hidden = !(runs > vaRuns.length);
+    // Show all opens the rest of the loaded rows, Show more fetches 100 more (up to the server's limit of 1,000), Show
+    // fewer folds the list back to the 5 newest
+    const folded = vaHistoryFolded && vaRuns.length > VA_HISTORY_FOLD;
+    const more = !folded && runs > vaRuns.length && vaHistoryLimit < VA_HISTORY_MAX;
+    const fewer = !folded && !more && vaRuns.length > VA_HISTORY_FOLD;
+    foot.hidden = !(folded || more || fewer || runs > vaRuns.length);
     if (!foot.hidden) {
-        vaSetText('va-history-more-text', `Showing the latest ${vaNum(vaRuns.length)} of ${vaNum(runs)} archives.`);
-        document.getElementById('va-history-more').hidden = vaHistoryLimit >= VA_HISTORY_MAX;
+        vaSetText('va-history-more-text', folded ? `Showing the ${VA_HISTORY_FOLD} newest of ${vaNum(runs)} archives.`
+            : runs > vaRuns.length ? `Showing the latest ${vaNum(vaRuns.length)} of ${vaNum(runs)} archives.` : `Showing all ${vaNum(runs)} archives.`);
+        const button = document.getElementById('va-history-more');
+        button.hidden = !(folded || more || fewer);
+        button.textContent = folded ? `Show all ${vaNum(runs)} archives` : more ? 'Show more' : 'Show fewer';
     }
     vaUpdateTableFade();
+}
+
+function vaHistoryMoreClick() {
+    if (vaHistoryFolded) {
+        vaHistoryFolded = false;
+        vaRenderHistory();
+        return;
+    }
+    const runs = Number((vaData && vaData.totals && vaData.totals.runs) || 0);
+    if (runs > vaRuns.length && vaHistoryLimit < VA_HISTORY_MAX) {
+        vaShowMoreHistory();
+        return;
+    }
+    vaHistoryFolded = true;
+    vaRenderHistory();
+    const title = document.getElementById('va-history-title');
+    if (title) title.focus();
 }
 
 function vaShowMoreHistory() {
@@ -1478,6 +1537,9 @@ function vaRenderPreview() {
     const photos = vaPhotoParts(c, d, deleting);
     document.getElementById('va-sum-photos').innerHTML = photos.join(', ');
     document.getElementById('va-sum-photos-row').hidden = !photos.length;
+    const leaves = types.includes('feedback') ? [vaLeavesPlan(c, s.leaves, deleting), vaVipText(c.vipLeaves)].filter(Boolean).join('. ') : '';
+    vaSetText('va-sum-leaves', leaves);
+    document.getElementById('va-sum-leaves-row').hidden = !leaves;
     document.getElementById('va-sum-file').innerHTML = escapeHtmlSafe(`About ${vaBytes(d.estimatedBytes)}, ${vaBytes(d.freeBytes)} free`)
         + (numbers.tooBig ? ' <span class="va-warn-text">Not enough free space in the archive folder.</span>' : '');
     document.getElementById('va-run-summary').hidden = false;
@@ -1641,6 +1703,7 @@ function vaShowResult(run) {
     if (file.folder) rows.push(['Folder', file.folder]);
     if (file.size) rows.push(['Size', vaBytes(file.size)]);
     if (run.status === 'done' || run.status === 'saved') rows.push(['Records', vaCountsText(c)]);
+    if (run.status === 'done' && Number(c.leavesKept)) rows.push(['Tree', vaLeavesText(c.leavesKept, c.leavesWithInitials)]);
     const note = run.error ? `<div class="ui-note ${run.status === 'failed' ? 'va-note-error' : 'ui-note-warn'}">${escapeHtmlSafe(vaSentence(run.error))}</div>` : '';
     document.getElementById('va-run-result').innerHTML = `<div class="va-result-head">${uiPill(tone, word)}<span class="va-result-lead">${escapeHtmlSafe(lead)}</span></div>`
         + (rows.length ? `<dl class="ui-kv va-result-kv">${rows.map(([k, v]) => `<dt>${escapeHtmlSafe(k)}</dt><dd>${escapeHtmlSafe(v)}</dd>`).join('')}</dl>` : '')

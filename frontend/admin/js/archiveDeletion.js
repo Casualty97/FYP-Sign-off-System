@@ -121,7 +121,7 @@ async function previewBulkDelete() {
             if (previewDiv) previewDiv.style.display = 'block';
             if (bulkDeleteBtn) bulkDeleteBtn.disabled = data.count === 0;
             
-            console.log(`📊 Preview: ${data.count} records will be deleted`);
+            console.log(`📊 Preview: ${data.count} records will be deleted${data.vipKept ? `, ${data.vipKept} VIP leaf/leaves kept` : ''}`); // <Jun Kai/> VIP leaves are not counted
         } else {
             throw new Error(data.error || 'Failed to preview deletion');
         }
@@ -161,7 +161,9 @@ async function deleteSelectedArchive() {
             const data = await response.json();
             
             if (data.success) {
-                alert(`✅ Successfully deleted ${data.deletedCount} record(s)`);
+                // <Jun Kai start> the server's sentence when a VIP leaf was kept
+                alert(`✅ Successfully deleted ${data.deletedCount} record(s)${data.vipNote ? `. ${data.vipNote}` : ''}`);
+                // <Jun Kai end>
                 
                 // Uncheck select-all
                 const selectAllCheckbox = document.getElementById('select-all-archive');
@@ -216,7 +218,9 @@ async function bulkDeleteByDate() {
             const data = await response.json();
             
             if (data.success) {
-                alert(`✅ Successfully deleted ${data.deletedCount} record(s) and ${data.photosDeleted} photo(s)`);
+                // <Jun Kai start> with the server's sentence when a VIP leaf was kept
+                alert(`✅ Successfully deleted ${data.deletedCount} record(s) and ${data.photosDeleted} photo(s)${data.vipNote ? `. ${data.vipNote}` : ''}`);
+                // <Jun Kai end>
                 
                 // Reset inputs
                 dateInput.value = '';

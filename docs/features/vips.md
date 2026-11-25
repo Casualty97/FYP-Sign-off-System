@@ -9,7 +9,7 @@
 
 **What it does**
 
-Names on this list get a gold leaf on the tree.
+Names on this list get a gold leaf on the tree. A gold leaf is never archived by the Visitor Data Archive, so it stays on the tree with its name (see "VIP leaves are never archived" in [archive.md](archive.md)).
 
 **Routes** (from tests/contracts/routes.snapshot.txt)
 

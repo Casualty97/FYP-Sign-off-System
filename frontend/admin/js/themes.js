@@ -245,7 +245,7 @@ const themeConfig = {
             },
             header: {
                 'admin-header-bg': ['#admin-dashboard .admin-header'],
-                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username'],
+                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username', '#admin-dashboard .theme-toggle'], // <Jun Kai/> the Light / Dark button follows the header text
                 'secondary-header-text': ['#admin-dashboard .header-left p', '#admin-dashboard .user-role']
             },
             navbar: {
@@ -432,7 +432,7 @@ const themeConfig = {
         'admin-dashboard': {
             header: {
                 'admin-header-bg': ['#admin-dashboard .admin-header'],
-                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username'],
+                'primary-header-text': ['#admin-dashboard .header-left h1', '#admin-dashboard .username', '#admin-dashboard .theme-toggle'], // <Jun Kai/> the Light / Dark button follows the header text
                 'secondary-header-text': ['#admin-dashboard .header-left p', '#admin-dashboard .user-role']
             },
             navbar: {
@@ -618,8 +618,9 @@ const themeConfig = {
                 'card-secondary-text': ['#email-management-page .ui-label']
             },
             buttons: {
-                'button-color': ['#email-management-page .ui-btn-primary', '#email-management-page .ui-btn-secondary'],
-                'button-text-color': ['#email-management-page .ui-btn-primary', '#email-management-page .ui-btn-secondary']
+                // the page's own button colour is for the outlined buttons: Save keeps the primary colour of the whole admin
+                'button-color': ['#email-management-page .ui-btn-secondary'],
+                'button-text-color': ['#email-management-page .ui-btn-secondary']
             }
         },
         // <Jun Kai end>
@@ -1975,6 +1976,12 @@ function extractPreviewColors(themeData) {
             // Handle new format with colors object
             const globalColors = global.colors || global;
             
+            // <Jun Kai start> the colours a theme has today; the four names after them are from an older page, so a
+            // card was always grey
+            ['page-background', 'navbar-background', 'card-background', 'button-color'].forEach(key => {
+                if (globalColors[key]) colors.push(globalColors[key]);
+            });
+            // <Jun Kai end>
             if (globalColors['primary-color']) colors.push(globalColors['primary-color']);
             if (globalColors['secondary-color']) colors.push(globalColors['secondary-color']);
             if (globalColors['accent-color']) colors.push(globalColors['accent-color']);
@@ -2018,22 +2025,15 @@ function captureCurrentThemeData() {
             return null;
         }
         
-        // Iterate through categories (general, cards, buttons, etc.)
-        Object.keys(selectorMapping).forEach(category => {
-            const colorGroup = selectorMapping[category];
-            
-            // Iterate through color keys in each category
-            Object.keys(colorGroup).forEach(colorKey => {
-                // Use hex- prefix to match the actual input IDs
-                const inputId = `hex-${sectionId}-${colorKey}`;
-                const input = document.getElementById(inputId);
-                
-                if (input && input.value) {
-                    sectionColors[colorKey] = input.value;
-                    console.log(`  ✓ ${sectionId}.${colorKey} = ${input.value}`);
-                }
-            });
+        // <Jun Kai start> The colours come from themeSettings, where the swatches put them (updateColor). This used to
+        // read the hex-<section>-<colour> text boxes, which the page no longer has, so Save Theme always failed.
+        // A colour that was never changed is saved with its default.
+        const chosen = (themeSettings[sectionId] && themeSettings[sectionId].colors) || {};
+        getColorOptionsForSection(sectionId).forEach(option => {
+            const value = normalizeThemeColor(chosen[option.id] || option.default);
+            if (value) sectionColors[option.id] = value;
         });
+        // <Jun Kai end>
         
         // Save ONLY global colors
         if (Object.keys(sectionColors).length > 0) {
@@ -2197,6 +2197,7 @@ function applyThemeData(themeData) {
             const colorPicker = document.getElementById(colorPickerId);
             const hexInput = document.getElementById(hexInputId);
             
+            appliedCount++; // <Jun Kai/> a colour was applied to themeSettings above, with or without the old text boxes
             if (colorPicker && hexInput) {
                 // Extract 6-digit hex for color picker (it doesn't support alpha)
                 const sixDigitHex = colorValue.length === 9 ? colorValue.substring(0, 7) : colorValue;
@@ -2204,7 +2205,6 @@ function applyThemeData(themeData) {
                 // Set both inputs
                 colorPicker.value = sixDigitHex;
                 hexInput.value = colorValue.toUpperCase();
-                appliedCount++;
                 
                 console.log(`    ✓ ${colorKey} = ${colorValue}`);
             }

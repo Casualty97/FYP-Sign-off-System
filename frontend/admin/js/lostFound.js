@@ -433,11 +433,13 @@ async function downloadAuditExcel() {
             headers.join(','),
             ...excelData.map(row => 
                 headers.map(header => {
-                    const value = String(row[header] || '');
-                    // Escape quotes and wrap in quotes if contains comma or quotes
-                    return value.includes(',') || value.includes('"') || value.includes('\n')
-                        ? `"${value.replace(/"/g, '""')}"` 
-                        : value;
+                    // <Jun Kai start> every cell in quotes, 0 kept, and text a spreadsheet would run as a formula gets a '
+                    // in front: a username typed at the login and a browser's user agent both land in this file
+                    const raw = row[header];
+                    let value = raw === null || raw === undefined ? '' : String(raw);
+                    if (/^[=+\-@\t\r]/.test(value) && !/^[+-]?\d+(\.\d+)?$/.test(value)) value = `'${value}`;
+                    return `"${value.replace(/"/g, '""')}"`;
+                    // <Jun Kai end>
                 }).join(',')
             )
         ].join('\n');
@@ -455,21 +457,9 @@ async function downloadAuditExcel() {
         
         console.log(`✅ Downloaded ${excelData.length} audit logs`);
         
-        // Log the download action
-        const loggedUsername = sessionStorage.getItem('loggedUser');
-        if (loggedUsername) {
-            try {
-                await fetch('/api/admin/logout-audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: loggedUsername
-                    })
-                });
-            } catch (err) {
-                console.error('Failed to log download action:', err);
-            }
-        }
+        // <Jun Kai start> A call to /api/admin/logout-audit stood here "to log the download". That route is the Logout:
+        // it wrote a LOGOUT line and ended the session, so the admin was signed out right after every download.
+        // <Jun Kai end>
         
     } catch (error) {
         console.error('❌ Error downloading audit logs:', error);

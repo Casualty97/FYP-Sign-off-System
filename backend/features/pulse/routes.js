@@ -1,7 +1,7 @@
 // Owner: Role 2, Wei Jie. Previous team: XY (Xuanyang) (2).
 // ============================================================
 // DONE BY XY - LIVE PULSE ROUTES SUMMARY
-//  - Added live ESG Kiosk pulse summary API routes.
+//  - Added live RP Xperience Centre Kiosk pulse summary API routes.
 //  - Aggregates pledge counts for today, this month, all-time pledges, and digital tree visitors.
 //  - Builds anonymized recent pledge feed for public display.
 //  - Maps pledge topics to badge labels and builds badge earner/badge mix summaries.
@@ -251,7 +251,7 @@ router.get('/summary', async (req, res) => {
                 treeLeaves: treeVisitors.length
             },
             activeCampaign: activeCampaign ? {
-                title: activeCampaign.title || 'Current ESG Campaign',
+                title: activeCampaign.title || 'Current RP Xperience Centre Campaign',
                 cadence: activeCampaign.cadence || 'weekly',
                 badgeEmphasis: activeCampaign.badgeEmphasis || '',
                 treeSubtitle: activeCampaign.treeSubtitle || ''

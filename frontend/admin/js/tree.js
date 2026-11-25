@@ -962,7 +962,7 @@ async function refreshTreeData() {
 // Default values for tree title box settings
 const TITLE_DEFAULTS = {
     showTitleBox: true,
-    titleText: '🌳 ESG Digital Tree',
+    titleText: '🌳 RP Xperience Centre Digital Tree',
     subtitleText: 'Growing with every visitor\'s contribution this year',
     opacity: 0.25,
     blur: 6,
@@ -1029,7 +1029,7 @@ async function loadTreeTitleSettings() {
     if (displayModeSelect) displayModeSelect.value = (tree.treeDisplayMode || settings?.treeDisplayMode) === '3d' ? '3d' : '2d';
     if (settings) {
         document.getElementById('param-showTitleBox').checked = settings.showTitleBox ?? true;
-        document.getElementById('param-titleText').value = settings.titleText || '🌳 ESG Digital Tree';
+        document.getElementById('param-titleText').value = settings.titleText || '🌳 RP Xperience Centre Digital Tree';
         document.getElementById('param-subtitleText').value = settings.subtitleText || 'Growing with every visitor\'s contribution this year';
         document.getElementById('param-titleOpacity').value = settings.opacity ?? 0.25;
         document.getElementById('param-titleOpacityValue').textContent = settings.opacity ?? 0.25;

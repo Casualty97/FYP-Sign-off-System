@@ -31,6 +31,7 @@ const { getBadgeSummary } = require('../email/service');
 const { isFeedbackFlagged } = require('../analysis/flagged');
 // <Jun Kai start>
 const deletedCounts = require('../archive/deletedCounts');
+const archivedLeaves = require('../archive/archivedLeaves');
 // <Jun Kai end>
 
 let db;
@@ -131,7 +132,11 @@ router.get('/', (req, res) => {
             const hiddenCount = (rows || []).length - visibleRows.length;
 
             console.log('✅ Tree leaves fetched:', visibleRows.length, hiddenCount ? `(${hiddenCount} flagged hidden)` : '');
-            return res.json(mapRowsToVisitors(visibleRows, vipSet));
+            // <Jun Kai start>
+            // leaves the Visitor Data Archive kept for this year (no name, no pledge, archived: true) are drawn with the
+            // live ones, in the same order: created_at, then id
+            return archivedLeaves.withKept(mapRowsToVisitors(visibleRows, vipSet), treeYear).then((leaves) => { res.json(leaves); });
+            // <Jun Kai end>
         });
     });
 });
@@ -205,6 +210,8 @@ router.get('/years', (req, res) => {
         // <Jun Kai start>
         // leaves deleted by the Visitor Data Archive still count in their year (archivedLeafCount says how many)
         await deletedCounts.addToYearBook(yearMap, currentYear);
+        // leaves the archive kept on the tree are still drawn, so they count as leaves of their year (not as archived)
+        await archivedLeaves.addToYearBook(yearMap, currentYear);
         // <Jun Kai end>
         const years = Array.from(yearMap.values()).sort((a, b) => b.year - a.year);
 

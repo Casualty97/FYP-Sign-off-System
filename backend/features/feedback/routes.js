@@ -80,6 +80,7 @@ const lostFoundStore = require('../lostFound/store'); // changes made by nick
 // <Jun Kai start>
 const saveGate = require('../archive/saveGate');
 const deletedCounts = require('../archive/deletedCounts');
+const uploadsGate = require('../../core/uploadsGate'); // /uploads asks for a sign-in; a browser may still open the photos it just made
 // <Jun Kai end>
 
 function normalizeRetentionSelection(retention) {
@@ -477,13 +478,17 @@ router.post('/save-photo', (req, res) => {
         // Generate filename with user name, device, and timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const safeUserName = userName ? userName.replace(/[^a-zA-Z0-9]/g, '_') : 'anonymous';
-        const filename = `${safeUserName}_${device}_${timestamp}.${parsedPhoto.extension}`;
+        // <Jun Kai start> only letters, digits, - and _ from the request reach the file name, so it cannot leave the folder
+        const safeDevice = String(device || 'device').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filename = `${safeUserName}_${safeDevice}_${timestamp}.${parsedPhoto.extension}`;
+        // <Jun Kai end>
         const filepath = path.join(uploadsDir, filename);
 
         // Save the file
         fs.writeFileSync(filepath, buffer);
 
         console.log(`Photo saved to: ${filepath}`);
+        uploadsGate.remember(req, `photos/${filename}`); // <Jun Kai/> for the photo download on the thank-you page
         
         res.json({ 
             success: true, 
@@ -559,13 +564,18 @@ router.post('/save-processed-photo', async (req, res) => {
         // Generate filename for processed photo
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const safeUserName = userName ? userName.replace(/[^a-zA-Z0-9]/g, '_') : 'anonymous';
-        const filename = `${safeUserName}_${device}_${theme}_processed_${timestamp}.${extension}`;
+        // <Jun Kai start> only letters, digits, - and _ from the request reach the file name, so it cannot leave the folder
+        const safeDevice = String(device || 'device').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const safeTheme = String(theme || 'theme').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filename = `${safeUserName}_${safeDevice}_${safeTheme}_processed_${timestamp}.${extension}`;
+        // <Jun Kai end>
         const filepath = path.join(processedDir, filename);
 
         // Save the processed file
         fs.writeFileSync(filepath, buffer);
 
         console.log(`Processed photo saved to: ${filepath}`);
+        uploadsGate.remember(req, `processed/${filename}`); // <Jun Kai/>
         
         res.json({ 
             success: true, 
@@ -773,7 +783,7 @@ router.post('/submit-feedback', async (req, res) => {
                                         badgeColor: badgeSummary.badgeColor,
                                         badgeKeys: badgeSummaries.map(badge => badge.badgeKey),
                                         badges: badgeSummaries,
-                                        treeLeafMessage: 'Your virtual leaf has been added to the RP ESG digital tree.'
+                                        treeLeafMessage: 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'
                                     }
                                 );
                                 
@@ -944,7 +954,7 @@ router.post('/feedback/:id/retry-email', async (req, res) => {
                     badgeColor: retryBadgeSummary.badgeColor,
                     badgeKeys: retryBadges.map(badge => badge.badgeKey),
                     badges: retryBadges,
-                    treeLeafMessage: 'Your virtual leaf has been added to the RP ESG digital tree.'
+                    treeLeafMessage: 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'
                 }
             );
             

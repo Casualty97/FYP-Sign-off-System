@@ -112,6 +112,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env'), quiet: true }); // backend/.env regardless of the working directory
 // <Jun Kai start>
 require('./core/log').setupLogging(); // request chatter only with LOG_LEVEL=debug
+require('./core/log').captureEvents('server'); // warnings and errors also go to logs/app-events-server.jsonl for the anomaly detection
 // <Jun Kai end>
 const express = require('express');
 const https = require('https');
@@ -155,19 +156,26 @@ const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features
 // Import cleanup module
 const dataRetentionCleanup = require('./features/archive/retention');
 const kioskScheduler = require('./features/serverControl/scheduler');
+const kioskRunLog = require('./features/serverControl/runLog'); // <Jun Kai/> why the kiosk stopped and started
 const healthRoutes = require('./features/health/routes');
 const healthPublicRoutes = require('./features/health/publicRoutes');
 // <Jun Kai start>
 const hardwareRoutes = require('./features/hardware/routes');
+// <Jun Kai start>
+const emailAdminRoutes = require('./features/email/adminRoutes');
+// <Jun Kai end>
 const hardwareSampler = require('./features/hardware/sampler');
 const visitorArchiveRoutes = require('./features/archive/visitorRoutes');
 const visitorArchiveScheduler = require('./features/archive/visitorScheduler');
+const aiopsRoutes = require('./features/aiops/routes');
+const aiopsEngine = require('./features/aiops/engine');
 // <Jun Kai end>
 
 // Import QR code generation
 const QRCode = require('qrcode');
 
 const app = express();
+require('./core/securityHeaders').apply(app); // <Jun Kai/> security headers on every answer
 // <Jun Kai start>
 const PORT = Number(process.env.PORT) || 3000;
 // <Jun Kai end>
@@ -409,9 +417,36 @@ app.use(session({
         secure: sslOptions !== null,
         httpOnly: true,
         maxAge: 1800000,
-        sameSite: 'lax'  
+        sameSite: 'lax'
     }
 }));
+// <Jun Kai start> "Keep me signed in for 1 day": a valid token cookie signs the admin back in (backend/core/rememberMe.js)
+const { restore: rememberRestore, router: rememberRoutes } = require('./core/rememberMe');
+// an admin account that was deleted or changed while signed in is signed out at its next request, on every path.
+// It stands before the restore below, so a kept sign-in comes back with the account as it is now, or not at all
+const adminSessions = require('./core/adminSessions');
+const { signedInOrThisPc } = require('./core/localPc'); // for the routes that tell about the server itself
+const kioskOpenState = require('./features/serverControl/openState'); // whether the policies have the kiosk open now
+const STARTED_AT = new Date().toISOString(); // a kiosk page reloads itself when this changed (heartbeat.js)
+// The address to hand out now (the QR code, the page after the PC was off): picked again each time, the way it is
+// picked at the start. Right after a power cut the network can come up after the server, and the address picked at
+// the start is then localhost or a virtual adapter's. getSelectedIP prints what it picks: not for every QR code.
+const addressNow = () => {
+    const say = console.log;
+    console.log = () => {};
+    try { return getSelectedIP(); } finally { console.log = say; }
+};
+app.use(adminSessions.dropEnded);
+app.use('/api/admin', rememberRestore);
+app.use('/api/pledgeboard/admin', rememberRestore); // the admin page's pledge routes ask for a sign-in too
+app.use('/api/admin/remember', rememberRoutes);
+// sign-out after no activity: the minutes every admin page counts (backend/core/idleSignOut.js)
+const { router: idleSignOutRoutes } = require('./core/idleSignOut');
+app.use('/api/admin/sign-in-settings', idleSignOutRoutes);
+// the History to read only, for the page that opens by itself after the PC was off (serverControl/recoveryView.js)
+const { router: recoveryViewRoutes } = require('./features/serverControl/recoveryView');
+app.use('/api/admin/recovery-view', recoveryViewRoutes);
+// <Jun Kai end>
 
 // Pulse screen is public so it can be shown without an admin session.
 
@@ -422,8 +457,13 @@ app.get(['/admin', '/admin/'], (req, res) => {
 });
 
 // Serve static files
+// <Jun Kai start> the two tree pages go through their gated routes, not out as plain files (backend/core/pageGates.js)
+app.use(require('./core/pageGates').middleware(paths.FRONTEND));
+// <Jun Kai end>
 app.use(express.static(paths.FRONTEND));
-app.use('/uploads', express.static(paths.UPLOADS));
+// <Jun Kai start> visitor files: for a signed-in admin, or the browser that just made the file (backend/core/uploadsGate.js)
+app.use('/uploads', require('./core/uploadsGate').gate, express.static(paths.UPLOADS));
+// <Jun Kai end>
 app.use('/assets', express.static(paths.ASSETS));
 
 // Wire the shared DB into the tree routes
@@ -436,7 +476,11 @@ app.use('/api/admin/health', healthRoutes);
 app.use('/api/health', healthPublicRoutes);
 // <Jun Kai start>
 app.use('/api/admin/hardware', hardwareRoutes);
+// <Jun Kai start>
+app.use('/api/admin/email', emailAdminRoutes);
+// <Jun Kai end>
 app.use('/api/admin/visitor-archive', visitorArchiveRoutes);
+app.use('/api/admin/aiops', aiopsRoutes);
 // <Jun Kai end>
 app.use('/api/admin', assetRoutes);
 app.use('/api/admin', adminRoutes);
@@ -457,7 +501,7 @@ app.get('/api/parameters', (req, res) => {
 });
 
 // API endpoint to get all network interfaces
-app.get('/api/network-interfaces', (req, res) => {
+app.get('/api/network-interfaces', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     const interfaces = getAllNetworkIPs();
     res.json({
         interfaces: interfaces,
@@ -470,7 +514,7 @@ app.get('/api/network-interfaces', (req, res) => {
 });
 
 // API endpoint to get server info (IP, protocol, QR code)
-app.get('/api/server-info', (req, res) => {
+app.get('/api/server-info', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     const protocol = sslOptions ? 'https' : 'http';
     const url = `${protocol}://${localIP}:${PORT}/feedback`;
     
@@ -491,7 +535,7 @@ app.get('/api/server-info', (req, res) => {
 app.get('/api/generate-qr', async (req, res) => {
     try {
         const protocol = sslOptions ? 'https' : 'http';
-        const url = `${protocol}://${localIP}:${PORT}/feedback`;
+        const url = `${protocol}://${addressNow()}:${PORT}/feedback`; // <Jun Kai/> the address the PC has now
         
         
         const qrSvg = await QRCode.toString(url, {
@@ -523,7 +567,7 @@ app.get('/api/generate-qr', async (req, res) => {
 });
 
 // Test route
-app.get('/api/test-db', (req, res) => {
+app.get('/api/test-db', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     db.query(
         "SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ?",
         [process.env.DB_NAME || 'dp_kiosk_db'],
@@ -549,7 +593,12 @@ app.get('/api/status', (req, res) => {
         mode: 'standalone',
         server: 'kiosk',
         message: 'Server is running (standalone mode)',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        // <Jun Kai start> for the kiosk page (frontend/feedback/js/heartbeat.js): when this server started, and whether
+        // the policies have the kiosk open now ({ open, opensAt, closedBy })
+        startedAt: STARTED_AT,
+        ...kioskOpenState.current()
+        // <Jun Kai end>
     });
 });
 
@@ -717,10 +766,13 @@ function printServerInfo(isHttps) {
 
     // Initialize data retention cleanup system
     dataRetentionCleanup.initializeCleanup();
-    // Schedules (hibernate at stop time, start the kiosk in the morning); off with KIOSK_AUTOMATION=off
+    // Schedules (record each switch-off, start the kiosk server when a policy needs it); off with KIOSK_AUTOMATION=off
     kioskScheduler.start();
     // <Jun Kai start>
+    // why the last run ended and this one began, and the policy check after the PC was off (History on Server Schedule)
+    kioskRunLog.begin({ port: PORT, https: isHttps, host: addressNow });
     hardwareSampler.start();
+    aiopsEngine.start(); // anomaly detection: health recorder, log reader and the incident checks (System Health page)
     visitorArchiveScheduler.start(); // finishes interrupted archives, then automatic archiving and file expiry
     // <Jun Kai end>
 }
@@ -741,7 +793,7 @@ try {
 // ==================== 8. SERVER STARTUP & INITIALIZATION ====================
 
 // Email test endpoint
-app.get('/api/test-email-service', (req, res) => {
+app.get('/api/test-email-service', signedInOrThisPc, (req, res) => { // <Jun Kai/> a signed-in admin, or a request made on this PC
     const emailInitialized = emailService.initEmailService();
     if (emailInitialized) {
         res.json({ 
