@@ -8046,10 +8046,12 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 /* Health, Hardware and Server Schedule polish. The theme paints every paragraph #959595 (2.9:1 on white), so these
    pages use darker greys and re-assert their paragraph colours. */
 #health-page, #incidents-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page { --color-dark-gray: #475569; --color-muted: #64748b; }
-#health-page .ui-page-header p, #incidents-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
+/* the subtitle under a page title is left to the theme, which only paints it when it can be read on the page colour */
 #health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p, #visitor-archive-page .ui-card-header p,
 #server-schedule-page .ui-section-title, #server-schedule-page .policy-preview-note { color: var(--color-dark-gray) !important; }
-#health-page p.ui-help, #incidents-page p.ui-help, #hardware-page p.ui-help, #server-schedule-page p.ui-help, #schedule-modal p.ui-help, #visitor-archive-page p.ui-help { color: var(--color-muted) !important; }
+#health-page p.ui-help, #incidents-page p.ui-help, #hardware-page p.ui-help, #schedule-modal p.ui-help, #visitor-archive-page p.ui-help { color: var(--color-muted) !important; }
+/* Operating Hours puts its help on a tinted area, where the muted grey was 4.3:1 */
+#server-schedule-page p.ui-help { color: var(--color-dark-gray) !important; }
 #hardware-page p.ui-help.is-error, #schedule-modal p.ui-help.is-error, #visitor-archive-page p.ui-help.is-error { color: #b91c1c !important; }
 #server-schedule-page p.ui-note, #visitor-archive-page p.ui-note { color: var(--theme-card-text) !important; }
 #server-schedule-page p.ui-note-warn, #visitor-archive-page p.ui-note-warn { color: #78350f !important; }

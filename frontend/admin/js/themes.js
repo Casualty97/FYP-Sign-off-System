@@ -226,7 +226,8 @@ const themeConfig = {
                     explicit: [
                         '.section-header h3',
                         '.page-header h2',
-                        'h1', 'h2', 'h3',
+                        // <Jun Kai/> not inside the redesigned cards: they keep the kit colours until the theme maps onto them
+                        ':is(h1, h2, h3):not(.ui-card *)',
                         '#admin-dashboard .header-left h1',
                         '#admin-dashboard .username'
                     ]
@@ -235,7 +236,7 @@ const themeConfig = {
                     auto: ['*-page .page-header p'],
                     explicit: [
                         '.page-header p',
-                        'p',
+                        'p:not(.ui-card *)', // <Jun Kai/> not inside the redesigned cards (see the headings above)
                         '.description',
                         '.subtitle',
                         '#admin-dashboard .header-left p',
@@ -1530,6 +1531,18 @@ function hexToRgb(color) {
     };
 }
 
+// <Jun Kai start> contrast of two theme colours (1 to 21); a colour it cannot read counts as readable
+function themeContrast(a, b) {
+    const one = hexToRgb(a);
+    const two = hexToRgb(b);
+    if (!one || !two) return 21;
+    const lum = ({ r, g, b: blue }) => [r, g, blue].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+        .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const [hi, lo] = [lum(one), lum(two)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+}
+// <Jun Kai end>
+
 function isDarkThemeColor(color) {
     const rgb = hexToRgb(color);
     if (!rgb) return false;
@@ -1803,6 +1816,9 @@ function applyThemeSettings() {
                     css += `:root { ${THEME_GLASS_VARIABLES[optionId]}: ${cssValue};${solid} }\n`;
                     return;
                 }
+                // a page text colour that cannot be read on the page colour (below 4.5:1, like the old default grey
+                // #959595 on white) is left out, so the page keeps its own readable colour
+                if ((optionId === 'primary-text' || optionId === 'secondary-text') && colors['page-background'] && themeContrast(cssValue, colors['page-background']) < 4.5) return;
                 if (optionId === 'page-background') {
                     if (section.isGlobal) {
                         css += `:root { --l3-page-tint: ${cssValue}; }\n#theme-settings-page .theme-preview { background-color: ${cssValue} !important; }\n`;
