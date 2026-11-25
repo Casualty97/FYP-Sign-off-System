@@ -179,7 +179,10 @@ GitHub Windows runner has it). Node.js is checked against nodejs.org's `SHASUMS2
 pinned in `scripts/install/runtime.js`. The result is in `C:\rpkb\dist`.
 
 `release.yml` builds both zips after CI passes on main and publishes them, with `get-kiosk.ps1`, as a normal GitHub
-Release, so `releases/latest/download/<name>` always gives the newest one. The zips are never committed.
+Release, so `releases/latest/download/<name>` always gives the newest one. The zips are never committed. After
+publishing, it deletes the older releases it made (tags starting with `build-`), so only the newest one stays; a
+release made by hand is never deleted, and the git tags stay. Keep a copy of a zip elsewhere if an older build may
+be needed again.
 
 ## Tests
 
