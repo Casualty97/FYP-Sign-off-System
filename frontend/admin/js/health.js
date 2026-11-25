@@ -93,6 +93,22 @@ const healthHidden = () => (healthLayout ? healthLayout.hidden : healthCachedHid
 const healthVisibleKeys = () => HEALTH_ORDER.filter((key) => !healthHidden().includes(key));
 const healthCardKeys = () => healthVisibleKeys().filter((key) => !HEALTH_PANEL_KEYS.includes(key));
 
+// <Jun Kai start>
+// The note behind the "i" on each card: how that check decides between healthy, attention and down. Fixed text; the
+// numbers are the ones in backend/features/health/checks.js.
+const HEALTH_NOTES = {
+    database: ['MySQL database', '<div>Sends the database one small question and times the answer. Slower than 1 second is amber. No answer within 5 seconds is red.</div>'],
+    kiosk: ['Kiosk server', '<div>Asks for the kiosk\'s feedback page on port 3003. Any answer except a server error counts as running.</div><div>The kiosk server is the second program that npm start runs, beside the admin server.</div>'],
+    ollama: ['Ollama (local AI)', '<div>Asks Ollama on this PC which AI models are installed. No model is amber, no answer within 4 seconds is red. When Local AI models is switched off in the incident settings, this card is grey and Ollama is not asked.</div><div>It has no 24 hour strip, because it is checked only while this page is open.</div>'],
+    email: ['Email', '<div>Tries the mail login. The result is kept for 5 minutes and marked "cached", because every try talks to the mail provider. Check now tries again at once.</div>'],
+    disk: ['Disk space', '<div>The used share of the drive the project is on. It turns amber and red at the alert lines set on the Hardware page (85 % and 95 % unless changed).</div>'],
+    server: ['Server PC', '<div>CPU use measured over 0.4 seconds and the memory in use. Amber and red follow the alert lines of the Hardware page, where the graphs and the forecast are.</div>'],
+    tablets: ['Tablets', '<div>Counts the kiosk screens that reported in time. Amber when none of the known tablets reported within Offline after, grey when no tablet has reported yet.</div><div>The table under the cards lists each tablet, with its name and when it last reported.</div>'],
+    automation: ['Schedules', '<div>Grey when automation is switched off on this machine. Amber in manual mode, or when automatic mode has no policy that is enabled and Active. Green otherwise, with the next stop and start.</div>']
+};
+const healthNote = (key) => (HEALTH_NOTES[key] ? uiInfo(HEALTH_NOTES[key][0], HEALTH_NOTES[key][1]) : '');
+// <Jun Kai end>
+
 function renderHealthCard(check) {
     const tone = HEALTH_STATUS_TONE[check.status] || 'muted';
     const lines = healthDetailLines(check).filter(Boolean).map((line) => {
@@ -106,7 +122,7 @@ function renderHealthCard(check) {
             <div class="health-card-top">
                 <div class="health-card-icon">${uiIcon(HEALTH_ICON_NAME[check.key] || 'server', 18)}</div>
                 <div class="health-card-heading">
-                    <div class="health-card-title">${label}</div>
+                    <div class="health-card-title">${label}${healthNote(check.key)}</div>
                     <div class="health-card-side">${uiPill(tone, HEALTH_STATUS_LABEL[check.status] || check.status)}</div>
                 </div>
             </div>

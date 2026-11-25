@@ -20,7 +20,8 @@
     "db:status": "node database/migrate.js status",
     "db:new": "node database/migrate.js new",
     "db:check": "node database/migrate.js check",
-    "db:snapshot": "node database/migrate.js check --update"
+    "db:snapshot": "node database/migrate.js check --update",
+    "lostfound:encrypt-contacts": "node database/encrypt-lostfound-contacts.js"
   },
   "author": "",
   "license": "ISC",
@@ -33,6 +34,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.3.0",
+    "express-rate-limit": "^7.5.1",
     "express-session": "^1.18.2",
     "multer": "^2.5.0",
     "mysql2": "^3.24.6",

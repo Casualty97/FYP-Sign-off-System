@@ -30,6 +30,7 @@ const auth = require('../../core/auth'); // <Jun Kai/> the sign-in check of the 
 const fs = require('fs');
 const path = require('path');
 const paths = require('../../core/paths');
+const { forLog } = require('../../core/log'); // <Jun Kai/> request values are printed without line breaks
 const { detectPledgeSentimentRule } = require('../feedback/pledgeSentiment');
 
 const pledgeTopicsPath = paths.dataFile('pledge-topics.json');
@@ -172,7 +173,7 @@ router.post('/like/:feedbackId', (req, res) => {
         });
     }
     
-    console.log(`👍 Like request for feedback ${feedbackId} from user ${userIdentifier}`);
+    console.log(`👍 Like request for feedback ${forLog(feedbackId)} from user ${forLog(userIdentifier)}`); // <Jun Kai/>
     
     // Check if user already liked this pledge
     const checkQuery = 'SELECT id FROM pledge_likes WHERE feedback_id = ? AND user_identifier = ?';
@@ -245,7 +246,7 @@ router.delete('/unlike/:feedbackId', (req, res) => {
         });
     }
     
-    console.log(`👎 Unlike request for feedback ${feedbackId} from user ${userIdentifier}`);
+    console.log(`👎 Unlike request for feedback ${forLog(feedbackId)} from user ${forLog(userIdentifier)}`); // <Jun Kai/>
     
     // Delete the like from database
     const deleteQuery = 'DELETE FROM pledge_likes WHERE feedback_id = ? AND user_identifier = ?';
@@ -328,7 +329,7 @@ router.get('/check-like/:feedbackId', (req, res) => {
 router.get('/admin/pledges', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     const { sortBy, status = 'all' } = req.query; // 'most_liked' or 'least_liked'
     
-    console.log(`🏆 Admin fetching pledgeboard data (sort: ${sortBy || 'most_liked'})...`);
+    console.log(`🏆 Admin fetching pledgeboard data (sort: ${forLog(sortBy || 'most_liked')})...`); // <Jun Kai/>
 
     
     // Determine sort order based on query parameter

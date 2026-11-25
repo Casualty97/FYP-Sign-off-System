@@ -25,7 +25,7 @@ Sends the thank-you and badge emails through Gmail, Outlook or custom SMTP from 
 | POST | `/api/admin/email-config/test` | backend/features/admin/routes.js |
 | GET | `/api/feedback/email-status` | backend/features/feedback/routes.js |
 | POST | `/api/feedback/send-email` | backend/features/feedback/routes.js |
-| GET | `/api/feedback/test-email` | backend/features/feedback/routes.js |
+| POST | `/api/feedback/test-email` | backend/features/feedback/routes.js |
 | GET | `/api/test-email-service` | backend/kioskServer.js |
 
 **Task-sheet items for this feature**

@@ -30,6 +30,7 @@ jobs:
       pull-requests: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
+      install: ${{ steps.filter.outputs.install }} # <Jun Kai/>
     steps:
       - uses: actions/checkout@v7
       - id: filter
@@ -46,6 +47,20 @@ jobs:
               - 'scripts/**'
               - '.github/workflows/ci.yml'
               - '.github/scripts/scan-report.js' # <Jun Kai/>
+            # <Jun Kai start> what the offline package and its install test depend on
+            install:
+              - 'scripts/install/**'
+              - 'tests/install/**'
+              - 'database/**'
+              - 'backend/core/db.js'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.nvmrc'
+              - 'startAll.js'
+              - 'restart-app.bat'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/release.yml'
+            # <Jun Kai end>
 
   # ------------------------------------------------------------------ PR title, forbidden files, size
   pr-rules:
@@ -387,9 +402,76 @@ jobs:
   # <Jun Kai end>
 
   # ------------------------------------------------------------------ the one required check
+  # ------------------------------------------------------------------ the offline package on Windows
+  # <Jun Kai start>
+  # Builds the offline zip, then does on a Windows runner what a PC at the centre would: the one command install
+  # from a download (Wall PC, MySQL service, firewall rule), a repair, an update, two failed updates that must put
+  # everything back, a refused older package, an export, an uninstall that keeps the data, a reinstall that finds
+  # it, a full uninstall, a laptop install that loads the exported data, and a failed fresh install. After every
+  # uninstall it checks that no folder, service, firewall rule, shortcut, scheduled task or program is left.
+  package:
+    needs: [changes, static]
+    if: always() && needs.static.result == 'success' && (github.event_name != 'pull_request' || needs.changes.outputs.install == 'true')
+    runs-on: windows-latest
+    timeout-minutes: 75
+    env:
+      KIOSK_ADMIN_PASSWORD: ci-only-admin-password # gitleaks:allow
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the build number is the number of commits
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Cache the Node.js and MySQL downloads
+        uses: actions/cache@v5
+        with:
+          path: C:\rpkb\cache
+          key: kiosk-runtime-${{ hashFiles('scripts/install/runtime.js') }}
+      - name: Build the offline package
+        run: node scripts/install/build-package.js --out C:\rpkb --with-ai-model
+      - name: Passphrase lock and installer checks (no install)
+        shell: powershell
+        run: |
+          .\tests\install\kiosk-data.test.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          .\tests\install\installer-checks.test.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Install, update, failed updates, uninstall, nothing left
+        shell: powershell
+        run: |
+          .\tests\install\package-flow.ps1 -Dist C:\rpkb\dist
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Package size
+        if: always()
+        shell: powershell
+        run: Get-ChildItem C:\rpkb\dist -ErrorAction SilentlyContinue | ForEach-Object { "{0,-45} {1,8:N0} MB" -f $_.Name, ($_.Length / 1MB) }
+      # the logs sit on C: and outside the workspace, which upload-artifact cannot take: copied in first
+      - name: Collect the install logs
+        if: failure()
+        shell: powershell
+        run: |
+          $to = Join-Path $env:GITHUB_WORKSPACE 'install-logs'
+          New-Item -ItemType Directory -Path $to -Force | Out-Null
+          foreach ($from in @((Join-Path $env:TEMP 'rp-xperience-kiosk'), 'C:\RPXK\data\logs', 'C:\RPXK2\data\logs', 'C:\RPXK3\data\logs')) {
+            if (Test-Path $from) { Copy-Item -Path (Join-Path $from '*') -Destination $to -Force -ErrorAction SilentlyContinue }
+          }
+          foreach ($err in @('C:\RPXK\mysql-data\mysqld.err', 'C:\RPXK2\mysql-data\mysqld.err', 'C:\RPXK3\mysql-data\mysqld.err')) {
+            if (Test-Path $err) { Copy-Item $err (Join-Path $to ((Split-Path (Split-Path (Split-Path $err)) -Leaf) + '-mysqld.err')) -ErrorAction SilentlyContinue }
+          }
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: install-logs
+          path: install-logs
+          retention-days: 7
+          if-no-files-found: ignore
+  # <Jun Kai end>
+
   ci-summary:
     if: ${{ !cancelled() }}
-    needs: [changes, pr-rules, secret-scan, static, smoke, dependency-audit] # <Jun Kai/> dependency-audit
+    needs: [changes, pr-rules, secret-scan, static, smoke, dependency-audit, package] # <Jun Kai/> dependency-audit, package
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

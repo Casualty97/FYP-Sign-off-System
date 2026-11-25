@@ -623,11 +623,12 @@ function showOverlayUploadPreview(inputId, previewId) {
 
     const previewUrl = URL.createObjectURL(file);
     preview.dataset.previewUrl = previewUrl;
+    // <Jun Kai/> the file name is escaped in the alt text too, so a file name cannot add HTML to the page
     preview.innerHTML = `
         <div class="overlay-upload-preview-frame">
             <button type="button" class="overlay-upload-remove" aria-label="Remove selected overlay"
                 onclick="clearOverlayUploadPreview('${inputId}', '${previewId}')">×</button>
-            <img src="${previewUrl}" alt="${file.name} preview">
+            <img src="${previewUrl}" alt="${escapeHtmlSafe(file.name)} preview">
         </div>
         <div class="overlay-upload-preview-name">${escapeHtmlSafe(file.name)}</div>
     `;

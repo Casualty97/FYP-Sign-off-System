@@ -340,7 +340,7 @@ async function setup() {
         console.log('   • Event Scheduler is now enabled');
         console.log('   • Archive tab will show feedback older than 3 months');
         console.log('   • Feedback tab will show recent feedback (< 3 months)');
-        console.log('   • Saved Themes available in Style & Theme Settings\n');
+        console.log('   • Saved Themes available in Style & Theme\n');
 
     } catch (error) {
         console.error('\n╔═══════════════════════════════════════════════════╗');

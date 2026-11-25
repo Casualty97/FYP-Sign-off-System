@@ -112,7 +112,7 @@ function viewPledge(feedbackId, pledgeText) {
                  ${pledgeText ? escapeHtmlSafe(pledgeText) : 'No pledge text available'}
             </div>
             
-            <button onclick="translateAdminTextToEnglish('${pledgeSourceId}', '${pledgeTranslationId}', this)" style="
+            ${adminAiAllows('translate') ? `<button onclick="translateAdminTextToEnglish('${pledgeSourceId}', '${pledgeTranslationId}', this)" style="
                 padding: 9px 14px;
                 background: #475569;
                 color: white;
@@ -126,7 +126,7 @@ function viewPledge(feedbackId, pledgeText) {
                 margin-bottom: 12px;
             ">
                 Translate to English
-            </button>
+            </button>` : ''}
 
             <div id="${pledgeTranslationId}" class="admin-translation-result" style="display: none;"></div>
 
@@ -208,7 +208,7 @@ function createQuestionAnswersPopup(feedbackId, answers) {
                 <div id="${answerSourceId}" style="color: #475569; padding-left: 10px; border-left: 3px solid #e2e8f0;">
                     ${formatAnswer(answer.option_label || answer.answer_value, answer.question_type)}
                 </div>
-                <button onclick="translateAdminTextToEnglish('${answerSourceId}', '${answerTranslationId}', this)" style="
+                ${adminAiAllows('translate') ? `<button onclick="translateAdminTextToEnglish('${answerSourceId}', '${answerTranslationId}', this)" style="
                     margin-top: 10px;
                     padding: 7px 12px;
                     background: #475569;
@@ -218,7 +218,7 @@ function createQuestionAnswersPopup(feedbackId, answers) {
                     cursor: pointer;
                     font-size: 12px;
                     font-weight: 600;
-                ">Translate to English</button>
+                ">Translate to English</button>` : ''}
                 <div id="${answerTranslationId}" class="admin-translation-result" style="display: none;"></div>
             </div>
         `;

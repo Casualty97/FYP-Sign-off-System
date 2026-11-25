@@ -73,5 +73,20 @@ function captureEvents(processName, { dir = LOG_DIR, maxBytes = 5 * 1024 * 1024 
     return active;
 }
 
-module.exports = { setupLogging, captureEvents, eventFile };
+// A value from a request, made safe to print in the terminal: line breaks are taken out, so a value cannot start a
+// line that looks like a real log line ("✅ Admin signed in").
+function forLog(value) {
+    return String(value).replace(/[\r\n]/g, '');
+}
+
+// A visitor email for the log: the first two letters and the domain only ("jo***@gmail.com"). Visitor emails are
+// encrypted in the database, so the terminal should not show them in full either.
+function emailForLog(value) {
+    const text = forLog(value);
+    const at = text.lastIndexOf('@');
+    if (at < 1) return text ? '***' : text;
+    return `${text.slice(0, Math.min(2, at))}***${text.slice(at)}`;
+}
+
+module.exports = { setupLogging, captureEvents, eventFile, forLog, emailForLog };
 // <Jun Kai end>

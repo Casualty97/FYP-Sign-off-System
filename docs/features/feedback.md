@@ -75,7 +75,7 @@ Role 3 hooks (Visitor Data Archive, marked in routes.js): the visitor number add
 - device and theme go unsanitised into saved filenames (474, 556): path traversal with a crafted POST; a non-string userName is a 500.
 - School-impact report uses the PULSE_CAMPAIGN_GOAL env while pulse uses campaignSettings.pulseGoal (409).
 - GET /api/feedback/test-db never answers (db.get without params, 1510); /languages/languages.json serves a file that does not exist (1594).
-- POST /send-email with an empty photoFilename marks EVERY feedback row email_sent=1 and resends (LIKE "%%", 1386); public, no caller.
+- Fixed 26 Nov 2026: POST /send-email, /test-email and /feedback/:id/retry-email need an admin sign-in, a photo name with a folder part is ignored, and an empty photo name no longer marks every row as sent. Still no caller in the pages.
 - Visitors are told the email is on its way before the transporter is known to work; failures leave no trace and retry-email has no UI (706-712).
 - Retention is hard-coded to long-term on both ends (634; LONG_TERM_RETENTION) so temporaryRetentionDays never applies; stale privacy texts.
 - Required questions are enforced client-side only (validationRules never checks answers).
