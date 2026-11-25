@@ -338,7 +338,7 @@ async function install(opts) {
     }
     say.ok(`database ${cfg.database}: ${stats.tables} tables, ${stats.admins} admin account(s), every migration applied`);
     // the command line installer sets the first admin account right after (set-admin), so the default is never shown there
-    if (fresh && !opts.adminLater) say.note('first login on the admin page: systemadmin / SystemAdmin123! (change the password in User Management)');
+    if (fresh && !opts.adminLater) say.note('first login on the admin page: systemadmin / SystemAdmin123! (change the password on the Users page)');
     return 0;
 }
 

@@ -125,39 +125,33 @@
     <!-- <Jun Kai end> -->
 </head>
 <body>
-    <!-- Login Page (DONE BY PRETI)--> 
-    <div id="login-page" class="login-container">
-        <div class="login-card">
-            <div class="login-icon">
-                <img src="../../../assets/static/rp-logo.png" width="60" height="60">
+    <!-- Login Page (DONE BY PRETI)-->
+    <!-- <Jun Kai start> admin redesign (login option G1): a dark glass card over the campus photo, two fields in the style
+         of the Windows sign-in screen, and the arrow inside the password field (or Enter) signs in. Everything the login
+         had before is kept: the eye, "keep me signed in", the notice and the error message (core.js). -->
+    <div id="login-page" class="login-screen">
+        <form id="login-form" class="login-glass" method="post" action="/api/admin/login" onsubmit="handleLogin(event)">
+            <div class="login-crest"><img src="../../../assets/static/rp-logo.png" width="58" height="58" alt=""></div>
+            <h1>RP Xperience Centre Admin</h1>
+            <p class="login-lead">Sign in to the feedback kiosk administration panel</p>
+            <div class="win-field">
+                <label class="login-sr" for="username">Username</label>
+                <input type="text" id="username" name="username" autocomplete="username" placeholder="Username" required>
             </div>
-            <h1>Admin Login</h1>
-            <p class="login-subtitle">Access the feedback kiosk administration panel</p>
-            
-            <form id="login-form" method="post" action="/api/admin/login" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" autocomplete="username" placeholder="Enter your username" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <!-- <Jun Kai start> the eye button shows or hides the password (supervisor meeting 04) -->
-                    <div class="login-password">
-                        <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Enter your password" required>
-                        <button type="button" class="login-eye" id="login-eye" onclick="toggleLoginPassword()" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg class="icon-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button>
-                    </div>
-                    <!-- <Jun Kai end> -->
-                </div>
-                <!-- <Jun Kai start> "Keep me signed in for 1 day": a token, never the password (supervisor meeting 04) -->
-                <label class="login-remember"><input type="checkbox" id="remember-me"><span>Keep me signed in on this computer for 1 day</span></label>
-                <p class="login-note" id="login-note" role="status" hidden></p>
-                <!-- <Jun Kai end> -->
-
-                <button type="submit" class="login-btn">Sign In</button>
-            </form>
-        </div>
+            <div class="win-field" id="login-password-field">
+                <label class="login-sr" for="password">Password</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Password" required>
+                <button type="button" class="win-icon" id="login-eye" onclick="toggleLoginPassword()" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg class="icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button>
+                <button type="submit" class="win-icon win-go" id="login-go" aria-label="Sign in" title="Sign in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg><span class="login-ring" aria-hidden="true"></span></button>
+            </div>
+            <!-- a wrong password shows here, under the field; a notice moves to the top of the card (admin.css) -->
+            <p class="login-note" id="login-note" role="status" hidden></p>
+            <label class="login-keep"><input type="checkbox" id="remember-me"><span>Keep me signed in on this computer for 1 day</span></label>
+            <p class="login-hint">Press Enter or the arrow to sign in</p>
+        </form>
+        <p class="login-foot">RP Xperience Centre Sign-Off · Republic Polytechnic</p>
     </div>
+    <!-- <Jun Kai end> -->
 
     <!-- Admin Dashboard (DONE BY PRETI)-->
     <div id="admin-dashboard" style="display: none;">
@@ -185,158 +179,170 @@
         <!-- Main Content (DONE BY PRETI)-->
         <div class="admin-content">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="admin-sidebar">
+                <!-- <Jun Kai start> the sidebar of the redesign (navigation N1): the same pages regrouped by task, groups that fold,
+                     plainer names and a page search (Ctrl K). data-was is the earlier name, so the search still finds it;
+                     data-admin-only marks a page only a System Admin sees. Folding, search and roles: js/sidebar.js -->
+                <div class="nav-search" id="nav-search-box">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="search" id="nav-search" placeholder="Search pages" autocomplete="off" spellcheck="false" aria-label="Search pages" aria-controls="admin-sidebar">
+                    <kbd>Ctrl K</kbd>
+                </div>
+                <div class="nav-search-empty" id="nav-search-empty" role="status" hidden>No page matches</div>
                 <div class="sidebar-section" id="main-section">
-                    <h3>MAIN</h3>
                     <nav>
-                        <a href="#" class="nav-item active" onclick="showPage('dashboard')">
+                        <a href="#" onclick="showPage('dashboard')" class="nav-item active">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span>
-                            Dashboard
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('feedback-data')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
-                            Feedback Data
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('digital-tree')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 5 11h3.5L5 17h5v5h4v-5h5l-3.5-6H19z"></path></svg></span>
-                            Digital Tree
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('pledgeboard')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
-                            Pledgeboard
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('theme-settings')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
-                            Style & Theme Settings
+                            <span class="nav-label">Dashboard</span>
                         </a>
                     </nav>
                 </div>
-
-                <div class="sidebar-section" id="content-section">
-                    <h3>REPORTS</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('feedback-report')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
-                            Feedback Reports
+                <div class="sidebar-section nav-group" data-group="visitors">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-visitors"><span class="nav-group-name">VISITORS</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-visitors">
+                        <a href="#" onclick="showPage('feedback-data')" class="nav-item" data-was="Feedback Data">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
+                            <span class="nav-label">Feedback</span>
+                        </a>
+                        <a href="#" onclick="showPage('pledgeboard')" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
+                            <span class="nav-label">Pledgeboard</span>
                         </a>
                         <!-- Lost and found admin report page - changes made by nick -->
-                        <a href="#" class="nav-item" onclick="showPage('lost-found')">
+                        <a href="#" onclick="showPage('lost-found')" class="nav-item" data-admin-only data-was="Lost and Found Reports">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
-                            Lost &amp; Found Reports
+                            <span class="nav-label">Lost &amp; Found</span>
                         </a>
-                    </nav>
+                        <a href="#" onclick="showPage('feedback-report')" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
+                            <span class="nav-label">Feedback Reports</span>
+                        </a>
+                        <a href="#" onclick="showPage('archive')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
+                            <span class="nav-label">Archived Feedback</span>
+                        </a>
+                    </nav></div>
                 </div>
-
-                <div class="sidebar-section" id="monitor-section">
-                    <h3>SYSTEM</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('health')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
-                            System Health
+                <div class="sidebar-section nav-group" data-group="tree">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-tree"><span class="nav-group-name">TREE</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-tree">
+                        <a href="#" onclick="showPage('digital-tree')" class="nav-item" data-was="Digital Tree">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 5 11h3.5L5 17h5v5h4v-5h5l-3.5-6H19z"></path></svg></span>
+                            <span class="nav-label">Tree Leaves</span>
                         </a>
-                        <!-- <Jun Kai start> the Incidents page; the badge counts the incidents that need a look -->
-                        <a href="#" class="nav-item" onclick="showPage('incidents')">
+                        <a href="#" onclick="showPage('tree-adjustment')" class="nav-item" data-was="Digital Tree Adjustment">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
+                            <span class="nav-label">Tree Settings</span>
+                        </a>
+                        <a href="/tree-demo" target="_blank" rel="noopener" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg></span>
+                            <span class="nav-label">Tree Animation Demo</span>
+                        </a>
+                        <a href="#" onclick="showPage('vip')" class="nav-item" data-admin-only data-was="VIP Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+                            <span class="nav-label">VIPs</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <div class="sidebar-section nav-group" data-group="kiosk">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-kiosk"><span class="nav-group-name">KIOSK SCREENS</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-kiosk">
+                        <a href="#" onclick="showPage('questions')" class="nav-item" data-admin-only data-was="Question Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+                            <span class="nav-label">Questions</span>
+                        </a>
+                        <a href="#" onclick="showPage('parameter-adjustment')" class="nav-item" data-admin-only data-was="Parameter Adjustment">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+                            <span class="nav-label">Kiosk Settings</span>
+                        </a>
+                        <a href="#" onclick="showPage('form-management')" class="nav-item" data-admin-only data-was="Form Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span>
+                            <span class="nav-label">Start Screen Text</span>
+                        </a>
+                        <a href="#" onclick="showPage('overlay')" class="nav-item" data-admin-only data-was="Overlay Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
+                            <span class="nav-label">Photo Overlays</span>
+                        </a>
+                        <a href="#" onclick="showPage('timer-countdown')" class="nav-item" data-admin-only data-was="Timer Countdown">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
+                            <span class="nav-label">Photo Timer</span>
+                        </a>
+                        <a href="#" onclick="showPage('Feedback-page-QR')" class="nav-item" data-admin-only data-was="Feedback Page QR Code">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14h1v1M14 20h1v1M20 20h1v1M17 20h1v1M20 17h1v1"></path></svg></span>
+                            <span class="nav-label">Feedback QR Code</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <div class="sidebar-section nav-group" data-group="email">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-email"><span class="nav-group-name">EMAIL</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-email">
+                        <a href="#" onclick="showPage('email-management')" class="nav-item" data-admin-only data-was="Email Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
+                            <span class="nav-label">Mail Account</span>
+                        </a>
+                        <a href="#" onclick="showPage('badge-email-templates')" class="nav-item" data-admin-only data-was="Badge Email Templates">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
+                            <span class="nav-label">Badge Emails</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <div class="sidebar-section nav-group" data-group="monitoring">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-monitoring"><span class="nav-group-name">MONITORING</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-monitoring">
+                        <a href="#" onclick="showPage('health')" class="nav-item">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+                            <span class="nav-label">System Health</span>
+                        </a>
+                        <a href="#" onclick="showPage('incidents')" class="nav-item">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
-                            Incidents
+                            <span class="nav-label">Incidents</span>
                             <span class="inc-nav-badge" id="incidents-nav-badge" hidden></span>
                         </a>
-                        <!-- <Jun Kai end> -->
-                        <!-- <Jun Kai start> -->
-                        <a href="#" class="nav-item" onclick="showPage('hardware')">
+                        <a href="#" onclick="showPage('hardware')" class="nav-item">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span>
-                            Hardware
+                            <span class="nav-label">Hardware</span>
                         </a>
-                        <!-- <Jun Kai end> -->
-                    </nav>
-                </div>
-
-                <div class="sidebar-section" id="adjust-section">
-                    <h3>ADJUSTMENTS</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('tree-adjustment')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
-                            Digital Tree Adjustment
-                        </a>
-                        <a href="/tree-demo" class="nav-item" target="_blank" rel="noopener">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg></span>
-                            Tree Animation Demo
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('parameter-adjustment')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
-                            Parameter Adjustment
-                        </a>
-                    </nav>
-                </div>
-                
-                <div class="sidebar-section" id="admin-section">
-                    <h3>ADMINISTRATION</h3>
-                    <nav>
-                        <a href="#" class="nav-item" onclick="showPage('asset')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg></span>
-                            Assets Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('overlay')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
-                            Overlay Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('questions')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
-                            Question Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('users')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-                            User Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('vip')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
-                            VIP Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('email-management')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
-                            Email Management
-                        </a>
-                    <a href="#" class="nav-item" onclick="showPage('badge-email-templates')">
-                        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
-                        Badge Email Templates
-                    </a>
-                        <a href="#" class="nav-item" onclick="showPage('form-management')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span>
-                            Form Management
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('archive')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
-                            <!-- <Jun Kai start> -->
-                            Archived Feedback
-                            <!-- <Jun Kai end> -->
-                        </a>
-                        <!-- <Jun Kai start> -->
-                        <a href="#" class="nav-item" onclick="showPage('visitor-archive')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
-                            Visitor Data Archive
-                        </a>
-                        <!-- <Jun Kai end> -->
-                        <a href="#" class="nav-item" onclick="showPage('audit')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
-                            Audit Logs
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('data-export')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
-                            Data Export
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('timer-countdown')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
-                            Timer Countdown
-                        </a>
-                        <a href="#" class="nav-item" onclick="showPage('server-schedule')">
+                        <a href="#" onclick="showPage('server-schedule')" class="nav-item" data-admin-only data-was="Server Schedule">
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span>
-                            Server Schedule
+                            <span class="nav-label">Operating Hours</span>
                         </a>
-                        <a href="#" class="nav-item" onclick="showPage('Feedback-page-QR')">
-                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14h1v1M14 20h1v1M20 20h1v1M17 20h1v1M20 17h1v1"></path></svg></span>
-                            Feedback Page QR Code
+                        <a href="#" onclick="showPage('asset')" class="nav-item" data-admin-only data-was="Assets Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg></span>
+                            <span class="nav-label">Assets</span>
                         </a>
-                    </nav>
+                        <!-- <Jun Kai/> AI Settings: every AI feature on or off (System Admins) -->
+                        <a href="#" onclick="showPage('ai-settings'); loadAiSettingsPage();" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"></path><line x1="9" y1="22" x2="15" y2="22"></line></svg></span>
+                            <span class="nav-label">AI Settings</span>
+                        </a>
+                    </nav></div>
                 </div>
+                <div class="sidebar-section nav-group" data-group="data">
+                    <h3><button type="button" class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-data"><span class="nav-group-name">DATA &amp; ACCESS</span><em class="nav-group-count" aria-hidden="true"></em><span class="nav-group-badge" hidden></span><svg class="nav-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></h3>
+                    <div class="nav-group-body"><nav id="nav-group-data">
+                        <a href="#" onclick="showPage('visitor-archive')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
+                            <span class="nav-label">Visitor Data Archive</span>
+                        </a>
+                        <a href="#" onclick="showPage('data-export')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+                            <span class="nav-label">Data Export</span>
+                        </a>
+                        <a href="#" onclick="showPage('audit')" class="nav-item" data-admin-only>
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
+                            <span class="nav-label">Audit Logs</span>
+                        </a>
+                        <a href="#" onclick="showPage('users')" class="nav-item" data-admin-only data-was="User Management">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+                            <span class="nav-label">Users</span>
+                        </a>
+                        <a href="#" onclick="showPage('theme-settings')" class="nav-item" data-was="Style and Theme Settings">
+                            <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
+                            <span class="nav-label">Style &amp; Theme</span>
+                        </a>
+                    </nav></div>
+                </div>
+                <!-- <Jun Kai end> -->
             </aside>
 
             <!-- Page Content (DONE BY PRETI)-->
@@ -591,7 +597,7 @@
                                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                                     </svg>
-                                    <span>User Management</span>
+                                    <span>Users</span>
                                 </button>
                             </div>
                         </div>
@@ -605,147 +611,96 @@
                 
                 <!-- Feedback Data Page (DONE BY PRETI)-->
                 <div id="feedback-data-page" class="page">
-                    <div class="page-header">
-                        <h2>Feedback Data</h2>
-                        <p>Manage and review visitor feedback submissions</p>
+                    <!-- <Jun Kai start> Feedback page (admin redesign, Feedback A): the filters are chips that are always in
+                         view, each row shows the pledge and the typed feedback, and a click on a row opens a side panel with
+                         both photos, the pledge, the answers and Delete. The ids of the search box, the filters, the pager and
+                         the two email buttons are the old ones, so the filter, sort and email code works unchanged. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Feedback</h2>
+                            <p>Every visitor submission, newest first.</p>
+                        </div>
                     </div>
 
-                    <div class="feedback-section">
-                        <div class="section-header">
-                            <h3>Visitor Feedback</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="toggleFeedbackAdvancedFilters()">
-                                    <span id="feedback-filter-toggle-icon">▼</span> Advanced Filters
-                                </button>
-                                <button class="btn-primary" onclick="refreshFeedbackData()">🔄 Refresh</button>
+                    <div class="ui-card fb-card">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the feedback list">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the feedback</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="feedback-search-input" placeholder="Search name, pledge or answers" autocomplete="off" oninput="filterFeedbackData()">
+                            </label>
+                            <button type="button" class="ui-filter" id="feedback-date-button" popovertarget="feedback-date-pop" aria-haspopup="dialog">
+                                <span data-fb-icon="calendar"></span><span id="feedback-date-label">Any date</span>
+                            </button>
+                            <div class="ui-filter-pop" id="feedback-date-pop" popover aria-label="Date range">
+                                <div class="ui-filter-presets">
+                                    <button type="button" onclick="setFeedbackDateRangePreset('today')">Today</button>
+                                    <button type="button" onclick="setFeedbackDateRangePreset('week')">This week</button>
+                                    <button type="button" onclick="setFeedbackDateRangePreset('month')">This month</button>
+                                    <button type="button" onclick="feedbackView.clearDates()">Any date</button>
+                                </div>
+                                <label class="ui-filter-field">From <input type="date" id="feedback-filter-date-from" class="ui-input" onchange="filterFeedbackData()"></label>
+                                <label class="ui-filter-field">To <input type="date" id="feedback-filter-date-to" class="ui-input" onchange="filterFeedbackData()"></label>
                             </div>
+                            <select id="feedback-filter-email" class="ui-filter ui-filter-select" aria-label="Email" onchange="filterFeedbackData()">
+                                <option value="">Email: any</option>
+                                <option value="has_email">Has an email</option>
+                                <option value="no_email">No email</option>
+                            </select>
+                            <select id="feedback-filter-visits" class="ui-filter ui-filter-select" aria-label="Visits" onchange="filterFeedbackData()">
+                                <option value="">Visits: any</option>
+                                <option value="1">1 visit</option>
+                                <option value="2">2 visits</option>
+                                <option value="3">3 visits</option>
+                                <option value="4">4 visits</option>
+                                <option value="5">5 visits</option>
+                                <option value="6+">6 or more visits</option>
+                            </select>
+                            <select id="feedback-filter-retention" class="ui-filter ui-filter-select" aria-label="How long the record is kept" onchange="filterFeedbackData()">
+                                <option value="">Kept: any</option>
+                                <option value="7days">Kept 7 days</option>
+                                <option value="longterm">Kept long term</option>
+                            </select>
+                            <button type="button" class="ui-link" id="feedback-clear-filters" onclick="clearAllFeedbackFilters()" hidden>Clear filters</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="decryptAllEmails()" id="decrypt-emails-btn" style="display: none;">Show emails</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="reEncryptAllEmails()" id="re-encrypt-btn" style="display: none;">Hide emails</button>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="refreshFeedbackData()" title="Load the list again" aria-label="Load the list again" data-fb-icon="refresh"></button>
                         </div>
 
-                        <!-- Global Search (DONE BY PRETI)-->
-                        <div class="toolbar">
-                            <input type="text" id="feedback-search-input" class="search-input" 
-                                   placeholder="🔍 Search across all columns (name, email, pledge, visits, date)..." 
-                                   oninput="filterFeedbackData()">
-                            <div class="toolbar-buttons">
-                                <button class="btn-secondary" onclick="clearAllFeedbackFilters()">Clear Filters</button>
-                                <button class="btn-secondary" onclick="decryptAllEmails()" id="decrypt-emails-btn" style="display: none;">🔓 Decrypt All</button>
-                                <button class="btn-warning" onclick="reEncryptAllEmails()" id="re-encrypt-btn" style="display: none;">🔒 Re-encrypt All</button>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Filter Panel (DONE BY PRETI)-->
-                        <div id="feedback-advanced-filters-panel" class="advanced-filters-panel" style="display: none;">
-                            <div class="filter-grid">
-                                <!-- Date Range Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📅 Date Range</label>
-                                    <div class="date-range-inputs">
-                                        <input type="date" id="feedback-filter-date-from" class="filter-date" onchange="filterFeedbackData()">
-                                        <span class="date-separator">to</span>
-                                        <input type="date" id="feedback-filter-date-to" class="filter-date" onchange="filterFeedbackData()">
-                                    </div>
-                                    <button class="btn-link" onclick="setFeedbackDateRangePreset('today')">Today</button>
-                                    <button class="btn-link" onclick="setFeedbackDateRangePreset('week')">This Week</button>
-                                    <button class="btn-link" onclick="setFeedbackDateRangePreset('month')">This Month</button>
-                                </div>
-
-                                <!-- Email Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📧 Email Status</label>
-                                    <select id="feedback-filter-email" class="filter-select" onchange="filterFeedbackData()">
-                                        <option value="">All</option>
-                                        <option value="has_email">Has Email</option>
-                                        <option value="no_email">No Email</option>
-                                    </select>
-                                </div>
-
-                                <!-- Visits Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">👥 Visit Count</label>
-                                    <select id="feedback-filter-visits" class="filter-select" onchange="filterFeedbackData()">
-                                        <option value="">All Visits</option>
-                                        <option value="1">1 Visit</option>
-                                        <option value="2">2 Visits</option>
-                                        <option value="3">3 Visits</option>
-                                        <option value="4">4 Visits</option>
-                                        <option value="5">5 Visits</option>
-                                        <option value="6+">6+ Visits</option>
-                                    </select>
-                                </div>
-
-                                <!-- Data Retention Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">⏱️ Data Retention</label>
-                                    <select id="feedback-filter-retention" class="filter-select" onchange="filterFeedbackData()">
-                                        <option value="">All Types</option>
-                                        <option value="7days">7 Days</option>
-                                        <option value="longterm">Long-Term Use</option>
-                                    </select>
-                                </div>
-
-                                <!-- Results Count (DONE BY PRETI)-->
-                                <div class="filter-group filter-results">
-                                    <label class="filter-label">📊 Results</label>
-                                    <div class="results-display">
-                                        <span id="feedback-filtered-count">0</span> / <span id="feedback-total-count">0</span> records
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Results Info Bar (DONE BY PRETI)-->
-                        <div class="results-info-bar" id="feedback-results-info-bar" style="display: none;">
-                            <span class="info-text">
-                                <strong id="feedback-active-filters-count">0</strong> filter(s) active - 
-                                Showing <strong id="feedback-results-count">0</strong> of <strong id="feedback-total-records">0</strong> records
-                            </span>
-                        </div>
-
-                        <div class="data-table">
-                            <table>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table fb-table">
                                 <thead>
                                     <tr>
-                                        <th onclick="sortFeedbackData('name')" class="sortable">
-                                            Name <span class="sort-indicator" id="feedback-sort-name"></span>
-                                        </th>
-                                        <th onclick="sortFeedbackData('email')" class="sortable">
-                                            Email <span class="sort-indicator" id="feedback-sort-email"></span>
-                                        </th>
-                                        <th onclick="sortFeedbackData('total_visits')" class="sortable">
-                                            Visits <span class="sort-indicator" id="feedback-sort-total_visits"></span>
-                                        </th>
-                                        <th>Pledge</th>
-                                        <!-- User feedback preview column added so admins can see typed answers immediately. (Done by Caeden) -->
-                                        <th>User Feedback</th>
-                                        <th>Questions & Answers</th>
-                                        <th onclick="sortFeedbackData('data_retention_days')" class="sortable">
-                                            Data Retention <span class="sort-indicator" id="feedback-sort-data_retention_days"></span>
-                                        </th>
-                                        <th>Raw Photo</th>
-                                        <th>Processed Photo</th>
-                                        <th onclick="sortFeedbackData('created_at')" class="sortable">
-                                            Date <span class="sort-indicator" id="feedback-sort-created_at"></span>
-                                        </th>
-                                        <th>Actions</th>
+                                        <th class="col-visitor"><button type="button" class="ui-sort" onclick="sortFeedbackData('name')">Visitor<span class="sort-indicator" id="feedback-sort-name"></span></button></th>
+                                        <th class="ui-num col-visits"><button type="button" class="ui-sort" onclick="sortFeedbackData('total_visits')">Visits<span class="sort-indicator" id="feedback-sort-total_visits"></span></button></th>
+                                        <th class="col-pledge">Pledge</th>
+                                        <th class="col-typed">Typed feedback</th>
+                                        <th class="col-kept"><button type="button" class="ui-sort" onclick="sortFeedbackData('data_retention_days')">Kept<span class="sort-indicator" id="feedback-sort-data_retention_days"></span></button></th>
+                                        <th class="col-photos">Photos</th>
+                                        <th class="col-date"><button type="button" class="ui-sort" onclick="sortFeedbackData('created_at')">Date<span class="sort-indicator" id="feedback-sort-created_at"></span></button></th>
+                                        <th class="col-bin"><span class="ui-sr-only">Delete</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="feedback-table-body">
-                                    <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                    <tr>
-                                        <td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading feedback data...
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="8" class="ui-empty">Loading the feedback</td></tr>
                                 </tbody>
                             </table>
-                            
-                            <div class="pagination" style="margin-top: 20px;">
-                                <button onclick="prevFeedbackPage()" id="prev-feedback-btn" disabled>← Previous</button>
-                                <span id="feedback-page-info">Page 1 of 0 (0 total)</span>
-                                <button onclick="nextFeedbackPage()" id="next-feedback-btn">Next →</button>
-                            </div>
+                        </div>
+
+                        <div class="ui-pager">
+                            <span><span id="feedback-page-info" aria-live="polite">Loading</span><span class="ui-pager-status" id="feedback-status" role="status"></span></span>
+                            <span class="ui-pager-buttons">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="prevFeedbackPage()" id="prev-feedback-btn" disabled>Previous</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="nextFeedbackPage()" id="next-feedback-btn" disabled>Next</button>
+                            </span>
                         </div>
                     </div>
+
+                    <!-- one submission: filled by openFeedbackPanel() in feedback.js. Not a modal dialog: the list stays
+                         usable, and the photo viewer and the delete check open above it -->
+                    <aside class="ui-sidepanel" id="feedback-panel" aria-labelledby="feedback-panel-title" hidden></aside>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Feedback Reports Page (DONE BY Yu Kang) -->
@@ -819,7 +774,7 @@
                                 </div>
                             </div>
                             <!-- <Jun Kai start> shown while the Local AI models switch is off (analysis.js refreshAnalysisModes) -->
-                            <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are off because Local AI models is switched off in the incident settings (Incidents page, Settings, Local AI advisor). Rule-Based Analysis still works.</div>
+                            <div class="ui-note analysis-mode-note" id="analysis-mode-note" hidden>The AI modes are switched off on the AI Settings page. Rule-Based Analysis still works.</div>
                             <!-- <Jun Kai end> -->
 
                             <div id="feedback-analysis-results" style="display: none; margin-top: 20px;">
@@ -880,7 +835,7 @@
                 <!-- Digital Tree Page (DONE BY PRETI)-->
                 <div id="digital-tree-page" class="page">
                     <div class="page-header">
-                        <h2>Digital Tree</h2>
+                        <h2>Tree Leaves</h2>
                         <p>View visitor tree data and statistics</p>
                     </div>
 
@@ -920,7 +875,7 @@
                 <!-- Digital Tree Adjustment Page (DONE BY Yu Kang)-->
                 <div id="tree-adjustment-page" class="page">
                     <div class="page-header">
-                        <h2>Digital Tree Adjustment</h2>
+                        <h2>Tree Settings</h2>
                         <p>Adjust tree growth parameters and background settings</p>
                     </div>
 
@@ -1472,7 +1427,7 @@
                 <!-- Assets Management Page (Done By Yu Kang)-->
                 <div id="asset-page" class="page">
                     <div class="page-header">
-                        <h2>Assets Management</h2>
+                        <h2>Assets</h2>
                         <p>Register Bluetooth-tracked assets and see which ones are currently detected nearby</p>
                     </div>
 
@@ -1512,7 +1467,7 @@
                 <!-- Overlay Management Page (DONE BY PRETI)-->
                 <div id="overlay-page" class="page">
                     <div class="page-header">
-                        <h2>Overlay Management</h2>
+                        <h2>Photo Overlays</h2>
                         <p>Manage photo overlay themes for the kiosk</p>
                     </div>
 
@@ -1535,7 +1490,7 @@
                 <!-- Question Management Page (DONE BY PRETI)-->
                 <div id="questions-page" class="page">
                     <div class="page-header">
-                        <h2>Question Management</h2>
+                        <h2>Questions</h2>
                         <p>Manage feedback questions and their options</p>
                     </div>
 
@@ -1556,92 +1511,70 @@
 
                 <!-- User Management Page (DONE BY PRETI)-->
                 <div id="users-page" class="page">
-                    <div class="page-header">
-                        <h2>User Management</h2>
-                        <p>Manage admin users and permissions</p>
-                    </div>
-
-                    <!-- Tab Navigation (DONE BY PRETI)-->
-                    <div class="user-tabs">
-                        <button class="user-tab active" onclick="switchUserTab('active')">
-                            👤 Active Users
-                        </button>
-                        <button class="user-tab" onclick="switchUserTab('deleted')">
-                            🗑️ Deleted Users
-                        </button>
-                    </div>
-
-                    <!-- Active Users Section (DONE BY PRETI)-->
-                    <div id="active-users-section" class="user-section">
-                        <div class="section-header">
-                            <h3>Active Admin Users</h3>
-                            <button class="btn-primary" onclick="addUser()">+ Add User</button>
+                    <!-- <Jun Kai start> Users page (admin redesign, Users A): the accounts on the left with Active and Deleted
+                         tabs, the Sign-in card on the right, so everything about access is on one screen. The ids of the two
+                         sections and table bodies are the old ones; the Add user and Edit user windows are unchanged. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Users</h2>
+                            <p>Admin accounts and how they sign in.</p>
                         </div>
-                        
-                        <div class="data-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Full Name</th>
-                                        <th>Role</th>
-                                        <th>Department</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="active-users-tbody">
-                                    <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                    <tr>
-                                        <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading active users...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <button type="button" class="ui-btn ui-btn-primary" onclick="addUser()"><span data-fb-icon="plus"></span>Add user</button>
                     </div>
 
-                    <!-- Deleted Users Section (DONE BY PRETI)-->
-                    <div id="deleted-users-section" class="user-section" style="display: none;">
-                        <div class="section-header">
-                            <h3>Deleted Admin Users</h3>
-                            <div class="header-info">
-                                <span style="color: #64748b; font-size: 14px;">
-                                    These users have been soft-deleted and can be restored
-                                </span>
+                    <div class="users-layout">
+                        <div class="ui-card users-card">
+                            <div class="ui-tabs" role="tablist" aria-label="Which accounts">
+                                <button type="button" role="tab" class="ui-tab" id="users-tab-active" data-tab="active" aria-selected="true" aria-controls="active-users-section" onclick="switchUserTab('active')">Active <b class="ui-tab-count" id="users-count-active">0</b></button>
+                                <button type="button" role="tab" class="ui-tab" id="users-tab-deleted" data-tab="deleted" aria-selected="false" aria-controls="deleted-users-section" tabindex="-1" onclick="switchUserTab('deleted')">Deleted <b class="ui-tab-count" id="users-count-deleted">0</b></button>
+                            </div>
+
+                            <div id="active-users-section" role="tabpanel" aria-labelledby="users-tab-active">
+                                <div class="ui-table-wrap">
+                                    <table class="ui-table users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Full name</th>
+                                                <th>Role</th>
+                                                <th>Status</th>
+                                                <th class="ui-th-actions"><span class="ui-sr-only">Actions</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="active-users-tbody">
+                                            <tr><td colspan="5" class="ui-empty">Loading the accounts</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div id="deleted-users-section" role="tabpanel" aria-labelledby="users-tab-deleted" hidden>
+                                <p class="users-note">A deleted account cannot sign in. Restore brings it back; Delete for good removes it from the database.</p>
+                                <div class="ui-table-wrap">
+                                    <table class="ui-table users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Full name</th>
+                                                <th>Role</th>
+                                                <th>Status</th>
+                                                <th class="ui-th-actions"><span class="ui-sr-only">Actions</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="deleted-users-tbody">
+                                            <tr><td colspan="5" class="ui-empty">Loading the deleted accounts</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="data-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Full Name</th>
-                                        <th>Role</th>
-                                        <th>Department</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="deleted-users-tbody">
-                                    <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                    <tr>
-                                        <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading deleted users...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <!-- <Jun Kai end> -->
 
                     <!-- <Jun Kai start> signing out after no activity, the same for every admin (a System Admin changes it) -->
                     <div class="ui-card idle-card" id="idle-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Sign-in</h3>
+                                <h3>Sign-in<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Signing in and out" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Signing in and out"><ul><li>With no click or key press for the chosen time, the admin page signs out. A notice shows 2 minutes before (1 minute when the time is under 10 minutes).</li><li>One setting for every admin: 5 minutes to 8 hours, or Never. Only a System Admin can change it.</li><li><b>Keep me signed in</b> lasts 24 hours on that browser and is not signed out by this timer. It ends at Logout or when the password changes. The password itself is never stored in the browser.</li><li>5 wrong passwords within 15 minutes lock that username from that computer for 15 minutes.</li></ul></template></span></h3>
                                 <p>How long the admin page may sit untouched before it signs the admin out.</p>
                             </div>
                         </div>
@@ -1664,12 +1597,13 @@
                         </div>
                     </div>
                     <!-- <Jun Kai end> -->
+                    </div><!-- <Jun Kai/> end of .users-layout -->
                 </div>
 
                 <!-- VIP Management (DONE BY ZAH) -->
                 <div id="vip-page" class="page">
                     <div class="page-header">
-                        <h2>VIP Management</h2>
+                        <h2>VIPs</h2>
                         <p>VIPs will appear as a golden leaf on the tree.</p>
                     </div>
 
@@ -1707,418 +1641,288 @@
               
                 <!-- Archive Page (DONE BY PRETI)-->
                 <div id="archive-page" class="page">
-                    <div class="page-header">
-                        <!-- <Jun Kai start> -->
-                        <h2>Archived Feedback</h2>
-                        <p>Feedback older than the auto-archive period (Parameter Adjustment). After its keep period, set on <button type="button" class="inline-link-btn" onclick="showPage('visitor-archive')">Visitor Data Archive</button>, feedback can be saved to disk and removed from the database.</p>
-                        <!-- <Jun Kai end> -->
+                    <!-- <Jun Kai start> Archived Feedback (admin redesign, list style A, like Feedback): the list first; ticking
+                         rows shows a bar with Delete selected; Delete by date opens a side panel with the date, the quick
+                         picks, Preview and the warning. The old ids stay, so the filter, sort, email and delete code works. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Archived Feedback</h2>
+                            <p>Feedback older than the auto-archive period (Kiosk Settings). After its keep period, set on <button type="button" class="inline-link-btn" onclick="showPage('visitor-archive')">Visitor Data Archive</button>, feedback can be saved to disk and removed from the database.</p>
+                        </div>
                     </div>
 
-                    <div class="feedback-section">
-                        <div class="section-header">
-                            <h3>Archived Feedback</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="toggleArchiveAdvancedFilters()">
-                                    <span id="archive-filter-toggle-icon">▼</span> Advanced Filters
-                                </button>
-                                <button class="btn-primary" onclick="refreshArchiveData()">🔄 Refresh</button>
+                    <div class="ui-card fb-card">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the archived feedback">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the archived feedback</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="archive-search-input" placeholder="Search name, pledge or answers" autocomplete="off" oninput="filterArchiveData()">
+                            </label>
+                            <button type="button" class="ui-filter" id="archive-date-button" popovertarget="archive-date-pop" aria-haspopup="dialog">
+                                <span data-fb-icon="calendar"></span><span id="archive-date-label">Any date</span>
+                            </button>
+                            <div class="ui-filter-pop" id="archive-date-pop" popover aria-label="Date range">
+                                <div class="ui-filter-presets">
+                                    <button type="button" onclick="setArchiveDateRangePreset('today')">Today</button>
+                                    <button type="button" onclick="setArchiveDateRangePreset('week')">This week</button>
+                                    <button type="button" onclick="setArchiveDateRangePreset('month')">This month</button>
+                                    <button type="button" onclick="archiveView.clearDates()">Any date</button>
+                                </div>
+                                <label class="ui-filter-field">From <input type="date" id="archive-filter-date-from" class="ui-input" onchange="filterArchiveData()"></label>
+                                <label class="ui-filter-field">To <input type="date" id="archive-filter-date-to" class="ui-input" onchange="filterArchiveData()"></label>
                             </div>
+                            <select id="archive-filter-email" class="ui-filter ui-filter-select" aria-label="Email" onchange="filterArchiveData()">
+                                <option value="">Email: any</option>
+                                <option value="has_email">Has an email</option>
+                                <option value="no_email">No email</option>
+                            </select>
+                            <select id="archive-filter-visits" class="ui-filter ui-filter-select" aria-label="Visits" onchange="filterArchiveData()">
+                                <option value="">Visits: any</option>
+                                <option value="1">1 visit</option>
+                                <option value="2">2 visits</option>
+                                <option value="3">3 visits</option>
+                                <option value="4">4 visits</option>
+                                <option value="5">5 visits</option>
+                                <option value="6+">6 or more visits</option>
+                            </select>
+                            <select id="archive-filter-retention" class="ui-filter ui-filter-select" aria-label="How long the record is kept" onchange="filterArchiveData()">
+                                <option value="">Kept: any</option>
+                                <option value="7days">Kept 7 days</option>
+                                <option value="longterm">Kept long term</option>
+                            </select>
+                            <button type="button" class="ui-link" id="archive-clear-filters" onclick="clearAllArchiveFilters()" hidden>Clear filters</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="decryptAllArchiveEmails()" id="decrypt-archive-emails-btn" style="display: none;">Show emails</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="reEncryptAllArchiveEmails()" id="re-encrypt-archive-btn" style="display: none;">Hide emails</button>
+                            <span id="archive-deletion-controls" hidden><button type="button" class="ui-btn ui-btn-danger" onclick="openArchiveDeletePanel()"><span data-fb-icon="trash"></span>Delete by date</button></span>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="refreshArchiveData()" title="Load the list again" aria-label="Load the list again" data-fb-icon="refresh"></button>
                         </div>
 
-                        <!-- DELETION CONTROLS (System Admin Only) (DONE BY PRETI)-->
-                        <div id="archive-deletion-controls" class="deletion-controls-section" style="display: none;">
-                            <div class="deletion-header">
-                                <h4>🗑️ Permanent Data Deletion</h4>
-                                <span class="deletion-badge">System Admin Only</span>
-                            </div>
-                            
-                            <div class="deletion-controls">
-                                <!-- Selected Items Deletion (DONE BY PRETI)-->
-                                <div class="deletion-group">
-                                    <label class="deletion-label">Selected Items:</label>
-                                    <div class="deletion-actions">
-                                        <span id="selected-count" class="selected-count">0 selected</span>
-                                        <button class="btn-warning btn-sm" onclick="deleteSelectedArchive()" id="delete-selected-btn" disabled>
-                                            🗑️ Delete Selected
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Date Range Deletion (DONE BY PRETI)-->
-                                <div class="deletion-group">
-                                    <label class="deletion-label">Bulk Delete by Date:</label>
-                                    <div class="deletion-date-controls">
-                                        <label>Delete all archived before:</label>
-                                        <input type="date" id="bulk-delete-date" class="deletion-date-input">
-                                        <select id="bulk-delete-quick" class="deletion-select" onchange="setQuickDeleteDate(this.value)">
-                                            <option value="">Quick Select...</option>
-                                            <option value="3months">3 Months Ago</option>
-                                            <option value="6months">6 Months Ago</option>
-                                            <option value="1year">1 Year Ago</option>
-                                            <option value="2years">2 Years Ago</option>
-                                            <option value="3years">3 Years Ago</option>
-                                        </select>
-                                        <button class="btn-danger btn-sm" onclick="previewBulkDelete()" id="preview-delete-btn">
-                                            👁️ Preview
-                                        </button>
-                                        <button class="btn-danger btn-sm" onclick="bulkDeleteByDate()" id="bulk-delete-btn" disabled>
-                                            🗑️ Delete by Date
-                                        </button>
-                                    </div>
-                                    <div id="preview-count" class="preview-count" style="display: none;">
-                                        ⚠️ This will delete <strong id="preview-number">0</strong> records
-                                    </div>
-                                </div>
-
-                                <!-- Warning Message (DONE BY PRETI)-->
-                                <div class="deletion-warning">
-                                    ⚠️ <strong>Warning:</strong> Deletion is permanent and cannot be undone. 
-                                    Please ensure you have exported a backup before proceeding.
-                                </div>
-                            </div>
+                        <div class="ui-selectbar" id="archive-selection-bar" hidden>
+                            <span id="selected-count" aria-live="polite">0 selected</span>
+                            <button type="button" class="ui-btn ui-btn-danger" onclick="deleteSelectedArchive()" id="delete-selected-btn" disabled><span data-fb-icon="trash"></span>Delete selected</button>
+                            <button type="button" class="ui-link" onclick="clearArchiveSelection()">Clear the selection</button>
                         </div>
 
-                        <!-- Global Search (DONE BY PRETI)-->
-                        <div class="toolbar">
-                            <input type="text" id="archive-search-input" class="search-input" 
-                                placeholder="🔍 Search across all columns (name, email, pledge, visits, date)..." 
-                                oninput="filterArchiveData()">
-                            <div class="toolbar-buttons">
-                                <button class="btn-secondary" onclick="clearAllArchiveFilters()">Clear Filters</button>
-                                <button class="btn-secondary" onclick="decryptAllArchiveEmails()" id="decrypt-archive-emails-btn">🔓 Decrypt Page</button>
-                                <button class="btn-warning" onclick="reEncryptAllArchiveEmails()" id="re-encrypt-archive-btn" style="display: none;">🔒 Re-encrypt All</button>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Filter Panel (DONE BY PRETI)-->
-                        <div id="archive-advanced-filters-panel" class="advanced-filters-panel" style="display: none;">
-                            <div class="filter-grid">
-                                <!-- Date Range Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📅 Date Range</label>
-                                    <div class="date-range-inputs">
-                                        <input type="date" id="archive-filter-date-from" class="filter-date" onchange="filterArchiveData()">
-                                        <span class="date-separator">to</span>
-                                        <input type="date" id="archive-filter-date-to" class="filter-date" onchange="filterArchiveData()">
-                                    </div>
-                                    <button class="btn-link" onclick="setArchiveDateRangePreset('today')">Today</button>
-                                    <button class="btn-link" onclick="setArchiveDateRangePreset('week')">This Week</button>
-                                    <button class="btn-link" onclick="setArchiveDateRangePreset('month')">This Month</button>
-                                </div>
-
-                                <!-- Email Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📧 Email Status</label>
-                                    <select id="archive-filter-email" class="filter-select" onchange="filterArchiveData()">
-                                        <option value="">All</option>
-                                        <option value="has_email">Has Email</option>
-                                        <option value="no_email">No Email</option>
-                                    </select>
-                                </div>
-
-                                <!-- Visits Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">👥 Visit Count</label>
-                                    <select id="archive-filter-visits" class="filter-select" onchange="filterArchiveData()">
-                                        <option value="">All Visits</option>
-                                        <option value="1">1 Visit</option>
-                                        <option value="2">2 Visits</option>
-                                        <option value="3">3 Visits</option>
-                                        <option value="4">4 Visits</option>
-                                        <option value="5">5 Visits</option>
-                                        <option value="6+">6+ Visits</option>
-                                    </select>
-                                </div>
-
-                                <!-- Data Retention Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">⏱️ Data Retention</label>
-                                    <select id="archive-filter-retention" class="filter-select" onchange="filterArchiveData()">
-                                        <option value="">All Types</option>
-                                        <option value="7days">7 Days</option>
-                                        <option value="longterm">Long-Term Use</option>
-                                    </select>
-                                </div>
-
-                                <!-- Results Count (DONE BY PRETI)-->
-                                <div class="filter-group filter-results">
-                                    <label class="filter-label">📊 Results</label>
-                                    <div class="results-display">
-                                        <span id="archive-filtered-count">0</span> / <span id="archive-total-count">0</span> records
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Results Info Bar (DONE BY PRETI)-->
-                        <div class="results-info-bar" id="archive-results-info-bar" style="display: none;">
-                            <span class="info-text">
-                                <strong id="archive-active-filters-count">0</strong> filter(s) active - 
-                                Showing <strong id="archive-results-count">0</strong> of <strong id="archive-total">0</strong> records
-                            </span>
-                        </div>
-
-                        <div class="data-table">
-                            <table>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table fb-table">
                                 <thead>
                                     <tr>
-                                        <th class="checkbox-col">
-                                            <input type="checkbox" id="select-all-archive" onclick="toggleSelectAllArchive(this)" title="Select All">
-                                        </th>
-                                        <th onclick="sortArchiveData('name')" class="sortable">
-                                            Name <span class="sort-indicator" id="archive-sort-name"></span>
-                                        </th>
-                                        <th onclick="sortArchiveData('email')" class="sortable">
-                                            Email <span class="sort-indicator" id="archive-sort-email"></span>
-                                        </th>
-                                        <th onclick="sortArchiveData('total_visits')" class="sortable">
-                                            Visits <span class="sort-indicator" id="archive-sort-total_visits"></span>
-                                        </th>
-                                        <th>Pledge</th>
-                                        <th>Questions & Answers</th>
-                                        <th onclick="sortArchiveData('data_retention')" class="sortable">
-                                            Data Retention <span class="sort-indicator" id="archive-sort-data_retention"></span>
-                                        </th>
-                                        <th>Raw Photo</th>
-                                        <th>Processed Photo</th>
-                                        <th onclick="sortArchiveData('created_at')" class="sortable">
-                                            Date <span class="sort-indicator" id="archive-sort-created_at"></span>
-                                        </th>
-                                        <th>Actions</th>
+                                        <th class="col-tick"><input type="checkbox" id="select-all-archive" onclick="toggleSelectAllArchive(this)" aria-label="Select every row of this page" hidden></th>
+                                        <th class="col-visitor"><button type="button" class="ui-sort" onclick="sortArchiveData('name')">Visitor<span class="sort-indicator" id="archive-sort-name"></span></button></th>
+                                        <th class="ui-num col-visits"><button type="button" class="ui-sort" onclick="sortArchiveData('total_visits')">Visits<span class="sort-indicator" id="archive-sort-total_visits"></span></button></th>
+                                        <th class="col-pledge">Pledge</th>
+                                        <th class="col-typed">Typed feedback</th>
+                                        <th class="col-kept"><button type="button" class="ui-sort" onclick="sortArchiveData('data_retention')">Kept<span class="sort-indicator" id="archive-sort-data_retention"></span></button></th>
+                                        <th class="col-photos">Photos</th>
+                                        <th class="col-date"><button type="button" class="ui-sort" onclick="sortArchiveData('created_at')">Date<span class="sort-indicator" id="archive-sort-created_at"></span></button></th>
+                                        <th class="col-bin"><span class="ui-sr-only">Delete</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="archive-table-body">
-                                    <tr>
-                                        <td colspan="11" style="text-align: center; padding: 40px; color: #64748b;">
-                                            No archived feedback found. Feedback moved by the archive rules will appear here.
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="9" class="ui-empty">Loading the archived feedback</td></tr>
                                 </tbody>
                             </table>
-                            
-                            <div class="pagination" style="margin-top: 20px;">
-                                <button onclick="prevArchivePage()" id="prev-archive-btn" disabled>← Previous</button>
-                                <span id="archive-page-info">Page 1 of 0 (0 total)</span>
-                                <button onclick="nextArchivePage()" id="next-archive-btn">Next →</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Audit Logs Page (DONE BY PRETI)-->
-                <div id="audit-page" class="page">
-                    <div class="page-header">
-                        <h2>Audit Logs</h2>
-                        <p>Important system actions and security events</p>
-                    </div>
-
-                    <div class="audit-section">
-                        <div class="section-header">
-                            <h3>Recent Activity</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="toggleAdvancedFilters()">
-                                    <span id="filter-toggle-icon">▼</span> Advanced Filters
-                                </button>
-                                <button class="btn-primary" onclick="loadAuditLogs()">🔄 Refresh</button>
-                            </div>
                         </div>
 
-                        <!-- Global Search (DONE BY PRETI)-->
-                        <div class="toolbar">
-                            <input type="text" id="audit-search-input" class="search-input" 
-                                   placeholder="🔍 Search across all columns (user, action, target, IP, date)..." 
-                                   oninput="filterAuditLogs()">
-                            <div class="toolbar-buttons">
-                                <button class="btn-secondary" onclick="clearAllFilters()">Clear Filters</button>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Filter Panel (DONE BY PRETI)-->
-                        <div id="advanced-filters-panel" class="advanced-filters-panel" style="display: none;">
-                            <div class="filter-grid">
-                                <!-- Date Range Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📅 Date Range</label>
-                                    <div class="date-range-inputs">
-                                        <input type="date" id="filter-date-from" class="filter-date" onchange="filterAuditLogs()">
-                                        <span class="date-separator">to</span>
-                                        <input type="date" id="filter-date-to" class="filter-date" onchange="filterAuditLogs()">
-                                    </div>
-                                    <button class="btn-link" onclick="setDateRangePreset('today')">Today</button>
-                                    <button class="btn-link" onclick="setDateRangePreset('week')">This Week</button>
-                                    <button class="btn-link" onclick="setDateRangePreset('month')">This Month</button>
-                                </div>
-
-                                <!-- Action Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">⚡ Action Type</label>
-                                    <select id="filter-action" class="filter-select" onchange="filterAuditLogs()">
-                                        <option value="">All Actions</option>
-                                        <option value="LOGIN">Login</option>
-                                        <option value="LOGOUT">Logout</option>
-                                        <option value="DELETE">Delete</option>
-                                        <option value="ADD">Add</option>
-                                        <option value="EDIT">Edit</option>
-                                        <option value="DOWNLOAD">Download</option>
-                                        <option value="VIEW">View</option>
-                                        <!-- <Jun Kai start> -->
-                                        <option value="ARCHIVE">Archive</option>
-                                        <!-- <Jun Kai end> -->
-                                    </select>
-                                </div>
-
-                                <!-- User Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">👤 Admin User</label>
-                                    <select id="filter-user" class="filter-select" onchange="filterAuditLogs()">
-                                        <option value="">All Users</option>
-                                        <!-- Will be populated dynamically (DONE BY PRETI)-->
-                                    </select>
-                                </div>
-
-                                <!-- Target Type Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">🎯 Target Type</label>
-                                    <select id="filter-target-type" class="filter-select" onchange="filterAuditLogs()">
-                                        <option value="">All Targets</option>
-                                        <option value="user">User</option>
-                                        <option value="feedback">Feedback</option>
-                                        <option value="overlay">Overlay</option>
-                                        <option value="question">Question</option>
-                                        <!-- <Jun Kai start> -->
-                                        <option value="visitor_archive">Visitor archive</option>
-                                        <!-- <Jun Kai end> -->
-                                    </select>
-                                </div>
-
-                                <!-- IP Address Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">🌐 IP Address</label>
-                                    <input type="text" id="filter-ip" class="filter-input" 
-                                           placeholder="e.g., 192.168.1.1" 
-                                           oninput="filterAuditLogs()">
-                                </div>
-
-                                <!-- Results Count (DONE BY PRETI)-->
-                                <div class="filter-group filter-results">
-                                    <label class="filter-label">📊 Results</label>
-                                    <div class="results-display">
-                                        <span id="filtered-count">0</span> / <span id="total-count">0</span> logs
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Results Info Bar (DONE BY PRETI)-->
-                        <div class="results-info-bar" id="results-info-bar" style="display: none;">
-                            <span class="info-text">
-                                <strong id="active-filters-count">0</strong> filter(s) active - 
-                                <!-- <Jun Kai start> the second strong was closed with a span tag, which left it open and made every later page bold -->
-                                Showing <strong id="results-count">0</strong> of <strong id="total-logs">0</strong> logs
-                                <!-- <Jun Kai end> -->
+                        <div class="ui-pager">
+                            <span><span id="archive-page-info" aria-live="polite">Loading</span><span class="ui-pager-status" id="archive-status" role="status"></span></span>
+                            <span class="ui-pager-buttons">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="prevArchivePage()" id="prev-archive-btn" disabled>Previous</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="nextArchivePage()" id="next-archive-btn" disabled>Next</button>
                             </span>
                         </div>
+                    </div>
 
-                        <div class="data-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th onclick="sortAuditLogs('created_at')" class="sortable">
-                                            Time <span class="sort-indicator" id="sort-created_at"></span>
-                                        </th>
-                                        <th onclick="sortAuditLogs('admin_username')" class="sortable">
-                                            User <span class="sort-indicator" id="sort-admin_username"></span>
-                                        </th>
-                                        <th onclick="sortAuditLogs('action')" class="sortable">
-                                            Action <span class="sort-indicator" id="sort-action"></span>
-                                        </th>
-                                        <th>Target</th>
-                                        <th onclick="sortAuditLogs('ip_address')" class="sortable">
-                                            IP Address <span class="sort-indicator" id="sort-ip_address"></span>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="audit-logs-body">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading audit logs...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            
-                            <div class="pagination" style="margin-top: 20px;">
-                                <button onclick="prevAuditPage()" id="prev-audit-btn" disabled>← Previous</button>
-                                <span id="audit-page-info">Page 1</span>
-                                <button onclick="nextAuditPage()" id="next-audit-btn">Next →</button>
+                    <!-- one submission: filled by archiveView (submissionList.js) -->
+                    <aside class="ui-sidepanel" id="archive-panel" aria-labelledby="archive-panel-title" hidden></aside>
+
+                    <!-- Delete by date (System Admins): the list stays usable beside it -->
+                    <aside class="ui-sidepanel" id="archive-delete-panel" aria-labelledby="archive-delete-title" hidden>
+                        <header class="ui-sidepanel-head">
+                            <div>
+                                <h3 id="archive-delete-title" tabindex="-1">Delete by date</h3>
+                                <p>Every archived record older than the date</p>
                             </div>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="closeArchiveDeletePanel()" title="Close" aria-label="Close Delete by date" data-fb-icon="close"></button>
+                        </header>
+                        <div class="ui-sidepanel-body">
+                            <div class="ui-field-stack">
+                                <label for="bulk-delete-date">Delete every archived record from before</label>
+                                <input type="date" id="bulk-delete-date" class="ui-input" onchange="archiveDeleteDateChanged()">
+                            </div>
+                            <div class="ui-field-stack">
+                                <span class="ui-label">Quick picks</span>
+                                <div class="ui-quick" id="bulk-delete-quick">
+                                    <button type="button" data-quick="3months">3 months ago</button>
+                                    <button type="button" data-quick="6months">6 months ago</button>
+                                    <button type="button" data-quick="1year">1 year ago</button>
+                                    <button type="button" data-quick="2years">2 years ago</button>
+                                    <button type="button" data-quick="3years">3 years ago</button>
+                                </div>
+                            </div>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="previewBulkDelete()" id="preview-delete-btn">Preview how many</button>
+                            <p class="ui-preview-count" id="preview-count" hidden>This deletes <strong id="preview-number">0</strong> records.</p>
+                            <div class="ui-note ui-note-warn">Deleting is permanent and cannot be undone. Save the records first on <button type="button" class="inline-link-btn" onclick="closeArchiveDeletePanel(); showPage('visitor-archive')">Visitor Data Archive</button> if they may be needed later. VIP leaves are kept.</div>
+                        </div>
+                        <footer class="ui-sidepanel-foot">
+                            <button type="button" class="ui-btn ui-btn-danger" onclick="bulkDeleteByDate()" id="bulk-delete-btn" disabled><span data-fb-icon="trash"></span>Delete by date</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="closeArchiveDeletePanel()">Cancel</button>
+                        </footer>
+                    </aside>
+                    <!-- <Jun Kai end> -->
+                </div>
+
+                <div id="audit-page" class="page">
+                    <!-- <Jun Kai start> Audit Logs page (admin redesign, Audit Logs B): the events are grouped under a heading
+                         per day and each one reads as a short sentence, with its action code as a coloured tag and the IP
+                         address and time on the right. The filters are chips that are always in view. The ids of the search
+                         box, the filters and the pager are the old ones, so filterAuditLogs and the helpers in lostFound.js
+                         keep working. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Audit Logs</h2>
+                            <p>Important actions and security events, grouped by day.</p>
                         </div>
                     </div>
+
+                    <div class="ui-card audit-card">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the audit log">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the audit log</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="audit-search-input" placeholder="Search user, action, target or IP" autocomplete="off" oninput="filterAuditLogs()">
+                            </label>
+                            <button type="button" class="ui-filter" id="audit-date-button" popovertarget="audit-date-pop" aria-haspopup="dialog">
+                                <span data-fb-icon="calendar"></span><span id="audit-date-label">Any date</span>
+                            </button>
+                            <div class="ui-filter-pop" id="audit-date-pop" popover aria-label="Date range">
+                                <div class="ui-filter-presets">
+                                    <button type="button" onclick="setDateRangePreset('today')">Today</button>
+                                    <button type="button" onclick="setDateRangePreset('week')">Past 7 days</button>
+                                    <button type="button" onclick="setDateRangePreset('month')">Past month</button>
+                                    <button type="button" onclick="clearAuditDates()">Any date</button>
+                                </div>
+                                <label class="ui-filter-field">From <input type="date" id="filter-date-from" class="ui-input" onchange="filterAuditLogs()"></label>
+                                <label class="ui-filter-field">To <input type="date" id="filter-date-to" class="ui-input" onchange="filterAuditLogs()"></label>
+                            </div>
+                            <select id="filter-action" class="ui-filter ui-filter-select" aria-label="Action" onchange="filterAuditLogs()">
+                                <option value="">Action: any</option>
+                                <option value="LOGIN">Sign in</option>
+                                <option value="LOGOUT">Sign out</option>
+                                <option value="DELETE">Delete</option>
+                                <option value="ADD">Add</option>
+                                <option value="EDIT">Edit</option>
+                                <option value="DOWNLOAD">Download</option>
+                                <option value="VIEW">View</option>
+                                <option value="ARCHIVE">Archive</option>
+                            </select>
+                            <select id="filter-user" class="ui-filter ui-filter-select" aria-label="Admin" onchange="filterAuditLogs()">
+                                <option value="">Admin: any</option>
+                            </select>
+                            <select id="filter-target-type" class="ui-filter ui-filter-select" aria-label="Target" onchange="filterAuditLogs()">
+                                <option value="">Target: any</option>
+                                <option value="user">User</option>
+                                <option value="feedback">Feedback</option>
+                                <option value="overlay">Overlay</option>
+                                <option value="question">Question</option>
+                                <option value="visitor_archive">Visitor archive</option>
+                            </select>
+                            <label class="audit-ip-filter">
+                                <span class="ui-sr-only">IP address</span>
+                                <input type="search" id="filter-ip" class="ui-filter audit-ip-input" placeholder="IP address" autocomplete="off" oninput="filterAuditLogs()">
+                            </label>
+                            <button type="button" class="ui-link" id="audit-clear-filters" onclick="clearAllFilters()" hidden>Clear filters</button>
+                            <select id="audit-order" class="ui-filter ui-filter-select" aria-label="Order" onchange="setAuditOrder(this.value)">
+                                <option value="desc">Newest first</option>
+                                <option value="asc">Oldest first</option>
+                            </select>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="loadAuditLogs()" title="Load the audit log again" aria-label="Load the audit log again" data-fb-icon="refresh"></button>
+                        </div>
+
+                        <!-- filled by updateAuditTable() in audit.js: a heading per day, then that day's events -->
+                        <div id="audit-logs-body" class="audit-timeline">
+                            <p class="ui-empty audit-empty">Loading the audit log</p>
+                        </div>
+
+                        <div class="ui-pager">
+                            <span id="audit-page-info" aria-live="polite">Loading</span>
+                            <span class="ui-pager-buttons">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="prevAuditPage()" id="prev-audit-btn" disabled>Previous</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="nextAuditPage()" id="next-audit-btn" disabled>Next</button>
+                            </span>
+                        </div>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Lost and Found Reports Page - changes made by nick -->
                 <div id="lost-found-page" class="page">
-                    <div class="page-header">
-                        <h2>Lost &amp; Found Reports</h2>
-                        <p>Reports submitted from the visitor feedback form</p>
+                    <!-- <Jun Kai start> Lost & Found page (admin redesign, Lost & Found A): Nick's four usage numbers as tiles,
+                         the status filter as chips with counts, and a table where each report shows only its next step
+                         (Mark reviewed, then Mark resolved); a new report can still be resolved at once from its ... menu.
+                         The ids of the search box, the type filter, the summary, the table body and the usage numbers are
+                         the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Lost &amp; Found</h2>
+                            <p>Reports that visitors sent from the feedback form.</p>
+                        </div>
                     </div>
 
-                    <div class="lost-found-admin-section">
-                        <div class="section-header">
-                            <h3>All Reports</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="downloadLostFoundCsv()">Export CSV</button>
-                                <button class="btn-primary" onclick="loadLostFoundReports()">Refresh</button>
-                            </div>
+                    <!-- Nick feature usage analytics (DONE BY NICK), as tiles -->
+                    <div class="ui-stats" id="nick-usage-analytics">
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Captures</span>
+                            <strong class="ui-stat-value" id="nick-analytics-captures">--</strong>
+                            <span class="ui-stat-note">photos and boomerangs taken</span>
                         </div>
-
-                        <!-- Nick feature usage analytics cards (DONE BY NICK) -->
-                        <div class="lost-found-analytics-grid" id="nick-usage-analytics">
-                            <div class="lost-found-analytics-card">
-                                <span>Captures</span>
-                                <strong id="nick-analytics-captures">--</strong>
-                            </div>
-                            <div class="lost-found-analytics-card">
-                                <span>Boomerangs</span>
-                                <strong id="nick-analytics-boomerangs">--</strong>
-                            </div>
-                            <div class="lost-found-analytics-card">
-                                <span>Filters Used</span>
-                                <strong id="nick-analytics-filters">--</strong>
-                            </div>
-                            <div class="lost-found-analytics-card">
-                                <span>Lost &amp; Found Photos</span>
-                                <strong id="nick-analytics-lost-found-photos">--</strong>
-                            </div>
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Boomerangs</span>
+                            <strong class="ui-stat-value" id="nick-analytics-boomerangs">--</strong>
+                            <span class="ui-stat-note">short looping videos</span>
                         </div>
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Filters used</span>
+                            <strong class="ui-stat-value" id="nick-analytics-filters">--</strong>
+                            <span class="ui-stat-note">times a photo filter was picked</span>
+                        </div>
+                        <div class="ui-card ui-stat">
+                            <span class="ui-stat-label">Lost &amp; Found photos</span>
+                            <strong class="ui-stat-value" id="nick-analytics-lost-found-photos">--</strong>
+                            <span class="ui-stat-note">reports that came with a photo</span>
+                        </div>
+                    </div>
 
-                        <div class="toolbar">
-                            <input type="text" id="lost-found-search-input" class="search-input"
-                                   placeholder="Search item, location, contact, or details..."
-                                   oninput="filterLostFoundReports()">
-                            <select id="lost-found-type-filter" class="filter-select" onchange="filterLostFoundReports()">
-                                <option value="">All Types</option>
-                                <option value="lost">Lost Items</option>
-                                <option value="found">Found Items</option>
+                    <div class="ui-card lf-card">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the Lost and Found reports">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the reports</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="lost-found-search-input" placeholder="Search item, location, contact or details" autocomplete="off" oninput="filterLostFoundReports()">
+                            </label>
+                            <div class="ui-chips lf-status" role="radiogroup" aria-label="Status">
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="" checked onchange="filterLostFoundReports()"><span>All <b class="lf-count" id="lost-found-count-all">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="new" onchange="filterLostFoundReports()"><span>New <b class="lf-count" id="lost-found-count-new">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="reviewed" onchange="filterLostFoundReports()"><span>Reviewed <b class="lf-count" id="lost-found-count-reviewed">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="lost-found-status" value="resolved" onchange="filterLostFoundReports()"><span>Resolved <b class="lf-count" id="lost-found-count-resolved">0</b></span></label>
+                            </div>
+                            <select id="lost-found-type-filter" class="ui-filter ui-filter-select" aria-label="Type" onchange="filterLostFoundReports()">
+                                <option value="">Type: any</option>
+                                <option value="lost">Lost items</option>
+                                <option value="found">Found items</option>
                             </select>
-                            <select id="lost-found-status-filter" class="filter-select" onchange="filterLostFoundReports()">
-                                <option value="">All Statuses</option>
-                                <option value="new">New</option>
-                                <option value="reviewed">Reviewed</option>
-                                <option value="resolved">Resolved</option>
-                            </select>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="downloadLostFoundCsv()"><span data-fb-icon="download"></span>Export CSV</button>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="loadLostFoundReports()" title="Load the reports again" aria-label="Load the reports again" data-fb-icon="refresh"></button>
                         </div>
 
-                        <div class="lost-found-summary" id="lost-found-summary">
-                            0 reports
-                        </div>
-
-                        <div class="data-table lost-found-admin-table">
-                            <table>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table lf-table">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Tracking</th>
+                                        <th aria-sort="descending"><button type="button" class="ui-sort" onclick="sortLostFoundByDate()" title="Sort by date">Report<span class="sort-indicator desc" id="lost-found-sort-date"></span></button></th>
                                         <th>Type</th>
                                         <th>Item</th>
                                         <th>Photo</th>
@@ -2126,19 +1930,25 @@
                                         <th>Contact</th>
                                         <th>Details</th>
                                         <th>Status</th>
-                                        <th>Actions</th>
+                                        <th class="lf-actions"><span class="ui-sr-only">Next step</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="lost-found-reports-body">
-                                    <tr>
-                                        <td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading Lost &amp; Found reports...
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="9" class="ui-empty">Loading the reports</td></tr>
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="ui-pager">
+                            <span><span id="lost-found-summary" aria-live="polite">Loading</span><span class="ui-pager-status" id="lost-found-status" role="status"></span></span>
+                        </div>
                     </div>
+
+                    <!-- one small menu for every row's ... button: placed and filled by openLostFoundMenu() in lostFound.js -->
+                    <div class="ui-menu" id="lost-found-menu" popover role="menu" aria-label="More for this report">
+                        <button type="button" role="menuitem" data-lf-menu-status="resolved">Mark resolved now</button>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Data Export Page (DONE BY PRETI)-->
@@ -2329,7 +2139,7 @@
                 <!-- Theme Settings Page (DONE BY PRETI)-->
                 <div id="theme-settings-page" class="page">
                     <div class="page-header">
-                        <h2>Style & Theme Settings</h2>
+                        <h2>Style &amp; Theme</h2>
                         <p>Customize colors and themes for the admin panel and all pages</p>
                     </div>
 
@@ -2473,7 +2283,7 @@
                 <div id="email-management-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>Email</h2>
+                            <h2>Mail Account</h2>
                             <p>The mail account the kiosk sends from: the thank-you email with the visitor photo, badge emails and test messages. Pick a provider, save, then send yourself a test.</p>
                         </div>
                         <div class="ui-row">
@@ -2498,7 +2308,7 @@
                             <div class="ui-card">
                                 <div class="ui-card-header">
                                     <div>
-                                        <h3>Mail account</h3>
+                                        <h3>Mail account<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: About the mail account" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="About the mail account"><ul><li>A saved password is never sent back to this page. It shows as ********, and leaving it like that keeps the stored one.</li><li>The sender address is what visitors see as From. Left empty, the mail login is used. Gmail shows its own address unless the sender address is a verified alias.</li><li>Save reloads the mail service at once, with no restart. Settings that the mail server rejects are not saved, and the ones that worked stay.</li></ul></template></span></h3>
                                         <p>Gmail needs an App Password (Google Account, Security, 2-Step Verification, App passwords), not the normal account password.</p>
                                     </div>
                                 </div>
@@ -2524,7 +2334,7 @@
                             <div class="ui-card">
                                 <div class="ui-card-header">
                                     <div>
-                                        <h3>Test message</h3>
+                                        <h3>Test message<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Test message" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Test message"><div>Sends one short email with the saved settings, so save first. It goes out as "RP Xperience Centre" from the sender address, like the real emails.</div></template></span></h3>
                                         <p>Sends a short email with the saved settings. Save first, then test.</p>
                                     </div>
                                 </div>
@@ -2543,8 +2353,8 @@
                         <div class="ui-card email-preview-card">
                             <div class="ui-card-header">
                                 <div>
-                                    <h3>Preview</h3>
-                                    <p>The thank-you email a visitor gets, with a sample visitor. The wording is set under Parameter Adjustment; the visitor's photo is attached in the real email.</p>
+                                    <h3>Preview<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What the preview shows" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What the preview shows"><div>The thank you email a visitor gets, filled in with a sample visitor. The wording comes from Kiosk Settings, Email Content. In the real email the visitor's photo is attached.</div></template></span></h3>
+                                    <p>The thank-you email a visitor gets, with a sample visitor.</p>
                                 </div>
                                 <button type="button" class="ui-btn ui-btn-secondary" onclick="loadEmailPreview()">Refresh</button>
                             </div>
@@ -2560,7 +2370,7 @@
 
                 <div id="badge-email-templates-page" class="page">
                     <div class="page-header">
-                        <h2>Badge Email Templates</h2>
+                        <h2>Badge Emails</h2>
                         <p>Tailor badge emails and personalized exhibit highlights for each reward.</p>
                     </div>
 
@@ -2621,7 +2431,7 @@
                 <div id="form-management-page" class="page">
 
                     <div class="page-header">
-                        <h2>Form Management</h2>
+                        <h2>Start Screen Text</h2>
                         <p>Manage form background, landing title, and subtitle</p>
                     </div>
 
@@ -2666,7 +2476,7 @@
                 <!-- Parameter Adjustment Page -->
                 <div id="parameter-adjustment-page" class="page">
                     <div class="page-header">
-                        <h2>Parameter Adjustment</h2>
+                        <h2>Kiosk Settings</h2>
                         <p>Configure system-wide parameters including feedback messages, tree visualization settings, and photo options</p>
                     </div>
 
@@ -3270,8 +3080,8 @@
                         </div>
 
                         <div class="parameter-upload-note">
-                            Upload new overlay image files from <button type="button" class="inline-link-btn" onclick="showPage('overlay')">Overlay Management</button>.
-                            Use <button type="button" class="inline-link-btn" onclick="showPage('form-management')">Form Management</button> for landing page background presets.
+                            Upload new overlay image files from <button type="button" class="inline-link-btn" onclick="showPage('overlay')">Photo Overlays</button>.
+                            Use <button type="button" class="inline-link-btn" onclick="showPage('form-management')">Start Screen Text</button> for landing page background presets.
                         </div>
                     </div>
 
@@ -3280,7 +3090,7 @@
                         <div class="section-header">
                             <h3>Auto Archive Rules</h3>
                             <!-- <Jun Kai start> -->
-                            <p class="section-description">Choose when submitted feedback should move from Feedback Data into Archived Feedback, counted from each feedback submission date</p>
+                            <p class="section-description">Choose when submitted feedback should move from Feedback into Archived Feedback, counted from each feedback submission date</p>
                             <!-- <Jun Kai end> -->
                         </div>
 
@@ -3342,7 +3152,7 @@
                 <!-- Timer Countdown Page (DONE BY BERNISSA) -->
                 <div id="timer-countdown-page" class="page">
                     <div class="page-header">
-                        <h2>Timer Countdown</h2>
+                        <h2>Photo Timer</h2>
                         <p>
                             Configure the countdown duration for automated photo capturing in the feedback form.
                         </p>
@@ -3390,9 +3200,9 @@
                 <div id="health-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>System health</h2>
+                            <h2>System Health<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How the checks work" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How the checks work"><div>The eight checks run side by side every 30 seconds while this page is open, and when you press Check now.</div><ul><li><b>Green</b> healthy, <b>amber</b> needs attention, <b>red</b> down, <b>grey</b> unknown or switched off.</li><li>The strip under a card is the last 24 hours: 48 blocks of half an hour, each showing the worst result in it.</li><li>The strips come from background checks, every 5 minutes unless changed under Incidents, Settings.</li><li>Customise hides checks for your account only.</li></ul></template></span></h2>
                             <!-- <Jun Kai start> -->
-                            <p>Database, local language model, disk, kiosk server, email, tablets and the schedule automation, with the open incidents in short (the full list is on the Incidents page). Refreshes every 30 seconds while this page is open.</p>
+                            <p>The checks the kiosk depends on, with the open incidents in short. The full list is on the Incidents page.</p>
                             <!-- <Jun Kai end> -->
                         </div>
                         <!-- <Jun Kai start> -->
@@ -3452,7 +3262,7 @@
                         <div class="ui-card" id="health-tablets-card">
                             <div class="ui-card-header">
                                 <div>
-                                    <h3>Tablets</h3>
+                                    <h3>Tablets<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How a tablet shows as online" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How a tablet shows as online"><div>Each kiosk screen reports once a minute while its page is open. Nobody has to press anything on the tablet.</div><ul><li><b>Online</b>: the last report is no older than "Offline after" (3 minutes unless changed, 2 to 30).</li><li>The server measures the time, so a tablet with a wrong clock still shows correctly.</li><li>The pencil gives a tablet a name or number. Only named tablets can raise an incident when they go quiet.</li></ul></template></span></h3>
                                     <!-- <Jun Kai start> -->
                                     <p>Each kiosk screen reports once a minute from the feedback page; one quiet for longer than Offline after shows as offline. Incidents use their own minutes (Incidents, Settings). Use the edit button next to a tablet to give it a name or a number.</p>
                                     <!-- <Jun Kai end> -->
@@ -3485,11 +3295,41 @@
 
                 <!-- <Jun Kai start> -->
                 <!-- Incidents (Role 3): what the anomaly detection found, on a page of their own (they were a panel on System Health) -->
+                <!-- <Jun Kai start> AI Settings: one switch for every AI feature and one per feature (js/aiSettings.js) -->
+                <div id="ai-settings-page" class="page">
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>AI Settings<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What counts as AI here"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What counts as AI here"><p>A feature is listed when it runs an AI model (on this PC or online) or sends text to an online service that works with AI.</p><p>The hardware forecast and the anomaly detection of Incidents are statistics: they need no model, so they always stay on.</p><p>The server refuses a feature that is off, so a switch here works even for a page that is open in another browser.</p></template></span></h2>
+                            <p>Switch the AI features of the kiosk on or off. A switch saves as soon as it is flipped.</p>
+                        </div>
+                    </div>
+
+                    <div class="ui-card ai-card">
+                        <label class="ai-row ai-row-master">
+                            <span class="ai-row-text">
+                                <b>All AI features</b>
+                                <small>Off: no AI model runs and nothing is sent to an online AI service, whatever the switches below say. Each switch keeps its own setting for when this is on again.</small>
+                            </span>
+                            <span class="ai-row-state" id="ai-settings-all-state"></span>
+                            <span class="ui-switch ai-row-switch"><input type="checkbox" id="ai-settings-all" aria-label="All AI features"><span class="ui-switch-track"></span></span>
+                        </label>
+                    </div>
+
+                    <div class="ui-card ai-card">
+                        <div class="ai-card-head"><h3>Features</h3><span class="ui-pager-status ai-settings-status" id="ai-settings-status" role="status"></span></div>
+                        <div class="ai-rows" id="ai-settings-rows"></div>
+                    </div>
+
+                    <p class="ai-kiosk-line">Face check before a photo and the photo props run on the kiosk tablets. Their switches come with the Feedback Screen update.</p>
+                    <p class="ai-kiosk-line" id="ai-settings-who" hidden>Only a System Admin can change these switches.</p>
+                </div>
+                <!-- <Jun Kai end> -->
+
                 <div id="incidents-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>Incidents</h2>
-                            <p>Unusual behaviour of the server PC, its services, the tablets and the server logs, found by comparing each with its own past. Refreshes every 30 seconds while this page is open.</p>
+                            <h2>Incidents<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How incidents are found" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How incidents are found"><div>Every 60 seconds the admin server compares this PC's own numbers with their own past: CPU, memory, GPU, disk, the services, the named tablets and the server logs. This page refreshes every 30 seconds while it is open.</div><ul><li>It uses plain statistics, so every incident comes with a number and a sentence. Nothing leaves this PC.</li><li><b>Critical</b>, <b>Attention</b> or <b>Info</b> says how far from normal it is.</li><li>An incident closes by itself once things have been normal for 10 minutes.</li><li>With Quiet hours on, the kiosk server and the tablets are not watched while the policies say the kiosk is off.</li></ul><div>Each number can be changed under Settings.</div></template></span></h2>
+                            <p>Unusual behaviour of the server PC, its services, the tablets and the server logs, found by comparing each with its own past.</p>
                         </div>
                         <div class="ui-row inc-header-actions">
                             <span class="inc-chips" id="incidents-chips"></span>
@@ -3554,12 +3394,10 @@
                                         <select class="ui-select" id="incidents-advisor-model"></select>
                                         <span class="ui-fact-hint" id="incidents-advisor-help"></span>
                                     </div>
-                                    <!-- every local AI model of the app; with it off no AI model runs on this PC for the admin pages -->
-                                    <label class="inc-toggle-row">
-                                        <span class="ui-switch"><input type="checkbox" id="incidents-local-ai"><span class="ui-switch-track"></span></span>
-                                        <span class="inc-toggle-text"><strong>Local AI models (Ollama and Xenova)</strong><small id="incidents-local-ai-text">The AI models that run on this PC. Ollama runs the advisor above and the Qwen AI, Gemma AI and LocalGPT modes in Feedback Reports. Xenova runs the Xenova AI mode there. Off: none of them runs. The advisor gives rule-based advice, Feedback Reports offers Rule-Based Analysis only, and System Health shows Ollama as off.</small></span>
-                                    </label>
-                                    <div class="inc-drawer-callout inc-drawer-callout-quiet" id="incidents-ai-all-off" hidden>The advisor and the local AI models are both off, so no AI model runs on this PC for the admin pages. Not covered here: the kiosk's pledge check and face detection keep their own models, and Translate to English uses Google's online service.</div>
+                                    <!-- <Jun Kai start> the switch for all AI models is on the AI Settings page now -->
+                                    <p class="inc-drawer-note" id="incidents-ai-link">Every AI feature, the advisor included, can also be switched on or off on the <button type="button" class="inline-link-btn" onclick="closeIncidentSettings(); showPage('ai-settings'); loadAiSettingsPage();">AI Settings</button> page.</p>
+                                    <div class="inc-drawer-callout inc-drawer-callout-quiet" id="incidents-ai-all-off" hidden>All AI features are switched off on the AI Settings page, so the advisor gives rule-based advice.</div>
+                                    <!-- <Jun Kai end> -->
                                 </section>
                                 <section class="inc-drawer-section">
                                     <div class="inc-drawer-title">Timing and keeping</div>
@@ -3749,8 +3587,10 @@
                 <div id="hardware-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>Hardware</h2>
-                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 minute</span> and kept for <span id="hardware-retention-text">30 days</span>; a summary of each day is kept for good (<!-- <Jun Kai start> -->longer ranges and forecasts use it<!-- <Jun Kai end> -->). <!-- <Jun Kai start> -->While this page is open the part cards update every second, and the graphs and the forecast every minute.<!-- <Jun Kai end> --></p>
+                            <h2>Hardware<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Where the numbers come from" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Where the numbers come from"><ul><li>The server measures the PC at the sampling interval (every minute unless changed) and stores each sample. The graphs draw averages of those samples.</li><li>Samples are kept for 30 days unless changed. One summary of each day is kept for good, for long ranges and long forecasts.</li><li>The four part cards update every second from a live reading that is not stored. The graphs and the forecast update every minute.</li><li>A hatched stretch on a graph means no samples: the PC was asleep or the server was stopped.</li></ul><div>Sample every and Keep samples for are under Settings.</div></template></span></h2>
+                            <!-- <Jun Kai start> one short line, so the whole page shows without scrolling; the rest is in the note beside the title -->
+                            <p>CPU, memory, disk and GPU use of the server PC, sampled every <span id="hardware-interval-text">1 minute</span> and kept for <span id="hardware-retention-text">30 days</span>.</p>
+                            <!-- <Jun Kai end> -->
                         </div>
                         <div class="ui-row">
                             <span id="hardware-sampler-pill" class="ui-pill ui-pill-muted"><span class="ui-dot"></span>Loading</span>
@@ -3765,7 +3605,7 @@
                     <div class="hw-room">
                         <!-- <Jun Kai start> the cards' column: how fresh the numbers are, then the cards -->
                         <div class="hw-side">
-                        <div class="hw-live" id="hardware-live-note"><span class="hw-live-dot" aria-hidden="true"></span><span id="hardware-live-text">Loading</span></div>
+                        <div class="hw-live" id="hardware-live-note"><span class="hw-live-dot" aria-hidden="true"></span><span id="hardware-live-text">Loading</span><span class="ui-info ui-info-flush"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Normal, High and Critical" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Normal, High and Critical"><div>A part is <b>High</b> at or above its amber line and <b>Critical</b> at or above its red line: 85 % and 95 % unless changed.</div><div>Each part has its own two lines, under Settings, Alert lines. Only a System Admin can change them. System Health uses the same lines for its Disk space and Server PC cards.</div></template></span></div>
                         <!-- <Jun Kai end> -->
                         <div class="hw-keys" role="group" aria-label="Part of the PC to show">
                             <button type="button" class="hw-key hw-key-all" data-part="all" aria-pressed="true" onclick="setHardwarePart('all')">
@@ -3817,6 +3657,7 @@
                                         <button type="button" class="hw-seg-btn active" data-mode="past" aria-pressed="true" onclick="setHardwareMode('past')">Past</button>
                                         <button type="button" class="hw-seg-btn" data-mode="forecast" aria-pressed="false" onclick="setHardwareMode('forecast')">Forecast</button>
                                     </div>
+                                    <span class="ui-info ui-info-flush"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How the forecast is made" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How the forecast is made"><div>Statistics only, no AI.</div><ul><li><b>Up to 2 days ahead</b>: CPU, memory and GPU follow the level and the trend of the last 24 hours in 10 minute averages (Holt's damped trend). The disk gets a straight line through its growth of the last 30 days. It needs about an hour of samples.</li><li><b>Further ahead</b>: it uses one average per day and shows the usual level and range, not a prediction for one day. Only the disk line carries a trend on. It needs 6 days with samples.</li><li><b>Rough guide</b> means the history is shorter than the forecast looks ahead, so treat it with care.</li></ul></template></span>
                                     <span class="hw-range-word" id="hardware-range-word" aria-hidden="true">Last</span>
                                     <div class="hw-range" id="hardware-range-wrap">
                                         <div class="hw-segment" id="hardware-range" role="group" aria-label="Show the last">
@@ -4054,7 +3895,7 @@
                     <div class="ui-card">
                         <div class="ui-card-header va-history-head">
                             <div>
-                                <h3 id="va-history-title" tabindex="-1">History</h3>
+                                <h3 id="va-history-title" tabindex="-1">History<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Reading the History" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Reading the History"><div>Every archive run made on this PC, newest first. The 5 newest show until you press Show all.</div><ul><li><b>Archived</b>: the zip passed its check. The records were deleted, unless the run was export only.</li><li><b>Saved, records kept</b>: the zip is good, but the records stayed, for example because one changed during the run.</li><li><b>Failed</b>: the zip could not be written or checked. Nothing was deleted.</li><li><b>Interrupted</b>: the server stopped before the archive file was finished. Nothing was deleted.</li><li><b>File missing</b>: the zip is no longer in the folder.</li></ul><div>Row buttons: View records, Download, Check file (checks the zip against its fingerprints again) and Delete file. Viewing and downloading ask for your password first and stay open for 10 minutes.</div></template></span></h3>
                                 <p>Every archive made on this PC, newest first. Records are deleted only after their file has been checked.</p>
                             </div>
                             <span class="ui-fact-hint" id="va-history-totals"></span>
@@ -4081,7 +3922,7 @@
                             <div class="ui-card">
                                 <div class="ui-card-header">
                                     <div>
-                                        <h3 id="va-settings-title" tabindex="-1">What to archive</h3>
+                                        <h3 id="va-settings-title" tabindex="-1">What to archive<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Which records are archived" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Which records are archived"><div>A record is due once it is older than its keep period (12 months unless you change it), counted to the start of that day in Singapore time.</div><ul><li>A visitor who still has newer feedback is kept.</li><li>A VIP (gold) leaf is never archived and stays on the tree.</li><li>For feedback given with 7 day consent, the photos are not copied.</li></ul><div><b>Nothing is deleted unless the zip passes its check.</b> The check reads the whole file back and compares every record. Deleting happens in one step: either every record of the run goes, or none.</div></template></span></h3>
                                         <p>A record is due once it is older than its keep period. Automatic archiving takes every due record; Archive now starts from these choices.</p>
                                     </div>
                                 </div>
@@ -4173,7 +4014,7 @@
                                 <div class="ui-card-body">
                                     <div class="va-types">
                                         <div class="ui-field">
-                                            <label class="ui-label" for="va-leaves">Leaves on the tree</label>
+                                            <div class="ui-label-row"><label class="ui-label" for="va-leaves">Leaves on the tree</label><span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What happens to the leaf" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What happens to the leaf"><ul><li><b>Keep the leaf, without a name</b>: the leaf stays and shows "Visitor". Only its date, badge and VIP mark are kept.</li><li><b>Keep the leaf, with initials</b>: a visitor whose name was shown keeps initials such as "J. T.". Chinese, Japanese and Korean names and words of one letter show "Visitor", because initials would give the name away.</li><li><b>Remove the leaf</b>: the leaf leaves the tree with the records. The year book still counts it as archived.</li></ul><div>A change only affects later archives.</div></template></span></div>
                                             <select class="ui-select" id="va-leaves" aria-describedby="va-leaves-help va-leaves-choices">
                                                 <option value="keep" selected>Keep the leaf, without a name</option>
                                                 <option value="initials">Keep the leaf, with initials</option>
@@ -4193,7 +4034,7 @@
                                 <div class="ui-card">
                                     <div class="ui-card-header">
                                         <div>
-                                            <h3>Schedule</h3>
+                                            <h3>Schedule<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How automatic archiving runs" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How automatic archiving runs"><div>Off until you switch it on. It needs "Delete the records from the database", because an export only run would save the same records again every time.</div><ul><li>The server looks every 15 minutes whether a run is due.</li><li>A run missed while the PC was asleep or off happens at the first look after it is on again.</li><li>A run that could not finish is tried again after 1 hour, at most 3 times for that period.</li></ul><div>Archive now works at any time, with the schedule on or off.</div></template></span></h3>
                                             <p>Archive due records on a schedule. Archive now works at any time.</p>
                                         </div>
                                     </div>
@@ -4259,7 +4100,7 @@
                                 <div class="ui-card">
                                     <div class="ui-card-header">
                                         <div>
-                                            <h3>Storage</h3>
+                                            <h3>Storage<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What an archive file is" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What an archive file is"><div>Each archive run saves <b>one .zip file</b> in the archive folder on this PC, with a <b>.sha256 file</b> beside it. The .sha256 file is a fingerprint that shows later whether the zip was changed.</div><div>Inside the zip:</div><ul><li><span class="ui-code">README.txt</span> explains what is inside</li><li><span class="ui-code">data/</span> the records as JSON (visitors, feedback, lost &amp; found, questions)</li><li><span class="ui-code">csv/</span> the same records as CSV, which Excel opens</li><li><span class="ui-code">photos/</span> visitor photos and lost &amp; found photos, when Include photos is on</li><li><span class="ui-code">manifest.json</span> the counts, the record ids and a SHA-256 checksum of every other file</li></ul><div><b>The zip has no password.</b> Names, pledges, answers and photos inside are readable by anyone who has the file. Emails and lost &amp; found contact details stay encrypted and need the <span class="ui-code">ENCRYPTION_KEY</span> from <span class="ui-code">backend\.env</span>.</div></template></span></h3>
                                             <p>Where the zip files are kept on this PC, and for how long.</p>
                                         </div>
                                     </div>
@@ -4514,8 +4355,8 @@
                 <div id="server-schedule-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>Operating hours</h2>
-                            <p>Policies decide when the kiosk runs. In automatic mode each switch-off is recorded and the kiosk server is started when a policy needs it. History also says when the kiosk stopped and started, and why. Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</p>
+                            <h2>Operating Hours</h2>
+                            <p>Policies decide when the kiosk runs. History says when it stopped and started, and why.</p>
                         </div>
                         <!-- <Jun Kai start> what the automation did: a drawer from the right -->
                         <div class="ui-row">
@@ -4528,7 +4369,7 @@
                     <!-- <Jun Kai start> -->
                     <div class="policy-tiles">
                         <div class="ui-card policy-tile policy-tile-stop">
-                            <span class="policy-tile-label">Next stop</span>
+                            <span class="policy-tile-label">Next stop<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Next stop and next start" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Next stop and next start"><div>Worked out from the policies in automatic mode. In manual mode, or when automation is switched off on this machine, nothing runs by itself and the tiles say so.</div></template></span></span>
                             <span class="policy-tile-value" id="automation-next-stop">–</span>
                             <span class="policy-tile-hint" id="automation-next-stop-hint">Off hours begin</span>
                         </div>
@@ -4579,7 +4420,7 @@
                     <div class="ui-card" id="policies-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Policies</h3>
+                                <h3>Policies<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Which policy decides" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Which policy decides"><div>For any moment, the <b>first enabled policy from the top</b> that covers it decides. Active means the kiosk runs. Stop, or no policy at all, means off.</div><ul><li>A new policy is placed for you: one date goes above days of the week, above months, above every day. At the same level a Stop goes above an Active.</li><li>Drag the handle to change the order yourself.</li><li>A window may pass midnight, for example 22:00 to 06:00.</li></ul></template></span></h3>
                                 <p>The first policy in the list that covers a moment decides it. Drag the handle to change the order.</p>
                             </div>
                             <div class="ui-row">
@@ -4607,7 +4448,7 @@
                     <div class="ui-card">
                         <div class="ui-card-header">
                             <div>
-                                <h3>Controls</h3>
+                                <h3>Controls<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: Automatic and manual mode" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="Automatic and manual mode"><ul><li><b>Automatic</b>: the policies decide. While they say the kiosk runs, the server starts the kiosk server whenever it does not answer, and each switch-off is recorded.</li><li><b>Manual</b>: the policies are paused and the Start kiosk, Restart application and Stop and hibernate buttons appear. Stop and hibernate puts the whole PC to sleep.</li></ul><div>In off hours the kiosk programs keep running. The kiosk screens show "The kiosk is closed" with the next opening time, and come back by themselves.</div><div>Putting the PC itself to sleep at night and waking it is set up separately, at the system level.</div></template></span></h3>
                                 <!-- <Jun Kai start> -->
                                 <p>Automatic mode follows the policies. Manual mode pauses them and lets you start or stop the kiosk yourself.</p>
                                 <!-- <Jun Kai end> -->
@@ -4646,10 +4487,10 @@
                         <div class="inc-drawer-inner">
                             <div class="inc-drawer-head">
                                 <div>
-                                    <h3 id="schedule-history-title">History</h3>
+                                    <h3 id="schedule-history-title">History<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What History records" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="What History records"><ul><li>When a policy switched the kiosk on or off.</li><li>When the kiosk itself stopped and started, and why: the program was closed, the PC was shut down, the power was cut, or it slept.</li></ul><div>It keeps the newest 500 lines. The filter shows All, Starts and stops, or Schedule.</div></template></span></h3>
                                     <div class="inc-drawer-sub" id="schedule-history-sub">When the kiosk started and stopped and why, and what the schedule did. Newest first.</div>
                                 </div>
-                                <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeScheduleHistory()" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                                <button type="button" class="ui-btn ui-btn-icon inc-drawer-close" onclick="closeScheduleHistory()" aria-label="Close" title="Close" autofocus><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                             </div>
                             <div class="inc-drawer-body" id="automation-card">
                                 <section class="inc-drawer-section">
@@ -4828,7 +4669,7 @@
                 <!-- Feedback Page QR Code (DONE BY Yu Kang) -->
                 <div id="Feedback-page-QR-page" class="page">
                     <div class="page-header">
-                        <h2>Feedback Page QR Code</h2>
+                        <h2>Feedback QR Code</h2>
                         <p>Manage the QR code for the feedback page</p>
                     </div>
 
@@ -4881,7 +4722,8 @@
     <script src="/admin/js/audit.js"></script>
     <script src="/admin/js/lostFound.js"></script>
     <script src="/admin/js/dashboard.js"></script>
-    <script src="/admin/js/feedback.js"></script>
+    <script src="/admin/js/submissionList.js"></script><!-- <Jun Kai/> the list and side panel of Feedback and Archived Feedback -->
+<script src="/admin/js/feedback.js"></script>
     <script src="/admin/js/archive.js"></script>
     <script src="/admin/js/feedbackFilters.js"></script>
     <script src="/admin/js/encryption.js"></script>
@@ -4895,6 +4737,9 @@
     <script src="/admin/js/dataExport.js"></script>
     <script src="/admin/js/feedbackDeletion.js"></script>
     <script src="/admin/js/navigation.js"></script>
+    <!-- <Jun Kai start> the sidebar: folding groups, page search, pages per role -->
+    <script src="/admin/js/sidebar.js"></script>
+    <!-- <Jun Kai end> -->
     <script src="/admin/js/tree.js"></script>
     <script src="/admin/js/init.js"></script>
     <script src="/admin/js/themes.js"></script>
@@ -4911,6 +4756,7 @@
     <script src="/admin/js/health.js"></script>
     <!-- <Jun Kai start> -->
     <script src="/admin/js/incidents.js"></script>
+    <script src="/admin/js/aiSettings.js"></script><!-- <Jun Kai/> AI Settings -->
     <script src="/admin/js/hardware.js"></script>
     <script src="/admin/js/visitorArchive.js"></script>
     <!-- <Jun Kai end> -->

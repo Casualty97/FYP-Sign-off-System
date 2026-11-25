@@ -187,25 +187,25 @@ const themeConfig = {
         { id: 'global', name: 'Admin Overall Theme', icon: '🌐', isGlobal: true },
         { id: 'admin-dashboard', name: 'Admin Panel (Header + Sidebar)', icon: '⚙️' },
         { id: 'dashboard-page', name: 'Dashboard', icon: '📊' },
-        { id: 'feedback-data-page', name: 'Feedback Data', icon: '💬' },
-        { id: 'digital-tree-page', name: 'Digital Tree', icon: '🌳' },
+        { id: 'feedback-data-page', name: 'Feedback', icon: '💬' },
+        { id: 'digital-tree-page', name: 'Tree Leaves', icon: '🌳' },
         { id: 'pledgeboard-page', name: 'Pledgeboard', icon: '🏆' },
         { id: 'pulse-page', name: 'Live Pulse', icon: 'LIVE' },
-        { id: 'overlay-page', name: 'Overlay Management', icon: '🎨', requiredRole: 'system_admin' },
-        { id: 'questions-page', name: 'Question Management', icon: '❓', requiredRole: 'system_admin' },
-        { id: 'users-page', name: 'User Management', icon: '👥', requiredRole: 'system_admin' },
-        { id: 'vip-page', name: 'VIP Management', icon: '👑', requiredRole: 'system_admin' },
-        { id: 'email-management-page', name: 'Email Management', icon: '📧', requiredRole: 'system_admin' },
-        { id: 'badge-email-templates-page', name: 'Badge Email Templates', icon: 'Mail', requiredRole: 'system_admin' },
-        { id: 'form-management-page', name: 'Form Management', icon: '📝', requiredRole: 'system_admin' },
+        { id: 'overlay-page', name: 'Photo Overlays', icon: '🎨', requiredRole: 'system_admin' },
+        { id: 'questions-page', name: 'Questions', icon: '❓', requiredRole: 'system_admin' },
+        { id: 'users-page', name: 'Users', icon: '👥', requiredRole: 'system_admin' },
+        { id: 'vip-page', name: 'VIPs', icon: '👑', requiredRole: 'system_admin' },
+        { id: 'email-management-page', name: 'Mail Account', icon: '📧', requiredRole: 'system_admin' },
+        { id: 'badge-email-templates-page', name: 'Badge Emails', icon: 'Mail', requiredRole: 'system_admin' },
+        { id: 'form-management-page', name: 'Start Screen Text', icon: '📝', requiredRole: 'system_admin' },
         // <Jun Kai start>
         { id: 'archive-page', name: 'Archived Feedback', icon: '📚', requiredRole: 'system_admin' },
         // <Jun Kai end>
         { id: 'audit-page', name: 'Audit Logs', icon: '📋', requiredRole: 'system_admin' },
         { id: 'data-export-page', name: 'Data Export', icon: '📦', requiredRole: 'system_admin' },
-        { id: 'timer-countdown-page', name: 'Timer Countdown', icon: '🕔', requiredRole: 'system_admin' },
-        { id: 'server-schedule-page', name: 'Server Schedule', icon: '❗', requiredRole: 'system_admin' },
-        { id: 'theme-settings-page', name: 'Style & Theme Settings', icon: '🎨' }
+        { id: 'timer-countdown-page', name: 'Photo Timer', icon: '🕔', requiredRole: 'system_admin' },
+        { id: 'server-schedule-page', name: 'Operating Hours', icon: '❗', requiredRole: 'system_admin' },
+        { id: 'theme-settings-page', name: 'Style & Theme', icon: '🎨' }
     ],
     
     // Selector mapping grouped
@@ -226,7 +226,8 @@ const themeConfig = {
                     explicit: [
                         '.section-header h3',
                         '.page-header h2',
-                        'h1', 'h2', 'h3',
+                        // <Jun Kai/> not inside the redesigned cards: they keep the kit colours until the theme maps onto them
+                        ':is(h1, h2, h3):not(.ui-card *)',
                         '#admin-dashboard .header-left h1',
                         '#admin-dashboard .username'
                     ]
@@ -235,7 +236,7 @@ const themeConfig = {
                     auto: ['*-page .page-header p'],
                     explicit: [
                         '.page-header p',
-                        'p',
+                        'p:not(.ui-card *)', // <Jun Kai/> not inside the redesigned cards (see the headings above)
                         '.description',
                         '.subtitle',
                         '#admin-dashboard .header-left p',
@@ -1016,26 +1017,69 @@ function migrateOldColors() {
     }
 }
 
+// <Jun Kai start>
+// The frame of the admin page (top bar and sidebar) is frosted glass since the redesign. The frame colours of a theme
+// tint that glass: admin.css mixes the two background colours with the page behind them, and the rest are used as
+// they are. THEME_GLASS_FRAME is the default set (light glass, dark text).
+const THEME_GLASS_FRAME = {
+    'admin-header-bg': '#ffffff',
+    'primary-header-text': '#0f172a',
+    'secondary-header-text': '#64748b',
+    'navbar-background': '#ffffff',
+    'navbar-primary-text': '#64748b',
+    'navbar-secondary-text': '#334155',
+    'navbar-active-selection': '#fffffff2',
+    'navbar-hover': '#ffffff99'
+};
+// The default frame before the redesign (dark bar, dark sidebar, light text)
+const THEME_OLD_FRAME = {
+    'admin-header-bg': '#262626',
+    'primary-header-text': '#ffffff',
+    'secondary-header-text': '#b0b0b0',
+    'navbar-background': '#16181d',
+    'navbar-primary-text': '#808080',
+    'navbar-secondary-text': '#a0a0a0',
+    'navbar-active-selection': '#2a2d3a',
+    'navbar-hover': '#1f2229'
+};
+// the colour of the page under the colour wash: pale grey now, plain white before
+const THEME_GLASS_PAGE = '#f3f6fa';
+const THEME_OLD_PAGE = '#ffffff';
+// the options that only set a variable for the glass (admin.css reads them)
+const THEME_GLASS_VARIABLES = { 'admin-header-bg': '--l3-header-tint', 'navbar-background': '--l3-nav-tint' };
+
+function themeSameColor(a, b) {
+    const plain = (value) => String(value || '').trim().toLowerCase().replace(/^(#[0-9a-f]{6})ff$/, '$1');
+    return plain(a) === plain(b);
+}
+
+// A saved theme or a browser's saved settings from before the redesign still hold the old dark frame. When every one
+// of its eight frame colours is still the old default, nobody chose them, so the whole set moves to the glass
+// defaults. A frame somebody changed (even one colour) is left alone: its backgrounds and its text were picked to be
+// read together, and it then shows as tinted glass.
+function themeAdoptGlassFrame(colors) {
+    if (!colors) return;
+    const keys = Object.keys(THEME_OLD_FRAME);
+    if (!keys.every((key) => themeSameColor(colors[key], THEME_OLD_FRAME[key]))) return;
+    for (const key of keys) colors[key] = THEME_GLASS_FRAME[key];
+    // the page colour under the wash moves with it, when it is still the old white
+    if (themeSameColor(colors['page-background'], THEME_OLD_PAGE)) colors['page-background'] = THEME_GLASS_PAGE;
+}
+// <Jun Kai end>
+
 // Custom default theme - modify these colors to your preference
 function getCustomDefaultColors() {
     return {
         // ==================== GENERAL COLORS ====================
-        'page-background': '#ffffffff',            // White page background
+        'page-background': THEME_GLASS_PAGE,       // <Jun Kai/> pale grey under the colour wash (was white)
         'primary-text': '#000000ff',               // Black primary text
         'secondary-text': '#959595ff',             // Gray secondary text
         
-        // ==================== ADMIN HEADER COLORS ====================
-        'admin-header-bg': '#262626',              // Dark gray header background
-        'primary-header-text': '#ffffff',          // White primary header text
-        'secondary-header-text': '#b0b0b0',        // Light gray secondary header text
-        
-        // ==================== NAVBAR COLORS ====================
-        'navbar-background': '#16181d',            // Dark navbar background
-        'navbar-primary-text': '#808080',          // Gray navbar section headers
-        'navbar-secondary-text': '#a0a0a0',        // Light gray navbar items
-        'navbar-active-selection': '#2a2d3a',      // Dark gray active item background
-        'navbar-hover': '#1f2229',                 // Dark gray hover background
-        
+        // <Jun Kai start> the header and the sidebar are glass panels since the redesign: these colours tint the glass
+        // (THEME_GLASS_FRAME below), with dark text on it. The dark frame they replace is THEME_OLD_FRAME.
+        ...THEME_GLASS_FRAME,
+        // <Jun Kai end>
+
         // ==================== CARD COLORS ====================
         'card-background': '#f7f7f7ff',            // Light gray card background
         'card-header-background': '#ffffffff',     // White card header background
@@ -1487,6 +1531,18 @@ function hexToRgb(color) {
     };
 }
 
+// <Jun Kai start> contrast of two theme colours (1 to 21); a colour it cannot read counts as readable
+function themeContrast(a, b) {
+    const one = hexToRgb(a);
+    const two = hexToRgb(b);
+    if (!one || !two) return 21;
+    const lum = ({ r, g, b: blue }) => [r, g, blue].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+        .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const [hi, lo] = [lum(one), lum(two)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+}
+// <Jun Kai end>
+
 function isDarkThemeColor(color) {
     const rgb = hexToRgb(color);
     if (!rgb) return false;
@@ -1721,14 +1777,19 @@ function applyThemeSettings() {
     }
     
     let css = '';
-    
+
+    // <Jun Kai start> a frame nobody changed since before the redesign becomes the glass frame
+    themeAdoptGlassFrame(themeSettings.global && themeSettings.global.colors);
+    themeAdoptGlassFrame(themeSettings['admin-dashboard'] && themeSettings['admin-dashboard'].colors);
+    // <Jun Kai end>
+
     themeConfig.sections.forEach(section => {
         const sectionSettings = themeSettings[section.id];
         if (!sectionSettings) return;
-        
+
         const useGlobal = section.isGlobal ? false : (sectionSettings.useGlobal ?? true);
         const colors = useGlobal && themeSettings.global ? themeSettings.global.colors : sectionSettings.colors;
-        
+
         if (!colors) return;
         
         const mapping = themeConfig.selectorMapping[section.id];
@@ -1741,10 +1802,32 @@ function applyThemeSettings() {
                 const color = colors[optionId];
                 
                 if (!color || !selectors || selectors.length === 0) return;
-                
+
                 let cssProperty = 'color';
                 let cssValue = color;
-                
+
+                // <Jun Kai start> glass frame (redesign): the header and sidebar colours tint the frosted panels,
+                // and the overall page colour sits under the colour wash, so none of them is painted solid. A page
+                // with its own colours switched on is still painted in its own page colour.
+                if (THEME_GLASS_VARIABLES[optionId]) {
+                    // a dark colour stays nearly solid: mixed with the pale page it would turn pale, and the
+                    // light text picked for it could no longer be read
+                    const solid = isDarkThemeColor(cssValue) ? ` ${THEME_GLASS_VARIABLES[optionId]}-share: 92%;` : '';
+                    css += `:root { ${THEME_GLASS_VARIABLES[optionId]}: ${cssValue};${solid} }\n`;
+                    return;
+                }
+                // a page text colour that cannot be read on the page colour (below 4.5:1, like the old default grey
+                // #959595 on white) is left out, so the page keeps its own readable colour
+                if ((optionId === 'primary-text' || optionId === 'secondary-text') && colors['page-background'] && themeContrast(cssValue, colors['page-background']) < 4.5) return;
+                if (optionId === 'page-background') {
+                    if (section.isGlobal) {
+                        css += `:root { --l3-page-tint: ${cssValue}; }\n#theme-settings-page .theme-preview { background-color: ${cssValue} !important; }\n`;
+                        return;
+                    }
+                    if (useGlobal) return;
+                }
+                // <Jun Kai end>
+
                 if (optionId.includes('background') || optionId.includes('-bg') || optionId === 'page-background' || 
                     optionId === 'card-background' || optionId === 'navbar-background' || 
                     optionId === 'navbar-hover' ||

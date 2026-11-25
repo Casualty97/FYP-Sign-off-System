@@ -7,11 +7,14 @@ function initializeDeletionControls() {
     const userRole = sessionStorage.getItem('userRole');
     const deletionControls = document.getElementById('archive-deletion-controls');
     
+    // <Jun Kai/> hidden instead of a display style: the control is a button in the filter bar now
+    const selectAll = document.getElementById('select-all-archive');
+    if (selectAll) selectAll.hidden = userRole !== 'system_admin';
     if (userRole === 'system_admin' && deletionControls) {
-        deletionControls.style.display = 'block';
+        deletionControls.hidden = false;
         console.log('✅ Deletion controls enabled for system_admin');
     } else if (deletionControls) {
-        deletionControls.style.display = 'none';
+        deletionControls.hidden = true;
     }
 }
 
@@ -39,6 +42,9 @@ function updateArchiveSelectionCount() {
     if (deleteBtn) {
         deleteBtn.disabled = count === 0;
     }
+    // <Jun Kai/> the bar with Delete selected shows once a row is ticked
+    const bar = document.getElementById('archive-selection-bar');
+    if (bar) bar.hidden = count === 0;
     
     // Update select-all checkbox state
     const selectAllCheckbox = document.getElementById('select-all-archive');
@@ -118,7 +124,7 @@ async function previewBulkDelete() {
         
         if (data.success) {
             if (previewNumber) previewNumber.textContent = data.count;
-            if (previewDiv) previewDiv.style.display = 'block';
+            if (previewDiv) previewDiv.hidden = false; // <Jun Kai/> shown and hidden by the hidden attribute (redesigned panel)
             if (bulkDeleteBtn) bulkDeleteBtn.disabled = data.count === 0;
             
             console.log(`📊 Preview: ${data.count} records will be deleted${data.vipKept ? `, ${data.vipKept} VIP leaf/leaves kept` : ''}`); // <Jun Kai/> VIP leaves are not counted
@@ -162,7 +168,7 @@ async function deleteSelectedArchive() {
             
             if (data.success) {
                 // <Jun Kai start> the server's sentence when a VIP leaf was kept
-                alert(`✅ Successfully deleted ${data.deletedCount} record(s)${data.vipNote ? `. ${data.vipNote}` : ''}`);
+                archiveView.say(`Deleted ${data.deletedCount} record(s)${data.vipNote ? `. ${data.vipNote}` : ''}.`); // <Jun Kai/> a status line, not an alert box
                 // <Jun Kai end>
                 
                 // Uncheck select-all
@@ -219,7 +225,8 @@ async function bulkDeleteByDate() {
             
             if (data.success) {
                 // <Jun Kai start> with the server's sentence when a VIP leaf was kept
-                alert(`✅ Successfully deleted ${data.deletedCount} record(s) and ${data.photosDeleted} photo(s)${data.vipNote ? `. ${data.vipNote}` : ''}`);
+                archiveView.say(`Deleted ${data.deletedCount} record(s) and ${data.photosDeleted} photo(s)${data.vipNote ? `. ${data.vipNote}` : ''}.`); // <Jun Kai/>
+                closeArchiveDeletePanel();
                 // <Jun Kai end>
                 
                 // Reset inputs
@@ -229,7 +236,7 @@ async function bulkDeleteByDate() {
                 
                 // Hide preview
                 const previewDiv = document.getElementById('preview-count');
-                if (previewDiv) previewDiv.style.display = 'none';
+                if (previewDiv) previewDiv.hidden = true; // <Jun Kai/>
                 
                 // Disable delete button
                 const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
