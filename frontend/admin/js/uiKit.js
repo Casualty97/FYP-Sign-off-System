@@ -52,6 +52,19 @@ const UI_ICON_PATHS = {
     // <Jun Kai end>
 };
 
+// <Jun Kai start> a small window (popover attribute) opens under the element that opened it and stays inside the
+// window: align "end" lines up the right edges (a menu under a ... button); with no room below it opens above
+function uiPlaceUnder(pop, anchor, align = 'start') {
+    const at = anchor.getBoundingClientRect();
+    const width = pop.offsetWidth;
+    const height = pop.offsetHeight;
+    const left = align === 'end' ? at.right - width : at.left;
+    const below = at.bottom + 6 + height <= window.innerHeight - 8;
+    pop.style.top = `${Math.round(below ? at.bottom + 6 : Math.max(8, at.top - 6 - height))}px`;
+    pop.style.left = `${Math.round(Math.max(8, Math.min(left, window.innerWidth - width - 8)))}px`;
+}
+// <Jun Kai end>
+
 function uiIcon(name, size = 16) {
     const paths = UI_ICON_PATHS[name] || UI_ICON_PATHS.info;
     return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;

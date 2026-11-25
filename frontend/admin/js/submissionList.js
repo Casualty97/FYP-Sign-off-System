@@ -391,9 +391,7 @@ function makeSubmissionList(cfg) {
         const chip = el(`${cfg.key}-date-button`);
         if (pop && chip) pop.addEventListener('toggle', (event) => {
             if (event.newState !== 'open') return;
-            const at = chip.getBoundingClientRect();
-            pop.style.top = `${Math.round(at.bottom + 6)}px`;
-            pop.style.left = `${Math.round(Math.max(8, Math.min(at.left, window.innerWidth - pop.offsetWidth - 8)))}px`;
+            uiPlaceUnder(pop, chip);
         });
     });
     // Esc closes the panel, unless a window above it (photo viewer, password, email, delete check) is open: that one closes first.

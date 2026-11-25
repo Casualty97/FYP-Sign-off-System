@@ -345,7 +345,7 @@ function auditRow(log) {
     const target = !known && text ? ` <span class="audit-target">${escapeHtml(text)}</span>` : '';
     return `<li class="audit-row">
         <span class="ui-avatar" style="--ui-hue: ${auditHue(who)}" aria-hidden="true">${escapeHtml(auditInitials(who))}</span>
-        <span class="audit-what"><b class="audit-who" title="${escapeHtml(who)}">${escapeHtml(who)}</b> ${known ? escapeHtml(text) + ' ' : ''}<span class="audit-tag is-${auditTone(action)}">${escapeHtml(action)}</span>${target}</span>
+        <span class="audit-what"><b class="audit-who" title="${escapeHtml(who)}">${escapeHtml(who)}</b> ${known ? escapeHtml(text) + ' ' : ''}<span class="ui-tag is-${auditTone(action)}">${escapeHtml(action)}</span>${target}</span>
         <span class="audit-ip">${escapeHtml(log.ip_address || '')}</span>
         <time class="audit-time"${date ? ` datetime="${date.toISOString()}"` : ''}>${escapeHtml(time)}</time>
     </li>`;
@@ -444,9 +444,7 @@ function prepareAuditFilterBar() {
     const chip = document.getElementById('audit-date-button');
     if (pop && chip) pop.addEventListener('toggle', (event) => {
         if (event.newState !== 'open') return;
-        const at = chip.getBoundingClientRect();
-        pop.style.top = `${Math.round(at.bottom + 6)}px`;
-        pop.style.left = `${Math.round(Math.max(8, Math.min(at.left, window.innerWidth - pop.offsetWidth - 8)))}px`;
+        uiPlaceUnder(pop, chip);
     });
 }
 // <Jun Kai end>
