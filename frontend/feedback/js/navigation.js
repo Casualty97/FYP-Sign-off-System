@@ -652,8 +652,8 @@ function setupCelebrationMoment(data) {
     if (title) title.textContent = userData.pledgeSkipped ? 'Your feedback joined the tree' : 'Your pledge joined the tree';
     if (copy) {
         copy.textContent = userData.pledgeSkipped
-            ? 'Your visit still grows the ESG digital tree as a feedback contribution.'
-            : `Your ${reward.leaf} is now part of the ESG digital tree.`;
+            ? 'Your visit still grows the RP Xperience Centre digital tree as a feedback contribution.'
+            : `Your ${reward.leaf} is now part of the RP Xperience Centre digital tree.`;
     }
 
     renderCelebrationLeaves(color, flightTarget);
@@ -733,7 +733,7 @@ function getPassportPhotoStatus(data) {
 function getPassportLeafMessage(leafName) {
     const leafText = leafName || 'classic feedback leaf';
     const article = /^[aeiou]/i.test(leafText) ? 'An' : 'A';
-    return `${article} ${leafText} was added to the ESG tree.`;
+    return `${article} ${leafText} was added to the RP Xperience Centre tree.`;
 }
 
 function escapePassportHtml(value) {
@@ -857,7 +857,7 @@ function renderVisitorPassportHistory(passportData, data) {
 
     if (title) {
         const holder = passport.holderName || userData.name || 'Your';
-        title.textContent = `${holder}'s ESG passport`;
+        title.textContent = `${holder}'s RP Xperience Centre passport`;
     }
 
     summary.innerHTML = [
@@ -1019,7 +1019,7 @@ function sharePledge(platform) {
     } else if (platform === 'instagram') {
         if (navigator.share) {
             navigator.share({
-                title: 'My RP ESG Pledge',
+                title: 'My RP Xperience Centre Pledge',
                 text: text,
                 url: window.location.href
             }).catch(() => {

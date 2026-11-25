@@ -76,7 +76,7 @@
 // NICK CHANGE SUMMARY (DONE BY NICK)
 // ============================================================
 //
-// 1. ESG JOURNEY PASSPORT
+// 1. RP XPERIENCE CENTRE JOURNEY PASSPORT
 //    function loadJourneyPassport     - Fetch visitor milestone passports for repeat engagement tracking (DONE BY NICK)
 //    function renderJourneyPassport   - Render passport summary, stamps, topic badges and top visitor journeys (DONE BY NICK)
 //

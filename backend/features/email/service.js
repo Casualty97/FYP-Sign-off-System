@@ -1,7 +1,7 @@
 // Owner: Role 3, Jun Kai. Previous team: XY (Xuanyang) (8), Caeden (4), Nick (4).
 // ============================================================
 // DONE BY XY - EMAIL BADGE SERVICE SUMMARY
-//  - Added the ESG Kiosk badge email system and badge configurations.
+//  - Added the RP Xperience Centre Kiosk badge email system and badge configurations.
 //  - Added topic-to-badge mapping for pledge topics selected in the feedback flow.
 //  - Added customized HTML email templates with badge visuals.
 //  - Added badge congratulation email sending and social sharing sections.
@@ -42,7 +42,7 @@ function getPhotoAttachmentContentType(filename) { // changes made by nick
 }
 
 // ==================== BADGE SYSTEM IMPLEMENTATION ====================
-// Done by XY - Complete badge awarding system for ESG Kiosk
+// Done by XY - Complete badge awarding system for RP Xperience Centre Kiosk
 //
 // SUMMARY OF CHANGES:
 // 1. Added comprehensive badge configurations with multiple dedicated badge types
@@ -840,7 +840,7 @@ function buildVisitSummary(options = {}) {
         pledgeTopic: topicLabel,
         retention: formatRetentionSummary(options.retention, options.retentionDays),
         badgeName,
-        treeLeafMessage: options.treeLeafMessage || 'Your virtual leaf has been added to the RP ESG digital tree.'
+        treeLeafMessage: options.treeLeafMessage || 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'
     };
 }
 
@@ -1079,7 +1079,7 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         const emailIntro = personalize(emailContent.thankYouIntro, 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.');
         const emailClosing = personalize(emailContent.thankYouClosing, 'We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.');
         const senderName = personalize(emailContent.senderName, 'RP Xperience Centre Team');
-        const footerNote = personalize(emailContent.footerNote, 'This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.');
+        const footerNote = personalize(emailContent.footerNote, 'This is an automated email sent from the RP Xperience Centre kiosk system. Please do not reply to this message.');
         const emailSubject = personalize(emailContent.thankYouSubject, `Thank you for visiting RP Xperience Centre, ${name}!`);
         let emailIntroText = emailIntro;
         const suppliedBadges = Array.isArray(visitOptions.badges) ? visitOptions.badges : [];

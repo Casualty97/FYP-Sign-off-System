@@ -1,5 +1,5 @@
 # Owner: Role 3, Jun Kai.
-# ESG Kiosk installer for Windows (task-sheet point 5). Double-click install.cmd in the project folder; it runs this.
+# RP Xperience Centre Kiosk installer for Windows (task-sheet point 5). Double-click install.cmd in the project folder; it runs this.
 #   install.cmd                  asks Laptop or Wall PC, then sets everything up
 #   install.cmd -Role Laptop     a developer laptop: kiosk automation off, nothing changed in Windows
 #   install.cmd -Role WallPC     the kiosk PC: also starts the kiosk at logon, puts an admin page link on the desktop and
@@ -108,19 +108,22 @@ function Install-StartupLink {
     $node = (Get-Command node).Source
     $start = Join-Path $Root 'startAll.js'
     Invoke-Change 'start the kiosk at logon (a shortcut in the Startup folder)' {
+        # <Jun Kai/> a shortcut of this copy under the old name would start the servers a second time
+        if (Test-OwnLink $OldStartupLink) { Remove-Item -LiteralPath $OldStartupLink -Force }
         $link = (New-Object -ComObject WScript.Shell).CreateShortcut($StartupLink)
         $link.TargetPath = Join-Path $env:SystemRoot 'System32\cmd.exe'
         # --logon: the History list then says "started at Windows sign-in" (startAll.js passes it on)
-        $link.Arguments = "/k title ESG Kiosk server & `"$node`" `"$start`" --logon"
+        $link.Arguments = "/k title RP Xperience Centre Kiosk server & `"$node`" `"$start`" --logon"
         $link.WorkingDirectory = $Root
         $link.WindowStyle = 7
-        $link.Description = 'Starts the ESG Kiosk servers (added by install.cmd, removed by uninstall.cmd)'
+        $link.Description = 'Starts the RP Xperience Centre Kiosk servers (added by install.cmd, removed by uninstall.cmd)'
         $link.Save()
     }
 }
 
 function Install-DesktopLink([string]$Port) {
-    Invoke-Change "put an `"ESG Kiosk Admin`" link on the desktop (https://localhost:$Port/admin)" {
+    Invoke-Change "put an `"RP Xperience Centre Kiosk Admin`" link on the desktop (https://localhost:$Port/admin)" {
+        if (Test-Path $OldDesktopLink) { Remove-Item -LiteralPath $OldDesktopLink -Force } # <Jun Kai/> the link under the old name
         Set-Content -LiteralPath $DesktopLink -Encoding ASCII -Value @('[InternetShortcut]', "URL=https://localhost:$Port/admin")
     }
 }
@@ -132,7 +135,7 @@ function Install-AdminSteps([string]$Port) {
     if (Test-FirewallRule $Port) { Write-Ok "the firewall rule `"$FirewallName`" is already there (TCP $Port)"; return }
     if (@(Get-FirewallRules).Count -gt 0) {
         $old = @(Get-FirewallPorts) -join ' and '
-        Invoke-Change "remove the firewall rule of an earlier install (it opened TCP $old)" { Remove-NetFirewallRule -Group $FirewallGroup -ErrorAction Stop }
+        Invoke-Change "remove the firewall rule of an earlier install (it opened TCP $old)" { Get-FirewallRules | Remove-NetFirewallRule -ErrorAction Stop }
     }
     Invoke-Change "let tablets on this network reach the kiosk (firewall rule, TCP $Port, Private and Domain networks only)" {
         New-NetFirewallRule -DisplayName $FirewallName -Group $FirewallGroup -Direction Inbound -Protocol TCP -LocalPort $Port -Action Allow -Profile Private, Domain -ErrorAction Stop | Out-Null
@@ -163,7 +166,7 @@ if ($AdminSteps) {
 }
 
 Write-Host ''
-Write-Host 'ESG Kiosk installer' -ForegroundColor White
+Write-Host 'RP Xperience Centre Kiosk installer' -ForegroundColor White
 Write-Host "Folder: $Root"
 if ($DryRun) { Write-Host 'Dry run: nothing is changed.' -ForegroundColor DarkGray }
 
