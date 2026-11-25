@@ -18,7 +18,8 @@ Colour themes for the admin page itself, saved per admin user.
 - The preview is a small admin page (header, sidebar, card, buttons) in the colours of the open row.
 - "Save colour changes" keeps the colours for this account (browser storage). The page says when there are changes that are not saved yet, and every message is a line on the page instead of a popup, except the questions before Apply, Delete, Reset all and copying the overall colours.
 - Colours from storage or a saved theme only reach the page as plain #hex values (themeSafeColor), and theme names are shown as text.
-- Known gap: the colours of a page are not mapped onto the new card look of the redesigned pages yet (their own selectors still name the old classes), so a page with its own colours only changes where old elements remain. Mapping the theme onto the new look is a separate step.
+- Known gap: the colours of a page are not mapped onto the new card look of the redesigned pages yet (their own selectors still name the old classes), so a page with its own colours only changes where old elements remain. Mapping the theme onto the new look is a separate step. The three old class names that the new page reuses (.theme-settings-form, .theme-group-title, .theme-preview) were taken out of the lists, so a dark card colour never paints the editor behind its dark text.
+- Opening the page loads the stored colours again, so changes that were not saved are dropped and nothing says unsaved any more. "Use it now" on a new theme applies it at once, like Apply.
 
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
@@ -35,6 +36,7 @@ Colour themes for the admin page itself, saved per admin user.
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
 - Fixed 19 Nov 2026: Save Theme always failed, because it read colour inputs that no longer exist (js/themes.js). The colours now come from themeSettings, where the swatches put them; a colour that was never changed is saved with its default. The swatches on a saved theme card use colour names a theme has today, so a card is no longer grey.
+- Fixed 26 Nov 2026: saving a new theme as the one in use sometimes left no theme in use, because the switch off of the other themes and the insert of the new one ran at the same time; the insert now waits for the switch off (POST /api/admin/saved-themes).
 - Fixed 26 Nov 2026: theme card swatches were always grey. The strip now shows up to five colours of the theme.
 
 ---

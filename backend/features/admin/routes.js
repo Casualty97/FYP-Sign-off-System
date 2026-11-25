@@ -5642,24 +5642,14 @@ router.post('/saved-themes', auth.requireAuth, (req, res) => {
         }
         
         // If this theme should be active, deactivate all other themes for this user
-        if (is_active) {
-            const deactivateQuery = 'UPDATE saved_themes SET is_active = 0 WHERE admin_user_id = ?';
-            db.run(deactivateQuery, [adminUserId], (deactivateErr) => {
-                if (deactivateErr) {
-                    console.error('❌ Error deactivating themes:', deactivateErr);
-                }
-            });
-        }
-        
-        // Insert the new theme
+        // <Jun Kai start> the new theme is inserted only after the other themes were switched off: both used to run at
+        // the same time, and when the switch-off finished last the new theme was not in use although it was asked for
         const insertQuery = `
             INSERT INTO saved_themes (admin_user_id, theme_name, theme_data, is_active)
             VALUES (?, ?, ?, ?)
         `;
-        
         const themeDataJson = JSON.stringify(theme_data);
-        
-        db.run(insertQuery, [adminUserId, theme_name, themeDataJson, is_active ? 1 : 0], function(insertErr) {
+        const insertTheme = () => db.run(insertQuery, [adminUserId, theme_name, themeDataJson, is_active ? 1 : 0], function(insertErr) {
             if (insertErr) {
                 console.error('❌ Error saving theme:', insertErr);
                 return res.status(500).json({ 
@@ -5673,12 +5663,21 @@ router.post('/saved-themes', auth.requireAuth, (req, res) => {
             // Log audit trail
             logAudit('SAVE_THEME', req.session.user.username, 'saved_themes', this.lastID, req);
             
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 message: 'Theme saved successfully',
                 theme_id: this.lastID
             });
         });
+        if (!is_active) return insertTheme();
+        db.run('UPDATE saved_themes SET is_active = 0 WHERE admin_user_id = ?', [adminUserId], (deactivateErr) => {
+            if (deactivateErr) {
+                console.error('❌ Error deactivating themes:', deactivateErr);
+                return res.status(500).json({ success: false, error: 'Failed to save theme' });
+            }
+            insertTheme();
+        });
+        // <Jun Kai end>
     });
 });
 
