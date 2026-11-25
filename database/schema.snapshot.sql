@@ -59,6 +59,8 @@ CREATE TABLE `device_heartbeats` (
   `ip` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `first_seen` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_seen` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `battery_level` tinyint unsigned DEFAULT NULL,
+  `charging` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`device_id`),
   KEY `idx_device_heartbeats_last_seen` (`last_seen`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

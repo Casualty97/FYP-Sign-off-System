@@ -186,7 +186,7 @@ async function checkTablets() {
     const base = { key: 'tablets', label: 'Tablets' };
     try {
         const rows = await query('all', `
-            SELECT device_id, label, page, user_agent, ip, first_seen, last_seen,
+            SELECT device_id, label, page, user_agent, ip, first_seen, last_seen, battery_level, charging,
                    TIMESTAMPDIFF(SECOND, last_seen, NOW()) AS seconds_ago
             FROM device_heartbeats
             ORDER BY last_seen DESC

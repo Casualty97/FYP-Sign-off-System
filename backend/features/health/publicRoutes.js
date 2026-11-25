@@ -7,7 +7,7 @@ const db = require('../../core/db');
 const router = express.Router();
 
 // <Jun Kai start>
-// POST /api/health/heartbeat  { deviceId, page, label }
+// POST /api/health/heartbeat  { deviceId, page, label, batteryLevel, charging }
 router.post('/heartbeat', (req, res) => {
     const body = req.body || {};
     const deviceId = String(body.deviceId || '').trim();
@@ -19,18 +19,24 @@ router.post('/heartbeat', (req, res) => {
     const userAgent = String(req.headers['user-agent'] || '').slice(0, 255) || null;
     const ip = String(req.ip || '').slice(0, 64) || null;
 
+    const batteryLevel = Number.isInteger(body.batteryLevel) && body.batteryLevel >= 0 && body.batteryLevel <= 100
+        ? body.batteryLevel : null;
+    const charging = batteryLevel !== null && typeof body.charging === 'boolean' ? Number(body.charging) : null;
+
     const sql = `
-        INSERT INTO device_heartbeats (device_id, label, page, user_agent, ip, first_seen, last_seen)
-        VALUES (?, ?, ?, ?, ?, NOW(), NOW()) AS fresh
+        INSERT INTO device_heartbeats (device_id, label, page, user_agent, ip, battery_level, charging, first_seen, last_seen)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) AS fresh
         ON DUPLICATE KEY UPDATE
             label = COALESCE(fresh.label, device_heartbeats.label),
             page = fresh.page,
             user_agent = fresh.user_agent,
             ip = fresh.ip,
+            battery_level = fresh.battery_level,
+            charging = fresh.charging,
             last_seen = NOW()`;
-    db.run(sql, [deviceId, label, page, userAgent, ip], (err) => {
+    db.run(sql, [deviceId, label, page, userAgent, ip, batteryLevel, charging], (err) => {
         if (err) {
-            if (err.code === 'ER_NO_SUCH_TABLE') return res.status(503).json({ success: false, error: 'Heartbeat table missing: run npm run db:migrate' });
+            if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(err.code)) return res.status(503).json({ success: false, error: 'Heartbeat schema needs updating: run npm run db:migrate' });
             console.error('❌ Heartbeat insert failed:', err.message);
             return res.status(500).json({ success: false, error: 'Database error' });
         }

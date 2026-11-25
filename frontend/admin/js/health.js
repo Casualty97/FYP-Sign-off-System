@@ -233,13 +233,14 @@ function renderHealthTablets(check, force) {
     if (!force && healthRenaming && body.querySelector('.health-rename')) return;
     const devices = (check && check.detail && check.detail.devices) || [];
     if (!devices.length) {
-        body.innerHTML = `<tr><td colspan="4" class="ui-empty">${escapeHtmlSafe(check && check.summary ? check.summary : 'No tablet has reported yet')}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="5" class="ui-empty">${escapeHtmlSafe(check && check.summary ? check.summary : 'No tablet has reported yet')}</td></tr>`;
         return;
     }
     body.innerHTML = devices.map((d) => `<tr class="${d.online ? '' : 'health-row-offline'}">
                     <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
                     <td>${d.online ? uiPill('ok', 'Online') : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(d.seconds_ago))}</div>`}</td>
+                    <td>${d.online && Number.isInteger(d.battery_level) ? `${d.battery_level}%${d.charging ? ' · Charging' : ''}` : '–'}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
                 </tr>`).join('');
 }
