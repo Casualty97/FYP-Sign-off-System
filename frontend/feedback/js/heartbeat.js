@@ -27,6 +27,7 @@
     let battery = null;
     let sending = false;
     let pending = false;
+    let reportedCharging = null;
 
     async function heartbeat() {
         if (sending) {
@@ -39,18 +40,20 @@
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 10000);
             try {
-                await fetch('/api/health/heartbeat', {
+                const charging = battery?.charging ?? null;
+                const response = await fetch('/api/health/heartbeat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         deviceId,
                         page: location.pathname.replace(/^\//, '').slice(0, 40) || 'feedback',
                         batteryLevel: Number.isFinite(battery?.level) ? Math.round(battery.level * 100) : null,
-                        charging: battery?.charging ?? null
+                        charging
                     }),
                     keepalive: true,
                     signal: controller.signal
                 });
+                if (response.ok) reportedCharging = charging;
             } catch { /* The next scheduled heartbeat retries. */ }
             finally { clearTimeout(timeout); }
         } while (pending);
@@ -63,6 +66,11 @@
             battery = await navigator.getBattery();
             battery.addEventListener('levelchange', heartbeat);
             battery.addEventListener('chargingchange', heartbeat);
+            // Some browsers expose the new state before delivering the event.
+            // A frozen tab cannot run this check until the browser resumes it.
+            setInterval(() => {
+                if (document.hidden && !sending && battery.charging !== reportedCharging) void heartbeat();
+            }, 2000);
             void heartbeat();
         } catch { /* Heartbeats continue when battery access is unavailable. */ }
     }
