@@ -15,6 +15,7 @@ const schedule = require('./visitorSchedule');
 const files = require('./visitorFiles');
 const writer = require('./visitorWriter');
 const deletedCounts = require('./deletedCounts');
+const archivedLeaves = require('./archivedLeaves');
 const saveGate = require('./saveGate');
 
 const STATE_FILE = 'visitor-archive-state.json';
@@ -74,11 +75,17 @@ function orphanGuard(criteria, collectedAt) {
     return criteria.feedbackBefore && criteria.feedbackBefore < recent ? criteria.feedbackBefore : recent;
 }
 
+// VIP leaves stay out of the archive (supervisor, 18 Nov 2026): a submission the tree draws in gold is never saved to a
+// zip or deleted, so the leaf stays on the tree with its name. Returns the ids of those submissions made before `before`
+// (the lookup itself is archivedLeaves.vipLeafIds, which Permanent Data Deletion uses too).
+const vipLeafIds = (before) => archivedLeaves.vipLeafIds('f.created_at < ?', [before]);
+
 // Rows of one archive. With `only`, a run is limited to those ids and a missing list means none of that type.
+// vipLeaves: how many submissions matched but stay out because they are VIP leaves.
 async function collectRows(criteria, collectedAt) {
     const types = criteria.types || [];
     const only = criteria.only;
-    const raw = { feedback: [], answers: [], likes: [], users: [], userTotals: new Map(), orphanIds: [], lostFound: [], questions: [], options: [], guard: recentGuard(collectedAt) };
+    const raw = { feedback: [], answers: [], likes: [], users: [], userTotals: new Map(), orphanIds: [], lostFound: [], questions: [], options: [], guard: recentGuard(collectedAt), vipLeaves: 0 };
 
     if (types.includes('feedback') && criteria.feedbackBefore) {
         if (only) {
@@ -86,6 +93,10 @@ async function collectRows(criteria, collectedAt) {
         } else {
             raw.feedback = await query('SELECT * FROM feedback WHERE created_at < ? ORDER BY id', [criteria.feedbackBefore]);
         }
+        const vip = new Set(await vipLeafIds(criteria.feedbackBefore));
+        const matched = raw.feedback.length;
+        raw.feedback = raw.feedback.filter((f) => !vip.has(f.id));
+        raw.vipLeaves = matched - raw.feedback.length;
     }
     for (const part of chunks(raw.feedback.map((f) => f.id))) {
         raw.answers.push(...await query(
@@ -131,20 +142,26 @@ async function collectRows(criteria, collectedAt) {
 async function collect(criteria, encrypt, collectedAt = new Date()) {
     const raw = await collectRows(criteria, collectedAt);
     const plan = await files.planPhotos(raw.feedback, raw.lostFound, criteria.includePhotos !== false);
-    return writer.buildSelection(raw, plan, { encrypt: encrypt ? auth.encryptEmail : null });
+    const selection = writer.buildSelection(raw, plan, { encrypt: encrypt ? auth.encryptEmail : null });
+    selection.vipLeaves = raw.vipLeaves;
+    return selection;
 }
 
 const isEmpty = (counts) => !counts.feedback && !counts.lostFound && !counts.visitors;
 
 // photos / photoBytes: the photo files of the selected records (all of them go with the records);
-// photosArchived: how many of those are written into the zip (none when photos are switched off)
+// photosArchived: how many of those are written into the zip (none when photos are switched off);
+// leaves / leavesNamed: the submissions the digital tree draws, and how many of those show a name there;
+// vipLeaves: submissions that match the dates but are VIP leaves, so they are not in any of the other counts
 async function preview(criteria) {
     const s = await collect(criteria, false);
     const c = s.counts;
+    const drawn = archivedLeaves.countDrawn(s.records.feedback);
     return {
         counts: {
             feedback: c.feedback, visitors: c.visitors, visitorsKept: c.visitorsKept, visitorsDeleted: c.visitorsDeleted, answers: c.answers,
-            likes: c.likes, lostFound: c.lostFound, photos: s.photosOnDisk, photosArchived: c.photos, missingPhotos: c.missingPhotos
+            likes: c.likes, lostFound: c.lostFound, photos: s.photosOnDisk, photosArchived: c.photos, missingPhotos: c.missingPhotos,
+            leaves: drawn.leaves, leavesNamed: drawn.named, vipLeaves: s.vipLeaves
         },
         photoBytes: s.photoBytesOnDisk,
         estimatedBytes: s.estimatedBytes,
@@ -205,7 +222,11 @@ async function startRun({ trigger, startedBy = null, criteria, deleteAfter, fold
         // whole seconds, like the TIMESTAMP columns it is compared with before the delete
         const collectedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
         const selection = await collect(criteria, true, collectedAt);
-        if (isEmpty(selection.counts)) throw httpError(400, 'Nothing to archive: no records match these dates.');
+        if (isEmpty(selection.counts)) {
+            throw httpError(400, selection.vipLeaves
+                ? 'Nothing to archive: the only records that match these dates are VIP leaves, and VIP leaves stay on the tree.'
+                : 'Nothing to archive: no records match these dates.');
+        }
         const target = await prepareTarget(folder, selection.estimatedBytes);
         const startedAt = new Date();
         const used = (await query('SELECT file_name FROM visitor_archives WHERE folder = ? AND file_name IS NOT NULL', [target])).map((r) => r.file_name);
@@ -223,6 +244,8 @@ async function startRun({ trigger, startedBy = null, criteria, deleteAfter, fold
         const job = {
             runId, trigger, startedBy, criteria, deleteAfter: !!deleteAfter, folder: target, fileName, startedAt, selection, onFinish,
             collectedAt, guard: recentGuard(collectedAt),
+            // the "Leaves on the tree" setting as it is now; a later change only affects later archives
+            leaves: { mode: settingsStore.read().leaves, ...archivedLeaves.countDrawn(selection.records.feedback) },
             req: req ? { ip: req.ip, headers: { 'user-agent': req.headers['user-agent'] } } : null
         };
         started = true;
@@ -251,6 +274,7 @@ async function runJob(job) {
         // the transaction rolled back, so nothing was deleted
         if (error.recordsChanged) return finishRun(job, 'saved', CHANGED_MESSAGE);
         if (error.kioskBusy) return finishRun(job, 'saved', error.message);
+        if (error.code === 'ER_NO_SUCH_TABLE') return finishRun(job, 'saved', 'The archive was saved and checked, but the database needs an update before records can be deleted: run npm run db:migrate, then archive again.');
         return finishRun(job, 'saved', `The archive was saved and checked, but the records could not be deleted: ${error.message}`);
     }
     // the records are gone now, so the run ends as done whatever the clean-up finds
@@ -274,7 +298,8 @@ async function writeAndCheck(job) {
         const meta = {
             archiveId: job.runId, createdAt: job.startedAt, createdBy: job.trigger === 'automatic' ? 'automatic' : job.startedBy, trigger: job.trigger,
             criteria: job.criteria, photosIncluded: job.criteria.includePhotos !== false, deleteAfterArchive: job.deleteAfter,
-            encryption: { keyFingerprint: auth.keyFingerprint(), developmentKey: auth.usesDevelopmentKey() }
+            encryption: { keyFingerprint: auth.keyFingerprint(), developmentKey: auth.usesDevelopmentKey() },
+            leaves: job.leaves
         };
         const written = await writer.writeArchive(job.selection, meta, partial, (progress) => setProgress(job.runId, progress));
         await setStage(job.runId, 'verifying');
@@ -326,8 +351,13 @@ async function recordsChanged(all, job) {
 // Every deleted row is also added to deleted_record_counts in this transaction, so running totals keep counting it.
 // A kiosk save goes first: the transaction checks the save gate before every statement and is rolled back and run
 // again from the top when a save starts (error.kioskBusy after too many tries).
+// With "Leaves on the tree" on keep or initials, the leaf of every feedback row the tree was drawing is written to
+// archived_leaves in this transaction, just before the row is deleted, and is not counted as a deleted leaf.
 function deleteRecords(job) {
-    const { ids } = job.selection;
+    const { ids, records } = job.selection;
+    const leafOptions = archivedLeaves.keeps(job.leaves.mode)
+        ? { mode: job.leaves.mode, details: archivedLeaves.detailsOf(records), archiveId: job.runId }
+        : null;
     return saveGate.deleteStep((checkpoint) => new Promise((resolve, reject) => {
         db.withTransaction((tx, finish) => {
             const run = async (sql, params) => {
@@ -340,7 +370,7 @@ function deleteRecords(job) {
             };
             (async () => {
                 if (await recordsChanged(all, job)) throw Object.assign(new Error(CHANGED_MESSAGE), { recordsChanged: true });
-                await deletedCounts.deleteCounted({ all, run }, 'feedback', ids.feedback);
+                await deletedCounts.deleteCounted({ all, run }, 'feedback', ids.feedback, { keepLeaves: leafOptions ? archivedLeaves.keeper(leafOptions) : null });
                 let visitorsDeleted = 0;
                 for (const part of chunks(ids.visitorsDeleted)) {
                     const due = await all(
@@ -489,8 +519,8 @@ function archivePath(row) {
     return row.folder && row.file_name ? path.join(row.folder, row.file_name) : null;
 }
 
-// exists: whether the zip is on disk (describeRun checks it)
-function toRun(row, exists = false) {
+// exists: whether the zip is on disk (describeRun checks it); leaves: { kept, initials } left on the digital tree
+function toRun(row, exists = false, leaves = null) {
     return {
         id: row.id,
         startedAt: isoOf(row.started_at),
@@ -505,7 +535,8 @@ function toRun(row, exists = false) {
         lostFoundBefore: isoOf(row.lost_found_before),
         counts: {
             visitors: row.visitor_count, visitorsDeleted: row.visitors_deleted, feedback: row.feedback_count, answers: row.answer_count,
-            likes: row.like_count, lostFound: row.lost_found_count, photos: row.photo_count, missingPhotos: row.missing_photo_count
+            likes: row.like_count, lostFound: row.lost_found_count, photos: row.photo_count, missingPhotos: row.missing_photo_count,
+            leavesKept: leaves ? leaves.kept : 0, leavesWithInitials: leaves ? leaves.initials : 0
         },
         file: {
             name: row.file_name, folder: row.folder, size: row.file_size === null ? null : Number(row.file_size), sha256: row.file_sha256,
@@ -517,10 +548,15 @@ function toRun(row, exists = false) {
     };
 }
 
-// The run object with its file looked up on disk (fs.promises, so a missing drive never blocks the server)
-async function describeRun(row) {
+// Only a run that deleted its records can have left leaves on the tree
+const mayKeepLeaves = (row) => row.status === 'done' && !!row.delete_records;
+
+// The run object with its file looked up on disk (fs.promises, so a missing drive never blocks the server).
+// leavesByRun: the kept-leaf counts when the caller already read them for several runs.
+async function describeRun(row, leavesByRun = null) {
     const file = archivePath(row);
-    return toRun(row, row.file_state === 'present' && !!file && await files.pathExists(file));
+    const counts = leavesByRun || (mayKeepLeaves(row) ? await archivedLeaves.countsForRuns([row.id]) : null);
+    return toRun(row, row.file_state === 'present' && !!file && await files.pathExists(file), counts ? counts.get(row.id) || null : null);
 }
 
 async function getRunRow(id) {
@@ -529,7 +565,9 @@ async function getRunRow(id) {
 }
 
 async function listRuns(limit) {
-    return Promise.all((await query('SELECT * FROM visitor_archives ORDER BY id DESC LIMIT ?', [limit])).map(describeRun));
+    const rows = await query('SELECT * FROM visitor_archives ORDER BY id DESC LIMIT ?', [limit]);
+    const leavesByRun = await archivedLeaves.countsForRuns(rows.filter(mayKeepLeaves).map((row) => row.id));
+    return Promise.all(rows.map((row) => describeRun(row, leavesByRun)));
 }
 
 function progressFor(runId) {
@@ -579,10 +617,11 @@ async function overview() {
     const now = new Date();
     const feedbackBefore = schedule.cutoffFor(s.feedback.keep, now);
     const lostFoundBefore = schedule.cutoffFor(s.lostFound.keep, now);
+    const vip = await vipLeafIds(feedbackBefore); // never archived, so not counted as ready
     const [fb] = await query(
         `SELECT COUNT(*) AS n, MIN(created_at) AS oldest, COUNT(DISTINCT user_id) AS visitors,
                 SUM(photo_path IS NOT NULL AND photo_path <> '') + SUM(processed_photo_path IS NOT NULL AND processed_photo_path <> '') AS photos
-         FROM feedback WHERE created_at < ?`, [feedbackBefore]);
+         FROM feedback WHERE created_at < ?${vip.length ? ' AND id NOT IN (?)' : ''}`, vip.length ? [feedbackBefore, vip] : [feedbackBefore]);
     const [orphans] = await query('SELECT COUNT(*) AS n FROM users u WHERE COALESCE(u.last_visit, u.created_at) < ? AND NOT EXISTS (SELECT 1 FROM feedback f WHERE f.user_id = u.id)', [feedbackBefore]);
     const [lf] = await query(
         `SELECT COUNT(*) AS n, MIN(created_at) AS oldest, SUM(item_photo_path IS NOT NULL AND item_photo_path <> '') AS photos
@@ -602,7 +641,7 @@ async function overview() {
         defaults: { folder: files.DEFAULT_FOLDER },
         folder: await files.checkFolder(s.folder),
         due: {
-            feedback: { enabled: s.feedback.enabled, before: feedbackBefore.toISOString(), beforeDay: schedule.toSgtDay(feedbackBefore), count: Number(fb.n), oldest: isoOf(fb.oldest) },
+            feedback: { enabled: s.feedback.enabled, before: feedbackBefore.toISOString(), beforeDay: schedule.toSgtDay(feedbackBefore), count: Number(fb.n), oldest: isoOf(fb.oldest), vipLeaves: vip.length },
             lostFound: { enabled: s.lostFound.enabled, before: lostFoundBefore.toISOString(), beforeDay: schedule.toSgtDay(lostFoundBefore), count: Number(lf.n), oldest: isoOf(lf.oldest) },
             visitors: s.feedback.enabled ? Number(fb.visitors) + Number(orphans.n) : 0,
             orphanVisitors: s.feedback.enabled ? Number(orphans.n) : 0,

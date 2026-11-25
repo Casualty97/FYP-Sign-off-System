@@ -281,7 +281,10 @@ function showPage(pageName) {
     const clickedNav = event && event.target && event.target.closest ? event.target.closest('.nav-item') : null;
     const navItem = clickedNav || document.querySelector(`.nav-item[onclick*="showPage('${pageName}')"]`);
     if (navItem) navItem.classList.add('active');
-    
+    // <Jun Kai start> the count of incidents that need a look, next to Incidents in the sidebar, stays current on every page
+    if (typeof refreshIncidentsBadge === 'function') refreshIncidentsBadge();
+    // <Jun Kai end>
+
     // Load data for specific pages
     if (pageName === 'dashboard') {
         loadDashboardData();
@@ -291,12 +294,18 @@ function showPage(pageName) {
         loadFlaggedFeedback();
         loadVisitorTrendsData();
         loadCacheStorageMode();
+        // <Jun Kai start> the AI analysis modes follow the Local AI models switch
+        if (typeof refreshAnalysisModes === 'function') refreshAnalysisModes();
+        // <Jun Kai end>
     } else if (pageName === 'digital-tree') {
         loadDigitalTreeData();
     } else if (pageName === 'health') {
         loadHealth();
         startHealthPolling();
     // <Jun Kai start>
+    } else if (pageName === 'incidents') {
+        loadIncidentsPage();
+        startIncidentsPolling();
     } else if (pageName === 'hardware') {
         loadHardware();
         startHardwarePolling();
@@ -317,6 +326,7 @@ function showPage(pageName) {
         loadAssetData();
     } else if (pageName === 'users') {
         loadUserManagementData();
+        loadIdleSignOutCard(); // <Jun Kai/> the Sign-in card (core.js)
     } else if (pageName === 'questions') {
         loadQuestionManagementData();
     } else if (pageName === 'audit') {

@@ -856,29 +856,12 @@ function buildSummaryRows(summary, emailContent = {}) {
 
 function buildCombinedBadgeSectionHtml(badges = []) {
     if (!Array.isArray(badges) || badges.length === 0) return '';
-
-    const cards = badges.map((badge) => `
-        <article style="border:1px solid #dbe7df; border-radius:12px; padding:14px; background:#ffffff; box-shadow:0 6px 18px rgba(15,23,42,0.06);">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span style="width:42px; height:42px; border-radius:999px; background:${escapeHtml(badge.badgeColor || '#006937')}; display:inline-flex; align-items:center; justify-content:center; color:#ffffff; font-size:20px;">&#127942;</span>
-                <span>
-                    <strong style="display:block; color:#0f172a; font-size:15px;">${escapeHtml(badge.badgeName)}</strong>
-                    <small style="display:block; color:#64748b; line-height:1.4;">${escapeHtml(badge.badgeDescription || 'ESG badge earned from this visit.')}</small>
-                </span>
-            </div>
-        </article>
-    `).join('');
-
+    // <Jun Kai start> clean and colour-free (12 Nov 2026): the badge name and what it is for, no icon
+    const items = badges.map((badge) => `
+                                <p style="margin:0 0 10px 0; font-size:14px; line-height:1.5; color:#111111;"><strong>${escapeHtml(badge.badgeName)}</strong><br/><span style="color:#555555;">${escapeHtml(badge.badgeDescription || 'ESG badge earned from this visit.')}</span></p>`).join('');
     return `
-        <div style="margin:24px 0; padding:18px; border-radius:14px; background:#f0fdf4; border:1px solid #bbf7d0;">
-            <p style="margin:0 0 12px 0; color:#006937; font-size:13px; font-weight:700;">
-                Visitor passport badge${badges.length === 1 ? '' : 's'} unlocked
-            </p>
-            <div style="display:grid; gap:12px;">
-                ${cards}
-            </div>
-        </div>
-    `;
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Visitor passport badge${badges.length === 1 ? '' : 's'} unlocked</p>${items}`;
+    // <Jun Kai end>
 }
 
 function buildCombinedBadgeSectionText(badges = []) {
@@ -1127,16 +1110,19 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         const textSummary = summaryRows
             .map(([label, value]) => `${label}: ${value}`)
             .join('\n');
+        // <Jun Kai start> clean and colour-free (12 Nov 2026): a plain two-column list with hairlines
         const htmlSummaryRows = summaryRows
             .map(([label, value]) => `
-                <tr>
-                    <td style="padding:10px 12px; font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; width:34%; border-bottom:1px solid #e5e7eb;">${escapeHtml(label)}</td>
-                    <td style="padding:10px 12px; font-size:14px; color:#0f172a; font-weight:600; border-bottom:1px solid #e5e7eb;">${escapeHtml(value)}</td>
-                </tr>
-            `).join('');
+                                    <tr>
+                                        <td style="padding:10px 16px 10px 0; width:38%; border-top:1px solid #e5e5e5; font-size:13px; color:#666666; vertical-align:top;">${escapeHtml(label)}</td>
+                                        <td style="padding:10px 0; border-top:1px solid #e5e5e5; font-size:14px; color:#111111; vertical-align:top;">${escapeHtml(value)}</td>
+                                    </tr>`).join('');
+        // <Jun Kai end>
         console.debug(`📧 Preparing to send email to ${email}...`);
         
-        if (!emailTransporter) {
+        // <Jun Kai start> the Email page preview (visitOptions.previewTransport) keeps the message instead of sending it
+        if (!emailTransporter && !visitOptions.previewTransport) {
+        // <Jun Kai end>
             try {
                 await reloadEmailService();
             } catch (e) {
@@ -1240,29 +1226,20 @@ ${footerNote}
               .replace(/>/g, '&gt;')
   : '';
 
+        // <Jun Kai start> clean and colour-free (12 Nov 2026): greys only, plain headings, tables so every mail app lays it
+        // out the same; the words are the same as before
         const pledgeHtml = pledgeText
-  ? `<p style="
-        font-size:14px;
-        color:#444;
-        margin-top:14px;
-        font-style:italic;
-        text-align:center;
-      ">
-        &ldquo;${safePledgeText}&rdquo;
-     </p>`
-  : '';
+            ? `
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your pledge</p>
+                                <p style="margin:0; font-size:16px; line-height:1.55; color:#111111;">&ldquo;${safePledgeText}&rdquo;</p>`
+            : '';
 
         const photoMemoryHtml = fullPhotoPath
-            ? `<div style="text-align:center; margin:24px 0; padding:16px; background:#f9f9f9; border-radius:4px;">
-                    <p style="font-size:13px; color:#666; margin:0 0 12px 0; font-weight:600;">Your ESG Centre Memory</p>
-                    <img src="cid:visit_photo" alt="Your RP ESG Centre memory" style="max-width:100%; height:auto; border-radius:4px; border:1px solid #ddd; max-height:400px;" />
-                    ${pledgeHtml}
-                </div>`
-            : `<div style="text-align:center; margin:24px 0; padding:16px; background:#f9f9f9; border-radius:4px;">
-                    <p style="font-size:13px; color:#666; margin:0 0 8px 0; font-weight:600;">Your ESG Centre Visit</p>
-                    ${pledgeHtml || '<p style="font-size:14px; color:#555; margin:0;">Your feedback has been recorded in your visitor passport.</p>'}
-                </div>`;
-
+            ? `
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your ESG Centre memory</p>
+                                <img src="cid:visit_photo" alt="Your RP ESG Centre memory" style="display:block; max-width:100%; max-height:400px; height:auto; border:1px solid #e5e5e5;" />${pledgeHtml}`
+            : (pledgeHtml || `
+                                <p style="margin:28px 0 0 0;">Your feedback has been recorded in your visitor passport.</p>`);
 
         // HTML email template
         const htmlBody = `
@@ -1273,51 +1250,41 @@ ${footerNote}
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Thank you for visiting RP ESG Centre</title>
     </head>
-    <body style="font-family: Arial, sans-serif; background-color:#f5f5f5; padding:20px; margin:0;">
-        <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-            <div style="background:#006937; color:#ffffff; padding:16px 24px;">
-                <h2 style="margin:0; font-size:20px; font-weight:600;">Thank you for visiting the RP ESG Centre, ${name}!</h2>
-            </div>
-
-            <div style="padding:24px;">
-                <p style="font-size:14px; color:#333; margin:0 0 16px 0;">
-                    Dear ${name},
-                </p>
-                <p style="font-size:14px; color:#333; line-height:1.5; margin:0 0 16px 0;">
-                    ${emailIntroHtml}
-                </p>
-
-                ${photoMemoryHtml}
-
-                ${badgeSectionHtml}
-
-                <div style="margin:24px 0; border:1px solid #dbe7df; border-radius:10px; overflow:hidden; background:#f8fafc;">
-                    <div style="background:#ecfdf5; padding:14px 16px; border-bottom:1px solid #dbe7df;">
-                        <p style="margin:0; color:#006937; font-size:13px; font-weight:700;">${escapeHtml(summaryTitle)}</p>
-                    </div>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse; background:#ffffff;">
-                        ${htmlSummaryRows}
+    <body style="margin:0; padding:24px 12px; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif; color:#111111;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px; border-collapse:collapse; background-color:#ffffff; border:1px solid #e5e5e5; text-align:left;">
+                        <tr>
+                            <td style="padding:32px 36px 0 36px;">
+                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; ESG Centre</p>
+                                <h1 style="margin:0; font-size:22px; line-height:1.35; font-weight:bold; color:#111111;">Thank you for visiting the RP ESG Centre, ${escapeHtml(name)}!</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:24px 36px 32px 36px; font-size:15px; line-height:1.6; color:#333333;">
+                                <p style="margin:0 0 14px 0;">Dear ${escapeHtml(name)},</p>
+                                <p style="margin:0;">${emailIntroHtml}</p>
+                                ${photoMemoryHtml}
+                                ${badgeSectionHtml}
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">${escapeHtml(summaryTitle)}</p>
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">${htmlSummaryRows}
+                                </table>
+                                <p style="margin:28px 0 0 0;">${emailClosingHtml}</p>
+                                <p style="margin:24px 0 0 0;">Warm regards,<br/><strong style="color:#111111;">${senderNameHtml}</strong><br/>Republic Polytechnic</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:18px 36px; border-top:1px solid #e5e5e5; font-size:12px; line-height:1.5; color:#777777;">${footerNoteHtml}</td>
+                        </tr>
                     </table>
-                </div>
-
-                <p style="font-size:13px; color:#555; line-height:1.5; margin:0 0 16px 0;">
-                    ${emailClosingHtml}
-                </p>
-
-                <p style="font-size:13px; color:#555; margin-top:24px; padding-top:16px; border-top:1px solid #eee;">
-                    Warm regards,<br/>
-                    <strong style="color:#006937;">${senderNameHtml}</strong><br/>
-                    Republic Polytechnic
-                </p>
-            </div>
-
-            <div style="background:#f0f0f0; padding:12px 24px; font-size:11px; color:#777; text-align:center; border-top:1px solid #ddd;">
-                ${footerNoteHtml}
-            </div>
-        </div>
+                </td>
+            </tr>
+        </table>
     </body>
 </html>
         `;
+        // <Jun Kai end>
 
         const mailOptions = {
             from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
@@ -1338,7 +1305,9 @@ ${footerNote}
         };
 
         console.debug(`📤 Sending email to: ${email}`);
-        const info = await emailTransporter.sendMail(mailOptions);
+        // <Jun Kai start>
+        const info = await (visitOptions.previewTransport || emailTransporter).sendMail(mailOptions);
+        // <Jun Kai end>
         
         console.debug('✅ Email sent successfully!');
         console.debug('📨 Message ID:', info.messageId);
@@ -1450,16 +1419,18 @@ async function testEmailService(testEmail = 'test@example.com') {
             to: testEmail,
             subject: 'Test Email from RP ESG Centre',
             text: 'This is a test email from the RP ESG Centre system. If you receive this, email service is working correctly.',
+            // <Jun Kai start> the same clean, colour-free look as the thank-you email (12 Nov 2026)
             html: `
-                <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto;">
-                    <h3 style="color:#006937;">Test Email from RP ESG Centre</h3>
-                    <p>This is a test email from the RP ESG Centre system.</p>
-                    <p>If you receive this, email service is working correctly.</p>
-                    <p><strong>Server Time:</strong> ${new Date().toLocaleString()}</p>
-                    <hr style="margin:20px 0; border:none; border-top:1px solid #ddd;">
-                    <p style="font-size:12px; color:#666;">This is an automated test message.</p>
+                <div style="font-family:Arial, Helvetica, sans-serif; max-width:600px; margin:0 auto; padding:28px 32px; border:1px solid #e5e5e5; color:#333333; font-size:15px; line-height:1.6;">
+                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; ESG Centre</p>
+                    <h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.35; color:#111111;">Test Email from RP ESG Centre</h1>
+                    <p style="margin:0 0 10px 0;">This is a test email from the RP ESG Centre system.</p>
+                    <p style="margin:0 0 10px 0;">If you receive this, email service is working correctly.</p>
+                    <p style="margin:0;"><strong style="color:#111111;">Server Time:</strong> ${new Date().toLocaleString()}</p>
+                    <p style="margin:20px 0 0 0; padding-top:14px; border-top:1px solid #e5e5e5; font-size:12px; color:#777777;">This is an automated test message.</p>
                 </div>
             `
+            // <Jun Kai end>
         };
         
         console.debug(`📤 Sending test email to: ${testEmail}`);

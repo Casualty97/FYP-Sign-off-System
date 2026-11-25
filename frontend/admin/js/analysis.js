@@ -155,6 +155,37 @@ function renderFlaggedFeedback(items, feedbackCount) {
     }
 }
 
+// <Jun Kai start>
+// The modes that run an AI model (Xenova on this server, Qwen, Gemma and LocalGPT through Ollama) follow the Local AI
+// models switch of the incident settings: off, they cannot be chosen (the server refuses them too). Run when Feedback
+// Reports opens (navigation.js).
+const ANALYSIS_MODEL_MODES = ['xenova', 'qwen', 'gemma', 'localgpt'];
+async function refreshAnalysisModes() {
+    const select = document.getElementById('analysis-mode');
+    if (!select) return;
+    let localAi = true;
+    try {
+        const response = await fetch('/api/admin/aiops/settings', { cache: 'no-store' });
+        const data = await response.json();
+        if (response.ok && data.success && data.settings) localAi = data.settings.localAi !== false;
+    } catch {
+        // the server refuses those modes anyway while they are off
+    }
+    for (const option of select.options) {
+        if (!ANALYSIS_MODEL_MODES.includes(option.value)) continue;
+        if (!option.dataset.label) option.dataset.label = option.textContent;
+        option.disabled = !localAi;
+        option.textContent = localAi ? option.dataset.label : `${option.dataset.label} (off)`;
+    }
+    if (!localAi && ANALYSIS_MODEL_MODES.includes(select.value)) {
+        select.value = 'rule-based';
+        updateAnalysisTitle();
+    }
+    const note = document.getElementById('analysis-mode-note');
+    if (note) note.hidden = localAi;
+}
+// <Jun Kai end>
+
 // Update feedback analysis title based on selected mode (Done by Yu Kang)
 function updateAnalysisTitle() {
     const select = document.getElementById('analysis-mode');
@@ -506,6 +537,9 @@ async function analyzeFeedbackData() {
 
         const data = await response.json();
         if (!response.ok || !data.success) {
+            // <Jun Kai start> the AI modes were switched off since the page opened: the list catches up
+            if (data.localAiOff) refreshAnalysisModes();
+            // <Jun Kai end>
             throw new Error(data.error || 'Failed to analyze feedback');
         }
 

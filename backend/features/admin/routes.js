@@ -253,6 +253,9 @@ const router = express.Router();
 const auth = require('../../core/auth');
 // <Jun Kai start>
 const rememberMe = require('../../core/rememberMe');
+const adminSessions = require('../../core/adminSessions'); // <Jun Kai/> ends the sign-ins of a deleted or changed account
+const loginLimit = require('../../core/loginLimit'); // a limit on wrong passwords at the sign-in
+const { csvCell } = require('../../core/csv'); // one CSV cell: 0 is kept, dates in Singapore time, no formulas
 // <Jun Kai end>
 const bcrypt = require('bcrypt');
 const lostFoundStore = require('../lostFound/store'); // changes made by nick
@@ -276,8 +279,12 @@ const dataRetentionCleanup = require('../archive/retention');
 const feedbackAnalysisCacheStore = require('../analysis/cacheStore');
 // <Jun Kai start>
 const deletedCounts = require('../archive/deletedCounts');
+const archivedLeaves = require('../archive/archivedLeaves'); // <Jun Kai/> VIP leaves are kept by Permanent Data Deletion
 const { toSgtDay } = require('../archive/visitorSchedule');
 const { readJson, writeJsonAtomic } = require('../../core/jsonFile');
+// the Local AI models switch of the incident settings: off, the analysis modes that run a model are refused
+const aiopsSettings = require('../aiops/settings');
+const LOCAL_AI_OFF_TEXT = 'Local AI models are switched off (Incidents page, Settings, Local AI advisor). Use Rule-Based Analysis, or switch them on there.';
 // <Jun Kai end>
 
 
@@ -905,11 +912,19 @@ const uploadTreeBackground = multer({
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
     
+    // <Jun Kai start> a limit on wrong passwords (backend/core/loginLimit.js), asked before the password is looked at
+    const loginLimited = loginLimit.check(username, req.ip);
+    if (loginLimited.blocked) return res.status(429).json({ error: loginLimit.message(loginLimited.retryAfterMs) });
+    // <Jun Kai end>
     auth.loginUser(username, password, (err, user) => {
         if (err) {
             logAudit('LOGIN_FAILED', username, null, null, req);
+            // <Jun Kai start> a wrong password counts; a database error (it carries a code) does not
+            if (!err.code && loginLimit.fail(username, req.ip)) logAudit('LOGIN_LOCKED', username, null, null, req);
+            // <Jun Kai end>
             return res.status(401).json({ error: err.message });
         }
+        loginLimit.success(username, req.ip); // <Jun Kai/>
         
         // Store user in session
         req.session.user = {
@@ -917,6 +932,7 @@ router.post('/login', (req, res) => {
             username: user.username,
             role: user.role
         };
+        adminSessions.stamp(req.session); // <Jun Kai/> when this sign-in was made
         
         logAudit('LOGIN', username, null, null, req);
         // <Jun Kai start> "Keep me signed in for 1 day": a token cookie for this browser (backend/core/rememberMe.js)
@@ -931,7 +947,10 @@ router.post('/login', (req, res) => {
 
 // Endpoint for logout logging
 router.post('/logout-audit', (req, res) => {
-    const { username } = req.body;
+    // <Jun Kai start> no sign-in check here: Logout has to work after the session ended. The audit line names the
+    // admin of the session, not a name from the request, so nobody can write a LOGOUT line for someone else
+    const username = req.session && req.session.user && req.session.user.username;
+    // <Jun Kai end>
     if (username) {
         logAudit('LOGOUT', username, null, null, req);
     }
@@ -972,7 +991,7 @@ router.post('/keep-alive', auth.requireAuth, (req, res) => {
 // ==================== 5. DASHBOARD ROUTES ====================
 
 // Dashboard data endpoint - FEEDBACK ONLY (matches Feedback Data page filters)
-router.get('/dashboard', (req, res) => {
+router.get('/dashboard', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     console.debug('📊 Fetching dashboard data (feedback only, SGT timezone)...');
     
     // ── All queries now use DATE(CONVERT_TZ(created_at, '+00:00', '+08:00')) for consistency ──
@@ -1057,7 +1076,7 @@ router.get('/dashboard', (req, res) => {
 });
 
 // Staff-facing sustainability summary for school reporting.
-router.get('/school-summary', (req, res) => {
+router.get('/school-summary', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const summary = {
         feedbackCount: 0,
         pledgeCount: 0,
@@ -1124,7 +1143,7 @@ router.get('/school-summary', (req, res) => {
 // ==================== REAL DATA CHART ENDPOINTS (ADDED FOR LIVE DASHBOARD) ====================
 
 // Get real feedback statistics for distribution chart
-router.get('/feedback-stats', (req, res) => {
+router.get('/feedback-stats', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     console.debug('📊 Fetching REAL feedback statistics for charts...');
     
     const queries = {
@@ -1203,7 +1222,7 @@ router.get('/feedback-stats', (req, res) => {
 });
 
 // Get real feedback trends for line chart (FEEDBACK ONLY)
-router.get('/visitor-trends', (req, res) => {
+router.get('/visitor-trends', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     const range = req.query.range || 'week';
     let days = 7;
     
@@ -1311,7 +1330,7 @@ router.get('/visitor-trends', (req, res) => {
 });
 
 // Get daily digital tree leaf and pledge counts for admin handover/reporting.
-router.get('/leaf-pledge-trends', (req, res) => {
+router.get('/leaf-pledge-trends', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     const days = Math.min(30, Math.max(1, Number(req.query.days) || 6));
     console.debug(`🌿 Fetching leaf and pledge trends for last ${days} days (SGT)...`);
 
@@ -1385,7 +1404,7 @@ router.get('/leaf-pledge-trends', (req, res) => {
 
 
 // Database test endpoint
-router.get('/test-db', (req, res) => {
+router.get('/test-db', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     console.debug('🧪 Testing database connection...');
     
     // Test individual table counts
@@ -1393,7 +1412,7 @@ router.get('/test-db', (req, res) => {
         users: 'SELECT COUNT(*) as count FROM users',
         feedback: 'SELECT COUNT(*) as count FROM feedback WHERE is_active = 1',
         admin_users: 'SELECT COUNT(*) as count FROM admin_users',
-        feedback_with_rating: 'SELECT COUNT(*) as count FROM feedback WHERE rating IS NOT NULL AND is_active = 1',
+        // <Jun Kai/> a count by feedback.rating stood here: the feedback table has no such column, so it always failed
         users_today: "SELECT COUNT(*) as count FROM users WHERE DATE(CONVERT_TZ(last_visit, '+00:00', '+08:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))"
     };
     
@@ -1427,7 +1446,7 @@ router.get('/test-db', (req, res) => {
 
 // ==================== 6. FEEDBACK MANAGEMENT ROUTES ====================
 
-router.get('/feedback', (req, res) => {
+router.get('/feedback', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     console.debug('🔍 Fetching ALL feedback data (pagination handled by frontend)...');
     
     // Get ALL feedback data (no LIMIT/OFFSET - frontend handles pagination like archive page)
@@ -1592,7 +1611,7 @@ router.get('/flagged-feedback', auth.requireAuth, (req, res) => {
 });
 
 // Update feedback
-router.put('/feedback/:id', (req, res) => {
+router.put('/feedback/:id', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
     const { comment, admin_notes } = req.body;  
     const query = 'UPDATE feedback SET comment = ?, admin_notes = ? WHERE id = ?';
@@ -2324,6 +2343,13 @@ async function getInterventionAlertsFromRows(feedbackRows, answerRows, health, c
 // AI Insight Summary for admin feedback analysis (Done by Yu Kang)
 router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
     const mode = req.query.mode || analysis_modes.RULE_BASED;
+    // <Jun Kai start> refused here, before a running analysis is stopped and before anything is cached: the engines
+    // turn every failure into "neutral", which would be cached as a real answer
+    const modelModes = [analysis_modes.XENOVA, analysis_modes.LOCALGPT, analysis_modes.QWEN, analysis_modes.GEMMA];
+    if (modelModes.includes(mode) && !aiopsSettings.localAiOn()) {
+        return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true });
+    }
+    // <Jun Kai end>
     console.debug(`🧠 Generating feedback insights using mode: ${mode}`);
 
     if (activeFeedbackAnalysisController) {
@@ -2524,7 +2550,10 @@ router.get('/feedback-insight-summary', auth.requireAuth, async(req, res) => {
 });
 
 // Sentiment AI analysis of feedback answers (added by Yu Kang)
-router.get('/feedback-sentiment-analysis', async (req, res) => {
+router.get('/feedback-sentiment-analysis', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
+    // <Jun Kai start> the Xenova model is a local AI model too
+    if (!aiopsSettings.localAiOn()) return res.status(409).json({ success: false, error: LOCAL_AI_OFF_TEXT, localAiOff: true });
+    // <Jun Kai end>
     console.debug('🧠 Running LOCAL AI sentiment analysis...');
 
     const query = `
@@ -2574,7 +2603,7 @@ router.get('/feedback-sentiment-analysis', async (req, res) => {
 // ==================== 8. ARCHIVE MANAGEMENT ROUTES ====================
 
 // Get archived feedback (older than 3 months)
-router.get('/archive', (req, res) => {
+router.get('/archive', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     console.debug('📂 Fetching archived feedback data...');
     
     // DATE_FORMAT returns SGT datetime as string for consistent display
@@ -2681,7 +2710,7 @@ router.post('/archive/update-status', auth.requireAuth, auth.requireAdmin, (req,
 });
 
 // Get archive statistics
-router.get('/archive/stats', async (req, res) => {
+router.get('/archive/stats', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
     try {
         const [archivedCount] = await db.pool.promise().query(`
             SELECT COUNT(*) as count 
@@ -2710,9 +2739,10 @@ router.get('/archive/stats', async (req, res) => {
 });
 
 // Bulk Decrypt Archive Emails
-router.post('/bulk-decrypt-archive', async (req, res) => {
+router.post('/bulk-decrypt-archive', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
     try {
-        const { username, password, emails } = req.body;
+        const { password, emails } = req.body;
+        const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
         
         if (!username || !password || !emails) {
             return res.json({ success: false, message: 'Missing required fields' });
@@ -2786,9 +2816,10 @@ router.post('/bulk-decrypt-archive', async (req, res) => {
 });
 
 // Download Archive Photos (ZIP)
-router.post('/download-archive-photos', async (req, res) => {
+router.post('/download-archive-photos', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
     try {
-        const { username, feedbackIds } = req.body;
+        const { feedbackIds } = req.body;
+        const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
         
         if (!username || !feedbackIds || !Array.isArray(feedbackIds)) {
             return res.json({ success: false, message: 'Missing required fields' });
@@ -2938,18 +2969,22 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
     
     let query;
     let params;
-    
+    // <Jun Kai start> the same rows again as SQL about f, to find the VIP leaves among them (they are not deleted)
+    let vipWhere;
+    // <Jun Kai end>
+
     if (feedbackIds && feedbackIds.length > 0) {
         // Preview for selected IDs
         const placeholders = feedbackIds.map(() => '?').join(',');
         query = `
             SELECT COUNT(*) as count
             FROM feedback
-            WHERE id IN (${placeholders}) 
+            WHERE id IN (${placeholders})
             AND archive_status = 'archived'
             AND is_active = 1
         `;
         params = feedbackIds;
+        vipWhere = `f.id IN (${placeholders}) AND f.archive_status = 'archived' AND f.is_active = 1`;
     } else if (dateRange && dateRange.before) {
         // Preview for date range
         query = `
@@ -2960,6 +2995,7 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
             AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')
         `;
         params = [dateRange.before];
+        vipWhere = "f.archive_status = 'archived' AND f.is_active = 1 AND f.created_at < CONVERT_TZ(?, '+08:00', '+00:00')";
     } else {
         return res.status(400).json({
             success: false,
@@ -2976,10 +3012,18 @@ router.post('/archive/preview-deletion', auth.requireAuth, (req, res) => {
             });
         }
         
-        res.json({
-            success: true,
-            count: result.count
+        // <Jun Kai start> VIP leaves stay on the tree, so they are not part of what will be deleted
+        archivedLeaves.vipLeafIds(vipWhere, params).then((vipIds) => {
+            res.json({
+                success: true,
+                count: Math.max(0, result.count - vipIds.length),
+                vipKept: vipIds.length
+            });
+        }, (vipErr) => {
+            console.error('❌ Error previewing deletion (VIP leaves):', vipErr);
+            res.status(500).json({ success: false, error: 'Database error: ' + vipErr.message });
         });
+        // <Jun Kai end>
     });
 });
 
@@ -3036,7 +3080,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
             AND f.is_active = 1
         `;
         
-        db.all(selectQuery, feedbackIds, (selectErr, feedbackData) => {
+        db.all(selectQuery, feedbackIds, async (selectErr, feedbackData) => { // <Jun Kai/> async: the VIP check below
             if (selectErr) {
                 console.error('❌ Error fetching feedback for deletion:', selectErr);
                 return res.status(500).json({
@@ -3051,7 +3095,24 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                     error: 'No archived feedback found with the provided IDs'
                 });
             }
-            
+
+            // <Jun Kai start>
+            // VIP leaves stay on the tree (supervisor, 18 Nov 2026): they are taken out before anything is deleted
+            let vipIds;
+            try {
+                vipIds = new Set(await archivedLeaves.vipLeafIds('f.id IN (?)', [feedbackData.map((feedback) => feedback.id)]));
+            } catch (vipErr) {
+                console.error('❌ Error checking VIP leaves before deletion:', vipErr);
+                return res.status(500).json({ success: false, error: 'Database error: ' + vipErr.message });
+            }
+            const vipKept = feedbackData.filter((feedback) => vipIds.has(feedback.id)).length;
+            feedbackData = feedbackData.filter((feedback) => !vipIds.has(feedback.id));
+            if (feedbackData.length === 0) {
+                return res.status(409).json({ success: false, vipKept, error: `Nothing was deleted. ${archivedLeaves.vipKeptText(vipKept)}` });
+            }
+            const deleteIds = feedbackData.map((feedback) => feedback.id);
+            // <Jun Kai end>
+
             // Delete photos from filesystem
             // <Jun Kai start>
             // only once the rows are deleted, and only for the rows that went (the delete can now be refused)
@@ -3085,7 +3146,7 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
             // Hard delete feedback (CASCADE will delete feedback_answers)
             // <Jun Kai start>
             // one transaction with the deleted record counts, so running totals (visitor number, tree year book) keep counting them
-            deletedCounts.deleteWhere('feedback', "id IN (?) AND archive_status = 'archived'", [feedbackIds], (deleteErr, deletedCount, deletedIds) => {
+            deletedCounts.deleteWhere('feedback', "id IN (?) AND archive_status = 'archived'", [deleteIds], (deleteErr, deletedCount, deletedIds) => {
                 const refused = deletedCounts.deleteFailure(deleteErr);
                 if (refused) return res.status(refused.status).json({ success: false, error: refused.message });
             // <Jun Kai end>
@@ -3117,7 +3178,8 @@ router.post('/archive/delete-selected', auth.requireAuth, (req, res) => {
                 res.json({
                     success: true,
                     deletedCount: deletedCount,
-                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}`
+                    vipKept, vipNote: archivedLeaves.vipKeptText(vipKept), // <Jun Kai/>
+                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}${vipKept ? `. ${archivedLeaves.vipKeptText(vipKept)}` : ''}`
                 });
             });
         });
@@ -3175,7 +3237,7 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             AND f.created_at < CONVERT_TZ(?, '+08:00', '+00:00')
         `;
         
-        db.all(selectQuery, [beforeDate], (selectErr, feedbackData) => {
+        db.all(selectQuery, [beforeDate], async (selectErr, feedbackData) => { // <Jun Kai/> async: the VIP check below
             if (selectErr) {
                 console.error('❌ Error fetching feedback for deletion:', selectErr);
                 return res.status(500).json({
@@ -3190,7 +3252,24 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                     error: 'No archived feedback found before the specified date'
                 });
             }
-            
+
+            // <Jun Kai start>
+            // VIP leaves stay on the tree (supervisor, 18 Nov 2026): they are taken out before anything is deleted
+            let vipIds;
+            try {
+                vipIds = new Set(await archivedLeaves.vipLeafIds('f.id IN (?)', [feedbackData.map((feedback) => feedback.id)]));
+            } catch (vipErr) {
+                console.error('❌ Error checking VIP leaves before deletion:', vipErr);
+                return res.status(500).json({ success: false, error: 'Database error: ' + vipErr.message });
+            }
+            const vipKept = feedbackData.filter((feedback) => vipIds.has(feedback.id)).length;
+            feedbackData = feedbackData.filter((feedback) => !vipIds.has(feedback.id));
+            if (feedbackData.length === 0) {
+                return res.status(409).json({ success: false, vipKept, error: `Nothing was deleted. ${archivedLeaves.vipKeptText(vipKept)}` });
+            }
+            const deleteIds = feedbackData.map((feedback) => feedback.id);
+            // <Jun Kai end>
+
             // Delete photos from filesystem
             let photosDeleted = 0;
             // <Jun Kai start>
@@ -3227,7 +3306,8 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
             // Hard delete feedback
             // <Jun Kai start>
             // one transaction with the deleted record counts, so running totals (visitor number, tree year book) keep counting them
-            deletedCounts.deleteWhere('feedback', "archive_status = 'archived' AND created_at < CONVERT_TZ(?, '+08:00', '+00:00')", [beforeDate], (deleteErr, deletedCount, deletedIds) => {
+            // by id, not by date again: the rows found above, without the VIP leaves
+            deletedCounts.deleteWhere('feedback', "id IN (?) AND archive_status = 'archived'", [deleteIds], (deleteErr, deletedCount, deletedIds) => {
                 const refused = deletedCounts.deleteFailure(deleteErr);
                 if (refused) return res.status(refused.status).json({ success: false, error: refused.message });
             // <Jun Kai end>
@@ -3262,7 +3342,8 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
                     success: true,
                     deletedCount: deletedCount,
                     photosDeleted: photosDeleted,
-                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}`
+                    vipKept, vipNote: archivedLeaves.vipKeptText(vipKept), // <Jun Kai/>
+                    message: `Successfully deleted ${deletedCount} archived feedback ${deletedCount === 1 ? 'entry' : 'entries'}${vipKept ? `. ${archivedLeaves.vipKeptText(vipKept)}` : ''}`
                 });
             });
         });
@@ -3272,9 +3353,9 @@ router.post('/archive/delete-by-date', auth.requireAuth, (req, res) => {
 // ==================== 10. PHOTO ACCESS & EMAIL DECRYPTION ROUTES ====================
 
 // Verify system admin password for photo access
-router.post('/verify-photo-access', (req, res) => {
+router.post('/verify-photo-access', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { password } = req.body;
-    const username = 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in system admin's own password, not always systemadmin's
     
     if (!password) {
         return res.status(400).json({ error: 'Password required' });
@@ -3293,11 +3374,10 @@ router.post('/verify-photo-access', (req, res) => {
 });
 
 // POST /decrypt-email - Decrypt email (System Admin only)
-router.post('/decrypt-email', (req, res) => {
-    const { feedbackId, password, username: bodyUsername } = req.body;
+router.post('/decrypt-email', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
+    const { feedbackId, password } = req.body;
     
-    // Get username from body OR header (frontend sends it in header as 'x-username')
-    const username = bodyUsername || req.headers['x-username'];
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
     if (!feedbackId) {
         return res.status(400).json({ error: 'Feedback ID required' });
@@ -3400,7 +3480,7 @@ router.post('/decrypt-email', (req, res) => {
 // ==================== 11. ADMIN USER MANAGEMENT ROUTES  ====================
 
 // Get all ACTIVE admin users (excludes soft-deleted users)
-router.get('/users', (req, res) => {
+router.get('/users', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     console.debug('👥 Fetching active admin users...');
     
     // First check if admin_users table exists
@@ -3471,7 +3551,7 @@ router.get('/users', (req, res) => {
 });
 
 // Get all DELETED admin users (soft-deleted only)
-router.get('/users/deleted', (req, res) => {
+router.get('/users/deleted', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     console.debug('🗑️ Fetching deleted admin users...');
     
     // SOFT DELETE: Only get users where is_deleted = 1 (deleted users)
@@ -3526,9 +3606,9 @@ router.get('/users/deleted', (req, res) => {
 });
 
 // Add new admin user to save full_name
-router.post('/users', async (req, res) => {
+router.post('/users', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
     const { username, full_name, role, password } = req.body;
-    const currentUsername = req.headers['x-username'] || 'systemadmin';
+    const currentUsername = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
     logAudit('ADD_USER', currentUsername, 'user', null, req);
 
@@ -3628,9 +3708,9 @@ router.post('/users', async (req, res) => {
 });
 
 // Delete admin user - SOFT DELETE (mark as deleted but keep in database)
-router.delete('/users/:id', (req, res) => {
+router.delete('/users/:id', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
     logAudit('DELETE_USER', username, 'user', id, req);
     
@@ -3690,6 +3770,7 @@ router.delete('/users/:id', (req, res) => {
                 if (this.changes === 0) {
                     return res.status(404).json({ error: 'User not found or already deleted' });
                 }
+                adminSessions.end(targetUser.id); // <Jun Kai/> a deleted admin is signed out wherever it is signed in
                 
                 res.json({ 
                     success: true, 
@@ -3707,9 +3788,9 @@ router.delete('/users/:id', (req, res) => {
 });
 
 // Restore deleted admin user (undo soft delete)
-router.post('/users/:id/restore', (req, res) => {
+router.post('/users/:id/restore', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
     logAudit('RESTORE_USER', username, 'user', id, req);
     
@@ -3757,9 +3838,9 @@ router.post('/users/:id/restore', (req, res) => {
 });
 
 // Permanently delete a user (hard delete - only for soft-deleted users)
-router.delete('/users/:id/permanent', (req, res) => {
+router.delete('/users/:id/permanent', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
     logAudit('PERMANENT_DELETE_USER', username, 'user', id, req);
     
@@ -3808,6 +3889,7 @@ router.delete('/users/:id/permanent', (req, res) => {
                 if (this.changes === 0) {
                     return res.status(404).json({ error: 'User not found or not deleted' });
                 }
+                adminSessions.end(deletedUser.id); // <Jun Kai/>
                 
                 console.debug('✅ User PERMANENTLY DELETED:', { 
                     userId: id,
@@ -3831,11 +3913,11 @@ router.delete('/users/:id/permanent', (req, res) => {
 
 
 
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
     const { username, full_name, role, password } = req.body;
-    const currentUsername = req.headers['x-username'] || 'systemadmin';
-    logAudit('EDIT_USER', username, 'user', id, req);
+    const currentUsername = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
+    logAudit('EDIT_USER', currentUsername, 'user', id, req); // <Jun Kai/> the admin who made the edit, not the account that was edited
     
     console.debug('✏️ Updating admin user:', { id, username, full_name, role, currentUsername });
     
@@ -3958,6 +4040,9 @@ router.put('/users/:id', async (req, res) => {
                     }
                     
                     console.debug('✅ systemadmin account updated successfully:', { changes: this.changes, id });
+                    // <Jun Kai start> a new password signs the account out everywhere but on this browser
+                    adminSessions.accountChanged(req, targetUser, { passwordChanged: !!(password && password.trim() !== '') });
+                    // <Jun Kai end>
                     
                     // Get the updated user data
                     const getUpdatedUserQuery = 'SELECT * FROM admin_users WHERE id = ?';
@@ -4033,6 +4118,10 @@ router.put('/users/:id', async (req, res) => {
                     }
                     
                     console.debug('✅ User updated successfully:', { changes: this.changes, id });
+                    // <Jun Kai start> a session holds the name and role from the sign-in: an account with a new name,
+                    // role or password signs in again; an admin who edited their own account stays signed in here
+                    adminSessions.accountChanged(req, targetUser, { username, role, passwordChanged: !!(password && password.trim() !== '') });
+                    // <Jun Kai end>
                     
                     // Get the updated user data
                     const getUpdatedUserQuery = 'SELECT * FROM admin_users WHERE id = ?';
@@ -4090,9 +4179,9 @@ router.post('/verify-password', auth.requireAuth, (req, res) => {
 // ==================== 13. EXPORT/IMPORT ROUTES ====================
 
 // Excel download endpoint with email decryption
-router.get('/download-excel', (req, res) => {
+router.get('/download-excel', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { password } = req.query;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DOWNLOAD_EXCEL', username, null, null, req);
     
     if (!password) {
@@ -4163,7 +4252,6 @@ router.get('/download-excel', (req, res) => {
                 Name: row.name || '',
                 Email: row.email || '',
                 Visits: row.visits || 0,
-                Rating: row.rating || '',
                 Feedback: row.feedback || '',
                 'Data Retention (Days)': row.data_retention || 'Forever',
                 'Photo Path': row.photo_path || '',
@@ -4182,9 +4270,9 @@ router.get('/download-excel', (req, res) => {
 });
 
 // Archive Excel download endpoint with email decryption
-router.get('/download-archive-excel', (req, res) => {
+router.get('/download-archive-excel', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { password } = req.query;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DOWNLOAD_ARCHIVE_EXCEL', username, null, null, req);
     
     if (!password) {
@@ -4256,7 +4344,6 @@ router.get('/download-archive-excel', (req, res) => {
                 Name: row.name || '',
                 Email: row.email || '',
                 Visits: row.visits || 0,
-                Rating: row.rating || '',
                 Feedback: row.feedback || '',
                 'Data Retention (Days)': row.data_retention || 'Forever',
                 'Photo Path': row.photo_path || '',
@@ -4276,9 +4363,9 @@ router.get('/download-archive-excel', (req, res) => {
 });
 
 // Update the download-photos endpoint in adminRoutes.js with correct path
-router.get('/download-photos', async (req, res) => {
+router.get('/download-photos', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
     const { password } = req.query;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DOWNLOAD_PHOTOS', username, null, null, req);
     
     if (!password) {
@@ -4357,7 +4444,7 @@ router.get('/download-photos', async (req, res) => {
 // ==================== 14. OVERLAY MANAGEMENT ROUTES ====================
 
 // Overlay list route
-router.get('/overlays', (req, res) => {
+router.get('/overlays', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     console.debug('🎨 Fetching overlay data...');
     
     // First, check if the overlays table exists
@@ -4420,12 +4507,12 @@ router.get('/overlays', (req, res) => {
 });
 
 // Overlay addition endpoint
-router.post('/overlays', upload.fields([
+router.post('/overlays', auth.requireAuth, auth.requireAdmin, upload.fields([ // <Jun Kai/> system admins only, checked before the upload is saved
     { name: 'desktop_file', maxCount: 1 },
     { name: 'mobile_file', maxCount: 1 }
 ]), handleOverlayUploadErrors, (req, res) => {
     const { display_name, theme_id } = req.body;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
 
     logAudit('ADD_OVERLAY', username, 'overlay', null, req);
     
@@ -4646,9 +4733,9 @@ router.post('/overlays', upload.fields([
 });
 
 // Delete overlay endpoint
-router.delete('/overlays/:id', (req, res) => {
+router.delete('/overlays/:id', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     logAudit('DELETE_OVERLAY', username, 'overlay', id, req);
     
     console.debug('🗑️ Attempting to delete overlay ID:', id);
@@ -4718,7 +4805,7 @@ router.delete('/overlays/:id', (req, res) => {
 // ==================== 15. QUESTION MANAGEMENT ROUTES ====================
 
 // Get all active questions with their options
-router.get('/questions', (req, res) => {
+router.get('/questions', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     console.debug('❓ Fetching questions data...');
     
     // First check if questions table exists
@@ -4840,9 +4927,9 @@ router.get('/questions', (req, res) => {
 });
 
 // Add new question
-router.post('/questions', (req, res) => {
+router.post('/questions', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { question_text, question_type, display_order, is_required, is_active, options } = req.body;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
     console.debug('➕ Adding new question:', { 
         question_text, 
@@ -4941,9 +5028,9 @@ router.post('/questions', (req, res) => {
 });
 
 // Delete question with soft-delete logic when answers exist
-router.delete('/questions/:id', (req, res) => {
+router.delete('/questions/:id', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
 
     logAudit('DELETE_QUESTION', username, 'question', id, req);
     
@@ -5018,10 +5105,10 @@ router.delete('/questions/:id', (req, res) => {
     });
 });
 
-router.put('/questions/:id', (req, res) => {
+router.put('/questions/:id', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
     const { question_text, display_order, is_required, is_active } = req.body;
-    const username = req.headers['x-username'] || 'systemadmin';
+    const username = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
     console.debug('✏️ Safe editing question ID:', id);
     
@@ -5071,7 +5158,7 @@ router.put('/questions/:id', (req, res) => {
 // ==================== 16. AUDIT LOGS ROUTES ====================
 
 // Get audit logs
-router.get('/audit-logs', (req, res) => {
+router.get('/audit-logs', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     const { limit = 100, offset = 0 } = req.query;
     
     const query = `
@@ -5346,7 +5433,7 @@ function convertToCSV(data) {
     const headers = Object.keys(data[0]).join(',');
     const rows = data.map(row => 
         Object.values(row).map(field => 
-            `"${String(field || '').replace(/"/g, '""')}"`
+            csvCell(field) // <Jun Kai/> backend/core/csv.js
         ).join(',')
     );
     
@@ -5728,7 +5815,7 @@ router.get('/saved-themes/active', auth.requireAuth, (req, res) => {
 
 // Get VIP list (Active only)
 // GET /vips
-router.get('/vips', (req, res) => {
+router.get('/vips', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     console.debug('👑 Fetching VIP list...');
 
     // Check if vip_management table exists
@@ -5776,7 +5863,7 @@ router.get('/vips', (req, res) => {
 
 // Add VIP
 // POST /vips { name: "Zaheera" }
-router.post('/vips', (req, res) => {
+router.post('/vips', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     console.debug('➕ Adding VIP...');
 
     const name = (req.body.name || '').trim();
@@ -5816,7 +5903,7 @@ router.post('/vips', (req, res) => {
 });
 
 // Delete VIP (Done by Yu Kang)
-router.delete('/vips/:name', (req, res) => {
+router.delete('/vips/:name', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
     console.debug('🗑️ Deleting VIP...');
 
     const name = (req.params.name || '').trim();
@@ -5923,7 +6010,7 @@ router.put('/form-ui', auth.requireAuth, (req, res) => {
 // ==================== 20B. FEEDBACK ANALYSIS CACHE STORAGE ====================
 // Admin control for where feedback analysis cache is persisted.
 
-router.get('/feedback-analysis-cache-storage', auth.requireAdmin, async (req, res) => {
+router.get('/feedback-analysis-cache-storage', auth.requireAuth, async (req, res) => { // <Jun Kai/> any signed-in admin: the Feedback Report page of every role reads it (saving stays with the system admin)
   try {
     await feedbackAnalysisCacheStore.ensureReady();
 
@@ -6603,7 +6690,7 @@ router.post('/parameters/leaf/select', auth.requireAdmin, (req, res) => {
 });
 
 // GET /api/admin/parameters/tree-background/list - List available tree background images
-router.get('/parameters/tree-background/list', auth.requireAdmin, (req, res) => {
+router.get('/parameters/tree-background/list', auth.requireAuth, (req, res) => { // <Jun Kai/> any signed-in admin: the Digital Tree page of every role reads it (choosing one stays with the system admin)
     try {
         const backgroundDir = path.join(paths.ASSETS, 'Tree', 'background');
         const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
@@ -7130,11 +7217,18 @@ router.post('/email-config/test', auth.requireAuth, async (req, res) => {
     if (!to) return res.status(400).json({ success: false, error: 'Missing "to" email.' });
 
     const result = await emailService.testEmailService(to);
-    if (!result || result.success === false) {
+    // <Jun Kai start> the Email page's status line shows when the last test ran and how it went
+    const sent = !!result && result.success !== false;
+    require('../email/adminRoutes').recordTest(sent, result && result.error);
+    // <Jun Kai end>
+    if (!sent) {
       return res.status(500).json({ success: false, error: (result && result.error) || 'Test email failed' });
     }
     res.json({ success: true, message: 'Test email sent successfully' });
   } catch (err) {
+    // <Jun Kai start>
+    require('../email/adminRoutes').recordTest(false, err.message);
+    // <Jun Kai end>
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -7395,11 +7489,12 @@ router.post('/server-schedules/reorder', auth.requireAuth, (req, res) => {
   }
 });
 
-// GET /api/admin/server-schedules/preview?days=7[&from=2026-11-10]  which policy decides each part of those days;
+// GET /api/admin/server-schedules/preview?days=7[&from=2026-11-10]  which policy decides each part of those days (up to
+// 42 days: the month calendar asks for a whole month);
 // manual: true in manual mode, where the policies are paused and the page shows the days empty
 router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
   try {
-    const days = Math.min(14, Math.max(1, parseInt(req.query.days, 10) || 7));
+    const days = Math.min(42, Math.max(1, parseInt(req.query.days, 10) || 7));
     const now = new Date();
     let start = now;
     if (req.query.from !== undefined) {
@@ -7923,7 +8018,14 @@ router.delete('/assets/:bluetoothId', auth.requireAdmin, (req, res) => {
 // Manually start the kiosk service
 router.post('/server/start', auth.requireAuth, (req, res) => {
     console.log('▶️  Manual server start requested');
-    serverControl.startKiosk((result) => res.status(result.success ? 200 : 500).json(result));
+    // <Jun Kai start> a start by hand goes into the History list too, with who pressed it
+    const username = (req.session.user && req.session.user.username) || 'unknown';
+    serverControl.recordEvent('start', `Start kiosk was pressed on the admin page by ${username}`);
+    serverControl.startKiosk((result) => {
+        serverControl.recordEvent(result.success ? 'start-ok' : 'start-failed', result.message || result.error);
+        res.status(result.success ? 200 : 500).json(result);
+    });
+    // <Jun Kai end>
 });
 
 
@@ -7942,6 +8044,9 @@ router.post('/server/restart', auth.requireAuth, (req, res) => {
 
         fs.mkdirSync(logsDir, { recursive: true });
         console.log('🔄 Restart requested from admin panel');
+        // <Jun Kai start> the reason of this stop, for the History list after the restart
+        require('../serverControl/runLog').noteStop('restart-request', `Restart application was pressed on the admin page by ${(req.session.user && req.session.user.username) || 'unknown'}.`);
+        // <Jun Kai end>
 
         const child = spawn('cmd.exe', ['/c', batchFile], {
             cwd: rootDir,
@@ -8028,7 +8133,7 @@ router.post('/server/mode', auth.requireAuth, (req, res) => {
     
     // <Jun Kai start>
     console.log(`✅ Server mode changed to ${mode.toUpperCase()} by ${config.updated_by}`);
-    scheduler.modeChanged();
+    serverControl.recordEvent('mode', mode === 'auto' ? `Automatic mode was switched on by ${config.updated_by}: the policies decide when the kiosk runs` : `Manual mode was switched on by ${config.updated_by}: the policies are paused`);
     // <Jun Kai end>
     
     res.json({
@@ -8067,7 +8172,10 @@ router.get('/server/status', auth.requireAuth, (req, res) => {
 // GET /api/admin/server/automation
 // What the scheduler will do next: mode, next stop and start, wake timer state, recent automatic actions
 router.get('/server/automation', auth.requireAuth, (req, res) => {
-    scheduler.getStatus((automation) => res.json({ success: true, automation }));
+    // <Jun Kai start> ?limit= how many History lines, 1 to 500 (10 without it)
+    const limit = Math.min(500, Math.max(1, Math.floor(Number(req.query.limit)) || 10));
+    scheduler.getStatus((automation) => res.json({ success: true, automation }), { limit });
+    // <Jun Kai end>
 });
 
 // GET /api/admin/kiosk-status

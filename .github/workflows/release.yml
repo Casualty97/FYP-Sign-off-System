@@ -43,7 +43,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="Built from $(git rev-parse HEAD) on $(date -u +'%Y-%m-%d %H:%M UTC').\n\nInstall: unzip, run npm ci, copy backend/.env.example to backend/.env, then node startAll.js."
+          # <Jun Kai/> the notes name install.cmd (the manual steps were from before the install scripts)
+          NOTES="Built from $(git rev-parse HEAD) on $(date -u +'%Y-%m-%d %H:%M UTC').\n\nInstall: unzip, then run install.cmd in the folder (it checks Node.js 22 and MySQL, installs the packages, fills backend/.env and sets up the database; install.cmd -Role WallPC for the kiosk PC). Remove with uninstall.cmd."
           printf "%b" "$NOTES" > notes.md
           gh release create "${{ steps.build.outputs.tag }}" "${{ steps.build.outputs.name }}" "${{ steps.build.outputs.name }}.sha256" \
             --prerelease --title "${{ steps.build.outputs.tag }}" --notes-file notes.md --target "$(git rev-parse HEAD)"

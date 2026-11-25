@@ -640,6 +640,20 @@ class TreeManager {
         if (this.leafDetailSnippet) {
             this.leafDetailSnippet.textContent = snippet;
         }
+        // <Jun Kai start>
+        // a leaf kept after the Visitor Data Archive has no pledge to show: the month and year of the visit and one line
+        if (visitor.archived) {
+            const visited = new Date(visitor.created_at);
+            if (this.leafDetailDate) {
+                this.leafDetailDate.textContent = Number.isNaN(visited.getTime())
+                    ? 'Date unavailable'
+                    : visited.toLocaleDateString('en-SG', { month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' });
+            }
+            if (this.leafDetailSnippet) {
+                this.leafDetailSnippet.textContent = "This visitor's details were archived.";
+            }
+        }
+        // <Jun Kai end>
 
         this.leafDetailCard.classList.add('active');
         this.leafDetailCard.setAttribute('aria-hidden', 'false');

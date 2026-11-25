@@ -118,8 +118,9 @@ function adminDarkSelector(selector) {
     }).join(', ');
 }
 
-// The dark twin of one style rule: every colour declaration, changed or not, so the cascade between rules stays the
-// same as in light mode (a later, more specific rule still wins). '' when the rule sets no colour.
+// The dark twin of one style rule: every colour declaration, changed or not, and the background's repeat, position
+// and size, so the cascade between rules stays the same as in light mode (a later, more specific rule still wins).
+// '' when the rule sets none of them.
 function adminDarkRule(rule) {
     if (!rule.selectorText || rule.selectorText.includes('data-theme')) return '';
     // the Style & Theme Settings preview shows the light theme being edited, so it keeps its colours
@@ -141,6 +142,14 @@ function adminDarkRule(rule) {
         if (!value || !value.includes('var(')) continue;
         const dark = value.replace(ADMIN_COLOR_TOKEN, (token) => adminDarkColor(token, kind));
         parts.push(`${shorthand}: ${dark}${rule.style.getPropertyPriority(shorthand) ? ' !important' : ''}`);
+    }
+    // the background's repeat, position and size come after the shorthand, as in the rule: a twin's "background:"
+    // resets them, so every rule that sets them gets a twin too (the arrow of every list was tiled across the field)
+    for (let i = 0; i < rule.style.length; i++) {
+        const prop = rule.style[i];
+        if (!prop.startsWith('background-') || adminColorKind(prop)) continue;
+        const value = rule.style.getPropertyValue(prop);
+        if (value) parts.push(`${prop}: ${value}${rule.style.getPropertyPriority(prop) ? ' !important' : ''}`);
     }
     return parts.length ? `${adminDarkSelector(rule.selectorText)} { ${parts.join('; ')}; }` : '';
 }

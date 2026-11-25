@@ -34,7 +34,7 @@ Public list of pledges with likes and a search box; phones reach it after submit
 - Unlimited likes: the identity is a browser-made string sent in the body (Pledgeboard.js 65, routes 161).
 - The public /pledges API returns every visitor's survey answers and photo ids (routes 62).
 - One check-like request per pledge on every search keystroke (Pledgeboard.js 386).
-- Moderation and topic routes have no auth (routes 378, 423).
+- Fixed 19 Nov 2026 (by Role 3, because the admin page calls them): the moderation and topic routes had no auth. `GET /admin/pledges`, `PUT /admin/pledges/:feedbackId/status`, `GET /admin/topics` and `PUT /admin/topics` now start with `auth.requireAuth` (any signed-in admin role, since every role sees the Pledgeboard page of the admin screen). The same router is mounted on the kiosk server (port 3003), where nobody signs in, so there these four are always refused. "Moderated by" is the admin of the session, not a name sent by the browser. A new `/admin` route in this file has to start with `auth.requireAuth` too, or the contract check "sign-in" fails.
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

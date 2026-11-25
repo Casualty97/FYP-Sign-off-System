@@ -80,6 +80,7 @@ const lostFoundStore = require('../lostFound/store'); // changes made by nick
 // <Jun Kai start>
 const saveGate = require('../archive/saveGate');
 const deletedCounts = require('../archive/deletedCounts');
+const uploadsGate = require('../../core/uploadsGate'); // /uploads asks for a sign-in; a browser may still open the photos it just made
 // <Jun Kai end>
 
 function normalizeRetentionSelection(retention) {
@@ -484,6 +485,7 @@ router.post('/save-photo', (req, res) => {
         fs.writeFileSync(filepath, buffer);
 
         console.log(`Photo saved to: ${filepath}`);
+        uploadsGate.remember(req, `photos/${filename}`); // <Jun Kai/> for the photo download on the thank-you page
         
         res.json({ 
             success: true, 
@@ -566,6 +568,7 @@ router.post('/save-processed-photo', async (req, res) => {
         fs.writeFileSync(filepath, buffer);
 
         console.log(`Processed photo saved to: ${filepath}`);
+        uploadsGate.remember(req, `processed/${filename}`); // <Jun Kai/>
         
         res.json({ 
             success: true, 

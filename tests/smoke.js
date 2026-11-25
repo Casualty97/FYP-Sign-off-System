@@ -83,6 +83,8 @@ function tinyPng() {
 // --archive: seeds one visitor and one lost & found report through the API, back-dates them 2 years with SQL, then
 // archives and deletes exactly those records through /api/admin/visitor-archive and checks the zip, the database and
 // the photo files. DB_* must point at the server's own database (it stops when /api/test-db names another one).
+// The archive runs with "Leaves on the tree" on initials (the saved choice is put back afterwards): the seeded leaf
+// must stay on GET /api/tree without the name or the pledge, and must not be counted as a deleted leaf.
 let archiveDir = null;
 async function archiveStep(cookie) {
   const crypto = require('crypto');
@@ -92,6 +94,11 @@ async function archiveStep(cookie) {
   const API = `${BASE}/api/admin/visitor-archive`;
   const dbName = process.env.DB_NAME || 'dp_kiosk_db';
   const send = (body) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body) });
+  const put = (body) => ({ ...send(body), method: 'PUT' });
+  let savedLeaves = null; // the "Leaves on the tree" choice to put back
+  let leafId = null;      // the seeded feedback id, whose kept leaf is removed at the end
+  let vipName = null;     // the seeded VIP: its name on the VIP list and its visitor row are removed at the end
+  let vipUserId = null;
   const plain = (text) => String(text).replace(/TypeError|ReferenceError/g, 'Error'); // those words fail the CI log check
   const check = (ok, name, detail) => (ok ? pass(name) : fail(detail ? `${name}: ${plain(detail)}` : name));
 
@@ -120,7 +127,7 @@ async function archiveStep(cookie) {
     // the row is written after the reply, so wait for it and its answer
     let row = null;
     for (let i = 0; i < 20 && !row; i++) {
-      const [rows] = await conn.query('SELECT f.id, f.user_id, u.email_encrypted, (SELECT COUNT(*) FROM feedback_answers a WHERE a.feedback_id = f.id) AS answers FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.comment = ?', [pledge]);
+      const [rows] = await conn.query('SELECT f.id, f.user_id, f.data_retention, u.email_encrypted, (SELECT COUNT(*) FROM feedback_answers a WHERE a.feedback_id = f.id) AS answers FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.comment = ?', [pledge]);
       if (rows[0] && Number(rows[0].answers) > 0) row = rows[0]; else await sleep(500);
     }
     const like = row ? await get(`${BASE}/api/pledgeboard/like/${row.id}`, send({ userIdentifier: `user_${stamp}_smoke` })) : null;
@@ -141,6 +148,12 @@ async function archiveStep(cookie) {
     const photoFiles = [path.join(ROOT, 'uploads', 'photos', photoId), path.join(ROOT, 'uploads', 'processed', processedPhotoId), path.join(ROOT, report.body.itemPhotoPath)];
     const onDisk = photoFiles.filter((f) => fs.existsSync(f)).length;
     check(onDisk === 3, `the 3 seeded photo files are in this checkout's uploads folder (${onDisk}/3)`);
+    // a VIP leaf of the same age: a name on the VIP list with long-term consent, which the archive must leave alone
+    vipName = `Vip Smoke ${stamp}`;
+    await conn.query('INSERT INTO vip_management (name) VALUES (?)', [vipName]);
+    const [vipUser] = await conn.query('INSERT INTO users (name, visit_count, created_at, last_visit) VALUES (?, 1, ?, ?)', [vipName, old, old]);
+    vipUserId = vipUser.insertId;
+    const [vipFeedback] = await conn.query("INSERT INTO feedback (user_id, comment, metadata, data_retention, created_at, is_active) VALUES (?, ?, '{}', 'longterm', ?, 1)", [vipUserId, `Vip smoke pledge ${stamp}`, old]);
 
     // running totals before the delete: the deleted rows go into deleted_record_counts, so the kiosk count must not drop
     const tallyOf = async () => Object.fromEntries((await conn.query('SELECT kind, SUM(record_count) AS n FROM deleted_record_counts GROUP BY kind'))[0].map((t) => [t.kind, Number(t.n)]));
@@ -151,12 +164,29 @@ async function archiveStep(cookie) {
     const pledgesBefore = await pledgesShown();
 
     await expect('GET /api/admin/visitor-archive/overview with the session', `${API}/overview`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.due || r.text.slice(0, 160), { headers: { cookie } });
+
+    // "Leaves on the tree": a wrong value is refused, a valid one is saved and read back; initials for this run
+    const overview = await get(`${API}/overview`, { headers: { cookie } });
+    const leavesBefore = overview.body && overview.body.settings ? overview.body.settings.leaves : null;
+    check(['keep', 'initials', 'remove'].includes(leavesBefore), `the overview sends the "Leaves on the tree" setting (${leavesBefore})`);
+    await expect('PUT /api/admin/visitor-archive/settings refuses an unknown "Leaves on the tree" value', `${API}/settings`, (r) => r.status === 400 && r.body && r.body.field === 'leaves' || r.text.slice(0, 160), put({ leaves: 'everything' }));
+    if (['keep', 'initials', 'remove'].includes(leavesBefore)) savedLeaves = leavesBefore;
+    for (const choice of ['remove', 'initials']) {
+      await expect(`PUT /api/admin/visitor-archive/settings saves "Leaves on the tree" as ${choice}`, `${API}/settings`, (r) => r.body && r.body.success === true && r.body.settings && r.body.settings.leaves === choice || r.text.slice(0, 160), put({ leaves: choice }));
+    }
+    await expect('GET /api/admin/visitor-archive/overview reads the saved choice back', `${API}/overview`, (r) => r.body && r.body.settings && r.body.settings.leaves === 'initials' || r.text.slice(0, 160), { headers: { cookie } });
+    // the tree shows a name only with long-term consent, and only such a leaf keeps initials
+    const nameShown = ['longterm', 'indefinite'].includes(String(row.data_retention || '').toLowerCase());
+    const leafLabel = nameShown ? 'A. S.' : 'Visitor';
+    leafId = row.id;
     const before = new Date(Date.now() + 8 * 3600 * 1000 - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10); // a year ago, as a Singapore date
-    const criteria = { types: ['feedback', 'lostFound'], feedbackBefore: before, lostFoundBefore: before, onlyResolved: false, includePhotos: true, only: { feedbackIds: [row.id], lostFoundIds: [reportId] } };
-    await expect('POST /api/admin/visitor-archive/preview counts the seeded records', `${API}/preview`, (r) => {
+    const criteria = { types: ['feedback', 'lostFound'], feedbackBefore: before, lostFoundBefore: before, onlyResolved: false, includePhotos: true, only: { feedbackIds: [row.id, vipFeedback.insertId], lostFoundIds: [reportId] } };
+    await expect('POST /api/admin/visitor-archive/preview counts the seeded records and leaves the VIP leaf out', `${API}/preview`, (r) => {
       const c = (r.body && r.body.counts) || {};
-      return c.feedback === 1 && c.visitors === 1 && c.visitorsDeleted === 1 && c.answers === 1 && c.likes === 1 && c.lostFound === 1 && c.photos === 3 && c.missingPhotos === 0 || r.text.slice(0, 200);
+      return c.feedback === 1 && c.visitors === 1 && c.visitorsDeleted === 1 && c.answers === 1 && c.likes === 1 && c.lostFound === 1 && c.photos === 3 && c.missingPhotos === 0 && c.leaves === 1 && c.leavesNamed === (nameShown ? 1 : 0) && c.vipLeaves === 1 || r.text.slice(0, 200);
     }, send(criteria));
+    await expect('POST /api/admin/visitor-archive/runs with only the VIP leaf says there is nothing to archive', `${API}/runs`, (r) => r.status === 400 && /VIP leaves stay on the tree/.test((r.body && r.body.error) || '') || r.text.slice(0, 200),
+      send({ ...criteria, types: ['feedback'], only: { feedbackIds: [vipFeedback.insertId] }, password: ADMIN_PASS, deleteAfter: true }));
 
     archiveDir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'kiosk-archive-'));
     const started = await get(`${API}/runs`, send({ ...criteria, password: ADMIN_PASS, deleteAfter: true, folder: archiveDir }));
@@ -172,6 +202,16 @@ async function archiveStep(cookie) {
     }
     const c = (run && run.counts) || {};
     check(run && run.status === 'done' && !run.error && c.feedback === 1 && c.lostFound === 1 && c.visitorsDeleted === 1 && c.photos === 3, `the archive run ends as done (${run ? run.status : 'no answer'})`, run && run.error);
+    check(c.leavesKept === 1 && c.leavesWithInitials === (nameShown ? 1 : 0), `the run says 1 leaf stays on the tree (${c.leavesKept} kept, ${c.leavesWithInitials} with initials)`);
+    await expect('GET /api/admin/visitor-archive/runs lists the kept leaf with the run', `${API}/runs?limit=5`, (r) => {
+      const listed = ((r.body && r.body.runs) || []).find((item) => item.id === runId);
+      return listed && listed.counts && listed.counts.leavesKept === 1 || r.text.slice(0, 200);
+    }, { headers: { cookie } });
+    if (savedLeaves) {
+      const restored = await get(`${API}/settings`, put({ leaves: savedLeaves }));
+      check(restored.body && restored.body.success === true && restored.body.settings.leaves === savedLeaves, `the "Leaves on the tree" setting is put back (${savedLeaves})`, restored.text.slice(0, 160));
+      if (restored.body && restored.body.success === true) savedLeaves = null;
+    }
 
     const zips = fs.readdirSync(archiveDir).filter((f) => f.endsWith('.zip'));
     const file = run && run.file && run.file.name ? path.join(archiveDir, run.file.name) : null;
@@ -182,6 +222,11 @@ async function archiveStep(cookie) {
       `the archive is one zip that starts with PK and matches the run's SHA-256 and its .sha256 file (${zips.length} zip)`);
     if (bytes) {
       const data = await writer.readArchiveData(file);
+      const zipFile = require('../backend/core/zip');
+      const handle = await zipFile.openZip(file);
+      let readme = '';
+      try { readme = (await zipFile.readEntry(handle, (await zipFile.listEntries(handle)).get('README.txt'))).toString('utf8'); } finally { handle.close(); }
+      check(readme.includes("Digital tree: 1 leaf was to stay on the tree, with the visitor's initials where the tree showed the name"), 'README.txt in the zip says that the leaf stays on the tree');
       const contact = (data.lostFound[0] && data.lostFound[0].contact_info_encrypted) || '';
       check(data.visitors[0] && data.visitors[0].email_encrypted === row.email_encrypted && /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/.test(contact) && !JSON.stringify(data).includes(email),
         'the archive keeps the email as the same ciphertext and the lost & found contact encrypted');
@@ -199,19 +244,41 @@ async function archiveStep(cookie) {
       if (Number(count.n)) left.push(`${table} ${count.n}`);
     }
     check(!left.length, 'the archived rows are gone from users, feedback, feedback_answers, pledge_likes and lost_found_reports', `still there: ${left.join(', ')}`);
+    const [[vipLeft]] = await conn.query('SELECT COUNT(*) AS n FROM feedback f JOIN users u ON u.id = f.user_id WHERE f.id = ? AND u.id = ?', [vipFeedback.insertId, vipUserId]);
+    const [[vipKept]] = await conn.query('SELECT COUNT(*) AS n FROM archived_leaves WHERE feedback_id = ?', [vipFeedback.insertId]);
+    check(Number(vipLeft.n) === 1 && Number(vipKept.n) === 0, 'the VIP leaf of the same age was not archived: its submission and its visitor are still in the database');
     const tallyAfter = await tallyOf();
     const grew = (kind) => (tallyAfter[kind] || 0) - (tallyBefore[kind] || 0);
-    check(['feedback', 'pledge', 'leaf', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1), 'the deleted rows were added to deleted_record_counts (1 feedback, 1 pledge, 1 leaf, 1 visitor, 1 lost & found)', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
+    check(['feedback', 'pledge', 'visitor', 'lost_found'].every((kind) => grew(kind) === 1) && grew('leaf') === 0, 'the deleted rows were added to deleted_record_counts (1 feedback, 1 pledge, 1 visitor, 1 lost & found) and the leaf that stays was not counted', JSON.stringify({ before: tallyBefore, after: tallyAfter }));
     const visitorsAfter = await visitorsShown();
     check(Number.isFinite(visitorsBefore) && visitorsAfter === visitorsBefore, `the kiosk visitor count does not drop after the delete (${visitorsBefore} before, ${visitorsAfter} after)`);
     const pledgesAfter = await pledgesShown();
     check(Number.isFinite(pledgesBefore) && pledgesAfter === pledgesBefore, `the all-time pledge total does not drop after the delete (${pledgesBefore} before, ${pledgesAfter} after)`);
     await expect('GET /api/pulse/summary shows the same all-time pledge total', `${BASE}/api/pulse/summary`, (r) => r.body && r.body.stats && r.body.stats.totalPledges === pledgesAfter || `pulse ${r.body && r.body.stats && r.body.stats.totalPledges} vs ${pledgesAfter}`);
     const seededYear = Number(new Date(old.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 4));
-    await expect(`GET /api/tree/years still counts the deleted leaf in ${seededYear}`, `${BASE}/api/tree/years`, (r) => {
+    const removedInYear = (await conn.query("SELECT COALESCE(SUM(record_count), 0) AS n FROM deleted_record_counts WHERE kind = 'leaf' AND YEAR(record_day) = ?", [seededYear]))[0][0];
+    await expect(`GET /api/tree/years counts the kept leaf as a leaf of ${seededYear}, not as archived`, `${BASE}/api/tree/years`, (r) => {
       const year = ((r.body && r.body.years) || []).find((item) => Number(item.year) === seededYear);
-      return year && year.archivedLeafCount >= 1 && year.leafCount >= year.archivedLeafCount || r.text.slice(0, 200);
+      return year && year.keptLeafCount >= 1 && year.leafCount >= year.keptLeafCount + (year.archivedLeafCount || 0) && (year.archivedLeafCount || 0) === Number(removedInYear.n) || r.text.slice(0, 200);
     });
+    // the leaf is still on that year's tree: its id, the label, no name, no pledge
+    await expect(`GET /api/tree?year=${seededYear} still lists the archived visitor's leaf as "${leafLabel}"`, `${BASE}/api/tree?year=${seededYear}`, (r) => {
+      const leaf = (Array.isArray(r.body) ? r.body : []).find((item) => item.id === row.id);
+      if (!leaf) return `leaf ${row.id} is not in the answer: ${r.text.slice(0, 160)}`;
+      const text = JSON.stringify(leaf);
+      const empty = Object.entries(leaf).filter(([, value]) => value === undefined || value === 'undefined').map(([key]) => key);
+      return leaf.archived === true && leaf.name === leafLabel && leaf.pledgeSnippet === '' && leaf.pledgeTopic === '' && leaf.badgeKey === 'sustainable-living-advocate'
+        && !!leaf.badgeName && !!leaf.privacyLabel && !empty.length && !text.includes(name) && !r.text.includes(pledge) && !r.text.includes(email) || text.slice(0, 300);
+    });
+    await expect(`GET /api/tree?year=${seededYear} still shows the VIP leaf in gold with its name`, `${BASE}/api/tree?year=${seededYear}`, (r) => {
+      const leaf = (Array.isArray(r.body) ? r.body : []).find((item) => item.id === vipFeedback.insertId);
+      return leaf && leaf.isVip === true && leaf.name === vipName && !leaf.archived || `leaf ${vipFeedback.insertId}: ${JSON.stringify(leaf || null).slice(0, 200)}`;
+    });
+    const [[keptLeaf]] = await conn.query('SELECT * FROM archived_leaves WHERE feedback_id = ?', [row.id]);
+    check(keptLeaf && keptLeaf.label === leafLabel && keptLeaf.badge_key === 'sustainable-living-advocate' && Number(keptLeaf.is_vip) === 0 && keptLeaf.archive_id === runId
+      && Math.abs(new Date(keptLeaf.created_at).getTime() - old.getTime()) <= 1000
+      && Object.keys(keptLeaf).sort().join() === 'archive_id,archived_at,badge_key,badge_keys,created_at,feedback_id,is_vip,label',
+    'archived_leaves holds the leaf: its id, date, label, badge and run, and no other column', JSON.stringify(keptLeaf || null));
     const [[gate]] = await conn.query('SELECT COUNT(*) AS n FROM visitor_save_gate');
     check(Number(gate.n) === 0, `the visitor save gate is empty once the run is over (${gate.n} rows)`);
 
@@ -231,12 +298,25 @@ async function archiveStep(cookie) {
     const tallyAfterPerm = await tallyOf();
     const grewPerm = (kind) => (tallyAfterPerm[kind] || 0) - (tallyBeforePerm[kind] || 0);
     check(['feedback', 'pledge', 'leaf', 'visitor'].every((kind) => grewPerm(kind) === 1) && permUserLeft === 0, 'Permanent Data Deletion adds its deletes to deleted_record_counts too (1 feedback, 1 pledge, 1 leaf, 1 visitor)', JSON.stringify({ before: tallyBeforePerm, after: tallyAfterPerm, visitorLeft: permUserLeft }));
+    // Permanent Data Deletion keeps a VIP leaf: the seeded VIP's pledge is moved to Archived Feedback, then both delete ways are tried
+    await conn.query("UPDATE feedback SET archive_status = 'archived' WHERE id = ?", [vipFeedback.insertId]);
+    await expect('POST /api/admin/archive/preview-deletion leaves the VIP leaf out of the count', `${BASE}/api/admin/archive/preview-deletion`, (r) => r.body && r.body.success === true && r.body.count === 0 && r.body.vipKept === 1 || r.text.slice(0, 160), send({ feedbackIds: [vipFeedback.insertId] }));
+    await expect('POST /api/admin/archive/delete-selected refuses to delete only a VIP leaf', `${BASE}/api/admin/archive/delete-selected`, (r) => r.status === 409 && r.body && r.body.vipKept === 1 && /VIP leaf was kept/.test(r.body.error || '') || r.text.slice(0, 200), send({ feedbackIds: [vipFeedback.insertId], password: ADMIN_PASS }));
+    const [[vipStill]] = await conn.query('SELECT COUNT(*) AS n FROM feedback WHERE id = ?', [vipFeedback.insertId]);
+    check(Number(vipStill.n) === 1, 'the VIP pledge is still in the database after Permanent Data Deletion was asked to delete it');
+    const [[permLeaf]] = await conn.query('SELECT COUNT(*) AS n FROM archived_leaves WHERE feedback_id = ?', [permFeedback.insertId]);
+    check(Number(permLeaf.n) === 0, 'Permanent Data Deletion leaves no leaf on the tree (a deliberate removal)');
     check((await visitorsShown()) === visitorsBeforePerm && (await pledgesShown()) === pledgesBeforePerm, 'the kiosk visitor count and the all-time pledge total do not drop after Permanent Data Deletion');
     const stillThere = photoFiles.filter((f) => fs.existsSync(f)).length;
     check(onDisk === 3 && stillThere === 0, `the archived photo files are gone (${stillThere} left)`);
   } catch (e) {
     fail(`visitor archive step: ${plain(e.message)}`);
   } finally {
+    // a step that stopped early still puts the setting back, and the seeded leaf never stays on a developer's tree
+    if (savedLeaves) await get(`${API}/settings`, put({ leaves: savedLeaves })).catch(() => {});
+    if (leafId) await conn.query('DELETE FROM archived_leaves WHERE feedback_id = ?', [leafId]).catch(() => {});
+    if (vipUserId) await conn.query('DELETE FROM feedback WHERE user_id = ?', [vipUserId]).then(() => conn.query('DELETE FROM users WHERE id = ?', [vipUserId])).catch(() => {});
+    if (vipName) await conn.query('DELETE FROM vip_management WHERE name = ?', [vipName]).catch(() => {});
     await conn.end().catch(() => {});
   }
 }
@@ -281,6 +361,34 @@ async function archiveStep(cookie) {
     await expect('GET /api/admin/server-schedules without a session is refused', `${BASE}/api/admin/server-schedules`, (r) => r.status === 401);
     // <Jun Kai start>
     await expect('POST /api/admin/archive/update-status without a session is refused', `${BASE}/api/admin/archive/update-status`, (r) => r.status === 401, { method: 'POST' });
+    await expect('GET /api/admin/aiops/status without a session is refused', `${BASE}/api/admin/aiops/status`, (r) => r.status === 401);
+    await expect('POST /api/admin/aiops/test-incident without a session is refused', `${BASE}/api/admin/aiops/test-incident`, (r) => r.status === 401 || r.status === 403, { method: 'POST' });
+    await expect('PUT /api/admin/hardware/alert-lines without a session is refused', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    await expect('PUT /api/admin/health/settings without a session is refused', `${BASE}/api/admin/health/settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    // routes of the old admin router that answered without a sign-in until 19 Nov 2026 (all of them: the contract check "sign-in")
+    await expect('GET /api/admin/feedback without a session is refused', `${BASE}/api/admin/feedback`, (r) => r.status === 401);
+    await expect('GET /api/admin/users without a session is refused', `${BASE}/api/admin/users`, (r) => r.status === 401);
+    await expect('GET /api/admin/audit-logs without a session is refused', `${BASE}/api/admin/audit-logs`, (r) => r.status === 401);
+    await expect('POST /api/admin/users without a session is refused, whatever the x-username header says', `${BASE}/api/admin/users`, (r) => r.status === 401,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-username': ADMIN_USER }, body: JSON.stringify({ username: 'smoke_nobody', full_name: 'Smoke Nobody', role: 'system_admin', password: 'SmokeNobody123!' }) });
+    // the admin page's pledge routes: the same router is on the kiosk server, where nobody signs in
+    await expect('GET /api/pledgeboard/admin/pledges without a session is refused', `${BASE}/api/pledgeboard/admin/pledges`, (r) => r.status === 401);
+    await expect('PUT /api/pledgeboard/admin/topics without a session is refused', `${BASE}/api/pledgeboard/admin/topics`, (r) => r.status === 401,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topics: [] }) });
+    await expect('GET /api/pledgeboard/admin/pledges on the kiosk server is refused (nobody signs in there)', `${KIOSK}/api/pledgeboard/admin/pledges`, (r) => r.status === 401);
+    // 19 Nov 2026: visitor files ask for a sign-in or the visitor's own session on both servers, the tree page is not a plain
+    // file, and the export unlock is not a password check for anyone
+    await expect('GET /uploads/photos/<file> without a session is refused', `${BASE}/uploads/photos/smoke-nobody.png`, (r) => r.status === 401);
+    await expect('GET /uploads/photos/<file> on the kiosk server without a session is refused', `${KIOSK}/uploads/photos/smoke-nobody.png`, (r) => r.status === 401);
+    await expect('GET /tree/tree.html is sent to the gated /tree route', `${BASE}/tree/tree.html`, (r) => r.status === 302 && r.headers.get('location') === '/tree' || `location ${r.headers.get('location')}`, { redirect: 'manual' });
+    await expect('POST /api/admin/data-export/unlock without a session is refused', `${BASE}/api/admin/data-export/unlock`, (r) => r.status === 401, json({ username: ADMIN_USER, password: ADMIN_PASS }));
+    // the kiosk page asks this every 10 seconds: when the server started, and whether the policies have the kiosk open
+    // (the automation is off here, so the kiosk is open)
+    for (const [where, server] of [['', BASE], [' on the kiosk server', KIOSK]]) {
+      await expect(`GET /api/status${where} says when the server started and that the kiosk is open`, `${server}/api/status`, (r) => r.body && r.body.online === true && r.body.open === true && !Number.isNaN(Date.parse(r.body.startedAt)) || r.text.slice(0, 160));
+    }
+    await expect('GET /api/test-db answers a request made on the PC itself', `${BASE}/api/test-db`, (r) => r.status === 200 && r.body && Array.isArray(r.body.tables) || 'db test failed');
+    await expect('PUT /api/admin/sign-in-settings without a session is refused', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 401 || r.status === 403, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     // <Jun Kai end>
     let cookie = '';
     try {
@@ -309,27 +417,69 @@ async function archiveStep(cookie) {
     if (cookie) {
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
+      await expect('GET /api/pledgeboard/admin/pledges with the session', `${BASE}/api/pledgeboard/admin/pledges`, (r) => r.body && r.body.success === true && Array.isArray(r.body.pledges) || r.text.slice(0, 160), { headers: { cookie } }); // <Jun Kai/>
       await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
+      // <Jun Kai start>
+      await expect('GET /api/admin/health/history with the session', `${BASE}/api/admin/health/history`, (r) => r.body && r.body.success === true && (r.body.history === null || (r.body.history.slots === 48 && typeof r.body.history.checks === 'object')) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/email/status with the session (no password in it)', `${BASE}/api/admin/email/status`, (r) => r.body && r.body.success === true && typeof r.body.status === 'object' && !/"pass"/.test(r.text) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/email/preview builds the thank-you email without sending it', `${BASE}/api/admin/email/preview`, (r) => r.body && r.body.success === true && /<html|<div|<table/i.test(r.body.preview.html || '') || r.text.slice(0, 160), { headers: { cookie } });
+      // <Jun Kai end>
       // <Jun Kai start>
       await expect('GET /api/admin/hardware/overview with the session', `${BASE}/api/admin/hardware/overview`, (r) => r.body && r.body.success === true && !!r.body.overview && typeof r.body.overview.settings === 'object' || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/hardware/series?range=1h with the session', `${BASE}/api/admin/hardware/series?range=1h`, (r) => r.body && r.body.success === true && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
-      await expect('GET /api/admin/hardware/series?range=3mo (a custom range)', `${BASE}/api/admin/hardware/series?range=3mo`, (r) => r.body && r.body.success === true && r.body.range === '3mo' && r.body.bucketSeconds === 43200 && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series?range=3mo (a custom range, longer than the samples are kept: daily summaries)', `${BASE}/api/admin/hardware/series?range=3mo`, (r) => r.body && r.body.success === true && r.body.range === '3mo' && r.body.bucketSeconds === 86400 && r.body.source === 'daily' && Array.isArray(r.body.points) || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/hardware/series?range=6y is refused', `${BASE}/api/admin/hardware/series?range=6y`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
-      await expect('GET /api/admin/hardware/forecast-check: a year ahead with samples kept 30 days is a rough guide', `${BASE}/api/admin/hardware/forecast-check?forecastHours=8760&retentionDays=30`, (r) => r.body && r.body.success === true && !!r.body.check && r.body.check.rough === true && r.body.check.reason === 'retention' && r.body.check.neededRetentionDays === 365 || r.text.slice(0, 160), { headers: { cookie } });
-      await expect('GET /api/admin/hardware/forecast-check refuses a forecast longer than a year', `${BASE}/api/admin/hardware/forecast-check?forecastHours=9000`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series with horizon=8760: the forecast a year ahead, a rough guide until the daily summaries reach back a year', `${BASE}/api/admin/hardware/series?range=4380h&horizon=8760`, (r) => r.body && r.body.success === true && !!r.body.forecast && r.body.forecast.horizonHours === 8760 && r.body.forecast.basis === 'daily' && !!r.body.forecast.check && r.body.forecast.check.rough === true && r.body.forecast.check.reason === 'history' && r.body.forecast.check.keptForGood === true || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series with horizon=1: the forecast an hour ahead, in steps of 10 minutes', `${BASE}/api/admin/hardware/series?range=1h&horizon=1`, (r) => r.body && r.body.success === true && !!r.body.forecast && r.body.forecast.horizonHours === 1 && r.body.forecast.basis === 'steps' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series with horizon=48: two days ahead still in steps of 10 minutes', `${BASE}/api/admin/hardware/series?range=24h&horizon=48`, (r) => r.body && r.body.success === true && !!r.body.forecast && r.body.forecast.horizonHours === 48 && r.body.forecast.basis === 'steps' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series with horizon=168: seven days ahead on the daily averages', `${BASE}/api/admin/hardware/series?range=84h&horizon=168`, (r) => r.body && r.body.success === true && !!r.body.forecast && r.body.forecast.horizonHours === 168 && r.body.forecast.basis === 'daily' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/hardware/series refuses a forecast longer than a year', `${BASE}/api/admin/hardware/series?range=12h&horizon=9000`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
+      await expect('GET /api/admin/hardware/forecast-check is gone (the rough guide comes with the forecast)', `${BASE}/api/admin/hardware/forecast-check?forecastHours=24`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
       await expect('GET /api/admin/server-schedules/preview with the session', `${BASE}/api/admin/server-schedules/preview?days=7`, (r) => r.body && r.body.success === true && !!r.body.preview && Array.isArray(r.body.preview.days) && r.body.preview.days.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/server-schedules/preview from a picked date', `${BASE}/api/admin/server-schedules/preview?days=7&from=2027-01-04`, (r) => r.body && r.body.success === true && r.body.preview.start === '2027-01-04' && r.body.preview.days.length === 7 && typeof r.body.preview.manual === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
       await expect('GET /api/admin/server-schedules/preview refuses a date that does not exist', `${BASE}/api/admin/server-schedules/preview?from=2026-02-30`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { headers: { cookie } });
-      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 8 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/health/layout with the session', `${BASE}/api/admin/health/layout`, (r) => r.body && r.body.success === true && Array.isArray(r.body.options) && r.body.options.length === 9 && Array.isArray(r.body.hidden) || r.text.slice(0, 160), { headers: { cookie } });
       await expect('PUT /api/admin/health/tablets/x/name refuses a bad device id', `${BASE}/api/admin/health/tablets/x/name`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ name: 'Tablet 1' }) });
+      // anomaly detection, read-only: the engine status, the settings and the incident list
+      await expect('GET /api/admin/aiops/status with the session', `${BASE}/api/admin/aiops/status`, (r) => r.body && r.body.success === true && !!r.body.status && Array.isArray(r.body.status.detectors) && r.body.status.detectors.length === 7 && typeof r.body.status.enabled === 'boolean' || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/aiops/settings with the session', `${BASE}/api/admin/aiops/settings`, (r) => r.body && r.body.success === true && !!r.body.settings && !!r.body.settings.detectors && !!r.body.settings.detectors.spike && typeof r.body.settings.detectors.spike.sensitivity === 'number' && Array.isArray(r.body.detectors) && r.body.detectors.length === 7 || r.text.slice(0, 160), { headers: { cookie } });
+      await expect('GET /api/admin/aiops/incidents?status=all with the session', `${BASE}/api/admin/aiops/incidents?status=all`, (r) => r.body && r.body.success === true && Array.isArray(r.body.incidents) || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai end>
       await expect('GET /api/admin/server/automation with the session', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.success === true && r.body.automation && r.body.automation.enabled === false || `automation=${JSON.stringify(r.body && r.body.automation).slice(0, 120)}`, { headers: { cookie } });
+      // <Jun Kai start> the History list: this start is in it, newest first, and the list is only as long as asked for
+      await expect('GET /api/admin/server/automation?limit=50 has this start in the History, newest first', `${BASE}/api/admin/server/automation?limit=50`, (r) => {
+        const a = (r.body && r.body.automation) || {};
+        const events = Array.isArray(a.events) ? a.events : [];
+        const ordered = events.every((e, i) => i === 0 || new Date(e.at) <= new Date(events[i - 1].at));
+        return events.some((e) => e.type === 'started' && !!e.detail) && ordered && a.eventsTotal >= events.length || `events=${JSON.stringify(events).slice(0, 200)}`;
+      }, { headers: { cookie } });
+      await expect('GET /api/admin/server/automation sends at most 10 History lines without a limit', `${BASE}/api/admin/server/automation`, (r) => r.body && r.body.automation && Array.isArray(r.body.automation.events) && r.body.automation.events.length <= 10 || r.text.slice(0, 160), { headers: { cookie } });
+      // the page that opens after the PC was off: it is served without a sign-in, and its History lines need the link of that
+      // start (none was made here: automation is off), which a signed-in admin does not replace
+      await expect('GET /admin/recovery.html is served without a sign-in', `${BASE}/admin/recovery.html`, (r) => r.status === 200 && r.text.includes('id="recovery-story"') || r.text.slice(0, 120));
+      await expect('GET /api/admin/recovery-view without a link is refused', `${BASE}/api/admin/recovery-view`, (r) => r.status === 401 && !(r.body && r.body.events) || r.text.slice(0, 160));
+      await expect('GET /api/admin/recovery-view with a wrong link is refused, signed in or not', `${BASE}/api/admin/recovery-view`, (r) => r.status === 401 && !(r.body && r.body.events) || r.text.slice(0, 160), { headers: { cookie, 'X-Recovery-View': 'f'.repeat(48) } });
+      // <Jun Kai end>
     }
 
     // These write rows, so not in --no-submit mode: one tablet heartbeat, then one visitor submission end to end
     if (!ARGS.has('--no-submit')) {
       // <Jun Kai start>
       await expect('POST /api/health/heartbeat from a kiosk', `${BASE}/api/health/heartbeat`, (r) => r.body && r.body.success === true || r.text.slice(0, 160), json({ deviceId: 'smoke-tablet-01', page: 'feedback' }));
+      // a visitor's browser opens the photo it just saved (the download on the thank-you page); another browser does not
+      try {
+        // on both servers: the wall kiosk is on the kiosk server, tablets and phones on the main one
+        for (const [where, server] of [['', BASE], [' on the kiosk server', KIOSK]]) {
+          const saved = await fetch(`${server}/api/feedback/save-photo`, json({ photo: tinyPng(), userName: 'Smoke Visitor', device: 'kiosk' }));
+          const visitor = (saved.headers.get('set-cookie') || '').split(';')[0];
+          const photoId = ((await saved.json().catch(() => ({}))) || {}).photoId;
+          if (!photoId || !visitor) { fail(`POST /api/feedback/save-photo${where} gives the visitor a session (${saved.status}, photo ${photoId ? 'saved' : 'missing'}, cookie ${visitor ? 'set' : 'missing'})`); continue; }
+          await expect(`GET /uploads/photos/<own photo>${where} with the visitor session`, `${server}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie: visitor } });
+          await expect(`GET /uploads/photos/<that photo>${where} from another browser is refused`, `${server}/uploads/photos/${photoId}`, (r) => r.status === 401);
+          if (cookie && server === BASE) await expect('GET /uploads/photos/<that photo> with the admin session', `${BASE}/uploads/photos/${photoId}`, (r) => r.status === 200, { headers: { cookie } });
+          try { fs.unlinkSync(path.join(ROOT, 'uploads', 'photos', photoId)); } catch { /* already gone */ }
+        }
+      } catch (e) { fail(`a visitor opens its own photo: ${e.message}`); }
       // a failing tablets query only turns the card to unknown, so check the row really comes back
       if (cookie) {
         await expect('GET /api/admin/health lists the smoke tablet', `${BASE}/api/admin/health?all=1`, (r) => {
@@ -345,6 +495,82 @@ async function archiveStep(cookie) {
           return device && device.name === 'Smoke tablet 1' || `device: ${JSON.stringify(device || null).slice(0, 160)}`;
         }, { headers: { cookie } });
         await expect('PUT an empty name gives the smoke tablet its device name back', `${BASE}/api/admin/health/tablets/smoke-tablet-01/name`, (r) => r.body && r.body.success === true && r.body.name === null || r.text.slice(0, 160), put({ name: '' }));
+        // <Jun Kai start> the alert lines and Offline after: a line per part, refused values, round trips put back as they were
+        const hwSaved = (await get(`${BASE}/api/admin/hardware/settings`, { headers: { cookie } })).body;
+        await expect('GET /api/admin/hardware/settings has an alert line for every part', `${BASE}/api/admin/hardware/settings`, (r) => r.body && r.body.alerts && ['cpu', 'memory', 'gpu', 'disk'].every((p) => r.body.alerts[p] && r.body.alerts[p].critical > r.body.alerts[p].warn) || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('PUT /api/admin/hardware/alert-lines refuses red at or below amber', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.status === 400 && r.body && r.body.field === 'disk.critical' || `${r.status}: ${r.text.slice(0, 120)}`, put({ alerts: { disk: { warn: 90, critical: 90 } } }));
+        if (hwSaved && hwSaved.alerts) {
+          await expect('PUT /api/admin/hardware/alert-lines saves a CPU line', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.body && r.body.success === true && r.body.alerts.cpu.warn === 70 && r.body.alerts.disk.warn === hwSaved.alerts.disk.warn || r.text.slice(0, 160), put({ alerts: { cpu: { warn: 70, critical: 90 } } }));
+          await expect('PUT /api/admin/hardware/alert-lines puts the lines back', `${BASE}/api/admin/hardware/alert-lines`, (r) => r.body && r.body.success === true && r.body.alerts.cpu.warn === hwSaved.alerts.cpu.warn || r.text.slice(0, 160), put({ alerts: hwSaved.alerts }));
+        } else fail('PUT /api/admin/hardware/alert-lines round trip skipped: GET /api/admin/hardware/settings gave no alert lines');
+        const healthSaved = (await get(`${BASE}/api/admin/health/settings`, { headers: { cookie } })).body;
+        await expect('GET /api/admin/health/settings has the tablet window', `${BASE}/api/admin/health/settings`, (r) => r.body && r.body.success === true && Number.isInteger(r.body.settings.tabletOfflineMinutes) || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('PUT /api/admin/health/settings refuses 1 minute', `${BASE}/api/admin/health/settings`, (r) => r.status === 400 && r.body && r.body.field === 'tabletOfflineMinutes' || `${r.status}: ${r.text.slice(0, 120)}`, put({ tabletOfflineMinutes: 1 }));
+        if (healthSaved && healthSaved.settings) {
+          await expect('PUT /api/admin/health/settings saves 10 minutes', `${BASE}/api/admin/health/settings`, (r) => r.body && r.body.success === true && r.body.settings.tabletOfflineMinutes === 10 || r.text.slice(0, 160), put({ tabletOfflineMinutes: 10 }));
+          await expect('GET /api/admin/health uses the 10-minute window for the tablets', `${BASE}/api/admin/health?all=1`, (r) => {
+            const tablets = r.body && r.body.health && (r.body.health.checks || []).find((c) => c.key === 'tablets');
+            return tablets && tablets.detail && tablets.detail.onlineWindowSeconds === 600 || `window: ${JSON.stringify(tablets && tablets.detail ? tablets.detail.onlineWindowSeconds : null)}`;
+          }, { headers: { cookie } });
+          await expect('PUT /api/admin/health/settings puts the window back', `${BASE}/api/admin/health/settings`, (r) => r.body && r.body.success === true && r.body.settings.tabletOfflineMinutes === healthSaved.settings.tabletOfflineMinutes || r.text.slice(0, 160), put(healthSaved.settings));
+        } else fail('PUT /api/admin/health/settings round trip skipped: GET /api/admin/health/settings gave no settings');
+        // sign-out after no activity: the minutes, a refused value, a round trip put back as it was
+        const idleSaved = (await get(`${BASE}/api/admin/sign-in-settings`, { headers: { cookie } })).body;
+        await expect('GET /api/admin/sign-in-settings has the minutes', `${BASE}/api/admin/sign-in-settings`, (r) => r.body && r.body.success === true && Number.isInteger(r.body.settings.idleMinutes) && r.body.defaults.idleMinutes === 30 || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('PUT /api/admin/sign-in-settings refuses 4 minutes', `${BASE}/api/admin/sign-in-settings`, (r) => r.status === 400 && r.body && r.body.field === 'idleMinutes' || `${r.status}: ${r.text.slice(0, 120)}`, put({ idleMinutes: 4 }));
+        if (idleSaved && idleSaved.settings) {
+          await expect('PUT /api/admin/sign-in-settings saves never (0)', `${BASE}/api/admin/sign-in-settings`, (r) => r.body && r.body.success === true && r.body.settings.idleMinutes === 0 || r.text.slice(0, 160), put({ idleMinutes: 0 }));
+          await expect('PUT /api/admin/sign-in-settings puts the minutes back', `${BASE}/api/admin/sign-in-settings`, (r) => r.body && r.body.success === true && r.body.settings.idleMinutes === idleSaved.settings.idleMinutes || r.text.slice(0, 160), put(idleSaved.settings));
+        } else fail('PUT /api/admin/sign-in-settings round trip skipped: GET /api/admin/sign-in-settings gave no settings');
+        // <Jun Kai end>
+        // anomaly detection: the settings round trip, then one test incident through acknowledge, verdict and resolve
+        const AIOPS = `${BASE}/api/admin/aiops`;
+        const post = (b) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(b || {}) });
+        const saved = (await get(`${AIOPS}/settings`, { headers: { cookie } })).body;
+        const original = saved && saved.settings && saved.settings.detectors && saved.settings.detectors.spike ? saved.settings : null;
+        if (original) {
+          await expect('PUT /api/admin/aiops/settings sets the spike sensitivity to 4', `${AIOPS}/settings`, (r) => r.status === 200 && r.body && r.body.settings && r.body.settings.detectors.spike.sensitivity === 4 || r.text.slice(0, 160), put({ ...original, detectors: { ...original.detectors, spike: { ...original.detectors.spike, sensitivity: 4 } } }));
+          await expect('PUT /api/admin/aiops/settings puts the saved settings back', `${AIOPS}/settings`, (r) => r.status === 200 && r.body && r.body.settings && r.body.settings.detectors.spike.sensitivity === original.detectors.spike.sensitivity || r.text.slice(0, 160), put(original));
+        } else fail('PUT /api/admin/aiops/settings round trip skipped: GET /api/admin/aiops/settings gave no settings');
+        await expect('PUT /api/admin/aiops/settings refuses a 5 second interval', `${AIOPS}/settings`, (r) => r.status === 400 && r.body && r.body.field === 'intervalSeconds' || `${r.status}: ${r.text.slice(0, 120)}`, put({ intervalSeconds: 5 }));
+        // <Jun Kai start> the Advanced values: their defaults come with the settings, and a wait of 0 minutes is refused
+        await expect('GET /api/admin/aiops/settings has the defaults of the Advanced values', `${AIOPS}/settings`, (r) => r.body && r.body.defaults && r.body.defaults.fixDelayMinutes === 5 && typeof r.body.settings.learnStreak === 'number' || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('PUT /api/admin/aiops/settings refuses a fix wait of 0 minutes', `${AIOPS}/settings`, (r) => r.status === 400 && r.body && r.body.field === 'fixDelayMinutes' || `${r.status}: ${r.text.slice(0, 120)}`, put({ fixDelayMinutes: 0 }));
+        // <Jun Kai end>
+        const made = await get(`${AIOPS}/test-incident`, post({}));
+        const incidentId = made.body && made.body.incident && made.body.incident.id;
+        (incidentId ? pass : fail)(`POST /api/admin/aiops/test-incident opens a test incident (${made.status})${incidentId ? '' : ': ' + made.text.slice(0, 120)}`);
+        if (incidentId) {
+          await expect('GET /api/admin/aiops/incidents?status=open lists the test incident', `${AIOPS}/incidents?status=open`, (r) => r.body && Array.isArray(r.body.incidents) && r.body.incidents.some((i) => i.id === incidentId) || r.text.slice(0, 160), { headers: { cookie } });
+          await expect('POST acknowledge marks the test incident acknowledged', `${AIOPS}/incidents/${incidentId}/acknowledge`, (r) => r.body && r.body.incident && r.body.incident.status === 'acknowledged' || r.text.slice(0, 160), post({}));
+          await expect('POST verdict correct is saved on the test incident', `${AIOPS}/incidents/${incidentId}/verdict`, (r) => r.body && r.body.incident && r.body.incident.verdict === 'correct' || r.text.slice(0, 160), post({ verdict: 'correct' }));
+          // <Jun Kai start> AIOps part 2: the advisor (no Ollama on a runner: it answers with rule-based advice)
+          await expect('POST /api/admin/aiops/incidents/:id/advice asks the advisor', `${AIOPS}/incidents/${incidentId}/advice`, (r) => r.body && r.body.success === true && r.body.queued === true || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
+          // <Jun Kai end>
+          await expect('POST verdict maybe is refused', `${AIOPS}/incidents/${incidentId}/verdict`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({ verdict: 'maybe' }));
+          await expect('POST resolve closes the test incident as the admin', `${AIOPS}/incidents/${incidentId}/resolve`, (r) => r.body && r.body.incident && r.body.incident.status === 'resolved' && r.body.incident.resolved_by === ADMIN_USER || r.text.slice(0, 160), post({ note: 'Smoke test' }));
+          await expect('GET /api/admin/aiops/incidents/:id has the whole timeline', `${AIOPS}/incidents/${incidentId}`, (r) => ['opened', 'acknowledged', 'verdict', 'resolved'].every((t) => ((r.body && r.body.events) || []).some((e) => e.type === t)) || r.text.slice(0, 160), { headers: { cookie } });
+        }
+        // <Jun Kai start>
+        if (incidentId) await expect('POST advice on a resolved incident is refused', `${AIOPS}/incidents/${incidentId}/advice`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
+        await expect('POST advice on an unknown incident is 404', `${AIOPS}/incidents/99999999/advice`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
+        await expect('GET /api/admin/aiops/advisor has the step list', `${AIOPS}/advisor`, (r) => r.body && r.body.success === true && !!r.body.actions && typeof r.body.actions.none === 'string' && Array.isArray(r.body.models) || r.text.slice(0, 160), { headers: { cookie } });
+        // the fixes, the busiest programmes and a test "Kiosk server down" (a test incident's fix is only recorded: nothing starts)
+        await expect('GET /api/admin/aiops/settings has the level numbers, the fixes and the test kinds', `${AIOPS}/settings`, (r) => r.body && r.body.levels && r.body.levels.spike && r.body.levels.spike.short.length === 5 && Array.isArray(r.body.fixes) && r.body.fixes.some((f) => f.key === 'start-kiosk') && Array.isArray(r.body.testKinds) && r.body.testKinds.some((k) => k.key === 'kiosk') || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('GET /api/admin/aiops/processes answers a list', `${AIOPS}/processes?by=memory`, (r) => r.body && r.body.success === true && Array.isArray(r.body.programmes) || r.text.slice(0, 160), { headers: { cookie } });
+        await expect('POST /api/admin/aiops/test-incident refuses a kind it does not know', `${AIOPS}/test-incident`, (r) => r.status === 400 || `${r.status}: ${r.text.slice(0, 120)}`, post({ kind: 'format-the-disk' }));
+        const kioskMade = await get(`${AIOPS}/test-incident`, post({ kind: 'kiosk' }));
+        const kioskId = kioskMade.body && kioskMade.body.incident && kioskMade.body.incident.id;
+        (kioskId ? pass : fail)(`POST /api/admin/aiops/test-incident opens a test kiosk incident (${kioskMade.status})${kioskId ? '' : ': ' + kioskMade.text.slice(0, 120)}`);
+        if (kioskId) {
+          await expect('the test kiosk incident offers the start fix', `${AIOPS}/incidents?status=open`, (r) => r.body && Array.isArray(r.body.incidents) && r.body.incidents.some((i) => i.id === kioskId && i.test === true && i.fix && i.fix.key === 'start-kiosk') || r.text.slice(0, 160), { headers: { cookie } });
+          await expect('POST /api/admin/aiops/incidents/:id/fix on the test incident only records it', `${AIOPS}/incidents/${kioskId}/fix`, (r) => r.body && r.body.success === true && r.body.test === true && r.body.done === true || `${r.status}: ${r.text.slice(0, 120)}`, post({ fix: 'start-kiosk' }));
+          await expect('the test incident has fix and fix-done on its timeline', `${AIOPS}/incidents/${kioskId}`, (r) => ['fix', 'fix-done'].every((t) => ((r.body && r.body.events) || []).some((e) => e.type === t)) && !!r.body.help || r.text.slice(0, 160), { headers: { cookie } });
+          await expect('POST resolve closes the test kiosk incident', `${AIOPS}/incidents/${kioskId}/resolve`, (r) => r.body && r.body.incident && r.body.incident.status === 'resolved' || r.text.slice(0, 160), post({ note: 'Smoke test' }));
+        }
+        // <Jun Kai end>
+        await expect('POST /api/admin/aiops/run-now runs one check', `${AIOPS}/run-now`, (r) => r.body && r.body.success === true && !!r.body.result && (r.body.result.skipped === null || r.body.result.skipped === 'disabled') || r.text.slice(0, 160), post({}));
+        await expect('POST acknowledge on an unknown incident is 404', `${AIOPS}/incidents/999999999/acknowledge`, (r) => r.status === 404 || `${r.status}: ${r.text.slice(0, 120)}`, post({}));
       }
       // <Jun Kai end>
       const stamp = Date.now();

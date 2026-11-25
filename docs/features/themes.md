@@ -25,7 +25,7 @@ Colour themes for the admin page itself, saved per admin user.
 
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
-- Save Theme always fails: it reads colour inputs that no longer exist (js/themes.js).
+- Fixed 19 Nov 2026: Save Theme always failed, because it read colour inputs that no longer exist (js/themes.js). The colours now come from themeSettings, where the swatches put them; a colour that was never changed is saved with its default. The swatches on a saved theme card use colour names a theme has today, so a card is no longer grey.
 - Theme card swatches are always grey.
 
 ---

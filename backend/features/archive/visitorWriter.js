@@ -128,8 +128,19 @@ function buildSelection(raw, plan, { encrypt = null } = {}) {
     };
 }
 
+// One sentence about the digital tree. leaves: { mode, leaves } with the "Leaves on the tree" choice and how many of
+// the submissions are leaves on the tree. Null for an export only, or when none of them is on the tree.
+function treeLine(deleteAfter, leaves) {
+    const n = leaves ? Number(leaves.leaves) || 0 : 0;
+    if (!deleteAfter || !n) return null;
+    const were = n === 1 ? '1 leaf was' : `${n} leaves were`;
+    if (leaves.mode === 'keep') return `Digital tree: ${were} to stay on the tree without ${n === 1 ? 'a name' : 'names'}; only the date, the badge and the VIP mark of a leaf are kept in the database.`;
+    if (leaves.mode === 'initials') return `Digital tree: ${were} to stay on the tree, with the visitor's initials where the tree showed the name; only the date, the badge, the VIP mark and those initials are kept in the database.`;
+    return `Digital tree: ${were} to leave the tree with the records; the tree's year book still counts ${n === 1 ? 'it' : 'them'}.`;
+}
+
 // The writer runs before the delete step, so the README says what was chosen, not what happened afterwards
-function readmeText(m) {
+function readmeText(m, leaves = null) {
     const c = m.counts;
     const day = (iso) => (iso ? schedule.toSgtDay(new Date(iso)) : '');
     const count = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -144,6 +155,7 @@ function readmeText(m) {
         m.deleteAfterArchive
             ? 'This archive was made with "Delete the records from the database" switched on: the records were to be deleted after this file passed its check.'
             : 'This archive was made as an export only: the records stayed in the database.',
+        treeLine(m.deleteAfterArchive, leaves),
         '',
         'Contents',
         `- ${count(c.feedback, 'feedback submission')} with ${count(c.answers, 'answer')} and ${count(c.likes, 'pledge like')}`,
@@ -234,7 +246,7 @@ async function appendPhoto(archive, photo, date, failed) {
 
 // Writes the zip to partialPath (the caller renames it after verifyArchive). Returns { size, sha256, manifest }.
 // Any error removes the partial file. meta: archiveId, createdAt, createdBy, trigger, criteria, photosIncluded,
-// deleteAfterArchive, encryption { keyFingerprint, developmentKey }.
+// deleteAfterArchive, encryption { keyFingerprint, developmentKey }, leaves { mode, leaves } (for README.txt only).
 async function writeArchive(selection, meta, partialPath, onProgress = () => {}) {
     const manifest = {
         format: FORMAT,
@@ -255,7 +267,7 @@ async function writeArchive(selection, meta, partialPath, onProgress = () => {})
     };
     const { records } = selection;
     const buffers = [
-        ['README.txt', Buffer.from(readmeText(manifest))],
+        ['README.txt', Buffer.from(readmeText(manifest, meta.leaves))],
         [DATA_FILES.visitors, jsonBuffer(records.visitors)],
         [DATA_FILES.feedback, jsonBuffer(records.feedback)],
         [DATA_FILES.lostFound, jsonBuffer(records.lostFound)],
