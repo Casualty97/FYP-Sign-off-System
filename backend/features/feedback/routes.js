@@ -478,8 +478,8 @@ router.post('/save-photo', (req, res) => {
         // Generate filename with user name, device, and timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const safeUserName = userName ? userName.replace(/[^a-zA-Z0-9]/g, '_') : 'anonymous';
-        // <Jun Kai start> only letters and digits from the request reach the file name, so it cannot leave the folder
-        const safeDevice = String(device || 'device').replace(/[^a-zA-Z0-9]/g, '_');
+        // <Jun Kai start> only letters, digits, - and _ from the request reach the file name, so it cannot leave the folder
+        const safeDevice = String(device || 'device').replace(/[^a-zA-Z0-9_-]/g, '_');
         const filename = `${safeUserName}_${safeDevice}_${timestamp}.${parsedPhoto.extension}`;
         // <Jun Kai end>
         const filepath = path.join(uploadsDir, filename);
@@ -564,9 +564,9 @@ router.post('/save-processed-photo', async (req, res) => {
         // Generate filename for processed photo
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const safeUserName = userName ? userName.replace(/[^a-zA-Z0-9]/g, '_') : 'anonymous';
-        // <Jun Kai start> only letters and digits from the request reach the file name, so it cannot leave the folder
-        const safeDevice = String(device || 'device').replace(/[^a-zA-Z0-9]/g, '_');
-        const safeTheme = String(theme || 'theme').replace(/[^a-zA-Z0-9]/g, '_');
+        // <Jun Kai start> only letters, digits, - and _ from the request reach the file name, so it cannot leave the folder
+        const safeDevice = String(device || 'device').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const safeTheme = String(theme || 'theme').replace(/[^a-zA-Z0-9_-]/g, '_');
         const filename = `${safeUserName}_${safeDevice}_${safeTheme}_processed_${timestamp}.${extension}`;
         // <Jun Kai end>
         const filepath = path.join(processedDir, filename);
