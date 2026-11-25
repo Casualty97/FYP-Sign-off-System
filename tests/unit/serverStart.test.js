@@ -214,6 +214,6 @@ test('startAll.js: a server that ends by itself is named in the note, and the ot
 test('startAll.js --logon tells the servers that Windows sign-in started them', () => {
     assert.deepEqual(runStartAll(() => {}, ['--logon']).result.args, [['--logon'], ['--logon']], 'both servers get --logon');
     const shortcut = fs.readFileSync(path.join(ROOT, 'scripts', 'install', 'install.ps1'), 'utf8');
-    assert.match(shortcut, /\$link\.Arguments = "\/k title ESG Kiosk server & `"\$node`" `"\$start`" --logon"/, 'the logon shortcut of install.cmd passes --logon');
+    assert.match(shortcut, /\$link\.Arguments = "\/k title RP Xperience Centre Kiosk server & `"\$node`" `"\$start`" --logon"/, 'the logon shortcut of install.cmd passes --logon');
 });
 // <Jun Kai end>

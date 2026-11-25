@@ -1,6 +1,6 @@
-# ESG Centre Sign-Off System (DP Kiosk)
+# RP Xperience Centre Sign-Off System (DP Kiosk)
 
-Visitor engagement kiosk for Republic Polytechnic's ESG Centre: visitors give feedback and a pledge on a tablet,
+Visitor engagement kiosk for the RP Xperience Centre at Republic Polytechnic: visitors give feedback and a pledge on a tablet,
 take a photo, and appear as a leaf on the digital tree shown on the centre's 7 m by 2 m wall. Admins manage
 everything from a web page. Built by the AY2025/26 FYP team; enhanced by the current team (see Team below).
 

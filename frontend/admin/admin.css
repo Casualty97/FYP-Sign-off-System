@@ -38,7 +38,7 @@ FIND COMMAND
 NICK CHANGE SUMMARY (DONE BY NICK)
 ============================================================
 
-ESG JOURNEY PASSPORT
+RP XPERIENCE CENTRE JOURNEY PASSPORT
     - Added Journey Passport dashboard card, milestone summary, stamp chips and visitor journey rows. (DONE BY NICK)
 
 FIND COMMAND
@@ -1343,7 +1343,7 @@ body {
     color: #dc2626;
 }
 
-/* ESG Journey Passport */
+/* RP Xperience Centre Journey Passport */
 .journey-passport-card {
     background: var(--theme-card-bg);
     border-radius: 16px;
