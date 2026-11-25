@@ -19,6 +19,11 @@ const userKey = (req) => (req.session && req.session.user && req.session.user.id
 router.get('/', auth.requireAuth, async (req, res) => {
     try {
         const hidden = layout.hiddenFor(userKey(req));
+        if (req.query.only === 'tablets') {
+            res.set('Cache-Control', 'no-store');
+            const tablets = hidden.includes('tablets') ? null : await checks.checkTablets();
+            return res.json({ success: true, tablets });
+        }
         const health = await checks.runAll({ refreshEmail: req.query.refresh === 'email', skip: req.query.all === '1' ? [] : hidden });
         res.json({ success: true, health: { ...health, hidden } });
     } catch (error) {

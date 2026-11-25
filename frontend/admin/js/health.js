@@ -4,6 +4,9 @@
 // Since supervisor meeting 03 (4 Nov 2026) each admin chooses which checks the page shows and runs
 // (GET/PUT /api/admin/health/layout). Placeholder cards hold the layout while the checks run, so nothing jumps.
 let healthRefreshTimer = null;
+let tabletRefreshTimer = null;
+let tabletRefreshInFlight = false;
+let liveTabletCheck = null;
 let healthLoading = false;
 let healthReloadQueued = false;
 let healthLayout = null;   // { options: [{ key, label, description }], hidden: [keys] }
@@ -145,7 +148,7 @@ function renderHealthPanels() {
     const showTablets = healthVisibleKeys().includes('tablets');
     const tablets = document.getElementById('health-tablets-card');
     if (tablets) tablets.hidden = !showTablets;
-    const tabletCheck = ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets');
+    const tabletCheck = healthTabletCheck();
     if (showTablets && tabletCheck) renderHealthTablets(tabletCheck);
 }
 
@@ -191,7 +194,7 @@ let healthRenameError = '';
 const HEALTH_NAME_ORDER = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
 function healthTabletCheck() {
-    return ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets') || null;
+    return liveTabletCheck || ((healthLast && healthLast.checks) || []).find((c) => c.key === 'tablets') || null;
 }
 
 // same order as the server: named tablets first in number order, the rest as they came
@@ -257,7 +260,7 @@ function renderHealthTablets(check, force) {
                     <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
                     <td>${d.online ? uiPill('ok', 'Online') : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(d.seconds_ago))}</div>`}</td>
-                    <td>${healthBatteryCell(d)}</td>
+                    <td data-battery-device="${escapeHtmlSafe(d.device_id)}">${healthBatteryCell(d)}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
                 </tr>`).join('');
 }
@@ -529,8 +532,48 @@ async function saveHealthHidden(hidden) {
 }
 // <Jun Kai end>
 
+function tabletHealthVisible() {
+    const page = document.getElementById('health-page');
+    return !document.hidden && page?.classList.contains('active') &&
+        sessionStorage.getItem('loggedUser') && healthVisibleKeys().includes('tablets');
+}
+
+async function refreshTabletBattery() {
+    if (tabletRefreshInFlight || !tabletHealthVisible()) return;
+    tabletRefreshInFlight = true;
+    try {
+        const response = await fetch('/api/admin/health?only=tablets', { cache: 'no-store' });
+        if (!response.ok || !tabletHealthVisible()) return;
+        const { tablets } = await response.json();
+        if (!tablets || tablets.status === 'unknown' || !tabletHealthVisible()) return;
+        liveTabletCheck = tablets;
+
+        // Updating just the battery cells preserves the rename form and its focus.
+        const devices = new Map(tablets.detail.devices.map(device => [device.device_id, device]));
+        const cells = document.querySelectorAll('#health-tablets [data-battery-device]');
+        if (cells.length !== devices.size || [...cells].some(cell => !devices.has(cell.dataset.batteryDevice))) {
+            renderHealthTablets(tablets);
+            return;
+        }
+        for (const cell of cells) {
+            const markup = healthBatteryCell(devices.get(cell.dataset.batteryDevice));
+            if (cell.batteryMarkup !== markup) {
+                cell.innerHTML = markup;
+                cell.batteryMarkup = markup;
+            }
+        }
+    } catch {
+        // Keep the last reading during a brief disconnect.
+    } finally {
+        tabletRefreshInFlight = false;
+    }
+}
+
 function startHealthPolling() {
+    liveTabletCheck = null;
     if (healthRefreshTimer) clearInterval(healthRefreshTimer);
+    if (tabletRefreshTimer) clearInterval(tabletRefreshTimer);
+    tabletRefreshTimer = setInterval(refreshTabletBattery, 1000);
     healthRefreshTimer = setInterval(() => {
         const page = document.getElementById('health-page');
         if (page && page.classList.contains('active') && sessionStorage.getItem('loggedUser')) loadHealth();
