@@ -6,3 +6,4 @@
 
 # Windows command files need CRLF endings (install.cmd, uninstall.cmd)
 *.cmd text eol=crlf
+*.bat text eol=crlf
