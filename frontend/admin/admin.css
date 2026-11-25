@@ -7950,6 +7950,12 @@ input:checked + .slider:before {
 .hw-custom-hint.is-error, .health-rename .ui-help.is-error { color: #b91c1c; }
 .ui-input[aria-invalid="true"] { border-color: #dc2626; }
 .ui-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
+.health-battery { display: grid; gap: 4px; min-width: 108px; max-width: 150px; }
+.health-battery-label { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.health-battery-label strong { font-variant-numeric: tabular-nums; }
+.health-battery-label .ui-muted { font-size: 0.8rem; }
+.health-battery-meter { width: 100%; height: 9px; }
+
 .health-device-cell { display: flex; align-items: center; gap: 6px; }
 .health-device-text { min-width: 0; }
 .health-rename-btn { width: 28px; height: 28px; flex-shrink: 0; color: var(--color-muted); }

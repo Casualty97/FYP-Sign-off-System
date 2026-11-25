@@ -200,9 +200,9 @@ async function checkTablets() {
         else if (!online.length) { status = 'warn'; summary = `None of the ${devices.length} known tablets reported in the last 3 minutes`; }
         return { ...base, status, summary, detail: { devices, onlineWindowSeconds: TABLET_ONLINE_SECONDS }, latencyMs: null };
     } catch (error) {
-        if (error.code === 'ER_NO_SUCH_TABLE') {
-            if (!heartbeatTableWarned) { heartbeatTableWarned = true; console.warn('⚠️ device_heartbeats table is missing: run npm run db:migrate'); }
-            return { ...base, status: 'unknown', summary: 'Heartbeat table missing: run npm run db:migrate', detail: { devices: [] }, latencyMs: null };
+        if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(error.code)) {
+            if (!heartbeatTableWarned) { heartbeatTableWarned = true; console.warn('⚠️ Tablet heartbeat schema needs updating: run npm run db:migrate'); }
+            return { ...base, status: 'unknown', summary: 'Tablet heartbeat schema needs updating: run npm run db:migrate', detail: { devices: [] }, latencyMs: null };
         }
         return { ...base, status: 'unknown', summary: 'Could not read the heartbeats', detail: { devices: [], error: error.message }, latencyMs: null };
     }

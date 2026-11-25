@@ -225,6 +225,23 @@ function healthDeviceCell(d) {
             </div>`;
 }
 
+function healthBatteryCell(device) {
+    if (!device.online) return '<span class="ui-muted">Offline</span>';
+
+    const level = device.battery_level;
+    if (!Number.isInteger(level) || level < 0 || level > 100) {
+        return '<span class="ui-muted">No battery reading</span>';
+    }
+
+    const state = device.charging === 1 || device.charging === true
+        ? 'Charging'
+        : device.charging === 0 || device.charging === false ? 'On battery' : '';
+    return `<div class="health-battery">
+                <div class="health-battery-label"><strong>${level}%</strong>${state ? `<span class="ui-muted">${state}</span>` : ''}</div>
+                <meter class="health-battery-meter" min="0" max="100" low="20" high="60" optimum="100" value="${level}" aria-label="Battery level"></meter>
+            </div>`;
+}
+
 function renderHealthTablets(check, force) {
     const body = document.getElementById('health-tablets');
     if (!body) return;
@@ -240,7 +257,7 @@ function renderHealthTablets(check, force) {
                     <td>${healthDeviceCell(d)}</td>
                     <td>${escapeHtmlSafe(d.page || '–')}</td>
                     <td>${d.online ? uiPill('ok', 'Online') : `${uiPill('muted', 'Offline')}<div class="ui-muted health-ago">${escapeHtmlSafe(healthRelativeTime(d.seconds_ago))}</div>`}</td>
-                    <td>${d.online && Number.isInteger(d.battery_level) ? `${d.battery_level}%${d.charging ? ' · Charging' : ''}` : '–'}</td>
+                    <td>${healthBatteryCell(d)}</td>
                     <td class="ui-muted">${escapeHtmlSafe(d.ip || '–')}</td>
                 </tr>`).join('');
 }
