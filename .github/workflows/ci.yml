@@ -45,6 +45,7 @@ jobs:
               - 'tests/**'
               - 'scripts/**'
               - '.github/workflows/ci.yml'
+              - '.github/scripts/scan-report.js' # <Jun Kai/>
 
   # ------------------------------------------------------------------ PR title, forbidden files, size
   pr-rules:
@@ -242,10 +243,149 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # ------------------------------------------------------------------ vulnerability scans
+  # <Jun Kai start>
+  # Scan 1 of 3, the packages: npm audit compares package-lock.json with the list of known vulnerabilities
+  # (nothing is installed). A high or critical finding fails the job, lower ones are listed in the run summary.
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: npm audit (high and critical fail)
+        run: |
+          for attempt in 1 2 3; do
+            npm audit --json > npm-audit.json || true
+            if grep -q '"metadata"' npm-audit.json; then break; fi
+            echo "no answer from the registry (attempt $attempt), trying again"; sleep 10
+          done
+          node .github/scripts/scan-report.js audit npm-audit.json
+
+  # Scan 2 of 3, the project's own code: CodeQL (GitHub's code scanner) follows the data through the code and
+  # reports security mistakes such as injection or a missing check. The findings go to the repository's Security
+  # tab (Code scanning) and are listed in the run summary. On a pull request GitHub marks the ones the change adds.
+  code-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            backend
+            frontend
+            database
+            tests
+            scripts
+            .github
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+          output: codeql-results
+      - name: List the findings
+        run: node .github/scripts/scan-report.js codeql codeql-results
+
+  # Scan 3 of 3, the running servers: both servers are started on the runner and OWASP ZAP (a web security
+  # scanner) opens the pages a visitor or an attacker can reach without signing in. It only reads the answers
+  # (missing security headers, weak cookies, leaked details); it sends no attacks. Listed in the run summary,
+  # full reports in the "zap-reports" download.
+  app-scan:
+    needs: [changes, static]
+    if: always() && needs.static.result == 'success' && (github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: kiosk_user
+      DB_PASSWORD: kiosk123
+      DB_NAME: dp_kiosk_db
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000' # gitleaks:allow
+      SESSION_SECRET: ci-only-session-secret
+      PLEDGE_SENTIMENT_MODE: rules
+      KIOSK_AUTOMATION: off
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            backend
+            frontend
+            database
+            tests
+            scripts
+            assets/overlays
+            assets/static
+            .github
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: ankane/setup-mysql@v1
+        with:
+          mysql-version: '8.4'
+      - run: npm ci
+      - name: Folders, database and blank email settings (the same as the smoke test)
+        run: |
+          mkdir -p uploads/photos uploads/processed logs backend/cache zap
+          node tests/ci-db-setup.js
+          node database/migrate.js up
+          cat > backend/config/defaults/emailConfig.json <<'EOF'
+          {"provider":"gmail","senderEmail":"","senderName":"CI","gmail":{"user":"","pass":""},"outlook":{"user":"","pass":""},"custom":{"host":"","port":587,"secure":false,"user":"","pass":""}}
+          EOF
+      - name: Start both servers
+        run: |
+          nohup node startAll.js > logs/scan-server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sk -o /dev/null https://localhost:3000/admin && curl -s -o /dev/null http://localhost:3003/feedback; then echo "both servers answer"; exit 0; fi
+            sleep 2
+          done
+          cat logs/scan-server.log
+          echo "::error::the servers did not start within 2 minutes"; exit 1
+      - name: Scan the pages that need no sign-in
+        run: |
+          chmod 777 zap
+          scan() { # name, address
+            docker run --rm --user root --network host -v "$PWD/zap:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable \
+              zap-baseline.py -t "$2" -m 1 -I -J "$1.json" -r "$1.html" || echo "::warning::ZAP ended with an error on $2"
+          }
+          scan admin-login       https://localhost:3000/admin
+          scan admin-feedback    https://localhost:3000/feedback/
+          scan admin-pledgeboard https://localhost:3000/pledgeboard/
+          scan admin-tree        https://localhost:3000/tree/
+          scan kiosk-feedback    http://localhost:3003/feedback
+      - name: List the findings
+        if: always()
+        run: node .github/scripts/scan-report.js zap zap
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: zap-reports
+          path: |
+            zap/*.html
+            zap/*.json
+            logs/scan-server.log
+          retention-days: 14
+          if-no-files-found: ignore
+  # <Jun Kai end>
+
   # ------------------------------------------------------------------ the one required check
   ci-summary:
     if: ${{ !cancelled() }}
-    needs: [changes, pr-rules, secret-scan, static, smoke]
+    needs: [changes, pr-rules, secret-scan, static, smoke, dependency-audit] # <Jun Kai/> dependency-audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
