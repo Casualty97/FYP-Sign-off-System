@@ -8754,6 +8754,8 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 .ui-info { display: inline-flex; flex-shrink: 0; margin-left: 8px; vertical-align: middle; }
 /* in a row that already spaces its items */
 .ui-info-flush { margin-left: 0; }
+/* the step headings and the answer row of an incident space their items already */
+.inc-sec-title > .ui-info, .inc-verdict > .ui-info { margin-left: 0; }
 /* a field label with its "i" beside it */
 .ui-label-row { display: flex; align-items: center; }
 .ui-info-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: 1px solid var(--theme-border-color); border-radius: 50%; background: var(--theme-card-bg); color: var(--color-dark-gray); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }

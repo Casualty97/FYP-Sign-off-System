@@ -67,8 +67,9 @@ function uiPill(tone, text) {
 //   <template class="ui-info-body" data-title="TITLE">the note as HTML</template></span>
 // A page script that draws its own cards gets the same markup from uiInfo(). The note text is fixed text written
 // in the code, never something a visitor or an admin typed.
+// (uiInfo is also called while the scripts load, before escapeHtmlSafe of vips.js exists, so it escapes its title itself)
 function uiInfo(title, html) {
-    const safeTitle = escapeHtmlSafe(title);
+    const safeTitle = String(title).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
     return `<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: ${safeTitle}" title="How this works">${uiIcon('info', 15)}</button><template class="ui-info-body" data-title="${safeTitle}">${html}</template></span>`;
 }
 

@@ -3389,7 +3389,7 @@
                 <div id="health-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>System Health</h2>
+                            <h2>System Health<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How the checks work" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How the checks work"><div>The seven checks run side by side every 30 seconds while this page is open, and when you press Check now.</div><ul><li><b>Green</b> healthy, <b>amber</b> needs attention, <b>red</b> down, <b>grey</b> unknown or switched off.</li><li>The strip under a card is the last 24 hours: 48 blocks of half an hour, each showing the worst result in it.</li><li>The strips come from background checks, every 5 minutes unless changed under Incidents, Settings.</li><li>Customise hides checks for your account only.</li></ul></template></span></h2>
                             <!-- <Jun Kai start> -->
                             <p>The checks the kiosk depends on, with the open incidents in short. The full list is on the Incidents page.</p>
                             <!-- <Jun Kai end> -->
@@ -3452,7 +3452,7 @@
                 <div id="incidents-page" class="page">
                     <div class="ui-page-header">
                         <div>
-                            <h2>Incidents</h2>
+                            <h2>Incidents<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: How incidents are found" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="How incidents are found"><div>Every 60 seconds the admin server compares this PC's own numbers with their own past: CPU, memory, GPU, disk, the services and the server logs. This page refreshes every 30 seconds while it is open.</div><ul><li>It uses plain statistics, so every incident comes with a number and a sentence. Nothing leaves this PC.</li><li><b>Critical</b>, <b>Attention</b> or <b>Info</b> says how far from normal it is.</li><li>An incident closes by itself once things have been normal for 10 minutes.</li><li>With Quiet hours on, the kiosk server is not watched while the policies say the kiosk is off.</li></ul><div>Each number can be changed under Settings.</div></template></span></h2>
                             <p>Unusual behaviour of the server PC, its services and the server logs, found by comparing each with its own past.</p>
                         </div>
                         <div class="ui-row inc-header-actions">

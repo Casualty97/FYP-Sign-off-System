@@ -767,6 +767,28 @@ function incidentStepsHtml(incident, entry) {
 
 // ---- was this right, history ----
 
+// <Jun Kai start>
+// The notes behind the "i" buttons of an incident (admin redesign): where the explanation comes from, what the app may
+// do by itself, and what an answer to "Was this right?" changes. Fixed text; uiInfo() is in uiKit.js.
+const INCIDENT_NOTE_WHY = uiInfo('Where this explanation comes from',
+    '<div>A free AI model that runs <b>on this PC</b> (through Ollama) writes it. Only this incident\'s own data goes in, never a visitor record, and nothing is sent anywhere.</div>'
+    + '<ul><li>It also sees up to three earlier incidents of the same kind that an admin marked Correct.</li>'
+    + '<li>When the model is off, slow or gives an unusable answer, a fixed explanation from rules is shown, so an incident always has one.</li>'
+    + '<li>Ask again works at most once every 30 seconds.</li></ul>');
+const INCIDENT_NOTE_TODO = uiInfo('Fixes need approval',
+    '<div>The AI only suggests. The one thing the app can do by itself is <b>start the kiosk server</b>, the same start as the Start kiosk button on Operating Hours.</div>'
+    + '<ul><li><b>Ask first</b> (the default): it runs only after a System Admin presses Approve.</li>'
+    + '<li><b>Auto after 5 min</b>: it runs by itself if nobody approves in time.</li>'
+    + '<li><b>Automatic</b>: it runs in the check that opens the incident.</li></ul>'
+    + '<div>It never runs by itself on an incident someone acknowledged, or while the policies keep the kiosk off. Every run is written in the incident\'s history and in Audit Logs.</div>');
+const INCIDENT_NOTE_VERDICT = uiInfo('What your answer does',
+    '<div>Your answer tunes the detector that raised this incident.</div>'
+    + '<ul><li>3 answers in a row of False alarm or Not useful: that detector becomes one level less sensitive, at most 2 levels.</li>'
+    + '<li>3 answers of Correct in a row: it goes one step back, never above the level set in Settings.</li>'
+    + '<li>Incidents marked Correct are shown to the AI as examples.</li>'
+    + '<li>Test incidents tune nothing.</li></ul>');
+// <Jun Kai end>
+
 function incidentVerdictHtml(incident) {
     const buttons = Object.entries(INCIDENT_VERDICT_LABEL).map(([key, label]) => {
         const chosen = incident.verdict === key;
@@ -775,7 +797,7 @@ function incidentVerdictHtml(incident) {
     let hint = 'Your answer tunes this detector';
     if (incident.test) hint = 'A test incident tunes nothing';
     else if (incidentsStatus && incidentsStatus.learnFromVerdicts === false) hint = 'Your answer is kept with the incident';
-    return `<span class="inc-verdict-label">Was this right?</span><span class="inc-verdict-btns" role="group" aria-label="Was this right?">${buttons}</span><span class="inc-verdict-hint">${hint}</span>`;
+    return `<span class="inc-verdict-label">Was this right?</span><span class="inc-verdict-btns" role="group" aria-label="Was this right?">${buttons}</span><span class="inc-verdict-hint">${hint}</span>${INCIDENT_NOTE_VERDICT}`;
 }
 
 function incidentTimelineHtml(events, unit, id) {
@@ -832,7 +854,7 @@ const INCIDENT_DETAIL_SKELETON = `
     </div>
     <div class="inc-d-meta" data-zone="meta"></div>
     <section class="inc-sec"><h4 class="inc-sec-title"><span class="inc-sec-num">1</span>What happened</h4><div data-zone="happened"></div></section>
-    <section class="inc-sec"><h4 class="inc-sec-title"><span class="inc-sec-num">2</span>Why it might be</h4><div data-zone="why"></div></section>
+    <section class="inc-sec"><h4 class="inc-sec-title"><span class="inc-sec-num">2</span>Why it might be${INCIDENT_NOTE_WHY}</h4><div data-zone="why"></div></section>
     <section class="inc-sec"><h4 class="inc-sec-title" data-zone="todo-title"></h4><div data-zone="fix"></div><div data-zone="steps"></div></section>
     <div class="inc-verdict" data-zone="verdict"></div>
     <div class="inc-history"><div data-zone="history-toggle"></div><ul class="ui-events" data-zone="history"></ul></div>`;
@@ -916,7 +938,7 @@ function renderIncidentDetail(nowMs) {
         meta: escapeHtmlSafe(incidentMetaText(incident, nowMs)),
         happened: incidentHappenedHtml(incident, data ? data.floor : null, nowMs),
         why: incidentWhyHtml(incident),
-        'todo-title': `<span class="inc-sec-num">3</span>${incident.status === 'resolved' ? 'What was done' : 'What to do'}`,
+        'todo-title': `<span class="inc-sec-num">3</span>${incident.status === 'resolved' ? 'What was done' : `What to do${INCIDENT_NOTE_TODO}`}`,
         fix: incidentFixHtml(incident, data),
         steps: incidentStepsHtml(incident, entry),
         verdict: incidentVerdictHtml(incident),
