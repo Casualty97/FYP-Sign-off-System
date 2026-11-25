@@ -5,6 +5,8 @@
 //   node scripts/install/setup.js check                                  what is set up, changes nothing (npm run doctor)
 //   node scripts/install/setup.js install --role laptop|wallpc [--dry-run] [--non-interactive]
 //   node scripts/install/setup.js remove-data --database <name> [--dry-run] [--non-interactive]
+//   node scripts/install/setup.js set-env      KEY=value lines on stdin into backend/.env (the command line installer)
+//   node scripts/install/setup.js set-admin    the first admin account from KIOSK_ADMIN_USER / KIOSK_ADMIN_PASSWORD
 // The MySQL root password is only asked for when the app's database user cannot log in or create the database. It
 // is typed hidden, or read from ESG_MYSQL_ROOT_PASSWORD (--root-password-empty for a root without one); never argv.
 // Exit codes: 0 done, 1 failed, 2 the root password is needed but could not be asked for.
@@ -335,7 +337,8 @@ async function install(opts) {
         return 1;
     }
     say.ok(`database ${cfg.database}: ${stats.tables} tables, ${stats.admins} admin account(s), every migration applied`);
-    if (fresh) say.note('first login on the admin page: systemadmin / SystemAdmin123! (change the password on the Users page)');
+    // the command line installer sets the first admin account right after (set-admin), so the default is never shown there
+    if (fresh && !opts.adminLater) say.note('first login on the admin page: systemadmin / SystemAdmin123! (change the password on the Users page)');
     return 0;
 }
 
@@ -415,8 +418,83 @@ async function removeData(opts) {
     return 0;
 }
 
+// KEY=value lines with the value kept exactly as written (quotes too), so a key copied from an old PC's .env keeps
+// its meaning; the last line of a key wins
+function rawEnvLines(text) {
+    const values = new Map();
+    for (const line of String(text || '').split(/\r?\n/)) {
+        const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+        if (m) values.set(m[1], m[2].trim());
+    }
+    return values;
+}
+
+function readStdin() {
+    return new Promise((resolve) => {
+        let text = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (chunk) => { text += chunk; });
+        process.stdin.on('end', () => resolve(text));
+    });
+}
+
+// set-env: the command line installer hands over the database login, ports and moved keys on stdin, never as
+// arguments (a process list would show them). A missing backend/.env starts from backend/.env.example.
+async function setEnv(opts, input) {
+    const changes = [...rawEnvLines(input === undefined ? await readStdin() : input)].map(([key, value]) => ({ key, value }));
+    let text = readEnvFile();
+    if (text === null) {
+        fs.copyFileSync(FILES.example, FILES.env);
+        text = fs.readFileSync(FILES.env, 'utf8');
+    }
+    if (changes.length) fs.writeFileSync(FILES.env, applyEnv(text, changes));
+    say.ok(`backend/.env: ${changes.length ? changes.map((c) => c.key).join(', ') : 'nothing'} set`);
+    return 0;
+}
+
+// The rules for the first admin account: the app's own minimum of 8 characters, bcrypt's limit of 72 bytes, and
+// never the public default password
+function adminProblem(username, password) {
+    if (!/^[A-Za-z0-9._-]{3,50}$/.test(username || '')) return 'the user name needs 3 to 50 letters, digits, dots, dashes or underscores';
+    if (!password || password.length < 8) return 'the admin password needs at least 8 characters';
+    if (Buffer.byteLength(password, 'utf8') > 72) return 'the admin password is too long (72 bytes at most)';
+    if (password === 'SystemAdmin123!') return 'that is the public default password; choose another';
+    if (password.toLowerCase() === username.toLowerCase()) return 'the password cannot be the user name';
+    return null;
+}
+
+// set-admin: systemadmin gets the typed password. Another user name becomes a System Admin of its own and
+// systemadmin gets a long random password nobody knows, so the default password never works on an installed PC.
+async function setAdmin() {
+    const username = String(process.env.KIOSK_ADMIN_USER || 'systemadmin').trim();
+    const password = String(process.env.KIOSK_ADMIN_PASSWORD || '');
+    const problem = adminProblem(username, password);
+    if (problem) { say.bad(problem); return 1; }
+    const mysql = loadMysql();
+    if (!mysql) { say.bad(NO_PACKAGES); return 1; }
+    const bcrypt = require('bcrypt');
+    const cfg = dbConfig(parseEnv(readEnvFile() || ''));
+    const conn = await mysql.createConnection(cfg);
+    try {
+        const hash = await bcrypt.hash(password, 12);
+        if (username === 'systemadmin') {
+            const [r] = await conn.query("UPDATE admin_users SET password_hash = ?, is_active = 1 WHERE username = 'systemadmin'", [hash]);
+            if (!r.affectedRows) await conn.query("INSERT INTO admin_users (username, full_name, password_hash, role) VALUES ('systemadmin', 'System Administrator', ?, 'system_admin')", [hash]);
+        } else {
+            await conn.query("INSERT INTO admin_users (username, full_name, password_hash, role) VALUES (?, ?, ?, 'system_admin') ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = 'system_admin', is_active = 1, is_deleted = 0", [username, username, hash]);
+            const unknown = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+            await conn.query("UPDATE admin_users SET password_hash = ? WHERE username = 'systemadmin'", [unknown]);
+        }
+    } finally {
+        await conn.end();
+    }
+    say.ok(`first admin account: ${username} (System Admin), with the password that was typed`);
+    if (username !== 'systemadmin') say.info('systemadmin has a long random password now, so the public default password does not work');
+    return 0;
+}
+
 function parseArgs(argv) {
-    const opts = { command: argv[0], dryRun: argv.includes('--dry-run'), nonInteractive: argv.includes('--non-interactive'), rootPasswordEmpty: argv.includes('--root-password-empty') };
+    const opts = { command: argv[0], dryRun: argv.includes('--dry-run'), nonInteractive: argv.includes('--non-interactive'), rootPasswordEmpty: argv.includes('--root-password-empty'), adminLater: argv.includes('--admin-later') };
     const value = (flag) => (argv.includes(flag) ? argv[argv.indexOf(flag) + 1] : undefined);
     opts.role = (value('--role') || '').toLowerCase();
     opts.database = value('--database');
@@ -425,14 +503,14 @@ function parseArgs(argv) {
 
 if (require.main === module) {
     const opts = parseArgs(process.argv.slice(2));
-    const commands = { install, check, 'remove-data': removeData };
+    const commands = { install, check, 'remove-data': removeData, 'set-env': setEnv, 'set-admin': setAdmin };
     const run = commands[opts.command];
     if (!run) {
-        console.log('usage: node scripts/install/setup.js check | install --role laptop|wallpc [--dry-run] | remove-data --database <name>');
+        console.log('usage: node scripts/install/setup.js check | install --role laptop|wallpc [--dry-run] | remove-data --database <name> | set-env | set-admin');
         process.exit(1);
     }
     run(opts).then((code) => process.exit(code), (e) => { say.bad(e.message); process.exit(1); });
 }
 
-module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, loadMysql, nodeOk, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
+module.exports = { parseEnv, effective, dbConfig, keySafe, planEnv, applyEnv, parseArgs, pendingMigrations, dataRemoval, loadMysql, nodeOk, rawEnvLines, adminProblem, AUTOMATION, FOLDERS, DATA_FOLDERS, KEEP_IN_DATA };
 // <Jun Kai end>
