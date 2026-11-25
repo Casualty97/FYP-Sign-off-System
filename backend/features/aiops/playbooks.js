@@ -7,7 +7,7 @@
 const key = (name) => `[[${name}]]`;
 const step = (text, live = null) => (live ? { text, live } : { text });
 const OPEN_TASK_MANAGER = `Press ${key('Ctrl')} + ${key('Shift')} + ${key('Esc')} to open Task Manager.`;
-const RESTART_APP = 'restart the app at a quiet time: **Server Schedule** in the sidebar, switch to **Manual**, press **Restart application**, then switch back to **Automatic**';
+const RESTART_APP = 'restart the app at a quiet time: **Operating Hours** in the sidebar, switch to **Manual**, press **Restart application**, then switch back to **Automatic**';
 // in the End task step itself, so the warning stays when the busiest list cannot be read and its step is left out.
 // Ollama only while the Local AI models switch is on: off, nothing in the app uses it
 const endTask = (localAi = true) => (localAi
@@ -75,7 +75,7 @@ const STEPS = {
             ];
         }
         return [
-            step('Open **Server Schedule** in the sidebar.'),
+            step('Open **Operating Hours** in the sidebar.'),
             step('In **Manual** mode, press **Start kiosk**. In **Automatic** mode it starts by itself within 5 minutes while a policy keeps the kiosk on.'),
             step('Wait half a minute: this incident closes once the kiosk answers again.')
         ];
@@ -108,7 +108,7 @@ const STEPS = {
         step('Check **This PC** again in a day: this incident closes once the disk stops filling this fast.')
     ],
     'check-mail-login': () => [
-        step('Open **Email Management** in the sidebar and press **Check again**.'),
+        step('Open **Mail Account** in the sidebar and press **Check again**.'),
         step('For Gmail, make a new **App Password** (Google Account, **Security**, **2-Step Verification**, **App passwords**).'),
         step('Paste it into the password box and press **Save**.'),
         step('This incident closes once the login works again.')
@@ -119,7 +119,7 @@ const STEPS = {
             return [
                 step('Check the kiosk PC is on the network: the network icon at the bottom right of the screen.'),
                 step('Check the Wi-Fi router is on: the tablets reach the kiosk PC through it.'),
-                step('On **System Health**, check the **Kiosk server** card: if it is down, start it first (**Server Schedule**).'),
+                step('On **System Health**, check the **Kiosk server** card: if it is down, start it first (**Operating Hours**).'),
                 step('Reopen the kiosk page on one tablet to see if it comes back.')
             ];
         }
@@ -127,7 +127,7 @@ const STEPS = {
         return [
             step(`Go to the tablet **${name}** and check the screen is on and it is charging.`),
             step('Check it is on the same Wi-Fi as the kiosk PC (**Settings**, **Wi-Fi**).'),
-            step('Reopen the kiosk page: scan the QR code on the **Feedback Page QR Code** page, or pull down to refresh.'),
+            step('Reopen the kiosk page: scan the QR code on the **Feedback QR Code** page, or pull down to refresh.'),
             step('Within a minute it reports again and this incident closes by itself.')
         ];
     },

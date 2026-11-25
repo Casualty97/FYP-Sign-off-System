@@ -185,18 +185,15 @@
 //    function populateUserFilter()    - Populate user filter dropdown (DONE BY PRETI)
 //    function filterAuditLogs()       - Filter logs by search, action, user, target, IP, date (DONE BY PRETI)
 //    function sortFilteredLogs()      - Sort filtered logs by current sort field (DONE BY PRETI)
-//    function sortAuditLogs()         - Handle column header clicks for sorting (DONE BY PRETI)
 //    function displayAuditLogsPage()  - Display current page of filtered logs (DONE BY PRETI)
 //    function updateAuditTable()      - Update audit logs table display (DONE BY PRETI)
-//    function getAuditBadgeType()     - Determine badge style based on action type (DONE BY PRETI)
+//    <Jun Kai/> admin redesign: the table is now a list of events under a heading per day, each written as a
+//    sentence (AUDIT_SENTENCES, auditSentence, auditRow); the old column sort, badge colours, filter panel and counters went
 //    function updateAuditPagination() - Update pagination controls (DONE BY PRETI)
 //    function prevAuditPage()         - Navigate to previous audit page (DONE BY PRETI)
 //    function nextAuditPage()         - Navigate to next audit page (DONE BY PRETI)
-//    function toggleAdvancedFilters() - Show/hide advanced filter panel (DONE BY PRETI)
 //    function clearAllFilters()       - Reset all filters to default (DONE BY PRETI)
 //    function setDateRangePreset()    - Set date range (today/week/month) (DONE BY PRETI)
-//    function updateFilterIndicators() - Highlight active filters (DONE BY PRETI)
-//    function updateResultsCounts()   - Update result count displays (DONE BY PRETI)
 //    async function downloadAuditExcel() - Download filtered logs as CSV/Excel (DONE BY PRETI)
 //
 // 4. DASHBOARD MANAGEMENT (DONE BY PRETI)
@@ -240,7 +237,6 @@
 //
 // 7. FILTER CONTROLS (BOTH TABS) (DONE BY PRETI)
 //    function toggleFeedbackAdvancedFilters() - Toggle feedback advanced filters panel (DONE BY PRETI)
-//    function toggleArchiveAdvancedFilters() - Toggle archive advanced filters panel (DONE BY PRETI)
 //    function setFeedbackDateRangePreset() - Set feedback date range preset (DONE BY PRETI)
 //    function setArchiveDateRangePreset() - Set archive date range preset (DONE BY PRETI)
 //    function clearAllFeedbackFilters() - Clear all feedback filters (DONE BY PRETI)
@@ -1143,23 +1139,18 @@ function updateUIForUser(username, role) {
     document.getElementById('logged-role').textContent = formatRoleName(role);
     document.querySelector('.user-avatar').textContent = username[0].toUpperCase();
     
-    // MAIN section: Always visible for ALL roles
-    // Contains: Dashboard, Feedback Data, Digital Tree, Pledgeboard, Style & Theme Settings
+    // Dashboard: always visible for ALL roles
     const mainSection = document.getElementById('main-section');
     if (mainSection) {
         mainSection.style.display = 'block';
     }
-    
-    // ADMINISTRATION section: ONLY visible for system_admin
-    // Contains: Overlay Management, Question Management, User Management, Archive, Audit Logs, Data Export
-    const adminSection = document.getElementById('admin-section');
-    if (role === 'system_admin') {
-        if (adminSection) adminSection.style.display = 'block';
-    } else {
-        // Hide for IT_staff and IT_admin
-        if (adminSection) adminSection.style.display = 'none';
-    }
-    
+
+    // <Jun Kai start> The sidebar is grouped by task since the redesign, so there is no ADMINISTRATION section to
+    // hide any more. Each link that only a System Admin may open is marked data-admin-only in admin.html, and
+    // sidebar.js takes those links out of the groups and out of the page search for IT staff and IT admins.
+    if (typeof applySidebarRole === 'function') applySidebarRole(role);
+    // <Jun Kai end>
+
     // Show/hide ONLY decrypt/download buttons based on role
     // Filter buttons should be visible for ALL roles
     const decryptButtons = document.querySelectorAll('#decrypt-emails-btn, #re-encrypt-btn, #decrypt-archive-emails-btn, #re-encrypt-archive-btn');
@@ -1169,10 +1160,6 @@ function updateUIForUser(username, role) {
         decryptButtons.forEach(btn => btn.style.display = 'none');
     }
 
-    // Lost & Found and Parameter Adjustment are system-admin pages that sit in the all-roles sidebar sections
-    document.querySelectorAll(".nav-item[onclick*=\"showPage('lost-found')\"], .nav-item[onclick*=\"showPage('parameter-adjustment')\"]")
-        .forEach(item => { item.style.display = role === 'system_admin' ? '' : 'none'; });
-    
     // If current page is an admin page and user is not system admin, redirect to dashboard
     const currentPage = document.querySelector('.page.active');
     if (currentPage && !currentPage.id.includes('dashboard') && role !== 'system_admin') {

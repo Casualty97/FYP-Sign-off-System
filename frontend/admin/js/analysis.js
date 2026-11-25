@@ -165,9 +165,9 @@ async function refreshAnalysisModes() {
     if (!select) return;
     let localAi = true;
     try {
-        const response = await fetch('/api/admin/aiops/settings', { cache: 'no-store' });
+        const response = await fetch('/api/admin/ai-settings', { cache: 'no-store' }); // <Jun Kai/> the AI Settings page
         const data = await response.json();
-        if (response.ok && data.success && data.settings) localAi = data.settings.localAi !== false;
+        if (response.ok && data.success && data.effective) localAi = data.effective.reportModels !== false;
     } catch {
         // the server refuses those modes anyway while they are off
     }

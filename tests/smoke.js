@@ -139,6 +139,17 @@ async function archiveStep(cookie) {
     const seeded = !!(photoId && processedPhotoId && submitted.body && submitted.body.success && row && like && like.body && like.body.success && reportId);
     check(seeded, 'seed a visitor with 2 photos, an answer and a like, and a lost & found report with a photo', `photo ${photo.status}, processed ${processed.status}, submit ${submitted.status}, row ${row ? row.id : 'missing'}, like ${like ? like.status : '-'}, lost & found ${report.status}`);
     if (!seeded) return;
+    // <Jun Kai start> the small photos of the Feedback list (GET /api/admin/feedback/:id/thumb/:kind): the record's own
+    // photo comes back as a small webp, only to a signed-in admin, and a kind that does not exist is refused
+    {
+      const thumbUrl = `${BASE}/api/admin/feedback/${row.id}/thumb`;
+      await expect('GET /api/admin/feedback/:id/thumb/raw sends a small webp picture', `${thumbUrl}/raw`, (r) => r.status === 200 && /image\/webp/.test(r.headers.get('content-type') || '') && r.text.length > 20 || `${r.status} ${r.headers.get('content-type')} ${r.text.slice(0, 80)}`, { headers: { cookie } });
+      await expect('GET /api/admin/feedback/:id/thumb/processed sends the processed photo too', `${thumbUrl}/processed`, (r) => r.status === 200 && /image\/webp/.test(r.headers.get('content-type') || '') || `${r.status} ${r.text.slice(0, 80)}`, { headers: { cookie } });
+      await expect('GET /api/admin/feedback/:id/thumb/raw without a sign-in is refused (401)', `${thumbUrl}/raw`, (r) => r.status === 401 || `${r.status}`);
+      await expect('GET /api/admin/feedback/:id/thumb/<other> is refused (400)', `${thumbUrl}/other`, (r) => r.status === 400 || `${r.status}`, { headers: { cookie } });
+      await expect('GET /api/admin/feedback/<unknown id>/thumb/raw answers 404', `${BASE}/api/admin/feedback/99999999/thumb/raw`, (r) => r.status === 404 || `${r.status}`, { headers: { cookie } });
+    }
+    // <Jun Kai end>
 
     // 2 years old, past the default 12 months; last_visit and updated_at reset on every UPDATE unless they are set too
     const old = new Date(Date.now() - 2 * 365 * 24 * 3600 * 1000);
@@ -398,6 +409,20 @@ async function archiveStep(cookie) {
       if (r.status === 200 && cookie) pass('POST /api/admin/login with the seeded admin (200, session cookie set)');
       else fail(`POST /api/admin/login with the seeded admin (${r.status}, cookie ${cookie ? 'set' : 'missing'})`);
     } catch (e) { fail(`POST /api/admin/login: ${e.message}`); }
+    // <Jun Kai start> the AI Settings page: everyone signed in reads the switches, only a System Admin changes them, and
+    // sending the same values back changes nothing (so this run leaves the settings as they were)
+    await expect('GET /api/admin/ai-settings without a session is refused', `${BASE}/api/admin/ai-settings`, (r) => r.status === 401 || `${r.status}`);
+    {
+      const r = await get(`${BASE}/api/admin/ai-settings`, { headers: { cookie } });
+      const s = r.body && r.body.settings;
+      const ok = r.status === 200 && s && ['all', 'reportModels', 'pledgeCheck', 'translate', 'incidentAdvisor'].every((k) => typeof s[k] === 'boolean') && r.body.pledge && typeof r.body.pledge.onlineKey === 'boolean' && !/api[_-]?key|sk-/i.test(r.text);
+      if (ok) pass('GET /api/admin/ai-settings lists the five switches and the pledge mode, with no key in the answer'); else fail(`GET /api/admin/ai-settings (${r.status}): ${r.text.slice(0, 160)}`);
+      if (ok) {
+        await expect('PUT /api/admin/ai-settings with the same values changes nothing', `${BASE}/api/admin/ai-settings`, (x) => x.status === 200 && x.body && Array.isArray(x.body.changed) && x.body.changed.length === 0 || `${x.status} ${x.text.slice(0, 120)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(s) });
+        await expect('PUT /api/admin/ai-settings refuses a switch that does not exist', `${BASE}/api/admin/ai-settings`, (x) => x.status === 400 || `${x.status}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ faceCheck: false }) });
+      }
+    }
+    // <Jun Kai end>
     // <Jun Kai start> "keep me signed in for 1 day": the token alone signs the admin back in, Logout ends it
     try {
       const r = await fetch(`${BASE}/api/admin/login`, json({ username: ADMIN_USER, password: ADMIN_PASS, remember: true }));

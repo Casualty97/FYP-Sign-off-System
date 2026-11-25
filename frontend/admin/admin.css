@@ -238,367 +238,85 @@ body {
 
 /* ==================== LOGIN PAGE STYLES ==================== */
 
+/* <Jun Kai start> */
+/* Login (admin redesign, option G1): a smoked glass card over the campus photo, with the crest in a circle like the
+   Windows account picture. The two fields are in the style of the Windows sign-in screen: a dark fill, a thin light
+   line under it and a light blue line while typing. The eye and the arrow sit inside the password field, and the
+   arrow (or Enter) signs in, so there is no big button. It replaces the earlier glass login and its later field and
+   button rules. The card is the same in Light and Dark mode, so every colour is a variable here: the dark mode
+   script only rewrites colours that are written straight into a rule.
+   The page's theme paints every h1 and p with !important, so the text colours here are !important as well. */
+#login-page {
+    --login-shade: linear-gradient(180deg, rgba(8, 12, 24, 0.18), rgba(8, 12, 24, 0.42));
+    --login-glass: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+    --login-glass-edge: rgba(255, 255, 255, 0.42);
+    --login-crest: rgba(255, 255, 255, 0.92);
+    --login-text: #ffffff; --login-soft: rgba(255, 255, 255, 0.86); --login-faint: rgba(255, 255, 255, 0.78);
+    --login-field: rgba(18, 18, 18, 0.58); --login-field-on: rgba(10, 10, 10, 0.78);
+    --login-field-edge: rgba(255, 255, 255, 0.16); --login-field-line: rgba(255, 255, 255, 0.62);
+    --login-placeholder: rgba(255, 255, 255, 0.72);
+    --login-accent: #60cdff; --login-bad: #ff99a4; --login-bad-text: #ffb3bb;
+    --login-button: rgba(255, 255, 255, 0.1); --login-button-hover: rgba(255, 255, 255, 0.2);
+    --login-check-edge: rgba(255, 255, 255, 0.7);
+    --login-note: rgba(0, 0, 0, 0.38); --login-note-edge: rgba(255, 255, 255, 0.2);
+}
+.login-screen { position: relative; display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 100vh; padding: 24px 16px 64px; overflow: hidden; background: url('../../../assets/static/rpPicture.jpg') 20% center / cover no-repeat; font-family: 'Segoe UI Variable Display', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
+/* the photo is darkened a little from top to bottom, so the white text reads on any part of it */
+.login-screen::before { content: ""; position: absolute; inset: 0; background: var(--login-shade); pointer-events: none; }
+.login-glass { position: relative; z-index: 1; display: flex; flex-direction: column; box-sizing: border-box; width: min(392px, 100%); padding: 40px 40px 28px; border: 1px solid var(--login-glass-edge); border-radius: 36px; background: var(--login-glass); box-shadow: 0 34px 90px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.14), inset 1px 0 0 rgba(255, 255, 255, 0.2); -webkit-backdrop-filter: blur(30px) saturate(1.8) brightness(0.82); backdrop-filter: blur(30px) saturate(1.8) brightness(0.82); text-align: center; color: var(--login-text); }
+.login-crest { display: flex; align-items: center; justify-content: center; width: 96px; height: 96px; margin: 0 auto 16px; border-radius: 50%; background: var(--login-crest); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28), 0 0 0 4px rgba(255, 255, 255, 0.28); }
+.login-crest img { width: 58px; height: 58px; object-fit: contain; }
+#login-page h1 { margin: 0; font-size: 27px; font-weight: 600; letter-spacing: -0.01em; color: var(--login-text) !important; }
+#login-page .login-lead { margin: 6px 0 14px; font-size: 13px; line-height: 1.4; color: var(--login-soft) !important; }
 
-/* Login container and card */
-/*.login-container {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: url('../../../assets/static/rpPicture.jpg');
-    background-size: 150%;
-    padding: 20px;
-}
+.win-field { display: flex; align-items: center; box-sizing: border-box; height: 42px; margin-top: 10px; padding: 0 4px 0 12px; border: 1px solid var(--login-field-edge); border-bottom-color: var(--login-field-line); border-radius: 5px; background: var(--login-field); text-align: left; transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease; }
+.win-field:focus-within { border-bottom-color: var(--login-accent); background: var(--login-field-on); box-shadow: inset 0 -1px 0 var(--login-accent); }
+#login-page .win-field input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; font: inherit; font-size: 15px; color: var(--login-text); caret-color: var(--login-text); }
+#login-page .win-field input::placeholder { color: var(--login-placeholder); opacity: 1; }
+/* a field the browser filled in from a saved login keeps the dark fill and the white text */
+#login-page .win-field input:-webkit-autofill,
+#login-page .win-field input:-webkit-autofill:hover,
+#login-page .win-field input:-webkit-autofill:focus { -webkit-text-fill-color: var(--login-text); caret-color: var(--login-text); transition: background-color 9999s ease-out 0s; }
+.win-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; margin-left: 2px; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--login-soft); cursor: pointer; transition: background-color 0.12s ease, color 0.12s ease; }
+.win-icon:hover { background: var(--login-button-hover); color: var(--login-text); }
+.win-icon:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 1px; }
+.win-icon svg { width: 17px; height: 17px; }
+.win-icon .icon-hide { display: none; }
+.win-icon[aria-pressed="true"] .icon-show { display: none; }
+.win-icon[aria-pressed="true"] .icon-hide { display: block; }
+/* the arrow: signs in; while the server is asked it turns into a spinning ring and cannot be pressed twice */
+.win-go { border-color: var(--login-field-edge); background: var(--login-button); }
+.win-go .login-ring { display: none; width: 15px; height: 15px; box-sizing: border-box; border: 2px solid var(--login-field-line); border-top-color: var(--login-accent); border-radius: 50%; }
+.win-go:disabled { cursor: wait; }
+.win-go:disabled svg { display: none; }
+.win-go:disabled .login-ring { display: block; animation: login-ring 0.8s linear infinite; }
+@keyframes login-ring { to { transform: rotate(360deg); } }
 
-.login-card {
-    background: #f4f4f4 !important;
-    border-radius: 16px;
-    padding: 50px;
-    width: 100%;
-    max-width: 450px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-    text-align: center;
-}
+/* One line for messages. A wrong password shows under the password field, in red, and the field's line turns red.
+   A notice (signed out by itself, signing in again) moves to the top of the card, in a soft box. */
+#login-page .login-note { display: flex; align-items: flex-start; gap: 8px; margin: 8px 2px 0; font-size: 13px; line-height: 1.45; text-align: left; color: var(--login-bad-text) !important; }
+#login-page .login-note[hidden] { display: none; }
+#login-page .login-note::before { content: ""; flex-shrink: 0; width: 15px; height: 15px; margin-top: 2px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E") center / contain no-repeat; }
+#login-page .login-note:not(.login-note-error) { order: -1; margin: 0 0 20px; padding: 10px 12px; border: 1px solid var(--login-note-edge); border-radius: 8px; background: var(--login-note); color: var(--login-text) !important; }
+#login-page .login-note:not(.login-note-error)::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E"); }
+.login-glass:has(.login-note-error:not([hidden])) #login-password-field { border-bottom-color: var(--login-bad); box-shadow: inset 0 -1px 0 var(--login-bad); }
 
-.login-icon {
-    margin-bottom: 20px;
+.login-keep { display: flex; align-items: center; gap: 10px; margin: 16px 2px 0; font-size: 13px; line-height: 1.4; text-align: left; color: var(--login-text); cursor: pointer; }
+.login-keep input { -webkit-appearance: none; appearance: none; flex-shrink: 0; width: 18px; height: 18px; margin: 0; border: 1px solid var(--login-check-edge); border-radius: 4px; background: transparent center / 12px 12px no-repeat; cursor: pointer; transition: background-color 0.12s ease, border-color 0.12s ease; }
+.login-keep input:checked { border-color: var(--login-accent); background-color: var(--login-accent); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E"); }
+.login-keep input:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 2px; }
+#login-page .login-hint { margin: 16px 0 0; font-size: 12px; color: var(--login-faint) !important; }
+#login-page .login-foot { position: absolute; left: 0; right: 0; bottom: 24px; z-index: 1; margin: 0; padding: 0 16px; text-align: center; font-size: 12px; color: var(--login-soft) !important; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
+/* a label that screen readers read; the field shows its name as the placeholder */
+.login-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 440px) { .login-glass { padding: 32px 24px 24px; border-radius: 28px; } }
+/* a low window: the card starts at the top so none of it is cut off, and the footer line follows under it */
+@media (max-height: 620px) { .login-screen { flex-direction: column; justify-content: flex-start; padding-bottom: 24px; } #login-page .login-foot { position: static; margin-top: 16px; } }
+@media (prefers-reduced-motion: reduce) {
+    .win-field, .win-icon, .login-keep input { transition: none; }
+    .win-go:disabled .login-ring { animation-duration: 2.4s; }
 }
-
-.login-card h1 {
-    font-size: 28px;
-    font-weight: 700;
-    color: #000000 !important;
-    margin-bottom: 10px;
-}
-
-.login-subtitle {
-    font-size: 14px;
-    color: #959595 !important;
-    margin-bottom: 35px;
-}*/
-
-/* Login form elements and buttons */
-/*.form-group {
-    margin-bottom: 20px;
-    text-align: left;
-}
-
-.form-group label {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: #000000 !important;
-    margin-bottom: 8px;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 2px solid var(--theme-border-color);
-    border-radius: 8px;
-    font-size: 15px;
-    transition: all 0.3s ease;
-    background: #ffffff;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #667eea;
-    background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.login-btn {
-    width: 100%;
-    padding: 14px;
-    background: #ffffff !important;
-    color: #000000 !important;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 10px;
-}
-
-.login-btn:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}*/
-
-/* Test accounts display */
-/*.test-accounts {
-    margin-top: 30px;
-    padding: 20px;
-    background: #f8fafc;
-    border-radius: 8px;
-    text-align: left;
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-.test-accounts p {
-    margin-bottom: 8px;
-}*/
-
-
-/* Login container and card */
-.login-container {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: url('../../../assets/static/rpPicture.jpg');
-    background-size: 150%;
-    padding: 20px;
-    position: relative;
-}
- 
-/* Ambient light orbs over the background */
-.login-container::before {
-    content: '';
-    position: fixed;
-    top: -80px;
-    left: -80px;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(120, 80, 255, 0.3) 0%, transparent 70%);
-    filter: blur(60px);
-    pointer-events: none;
-    z-index: 0;
-}
- 
-.login-container::after {
-    content: '';
-    position: fixed;
-    bottom: -60px;
-    right: -60px;
-    width: 340px;
-    height: 340px;
-    background: radial-gradient(circle, rgba(0, 180, 255, 0.2) 0%, transparent 70%);
-    filter: blur(60px);
-    pointer-events: none;
-    z-index: 0;
-}
- 
-.login-card {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 28px;
-    padding: 50px 40px;
-    width: 100%;
-    max-width: 450px;
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    box-shadow:
-        0 0 0 0.5px rgba(255, 255, 255, 0.1) inset,
-        0 40px 80px rgba(0, 0, 0, 0.45),
-        0 1px 0 rgba(255, 255, 255, 0.15) inset;
-    text-align: center;
-    position: relative;
-    z-index: 1;
-}
- 
-/* Top highlight line on the card */
-.login-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 10%;
-    right: 10%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-    border-radius: 50%;
-    pointer-events: none;
-}
- 
-.login-icon {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-}
- 
-/* Glassmorphism icon wrapper */
-.login-icon > * {
-    padding: 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
-    box-shadow:
-        0 8px 24px rgba(80, 60, 200, 0.25),
-        0 1px 0 rgba(255, 255, 255, 0.1) inset;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
- 
-.login-card h1 {
-    font-size: 26px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.92) !important;
-    margin-bottom: 10px;
-    letter-spacing: -0.3px;
-}
- 
-.login-subtitle {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.4) !important;
-    margin-bottom: 35px;
-    letter-spacing: 0.1px;
-}
- 
-/* Login form elements and buttons */
-#login-page .form-group {
-    margin-bottom: 20px;
-    text-align: left;
-}
- 
-#login-page .form-group label {
-    display: block;
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.45) !important;
-    margin-bottom: 8px;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-}
- 
-#login-page .form-group input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    font-size: 15px;
-    transition: all 0.2s ease;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.88);
-    box-sizing: border-box;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
-    caret-color: rgba(140, 100, 255, 0.9);
-}
- 
-#login-page .form-group input::placeholder {
-    color: rgba(255, 255, 255, 0.2);
-}
- 
-#login-page .form-group input:focus {
-    outline: none;
-    border-color: rgba(140, 100, 255, 0.5);
-    background: rgba(255, 255, 255, 0.09);
-    box-shadow:
-        0 0 0 3px rgba(120, 80, 255, 0.12),
-        0 1px 0 rgba(255, 255, 255, 0.06) inset;
-}
-
-#login-page .form-group input[type="text"],
-#login-page .form-group input[type="password"] {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 10px 24px rgba(8, 15, 40, 0.16);
-}
-
-#login-page .form-group input[type="text"]:-webkit-autofill,
-#login-page .form-group input[type="text"]:-webkit-autofill:hover,
-#login-page .form-group input[type="text"]:-webkit-autofill:focus,
-#login-page .form-group input[type="password"]:-webkit-autofill,
-#login-page .form-group input[type="password"]:-webkit-autofill:hover,
-#login-page .form-group input[type="password"]:-webkit-autofill:focus {
-    -webkit-text-fill-color: rgba(255, 255, 255, 0.88);
-    -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.08) inset;
-    box-shadow:
-        0 0 0 1000px rgba(255, 255, 255, 0.08) inset,
-        0 1px 0 rgba(255, 255, 255, 0.05) inset,
-        0 10px 24px rgba(8, 15, 40, 0.16);
-    transition: background-color 9999s ease-out 0s;
-}
-
-#login-page .login-card .login-btn {
-    background: rgba(255, 255, 255, 0.05) !important;
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    background-image: none !important;
-}
-
-#login-page .login-btn {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(18px);
-}
-
-#login-page .login-btn:hover {
-    opacity: 1;
-    transform: translateY(-1px);
-    background: white !important;
-    color: #1e293b !important;
-}
- 
-.login-btn {
-    width: 100%;
-    padding: 14px;
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 10px;
-    position: relative;
-    overflow: hidden;
-    letter-spacing: 0.1px;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow:
-        0 0 0 0.5px rgba(255, 255, 255, 0.15) inset,
-        0 8px 24px rgba(8, 15, 40, 0.18);
-}
- 
-/* Inner top highlight on button (glass dome effect) */
-.login-btn::before {
-    content: '';
-    position: absolute;
-    display: none;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 14px 14px 0 0;
-    pointer-events: none;
-}
- 
-.login-btn:hover {
-    box-shadow:
-        0 0 0 0.5px rgba(255, 255, 255, 0.2) inset,
-        0 12px 32px rgba(8, 15, 40, 0.26);
-}
- 
-.login-btn:active {
-    transform: translateY(0px) scale(0.99);
-}
- 
-/* Test accounts display */
-.test-accounts {
-    margin-top: 30px;
-    padding: 18px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    text-align: left;
-    font-size: 13px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.45);
-}
- 
-.test-accounts p {
-    margin-bottom: 8px;
-    color: rgba(255, 255, 255, 0.45);
-}
+/* <Jun Kai end> */
 
 
 /* ==================== ADMIN HEADER & LAYOUT ==================== */
@@ -7652,7 +7370,9 @@ input:checked + .slider:before {
 .ui-page-header h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6px; color: var(--theme-text-color); }
 .ui-page-header p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-dark-gray); max-width: 760px; }
 
-.ui-card { background: var(--theme-card-bg); border: 1px solid var(--theme-border-color); border-radius: 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+/* <Jun Kai start> redesign (look L3): rounder, and a little of the colour wash shows through; the values are with the frame rules at the end of this file */
+.ui-card { background: var(--l3-card); border: 1px solid var(--l3-card-edge); border-radius: 18px; box-shadow: var(--l3-card-shadow); }
+/* <Jun Kai end> */
 .ui-card + .ui-card, .ui-card + .ui-grid-2, .ui-grid-2 + .ui-card { margin-top: 20px; }
 .ui-card-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--theme-border-color); }
 .ui-card-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
@@ -8326,10 +8046,12 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 /* Health, Hardware and Server Schedule polish. The theme paints every paragraph #959595 (2.9:1 on white), so these
    pages use darker greys and re-assert their paragraph colours. */
 #health-page, #incidents-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page { --color-dark-gray: #475569; --color-muted: #64748b; }
-#health-page .ui-page-header p, #incidents-page .ui-page-header p, #hardware-page .ui-page-header p, #server-schedule-page .ui-page-header p, #visitor-archive-page .ui-page-header p,
+/* the subtitle under a page title is left to the theme, which only paints it when it can be read on the page colour */
 #health-page .ui-card-header p, #hardware-page .ui-card-header p, #server-schedule-page .ui-card-header p, #visitor-archive-page .ui-card-header p,
 #server-schedule-page .ui-section-title, #server-schedule-page .policy-preview-note { color: var(--color-dark-gray) !important; }
-#health-page p.ui-help, #incidents-page p.ui-help, #hardware-page p.ui-help, #server-schedule-page p.ui-help, #schedule-modal p.ui-help, #visitor-archive-page p.ui-help { color: var(--color-muted) !important; }
+#health-page p.ui-help, #incidents-page p.ui-help, #hardware-page p.ui-help, #schedule-modal p.ui-help, #visitor-archive-page p.ui-help { color: var(--color-muted) !important; }
+/* Operating Hours puts its help on a tinted area, where the muted grey was 4.3:1 */
+#server-schedule-page p.ui-help { color: var(--color-dark-gray) !important; }
 #hardware-page p.ui-help.is-error, #schedule-modal p.ui-help.is-error, #visitor-archive-page p.ui-help.is-error { color: #b91c1c !important; }
 #server-schedule-page p.ui-note, #visitor-archive-page p.ui-note { color: var(--theme-card-text) !important; }
 #server-schedule-page p.ui-note-warn, #visitor-archive-page p.ui-note-warn { color: #78350f !important; }
@@ -8747,65 +8469,6 @@ html[data-theme="dark"] .recovery-page .ui-events li:last-child { border-bottom:
 /* <Jun Kai end> */
 
 /* <Jun Kai start> */
-/* Login (supervisor meeting 04): the show-password button inside the field, "keep me signed in", the sign-in note */
-/* the campus photo (a wide panorama) fills any screen instead of repeating under a tall window; the crop keeps the
-   Republic Polytechnic sign to the right of the card, as before */
-.login-container { background-size: cover; background-position: 20% center; background-repeat: no-repeat; }
-/* The glass card stays (12 Nov 2026, the user prefers it): its light orbs, blur and logo tile are the older rules
-   above. Only the fields and the button changed: solid fields that clearly take typing, and one blue button that
-   just gets darker under the pointer (the see-through fields looked switched off, and the old button turned white).
-   The labels are a little brighter than before. Colours are variables, so the dark theme can swap them. */
-#login-page {
-    --login-card: rgba(255, 255, 255, 0.08); --login-border: rgba(255, 255, 255, 0.18);
-    --login-title: rgba(255, 255, 255, 0.95); --login-text: rgba(255, 255, 255, 0.85); --login-muted: rgba(255, 255, 255, 0.7);
-    --login-field: #ffffff; --login-field-border: #cbd5e1; --login-field-hover: #94a3b8; --login-field-text: #0f172a; --login-placeholder: #94a3b8;
-    --login-eye: #64748b; --login-eye-hover: #f1f5f9;
-    --login-accent: #2563eb; --login-accent-hover: #1d4ed8; --login-accent-active: #1e40af; --login-ring: rgba(96, 165, 250, 0.55);
-    --login-error-bg: #fef2f2; --login-error-border: #fca5a5; --login-error-text: #991b1b;
-}
-#login-page .login-card { background: var(--login-card) !important; border: 1px solid var(--login-border); }
-#login-page .login-card h1 { color: var(--login-title) !important; }
-#login-page .login-subtitle { color: var(--login-muted) !important; }
-#login-page .form-group label { color: var(--login-text) !important; }
-#login-page .form-group input[type="text"],
-#login-page .form-group input[type="password"] { padding: 12px 16px; border: 1px solid var(--login-field-border); border-radius: 12px; font-size: 15px; color: var(--login-field-text); background: var(--login-field) !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; caret-color: var(--login-accent); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-#login-page .form-group input::placeholder { color: var(--login-placeholder); }
-#login-page .form-group input[type="text"]:hover,
-#login-page .form-group input[type="password"]:hover { border-color: var(--login-field-hover); }
-#login-page .form-group input[type="text"]:focus,
-#login-page .form-group input[type="password"]:focus { outline: none; border-color: var(--login-accent); box-shadow: 0 0 0 3px var(--login-ring); }
-/* a field the browser filled in from a saved login keeps the field colours on hover and focus too: the older glass
-   rules give it white text there, so typing turned invisible on the white field */
-#login-page .form-group input[type="text"]:-webkit-autofill,
-#login-page .form-group input[type="password"]:-webkit-autofill,
-#login-page .form-group input[type="text"]:-webkit-autofill:hover,
-#login-page .form-group input[type="password"]:-webkit-autofill:hover { -webkit-text-fill-color: var(--login-field-text); caret-color: var(--login-accent); -webkit-box-shadow: 0 0 0 1000px var(--login-field) inset; box-shadow: 0 0 0 1000px var(--login-field) inset; }
-#login-page .form-group input[type="text"]:-webkit-autofill:focus,
-#login-page .form-group input[type="password"]:-webkit-autofill:focus { -webkit-text-fill-color: var(--login-field-text); caret-color: var(--login-accent); -webkit-box-shadow: 0 0 0 1000px var(--login-field) inset, 0 0 0 3px var(--login-ring); box-shadow: 0 0 0 1000px var(--login-field) inset, 0 0 0 3px var(--login-ring); }
-#login-page .login-card .login-btn { margin-top: 10px; padding: 14px; border: 1px solid var(--login-accent); border-radius: 14px; font-size: 15px; font-weight: 600; color: #ffffff !important; background-color: var(--login-accent) !important; background-image: none !important; box-shadow: 0 8px 20px rgba(8, 15, 40, 0.28); backdrop-filter: none; -webkit-backdrop-filter: none; transform: none; transition: background-color 0.15s ease, border-color 0.15s ease; }
-#login-page .login-card .login-btn:hover { color: #ffffff !important; background-color: var(--login-accent-hover) !important; background-image: none !important; border-color: var(--login-accent-hover); transform: none; box-shadow: 0 8px 20px rgba(8, 15, 40, 0.28); }
-#login-page .login-card .login-btn:active { background-color: var(--login-accent-active) !important; background-image: none !important; transform: none; }
-#login-page .login-card .login-btn:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 2px; }
-#login-page .login-card .login-btn:disabled { opacity: 0.7; cursor: wait; }
-#login-page .login-password { position: relative; }
-#login-page .login-password input { padding-right: 50px; }
-#login-page .login-eye { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--login-eye); cursor: pointer; transition: color 0.15s ease, background 0.15s ease; }
-#login-page .login-eye:hover { color: var(--login-field-text); background: var(--login-eye-hover); }
-#login-page .login-eye:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 1px; }
-#login-page .login-eye svg { width: 18px; height: 18px; }
-#login-page .login-eye .icon-hide { display: none; }
-#login-page .login-eye[aria-pressed="true"] .icon-show { display: none; }
-#login-page .login-eye[aria-pressed="true"] .icon-hide { display: block; }
-#login-page .login-remember { display: flex; align-items: center; gap: 10px; margin: -2px 0 20px; font-size: 13px; line-height: 1.4; color: var(--login-text); text-align: left; cursor: pointer; }
-#login-page .login-remember input { flex-shrink: 0; width: 16px; height: 16px; margin: 0; accent-color: var(--login-accent); cursor: pointer; }
-#login-page .login-remember input:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 2px; }
-#login-page .login-note { margin: -6px 0 16px; font-size: 13px; line-height: 1.45; color: var(--login-muted) !important; text-align: left; }
-#login-page .login-note[hidden] { display: none; }
-#login-page .login-note.login-note-error { margin: -4px 0 14px; padding: 10px 12px; border: 1px solid var(--login-error-border); border-radius: 10px; background: var(--login-error-bg); color: var(--login-error-text) !important; font-weight: 500; }
-@media (prefers-reduced-motion: reduce) { #login-page .login-eye, #login-page .form-group input, #login-page .login-card .login-btn { transition: none; } }
-/* <Jun Kai end> */
-
-/* <Jun Kai start> */
 /* Light / Dark mode (12 Nov 2026): the moon / sun button in the top bar, and the dark values of the theme variables.
    frontend/admin/js/colorScheme.js adds a dark twin of every colour rule above, so only the variables are set here. */
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 38px; height: 38px; padding: 0; border: 1px solid rgba(148, 163, 184, 0.45); border-radius: 10px; background: transparent; color: var(--theme-text-color); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease; }
@@ -8827,13 +8490,6 @@ html[data-theme="dark"] {
 html[data-theme="dark"] body { background-color: var(--theme-bg-color); color: var(--theme-text-color); }
 /* the five Role 3 pages set darker greys for light mode (PR #13): their dark-mode greys */
 html[data-theme="dark"] :is(#health-page, #incidents-page, #hardware-page, #server-schedule-page, #schedule-modal, #visitor-archive-page) { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
-html[data-theme="dark"] #login-page {
-    --login-card: rgba(11, 17, 32, 0.55); --login-border: rgba(255, 255, 255, 0.12);
-    --login-field: #0b1120; --login-field-border: #4b5b73; --login-field-hover: #64748b; --login-field-text: #f1f5f9; --login-placeholder: #7a889c;
-    --login-eye: #94a3b8; --login-eye-hover: #1e293b;
-    --login-accent: #3b82f6; --login-accent-hover: #2563eb; --login-accent-active: #1d4ed8; --login-ring: rgba(59, 130, 246, 0.5);
-    --login-error-bg: rgba(69, 10, 10, 0.75); --login-error-border: rgba(248, 113, 113, 0.5); --login-error-text: #fecaca;
-}
 /* found with real rows: faint grey text, dark text on the two strong badge colours (as in light mode), and the Disk
    key matching its line (hardwareColor gives Disk #cbd5e1 in dark mode; one class more than the generated twin) */
 html[data-theme="dark"] .text-light-gray { color: var(--color-muted) !important; }
@@ -8994,4 +8650,470 @@ button.policy-cal-day:hover { border-color: #b8c4d3; }
 .idle-countdown { margin: 0; font-size: 14px; color: var(--color-dark-gray); }
 .idle-countdown strong { margin-left: 6px; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--theme-text-color); }
 @media (max-width: 640px) { .idle-body { grid-template-columns: 1fr; align-items: start; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Admin redesign, look L3 (soft glass frame) and navigation N1 (regrouped sidebar that folds, with a page search).
+   The top bar and the sidebar are frosted panels that float over a soft colour wash, and cards are rounder and let a
+   little of the wash through. Every colour is a variable with a light set and a dark set, the way the login page
+   above does it. The three "tint" variables are written by Style & Theme Settings (themes.js, light mode only), so a
+   saved theme tints the glass instead of painting over it (a dark colour is kept nearly solid, so its light text
+   stays readable); each one has a fallback for dark mode, where the saved theme rests. Blur is on the two panels only: on every card it would be heavy for the wall PC to draw and shows no
+   difference over a smooth wash. */
+:root {
+    --l3-page: var(--l3-page-tint, #f3f6fa);
+    --l3-wash: radial-gradient(900px 520px at 8% 0%, #d9f2e4 0%, transparent 60%), radial-gradient(900px 600px at 100% 12%, #dbe8ff 0%, transparent 62%), radial-gradient(800px 600px at 60% 100%, #f3e8ff 0%, transparent 60%);
+    --l3-header: color-mix(in srgb, var(--l3-header-tint, #ffffff) var(--l3-header-tint-share, 62%), transparent);
+    --l3-nav: color-mix(in srgb, var(--l3-nav-tint, #ffffff) var(--l3-nav-tint-share, 55%), transparent);
+    --l3-edge: rgba(255, 255, 255, 0.9);
+    --l3-shadow: 0 8px 30px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    --l3-head-text: #0f172a; --l3-head-muted: #64748b;
+    --l3-nav-heading: #64748b; --l3-nav-text: #334155; --l3-nav-strong: #0f172a;
+    --l3-nav-hover: rgba(255, 255, 255, 0.6); --l3-nav-active: rgba(255, 255, 255, 0.95); --l3-nav-active-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+    --l3-field: rgba(255, 255, 255, 0.7); --l3-field-edge: rgba(15, 23, 42, 0.12);
+    --l3-btn: rgba(255, 255, 255, 0.8); --l3-btn-hover: #ffffff; --l3-btn-text: #0f172a; --l3-btn-edge: rgba(15, 23, 42, 0.12);
+    --l3-avatar: #64748b; --l3-focus: #2563eb;
+    --l3-card: rgba(255, 255, 255, 0.78); --l3-card-edge: rgba(255, 255, 255, 0.95);
+    --l3-card-shadow: 0 6px 24px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+html[data-theme="dark"] {
+    --l3-page: #0b1120;
+    --l3-wash: radial-gradient(900px 520px at 8% 0%, #0f3d2e 0%, transparent 60%), radial-gradient(900px 600px at 100% 12%, #172a54 0%, transparent 62%);
+    --l3-header: rgba(17, 26, 43, 0.6);
+    --l3-nav: rgba(17, 26, 43, 0.6);
+    --l3-edge: rgba(148, 163, 184, 0.22);
+    --l3-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --l3-head-text: #f1f5f9; --l3-head-muted: #a7b4c4;
+    --l3-nav-heading: #94a3b8; --l3-nav-text: #cbd5e1; --l3-nav-strong: #f8fafc;
+    --l3-nav-hover: rgba(148, 163, 184, 0.12); --l3-nav-active: rgba(148, 163, 184, 0.2); --l3-nav-active-shadow: none;
+    --l3-field: rgba(15, 23, 42, 0.55); --l3-field-edge: rgba(148, 163, 184, 0.28);
+    --l3-btn: rgba(30, 41, 59, 0.85); --l3-btn-hover: #334155; --l3-btn-text: #e2e8f0; --l3-btn-edge: rgba(148, 163, 184, 0.3);
+    --l3-avatar: #475569; --l3-focus: #60a5fa;
+    --l3-card: rgba(17, 26, 43, 0.72); --l3-card-edge: rgba(148, 163, 184, 0.2);
+    --l3-card-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* the wash is one fixed layer behind the page, so scrolling does not redraw it */
+body { background: var(--l3-page); }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--l3-wash); pointer-events: none; }
+
+/* top bar: a fixed height, so the content area below can still fill exactly the rest of the screen */
+.admin-header { position: relative; z-index: 3; box-sizing: border-box; height: 64px; margin: 14px 14px 0; padding: 0 22px; border: 1px solid var(--l3-edge); border-radius: 20px; background: var(--l3-header); box-shadow: var(--l3-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); }
+.admin-header .header-left h1 { margin-bottom: 2px; font-size: 18px; letter-spacing: -0.01em; color: var(--l3-head-text); }
+.admin-header .header-left p { font-size: 12px; color: var(--l3-head-muted); }
+.admin-header .header-right { gap: 16px; }
+.admin-header .username { color: var(--l3-head-text); }
+.admin-header .user-role { color: var(--l3-head-muted); }
+.admin-header .theme-toggle { color: var(--l3-head-text); }
+.admin-header .user-avatar { width: 36px; height: 36px; font-size: 14px; background: var(--l3-avatar); }
+.admin-header .logout-btn { padding: 9px 16px; border: 1px solid var(--l3-btn-edge); border-radius: 10px; background: var(--l3-btn); color: var(--l3-btn-text); transition: background-color 0.15s ease; }
+.admin-header .logout-btn:hover { background: var(--l3-btn-hover); }
+.admin-header .logout-btn:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; }
+.admin-content { min-height: calc(100vh - 78px); }
+
+/* sidebar: stays in view while a long page scrolls, and scrolls by itself when every group is unfolded */
+.sidebar { position: sticky; top: 14px; align-self: flex-start; flex-shrink: 0; box-sizing: border-box; width: 248px; max-height: calc(100vh - 106px); margin: 14px 0 14px 14px; padding: 14px 0 10px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.45) transparent; border: 1px solid var(--l3-edge); border-radius: 20px; background: var(--l3-nav); box-shadow: var(--l3-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); }
+.sidebar-section { margin-bottom: 4px; }
+.sidebar-section[hidden], .sidebar-section.nav-section-miss { display: none; }
+#main-section { margin-bottom: 8px; }
+.sidebar-section h3 { margin: 0; padding: 0 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--l3-nav-heading); }
+.nav-item { gap: 11px; margin: 1px 10px; padding: 9px 12px; border-left: 0; border-radius: 12px; color: var(--l3-nav-text); transition: background-color 0.15s ease, color 0.15s ease; }
+.nav-item:hover { background: var(--l3-nav-hover); color: var(--l3-nav-strong); }
+.nav-item.active { background: var(--l3-nav-active); color: var(--l3-nav-strong); font-weight: 600; box-shadow: var(--l3-nav-active-shadow); }
+.nav-item:focus-visible, .nav-item.nav-cursor { outline: 2px solid var(--l3-focus); outline-offset: -2px; }
+.nav-item[hidden], .nav-item.nav-miss { display: none; }
+.nav-label { flex: 1; min-width: 0; }
+/* a page the search found by the name it had before the redesign shows that name on a second line */
+.nav-item.nav-hit-was { flex-wrap: wrap; row-gap: 2px; }
+.nav-item.nav-hit-was::after { content: "Was: " attr(data-was); flex-basis: 100%; padding-left: 29px; font-size: 11px; font-weight: 400; opacity: 0.8; }
+
+/* a group heading is a button that folds the group; folded, it shows how many pages it holds */
+.nav-group-toggle { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 12px; border: 0; border-radius: 10px; background: transparent; font: inherit; letter-spacing: inherit; color: inherit; text-align: left; cursor: pointer; transition: background-color 0.15s ease; }
+.nav-group-toggle:hover { background: var(--l3-nav-hover); }
+.nav-group-toggle:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: -2px; }
+.nav-group-count { display: none; font-style: normal; font-weight: 600; opacity: 0.8; }
+.nav-group.is-folded .nav-group-count { display: inline; }
+.nav-group-badge { display: none; align-items: center; justify-content: center; min-width: 18px; height: 18px; margin-left: 4px; padding: 0 5px; border-radius: 999px; background-color: #d97706; font-size: 10px; font-weight: 700; line-height: 1; letter-spacing: 0; color: #ffffff; font-variant-numeric: tabular-nums; }
+.nav-group-badge.is-critical { background-color: #dc2626; }
+.nav-group.is-folded .nav-group-badge:not([hidden]) { display: inline-flex; }
+.nav-group-chevron { flex-shrink: 0; margin-left: auto; opacity: 0.75; transition: transform 0.2s ease; }
+.nav-group.is-folded .nav-group-chevron { transform: rotate(-90deg); }
+/* the folded group that holds the open page keeps a mark, so it is clear where the open page is */
+.nav-group.is-folded:has(.nav-item.active) .nav-group-name::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%; background: var(--l3-focus); vertical-align: 1px; }
+.nav-group-body { display: grid; grid-template-rows: 1fr; }
+.nav-group-body > nav { min-height: 0; overflow: hidden; padding-bottom: 4px; }
+.nav-group.is-folded .nav-group-body { grid-template-rows: 0fr; }
+.nav-group.is-folded .nav-group-body > nav { padding-bottom: 0; }
+.sidebar.nav-ready .nav-group-body { transition: grid-template-rows 0.2s ease; }
+/* while a search runs, every group shows its matches and the headings are plain labels */
+.sidebar.is-searching .nav-group.is-folded .nav-group-body { grid-template-rows: 1fr; }
+.sidebar.is-searching .nav-group-toggle { pointer-events: none; }
+.sidebar.is-searching :is(.nav-group-count, .nav-group-badge, .nav-group-chevron) { display: none; }
+.sidebar.is-searching .nav-group-name::after { display: none; }
+
+.nav-search { display: flex; align-items: center; gap: 8px; height: 36px; margin: 0 12px 12px; padding: 0 10px; border: 1px solid var(--l3-field-edge); border-radius: 11px; background: var(--l3-field); color: var(--l3-nav-heading); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.nav-search:focus-within { border-color: var(--l3-focus); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22); }
+.nav-search svg { flex-shrink: 0; }
+.nav-search input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; color: var(--l3-nav-strong); }
+.nav-search input::placeholder { color: var(--l3-nav-heading); opacity: 1; }
+.nav-search kbd { flex-shrink: 0; padding: 3px 6px; border: 1px solid var(--l3-field-edge); border-radius: 5px; font: 600 10px/1 'Segoe UI', sans-serif; color: var(--l3-nav-heading); }
+.nav-search:focus-within kbd, .sidebar.is-searching .nav-search kbd { display: none; }
+.nav-search-empty { margin: 0 22px 12px; font-size: 13px; color: var(--l3-nav-heading); }
+.nav-search-empty[hidden] { display: none; }
+
+@media (max-width: 1024px) {
+    .sidebar { position: static; align-self: stretch; width: auto; max-height: none; margin: 14px 14px 0; }
+}
+/* a phone: the name and role leave the top bar (the avatar stays), so Logout fits inside the window */
+@media (max-width: 520px) {
+    .admin-header { padding: 0 14px; }
+    .admin-header .header-right { gap: 10px; }
+    .admin-header .user-details { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .nav-item, .nav-group-toggle, .nav-group-chevron, .nav-search, .admin-header .logout-btn, .sidebar.nav-ready .nav-group-body { transition: none; }
+}
+/* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* The "i" button and its note (admin redesign; js/uiKit.js opens and places the note). The button sits beside a card
+   title or a control. The note is one box for the whole page, drawn above everything, with a small pointer to the
+   button it belongs to. */
+.ui-info { display: inline-flex; flex-shrink: 0; margin-left: 8px; vertical-align: middle; }
+/* in a row that already spaces its items */
+.ui-info-flush { margin-left: 0; }
+/* the step headings and the answer row of an incident space their items already */
+.inc-sec-title > .ui-info, .inc-verdict > .ui-info { margin-left: 0; }
+/* a field label with its "i" beside it */
+.ui-label-row { display: flex; align-items: center; }
+.ui-info-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: 1px solid var(--theme-border-color); border-radius: 50%; background: var(--theme-card-bg); color: var(--color-dark-gray); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.ui-info-btn:hover { border-color: #93c5fd; color: #1d4ed8; }
+.ui-info-btn[aria-expanded="true"] { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+.ui-info-btn:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
+.ui-info-btn svg { width: 15px; height: 15px; }
+.ui-info-pop { position: fixed; inset: auto; z-index: 4000; display: flex; flex-direction: column; box-sizing: border-box; margin: 0; padding: 16px 18px; overflow: visible; border: 1px solid var(--theme-border-color); border-radius: 12px; background: var(--theme-card-bg); box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08); font-size: 13px; font-weight: 400; line-height: 1.55; letter-spacing: normal; text-align: left; text-transform: none; color: var(--theme-card-text); }
+.ui-info-pop[hidden], .ui-info-pop[popover]:not(:popover-open) { display: none; }
+.ui-info-pop::before { content: ""; position: absolute; top: -7px; left: calc(var(--ui-info-pointer, 50%) - 6px); width: 12px; height: 12px; border-top: 1px solid var(--theme-border-color); border-left: 1px solid var(--theme-border-color); background: var(--theme-card-bg); transform: rotate(45deg); }
+.ui-info-pop.is-above::before { top: auto; bottom: -7px; transform: rotate(225deg); }
+.ui-info-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ui-info-head h5 { flex: 1; margin: 0; font-size: 14px; font-weight: 700; line-height: 1.35; color: var(--theme-text-color); }
+.ui-info-head kbd { flex-shrink: 0; padding: 3px 6px; border: 1px solid var(--theme-border-color); border-radius: 5px; font: 600 10px/1 'Segoe UI', sans-serif; color: var(--color-dark-gray); }
+.ui-info-text { min-height: 0; overflow-y: auto; }
+.ui-info-text > div + div, .ui-info-text > ul + div { margin-top: 6px; }
+.ui-info-text ul { margin: 4px 0 8px; padding-left: 20px; }
+.ui-info-text li { margin-bottom: 4px; }
+.ui-info-text b { font-weight: 600; color: var(--theme-text-color); }
+.ui-code { padding: 1px 6px; border: 1px solid var(--theme-border-color); border-radius: 5px; background: var(--theme-bg-color); font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: var(--theme-text-color); overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .ui-info-btn { transition: none; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> */
+/* Hardware on a low screen (a laptop at 125 % or 150 % zoom): the part cards and the graph get a little shorter, so the
+   whole page still shows without scrolling. Nothing is hidden; a tall screen keeps the roomier sizes. */
+@media (max-height: 820px) {
+    #hardware-page .ui-page-header { margin-bottom: 14px; }
+    #hardware-page .hw-room { gap: 16px; margin-bottom: 0; }
+    #hardware-page .hw-keys { gap: 8px; }
+    #hardware-page .hw-key { gap: 2px 12px; padding: 9px 14px; }
+    #hardware-page .hw-key-all { padding-top: 8px; padding-bottom: 8px; }
+    #hardware-page .hw-key-value { font-size: 22px; }
+    #hardware-page .hw-chart-big { height: 290px; }
+}
+@media (max-height: 700px) {
+    #hardware-page { padding-top: 18px; padding-bottom: 8px; }
+    #hardware-page .ui-page-header { margin-bottom: 8px; }
+    #hardware-page .hw-keys { gap: 6px; }
+    #hardware-page .hw-key { padding: 7px 14px; }
+    #hardware-page .hw-chart-big { height: 212px; }
+}
+/* a narrower window: slimmer buttons keep Past / Forecast, its "i" and the range on one row */
+@media (max-width: 1340px) { #hardware-page .hw-toolbar .hw-seg-btn { padding: 0 9px; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> ============================================================================================
+   List pages of the admin redesign (first used by Feedback, list style A): a filter bar with filters that show their
+   value (.ui-filterbar, .ui-search, .ui-filter), a pager (.ui-pager), a side panel for one record (.ui-sidepanel), a
+   visitor with initials (.ui-who, .ui-avatar), a small photo (.ui-thumb) and a link button (.ui-link). The fb- names
+   are what only the Feedback page has. Only UI kit colours and variables are used, so the saved theme and dark mode
+   reach these pages like the others. */
+.fb-card { overflow: hidden; }
+/* the scroll box holds the hidden screen reader labels too: without a position they escaped it and widened the page */
+.ui-table-wrap { position: relative; }
+.ui-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--theme-border-color); }
+.ui-spacer { flex: 1 1 auto; }
+.ui-search { position: relative; flex: 1 1 260px; max-width: 340px; min-width: 200px; }
+.ui-search input { width: 100%; height: 36px; padding: 0 12px 0 36px; border: 1px solid var(--theme-border-color); border-radius: 10px; background: var(--l3-field); color: var(--theme-text-color); font: inherit; font-size: 13px; }
+.ui-search input::placeholder { color: var(--color-muted); }
+.ui-search input:focus { outline: none; border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.ui-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: inline-flex; color: var(--color-muted); pointer-events: none; }
+
+/* a chip is a filter that shows its value; a set filter is tinted with the theme's button colour */
+.ui-filter { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border: 1px solid var(--theme-border-color); border-radius: 999px; background: var(--l3-field); color: var(--theme-text-color); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.ui-filter:hover { border-color: var(--color-light-gray); }
+.ui-filter:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; }
+.ui-filter.is-set { border-color: var(--theme-btn-primary-bg); color: var(--theme-btn-primary-bg); background: color-mix(in srgb, var(--theme-btn-primary-bg) 9%, transparent); font-weight: 600; }
+.ui-filter-select { appearance: none; padding-right: 30px; background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); }
+.ui-filter-select.is-set { background-color: color-mix(in srgb, var(--theme-btn-primary-bg) 9%, transparent); }
+.ui-filter-select option { color: #1e293b; background: #ffffff; font-weight: 400; }
+.ui-link { padding: 0; border: 0; background: none; color: var(--theme-btn-primary-bg); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ui-link:hover { text-decoration: underline; }
+.ui-link:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; border-radius: 4px; }
+.ui-link:disabled { color: var(--color-muted); cursor: default; text-decoration: none; }
+
+/* the date chip's small window (a popover, placed under the chip by feedback.js) */
+.ui-filter-pop { position: fixed; inset: auto; margin: 0; width: 264px; padding: 12px; border: 1px solid var(--theme-border-color); border-radius: 14px; background: var(--theme-card-bg); color: var(--theme-text-color); box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16); }
+.ui-filter-pop:popover-open { display: grid; gap: 10px; }
+.ui-filter-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ui-filter-presets button { height: 32px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-card-bg); color: var(--theme-text-color); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.ui-filter-presets button:hover { background: var(--theme-bg-color); }
+.ui-filter-field { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--color-dark-gray); }
+.ui-filter-field .ui-input { width: 100%; }
+
+/* the list */
+.fb-table th { white-space: nowrap; }
+.fb-table th, .fb-table td { padding-left: 14px; padding-right: 14px; }
+.fb-table td { vertical-align: middle; }
+.fb-table .ui-num { text-align: right; font-variant-numeric: tabular-nums; width: 1%; }
+.fb-table td.fb-wrap { min-width: 170px; max-width: 300px; line-height: 1.45; overflow-wrap: anywhere; } /* a long word without spaces breaks instead of widening the table */
+.fb-table tbody tr[data-feedback-id] { cursor: pointer; }
+.fb-table tbody tr[data-feedback-id]:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: -2px; }
+.fb-table tbody tr.is-open td, .fb-table tbody tr.is-open:hover td { background: color-mix(in srgb, var(--theme-btn-primary-bg) 8%, transparent); }
+.ui-sort { display: inline-flex; align-items: center; gap: 2px; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.ui-sort:hover { color: var(--theme-text-color); }
+.ui-sort:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 3px; border-radius: 4px; }
+.ui-who { display: flex; align-items: center; gap: 10px; min-width: 170px; }
+.ui-avatar { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: hsl(var(--ui-hue, 220) 55% 42%); color: #ffffff; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.ui-who-text { display: grid; min-width: 0; }
+.ui-who-text b { display: block; font-weight: 600; color: var(--theme-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 210px; }
+.fb-email { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-dark-gray); overflow-wrap: anywhere; }
+.fb-email-open { color: #047857; font-weight: 600; }
+.fb-email-none { color: var(--color-muted); }
+.ui-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.fb-table td.fb-wrap .ui-link { display: block; margin-top: 2px; font-size: 12px; }
+.ui-thumbs { display: inline-flex; gap: 5px; }
+.ui-thumb { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--theme-bg-color); border: 1px solid var(--theme-border-color); color: var(--color-muted); }
+.ui-thumb-none { border-style: dashed; }
+.fb-table .badge { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+.fb-date-cell { white-space: nowrap; color: var(--color-dark-gray); font-size: 13px; }
+.ui-pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--theme-border-color); font-size: 13px; color: var(--color-dark-gray); }
+.ui-pager-buttons { display: inline-flex; gap: 8px; }
+
+/* the side panel: under the top bar, the full height of the window, the list stays usable beside it */
+.ui-sidepanel { position: fixed; top: 92px; right: 14px; bottom: 14px; z-index: 60; width: min(480px, calc(100vw - 28px)); display: flex; flex-direction: column; overflow: hidden; background: var(--theme-card-bg); border: 1px solid var(--theme-border-color); border-radius: 18px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22); animation: uiSidepanelIn 0.24s cubic-bezier(0.23, 1, 0.32, 1); }
+.ui-sidepanel[hidden] { display: none; }
+@keyframes uiSidepanelIn { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ui-sidepanel { animation: none; } }
+.ui-sidepanel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 14px; border-bottom: 1px solid var(--theme-border-color); }
+.ui-sidepanel-head h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.ui-sidepanel-head h3:focus { outline: none; }
+.ui-sidepanel-head p { margin: 0; font-size: 13px; color: var(--color-dark-gray); }
+.ui-sidepanel-body { flex: 1 1 auto; overflow-y: auto; padding: 18px 20px 22px; display: grid; gap: 20px; align-content: start; }
+.ui-sidepanel-body section h4 { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--theme-text-color); }
+.ui-text { margin: 0; font-size: 14px; line-height: 1.55; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.ui-text.ui-muted { color: var(--color-muted); }
+.fb-quote { font-size: 15px; }
+.fb-quote::before { content: '\201C'; }
+.fb-quote::after { content: '\201D'; }
+.fb-translated { margin-top: 6px; font-size: 13px; color: var(--color-dark-gray); }
+.fb-translated:empty { display: none; }
+.fb-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fb-photo-box { margin: 0; min-width: 0; }
+.fb-photo { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 1px solid var(--theme-border-color); border-radius: 12px; overflow: hidden; background: var(--theme-bg-color); cursor: zoom-in; }
+.fb-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fb-photo:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; }
+.fb-photo-none, .fb-photo-missing { flex-direction: column; gap: 6px; border-style: dashed; color: var(--color-muted); font-size: 12px; cursor: default; }
+.fb-photo-missing img { display: none; }
+.fb-photo-missing::after { content: 'The photo file is missing'; font-size: 12px; color: var(--color-muted); }
+.fb-photo-box figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--color-dark-gray); }
+.fb-answers { list-style: none; margin: 0; padding: 0; }
+.fb-answers li { display: grid; gap: 2px; padding: 9px 0; font-size: 14px; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.fb-answers li + li { border-top: 1px solid var(--theme-border-color); }
+.fb-answers li:first-child { padding-top: 2px; }
+.fb-answers small { font-size: 12px; color: var(--color-dark-gray); }
+.fb-answers .ui-link { justify-self: start; font-size: 12px; }
+.fb-facts { padding-top: 16px; border-top: 1px solid var(--theme-border-color); }
+.ui-sidepanel-foot { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--theme-border-color); background: var(--theme-card-bg); }
+.ui-pager-status { margin-left: 12px; font-weight: 600; color: var(--theme-text-color); }
+.ui-pager-status:empty { display: none; }
+/* while a submission is open on a wide window the page makes room for the panel, and the columns the panel shows in full step aside */
+/* the columns have names (col-...) so a table with a tick column first follows the same rules */
+@media (min-width: 1100px) {
+    /* the ids too: the old page rules set the padding of these two pages by id */
+    .page.ui-has-sidepanel, #feedback-data-page.ui-has-sidepanel, #archive-page.ui-has-sidepanel { padding-right: 494px; }
+    .ui-has-sidepanel .fb-table .col-visits, .ui-has-sidepanel .fb-table .col-typed,
+    .ui-has-sidepanel .fb-table .col-kept, .ui-has-sidepanel .fb-table .col-photos { display: none; }
+}
+/* on a window narrower than 1400 px the date steps aside as well while the panel is open (the panel shows it), so the bin stays in view */
+@media (min-width: 1100px) and (max-width: 1399px) {
+    .ui-has-sidepanel .fb-table .col-date { display: none; }
+}
+/* narrow windows: fewer columns (the panel shows everything), and the panel takes the full width */
+@media (max-width: 1280px) { .fb-table .col-typed { display: none; } }
+@media (max-width: 1024px) { .fb-table .col-photos, .fb-table .col-kept { display: none; } }
+/* a table with tick boxes (Archived Feedback): the tick column, and the bar that appears once rows are ticked */
+.fb-table .col-tick { width: 1%; padding-right: 4px; }
+.fb-table .col-tick input { width: 16px; height: 16px; cursor: pointer; }
+.ui-selectbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--theme-border-color); background: color-mix(in srgb, var(--theme-btn-primary-bg) 7%, var(--theme-card-bg)); font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
+.ui-selectbar[hidden] { display: none; }
+.ui-field-stack { display: grid; gap: 6px; }
+.ui-field-stack label { font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
+.ui-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.ui-quick button { height: 32px; padding: 0 12px; border: 1px solid var(--theme-border-color); border-radius: 999px; background: var(--theme-card-bg); color: var(--theme-text-color); font: inherit; font-size: 13px; cursor: pointer; }
+.ui-quick button:hover { background: var(--theme-bg-color); }
+.ui-quick button.is-set { border-color: var(--theme-btn-primary-bg); color: var(--theme-btn-primary-bg); font-weight: 600; }
+.ui-preview-count { margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--theme-bg-color); font-size: 14px; color: var(--theme-text-color); }
+.ui-preview-count[hidden] { display: none; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> AI Settings page: a row per feature with what it runs on and what happens when it is off */
+.ai-card { margin-bottom: 18px; }
+.ai-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 6px; }
+.ai-card-head h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--theme-text-color); }
+.ai-settings-status { font-size: 13px; color: var(--color-dark-gray); }
+.ai-settings-status.is-error { color: #b91c1c; }
+.ai-rows { padding: 4px 20px 10px; }
+.ai-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 18px; padding: 16px 0; }
+.ai-rows .ai-row + .ai-row { border-top: 1px solid var(--theme-border-color); }
+.ai-row-master { padding: 18px 20px; cursor: pointer; }
+.ai-row-text { display: grid; gap: 3px; min-width: 0; }
+.ai-row-text b { font-size: 15px; font-weight: 700; color: var(--theme-text-color); }
+.ai-row-text small { font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+.ai-row-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; font-size: 13px; }
+.ai-row-facts dt { color: var(--color-dark-gray); font-weight: 600; }
+.ai-row-facts dd { margin: 0; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.ai-row.is-off .ai-row-text b { color: var(--color-dark-gray); }
+.ai-row-switch input:disabled + .ui-switch-track { opacity: 0.5; cursor: not-allowed; }
+.ai-kiosk-line { margin: 0 0 8px; font-size: 13px; color: var(--color-dark-gray); }
+@media (max-width: 760px) { .ai-row { grid-template-columns: minmax(0, 1fr) auto; } .ai-row-state { grid-column: 1; grid-row: 2; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> coloured tag (kit): a short code or word with a tone, used by Audit Logs and Lost & Found */
+.ui-tag { display: inline-block; padding: 1px 7px; border-radius: 6px; background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; line-height: 18px; white-space: nowrap; vertical-align: 1px; }
+.ui-tag.is-blue { background: #dbeafe; color: #1d4ed8; }
+.ui-tag.is-red { background: #fee2e2; color: #b91c1c; }
+.ui-tag.is-green { background: #dcfce7; color: #166534; }
+.ui-tag.is-amber { background: #fef3c7; color: #92400e; }
+.ui-tag.is-purple { background: #ede9fe; color: #5b21b6; }
+html[data-theme="dark"] .ui-tag { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+html[data-theme="dark"] .ui-tag.is-blue { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+html[data-theme="dark"] .ui-tag.is-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+html[data-theme="dark"] .ui-tag.is-green { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+html[data-theme="dark"] .ui-tag.is-amber { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+html[data-theme="dark"] .ui-tag.is-purple { background: rgba(139, 92, 246, 0.24); color: #c4b5fd; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Audit Logs page (Audit Logs B): the events of each day under a day heading, one sentence per event
+   with its action code as a coloured tag, and the IP address and time on the right */
+.audit-card { overflow: hidden; }
+.audit-ip-filter { display: inline-flex; }
+.audit-card .ui-search { flex-basis: 220px; }
+/* pushes Order and refresh to the right, also when they wrap onto a second line */
+#audit-order { margin-left: auto; }
+/* a select is as wide as its longest option, and usernames typed at the login page can be very long */
+.audit-card .ui-filter-select { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.audit-ip-input { width: 136px; cursor: text; }
+.audit-ip-input::placeholder { color: var(--color-muted); }
+.audit-ip-input:focus { outline: none; border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.audit-day { margin: 0; padding: 12px 20px 7px; border-bottom: 1px solid var(--theme-border-color); background: var(--theme-bg-color); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-dark-gray); }
+.audit-list + .audit-day { border-top: 1px solid var(--theme-border-color); }
+.audit-list { list-style: none; margin: 0; padding: 0; }
+.audit-row { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--theme-border-color); font-size: 14px; color: var(--theme-text-color); }
+.audit-list .audit-row:last-child { border-bottom: 0; }
+.audit-what { flex: 1 1 auto; min-width: 0; line-height: 1.55; overflow-wrap: anywhere; }
+.audit-who { display: inline-block; max-width: 26ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; font-weight: 700; }
+.audit-target { color: var(--color-dark-gray); }
+.audit-ip { flex: 0 0 auto; min-width: 110px; text-align: right; font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--color-dark-gray); }
+.audit-time { flex: 0 0 auto; min-width: 92px; text-align: right; font-size: 13px; color: var(--color-dark-gray); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.audit-empty { padding: 28px 20px; text-align: center; }
+.audit-error { color: #b91c1c; }
+html[data-theme="dark"] .audit-error { color: #fca5a5; }
+@media (max-width: 720px) {
+    .audit-row { flex-wrap: wrap; row-gap: 2px; padding: 10px 16px; }
+    .audit-what { flex-basis: calc(100% - 42px); }
+    .audit-ip { min-width: 0; margin-left: 42px; text-align: left; }
+    .audit-time { min-width: 0; margin-left: auto; }
+    .audit-day { padding-left: 16px; padding-right: 16px; }
+}
+/* <Jun Kai end> */
+
+/* <Jun Kai start> stat tiles (kit): a label, a big number and a short note, four in a row */
+.ui-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.ui-stats > .ui-card + .ui-card { margin-top: 0; }
+.ui-stat { display: grid; gap: 4px; padding: 16px 18px; }
+.ui-stat-label { font-size: 13px; font-weight: 600; color: var(--color-dark-gray); }
+.ui-stat-value { font-size: 26px; font-weight: 750; line-height: 1.15; color: var(--theme-text-color); font-variant-numeric: tabular-nums; }
+.ui-stat-note { font-size: 12px; color: var(--color-muted); }
+@media (max-width: 900px) { .ui-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* small menu (kit): a popover under a ... button, placed by uiPlaceUnder() */
+.ui-menu { position: fixed; inset: auto; margin: 0; min-width: 200px; padding: 6px; border: 1px solid var(--theme-border-color); border-radius: 12px; background: var(--theme-card-bg); color: var(--theme-text-color); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18); }
+.ui-menu:popover-open { display: grid; gap: 2px; }
+.ui-menu button { height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--theme-text-color); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.ui-menu button:hover, .ui-menu button:focus-visible { background: var(--theme-bg-color); outline: none; }
+html[data-theme="dark"] .ui-menu { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Lost & Found page (Lost & Found A): status chips with counts, tags, and one next step per row */
+.lf-card { overflow: hidden; }
+.lf-status .ui-chip span { gap: 6px; }
+.lf-count { font-weight: 700; opacity: 0.75; }
+.lf-table th { white-space: nowrap; }
+.lf-table th, .lf-table td { padding-left: 12px; padding-right: 12px; vertical-align: middle; }
+.lf-table td.lf-wrap { min-width: 96px; max-width: 240px; line-height: 1.45; overflow-wrap: anywhere; }
+.lf-table td.lf-details { min-width: 150px; }
+.lf-report { white-space: nowrap; }
+.lf-date { display: block; margin-top: 2px; font-size: 12.5px; color: var(--color-dark-gray); }
+.lf-code { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; white-space: nowrap; }
+.lf-page { display: block; margin-top: 2px; font-size: 12px; color: var(--color-dark-gray); }
+.lf-muted, .lf-done { font-size: 13px; color: var(--color-muted); white-space: nowrap; }
+.lf-photo { display: inline-flex; border-radius: 8px; }
+.lf-photo:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; }
+/* the next step stays in view at the right edge when the table is wider than its box */
+.lf-table .lf-actions { position: sticky; right: 0; z-index: 1; text-align: right; background: var(--theme-card-bg); box-shadow: -8px 0 12px -10px rgba(15, 23, 42, 0.35); }
+.lf-table th.lf-actions { background: var(--theme-bg-color); }
+/* on a phone the pinned column would cover half the table: there it scrolls with the rest */
+@media (max-width: 720px) { .lf-table .lf-actions { position: static; box-shadow: none; } }
+.lf-next { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.lf-step { height: 32px; padding: 0 12px; font-size: 13px; }
+.ui-pager-status.is-error { color: #b91c1c; }
+html[data-theme="dark"] .ui-pager-status.is-error { color: #fca5a5; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> the rebuilt list pages and AI Settings use the same darker greys as Health and Hardware: their table
+   headings were 4.3:1 on the heading tint (the dark mode values stay the same as the rest of the page) */
+#feedback-data-page, #archive-page, #audit-page, #lost-found-page, #ai-settings-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] :is(#feedback-data-page, #archive-page, #audit-page, #lost-found-page, #ai-settings-page) { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> tabs (kit): a row of tab buttons under a card's top edge, each with an optional count */
+.ui-tabs { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--theme-border-color); }
+.ui-tab { display: inline-flex; align-items: center; gap: 7px; height: 42px; margin-bottom: -1px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--color-dark-gray); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.ui-tab:hover { color: var(--theme-text-color); }
+.ui-tab[aria-selected="true"] { color: var(--theme-text-color); border-bottom-color: var(--theme-btn-primary-bg); }
+.ui-tab:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: -4px; border-radius: 8px; }
+.ui-tab-count { min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--theme-bg-color); color: var(--color-dark-gray); font-size: 12px; font-weight: 700; text-align: center; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Users page (Users A): accounts on the left, the Sign-in card on the right */
+#users-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #users-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.users-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+.users-layout > .ui-card + .ui-card { margin-top: 0; }
+.users-card { overflow: hidden; }
+.users-table th, .users-table td { padding-left: 12px; padding-right: 12px; vertical-align: middle; }
+.users-table td:first-child, .users-table td.users-role { white-space: nowrap; }
+.users-table td:nth-child(2) { min-width: 140px; overflow-wrap: anywhere; }
+.users-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--color-dark-gray); }
+.users-note { margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--theme-border-color); font-size: 13px; color: var(--color-dark-gray); }
+.users-deleted-by { display: block; margin-top: 2px; font-size: 12px; color: var(--color-dark-gray); }
+.users-btn { height: 32px; padding: 0 12px; font-size: 13px; gap: 6px; }
+.users-btn.ui-danger { color: #b91c1c; }
+.users-btn.ui-danger:hover:not(:disabled) { background: #fef2f2; border-color: #fecaca; }
+html[data-theme="dark"] .users-btn.ui-danger { color: #fca5a5; }
+html[data-theme="dark"] .users-btn.ui-danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.35); }
+/* the Sign-in card in the side column: the field above its explanation, and no extra space above the card */
+.users-layout .idle-card { margin-top: 0; }
+.users-layout .idle-body { grid-template-columns: 1fr; align-items: start; }
+/* one column below 1300px: next to the card the table would push its buttons out of view */
+@media (max-width: 1299px) { .users-layout { grid-template-columns: 1fr; } }
 /* <Jun Kai end> */
