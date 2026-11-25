@@ -339,7 +339,7 @@ function renderFeedbackPage() {
         const typed = getFeedbackAnswerPreview(feedback);
         const answers = Array.isArray(feedback.question_answers) ? feedback.question_answers.length : 0;
         return `<tr data-feedback-id="${id}" data-retention="${escapeHtmlSafe(feedback.data_retention || 'longterm')}" tabindex="0" aria-label="Open the submission of ${escapeHtmlSafe(name)}"${id === feedbackPanelId ? ' class="is-open"' : ''}>
-            <td><span class="ui-who"><span class="ui-avatar" style="--ui-hue: ${FEEDBACK_AVATAR_HUES[id % FEEDBACK_AVATAR_HUES.length]}" aria-hidden="true">${escapeHtmlSafe(feedbackInitials(name))}</span><span class="ui-who-text"><b>${escapeHtmlSafe(name)}</b>${feedbackEmailLine(feedback)}</span></span></td>
+            <td><span class="ui-who"><span class="ui-avatar" style="--ui-hue: ${FEEDBACK_AVATAR_HUES[id % FEEDBACK_AVATAR_HUES.length]}" aria-hidden="true">${escapeHtmlSafe(feedbackInitials(name))}</span><span class="ui-who-text"><b title="${escapeHtmlSafe(name)}">${escapeHtmlSafe(name)}</b>${feedbackEmailLine(feedback)}</span></span></td>
             <td class="ui-num">${Number(feedback.visits) || 1}</td>
             <td class="fb-wrap">${pledge ? `<span class="ui-clamp">${escapeHtmlSafe(pledge)}</span>` : '<span class="ui-muted">No pledge</span>'}</td>
             <td class="fb-wrap">${typed ? `<span class="ui-clamp">${escapeHtmlSafe(typed)}</span>` : '<span class="ui-muted">No typed feedback</span>'}${answers ? `<button type="button" class="ui-link" data-fb-answers>${answers} ${answers === 1 ? 'answer' : 'answers'}</button>` : ''}</td>
