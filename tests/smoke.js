@@ -90,12 +90,13 @@ let archiveDir = null;
 // <Jun Kai start>
 // The pledge a smoke visitor submits. Since the pledge dropdown the server only takes one of the listed pledges, with
 // the topic of that pledge; the list comes with the default parameters. When the defaults have no list (before the
-// dropdown), any text is taken, so the typed pledge is used. which: 0 is the first listed pledge, -1 the last, so
-// two smoke visitors never share a pledge text.
-function smokePledge(typed, which = 0) {
+// dropdown), any text is taken, so the typed pledge is used. topic: a listed pledge of that topic (the badge on the
+// leaf follows the topic); without it the first listed pledge. The two smoke visitors use different pledges.
+function smokePledge(typed, topic = null) {
   try {
     const presets = (require('../backend/config/defaults/parametersConfig.json').contentSettings || {}).pledgePresets;
-    const preset = Array.isArray(presets) && presets.length ? presets.at(which) : null;
+    const list = Array.isArray(presets) ? presets : [];
+    const preset = (topic ? list.find((p) => p && p.topic === topic) : list[0]) || null;
     if (preset && preset.text && preset.topic) return { pledge: String(preset.text), pledgeTopic: String(preset.topic) };
   } catch { /* no defaults file here: the typed pledge */ }
   return { pledge: typed, pledgeTopic: 'sustainable-living' };
@@ -130,7 +131,7 @@ async function archiveStep(cookie) {
     const stamp = Date.now();
     const name = 'Archive Smoke';
     const email = `archive+${stamp}@example.com`;
-    const { pledge, pledgeTopic } = smokePledge(`I pledge to keep old visitor data safe ${stamp}`, -1);
+    const { pledge, pledgeTopic } = smokePledge(`I pledge to keep old visitor data safe ${stamp}`, 'sustainable-living');
     const photo = await get(`${BASE}/api/feedback/save-photo`, send({ photo: tinyPng(), userName: name, device: 'kiosk' }));
     const processed = await get(`${BASE}/api/feedback/save-processed-photo`, send({ photo: tinyPng(), userName: name, device: 'kiosk', theme: 'nature' }));
     const photoId = photo.body && photo.body.photoId;
