@@ -182,6 +182,16 @@ test('every wrong code gets the same answer as an unknown name, so a code check 
     assert.deepEqual(sameAsName, sameAsMadeUp);
 });
 
+test('with the right code, a password equal to the username is still refused and the reset stays usable', async () => {
+    const w = fakeWorld();
+    w.accounts[0].username = 'itadmin_01'; // long enough for the length rule, so the username rule is what answers
+    const mail = await opened(w);
+    const refused = await w.service.complete({ identifier: 'it@example.test', code: mail.code, password: 'ITADMIN_01', confirm: 'ITADMIN_01' });
+    assert.equal(refused.error, 'The password cannot be the same as the username.');
+    assert.equal(w.resets.size, 1, 'the reset is not used up');
+    assert.deepEqual(await w.service.complete({ identifier: 'it@example.test', code: mail.code, password: 'Another one 9', confirm: 'Another one 9' }), { ok: true, username: 'itadmin_01' });
+});
+
 test('after 5 wrong codes the code stops working but the link still does', async () => {
     const w = fakeWorld();
     const mail = await opened(w);

@@ -8,7 +8,7 @@
 // The link in the email opens the admin page with "#reset=<token>": init.js hands the token here before anything else,
 // the token leaves the address bar at once, and the card goes straight to the password step.
 const PASSWORD_RESET_RESEND_SECONDS = 60;
-const passwordReset = { step: 'ask', identifier: '', code: '', token: '', username: '', busy: false, timer: null, wait: 0 };
+const passwordReset = { step: 'ask', identifier: '', code: '', token: '', username: '', busy: false, timer: null, wait: 0, fromLink: false };
 
 function passwordResetEl(id) {
     return document.getElementById(id);
@@ -76,6 +76,10 @@ function openPasswordReset() {
 // back to the sign-in card; after a reset the username is filled in and a note says what happened
 function closePasswordReset(message, username) {
     clearInterval(passwordReset.timer);
+    // Back after a link: a fresh load of the admin page shows the dashboard again when this browser is still signed in
+    const fromLink = passwordReset.fromLink;
+    passwordReset.fromLink = false;
+    if (fromLink && !message) { location.replace(location.pathname + location.search); return; }
     Object.assign(passwordReset, { code: '', token: '' });
     for (const id of ['reset-code', 'reset-password', 'reset-confirm']) { const input = passwordResetEl(id); if (input) input.value = ''; }
     passwordResetEl('reset-form').hidden = true;
@@ -189,6 +193,7 @@ async function startPasswordResetFromLink(token) {
     if (loginPage) loginPage.style.display = '';
     if (dashboard) dashboard.style.display = 'none';
     openPasswordReset();
+    passwordReset.fromLink = true;
     if (!token) return passwordResetSay('This link is not complete. Ask for a new code.', 'error');
     passwordResetBusy(true);
     const answer = await passwordResetPost('/api/admin/password-reset/check-link', { token });
