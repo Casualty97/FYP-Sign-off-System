@@ -314,12 +314,42 @@ function escapeBadgeTemplateHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+// <Jun Kai start> Badge Emails A: the status is a pill like on the other new pages, and a quiet "loaded" is not shown
 function setBadgeTemplateStatus(type, message) {
     const el = document.getElementById('badge-template-status');
     if (!el) return;
-    el.textContent = message;
-    el.className = `fm-status fm-status--${type}`;
+    if (type === 'info' || (type === 'success' && /loaded/i.test(message))) { el.innerHTML = ''; return; }
+    const tone = type === 'success' ? 'ok' : type === 'error' ? 'down' : 'info';
+    el.innerHTML = `<span class="ui-pill ui-pill-${tone}"><span class="ui-dot"></span>${escapeBadgeTemplateHtml(message)}</span>`;
 }
+
+// the live email preview on the right, from what is in the fields now
+function renderBadgeEmailPreview() {
+    const subject = document.getElementById('badge-template-subject');
+    if (!subject || !document.getElementById('be-preview')) return;
+    const message = document.getElementById('badge-template-message').value.trim();
+    const highlights = document.getElementById('badge-template-highlights').value.split('\n').map(line => line.trim()).filter(Boolean);
+    document.getElementById('be-preview-subject').textContent = subject.value.trim() || 'No subject yet';
+    document.getElementById('be-preview-message').textContent = message || 'No message yet.';
+    document.getElementById('be-preview-highlights').innerHTML = highlights.map(line => `<li>${escapeBadgeTemplateHtml(line)}</li>`).join('');
+    document.getElementById('be-preview-takeaways').hidden = highlights.length === 0;
+}
+
+let badgeEmailPageReady = false;
+function prepareBadgeEmailPage() {
+    if (badgeEmailPageReady) return;
+    badgeEmailPageReady = true;
+    ['badge-template-subject', 'badge-template-message', 'badge-template-highlights'].forEach((id) => {
+        const field = document.getElementById(id);
+        if (field) field.addEventListener('input', renderBadgeEmailPreview);
+    });
+    const list = document.getElementById('badge-template-badge-list');
+    if (list) list.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-badge-key]');
+        if (button) chooseBadgeEmailTemplate(button.dataset.badgeKey);
+    });
+}
+// <Jun Kai end>
 
 function readCurrentBadgeTemplateForm() {
     const key = badgeTemplateState.selectedKey;
@@ -341,6 +371,14 @@ function renderBadgeTemplateForm(key) {
     document.getElementById('badge-template-message').value = template.message || '';
     document.getElementById('badge-template-highlights').value = (template.highlights || []).join('\n');
     renderBadgeTemplateBadgeList();
+    // <Jun Kai start> the editor names the chosen badge, and the preview follows
+    const badge = badgeTemplateState.badges.find(item => item.key === key) || {};
+    const title = document.getElementById('be-editor-title');
+    if (title) title.textContent = badge.name || 'Badge';
+    const desc = document.getElementById('be-editor-desc');
+    if (desc) desc.textContent = badge.description || '';
+    renderBadgeEmailPreview();
+    // <Jun Kai end>
 }
 
 function selectBadgeEmailTemplate() {
@@ -356,21 +394,18 @@ function renderBadgeTemplateBadgeList() {
     const list = document.getElementById('badge-template-badge-list');
     if (!list) return;
 
+    // <Jun Kai start> one row per badge (colour dot, name, what it is for); the click is handled once in prepareBadgeEmailPage
     list.innerHTML = badgeTemplateState.badges.map(badge => {
         const isActive = badge.key === badgeTemplateState.selectedKey;
         return `
-            <button
-                type="button"
-                class="badge-template-badge-card ${isActive ? 'active' : ''}"
-                style="--badge-color:${escapeBadgeTemplateHtml(badge.color || '#10b981')}"
-                onclick="chooseBadgeEmailTemplate('${escapeBadgeTemplateHtml(badge.key)}')"
-            >
-                <span class="badge-template-badge-dot"></span>
-                <strong>${escapeBadgeTemplateHtml(badge.name)}</strong>
-                <small>${escapeBadgeTemplateHtml(badge.description || 'Badge reward')}</small>
+            <button type="button" role="listitem" class="be-badge${isActive ? ' is-active' : ''}" data-badge-key="${escapeBadgeTemplateHtml(badge.key)}"
+                aria-current="${isActive ? 'true' : 'false'}" style="--badge-color:${escapeBadgeTemplateHtml(badge.color || '#10b981')}">
+                <span class="be-badge-dot"></span>
+                <span class="be-badge-text"><strong>${escapeBadgeTemplateHtml(badge.name)}</strong><small>${escapeBadgeTemplateHtml(badge.description || 'Badge reward')}</small></span>
             </button>
         `;
     }).join('');
+    // <Jun Kai end>
 }
 
 function chooseBadgeEmailTemplate(key) {
@@ -402,6 +437,7 @@ function populateBadgeTemplatePicker() {
 }
 
 async function loadBadgeEmailTemplates() {
+    prepareBadgeEmailPage(); // <Jun Kai/>
     try {
         setBadgeTemplateStatus('info', 'Loading badge email templates...');
         const res = await fetch('/api/admin/badge-email-templates', { credentials: 'include' });
