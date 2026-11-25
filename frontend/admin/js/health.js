@@ -415,28 +415,28 @@ function bindHealthTablets() {
     if (!body || body.dataset.bound) return;
     body.dataset.bound = '1';
     let swipe = null;
-    body.addEventListener('touchstart', (event) => {
+    body.addEventListener('pointerdown', (event) => {
         const cell = event.target.closest('[data-tablet-swipe]');
-        const touch = event.touches[0];
-        swipe = cell && event.touches.length === 1 && !event.target.closest('button')
-            ? { id: cell.dataset.tabletSwipe, touchId: touch.identifier, x: touch.clientX, y: touch.clientY }
-            : null;
-    }, { passive: true });
-    body.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
-    body.addEventListener('touchend', (event) => {
+        if (!cell || !event.isPrimary || event.button !== 0 || event.target.closest('button')) return;
+        swipe = { id: cell.dataset.tabletSwipe, pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+        body.setPointerCapture(event.pointerId);
+        if (event.pointerType === 'mouse') event.preventDefault();
+    });
+    body.addEventListener('lostpointercapture', (event) => {
+        if (swipe?.pointerId === event.pointerId) swipe = null;
+    });
+    body.addEventListener('pointerup', (event) => {
+        if (swipe?.pointerId !== event.pointerId) return;
         const start = swipe;
         swipe = null;
-        if (!start) return;
-        const touch = [...event.changedTouches].find(item => item.identifier === start.touchId);
-        if (!touch) return;
-        const dx = touch.clientX - start.x;
-        const dy = touch.clientY - start.y;
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
         if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
         healthSwipedTablet = dx < 0 ? start.id : null;
         for (const cell of body.querySelectorAll('[data-tablet-swipe]')) {
             cell.classList.toggle('health-device-swiped', cell.dataset.tabletSwipe === healthSwipedTablet);
         }
-    }, { passive: true });
+    });
     body.addEventListener('click', (event) => {
         const open = event.target.closest('[data-rename]');
         const remove = event.target.closest('[data-remove-tablet]');
