@@ -616,31 +616,31 @@
                     </div>
 
                     <div class="ui-card fb-card">
-                        <div class="fb-toolbar" role="search" aria-label="Filter the feedback list">
-                            <label class="fb-search">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the feedback list">
+                            <label class="ui-search">
                                 <span class="ui-sr-only">Search the feedback</span>
-                                <span class="fb-search-icon" data-fb-icon="search"></span>
-                                <input type="search" id="feedback-search-input" placeholder="Search name, email, pledge or answers" autocomplete="off" oninput="filterFeedbackData()">
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="feedback-search-input" placeholder="Search name, pledge or answers" autocomplete="off" oninput="filterFeedbackData()">
                             </label>
-                            <button type="button" class="fb-chip" id="feedback-date-button" popovertarget="feedback-date-pop" aria-haspopup="dialog">
+                            <button type="button" class="ui-filter" id="feedback-date-button" popovertarget="feedback-date-pop" aria-haspopup="dialog">
                                 <span data-fb-icon="calendar"></span><span id="feedback-date-label">Any date</span>
                             </button>
-                            <div class="fb-date-pop" id="feedback-date-pop" popover aria-label="Date range">
-                                <div class="fb-date-presets">
+                            <div class="ui-filter-pop" id="feedback-date-pop" popover aria-label="Date range">
+                                <div class="ui-filter-presets">
                                     <button type="button" onclick="setFeedbackDateRangePreset('today')">Today</button>
                                     <button type="button" onclick="setFeedbackDateRangePreset('week')">This week</button>
                                     <button type="button" onclick="setFeedbackDateRangePreset('month')">This month</button>
                                     <button type="button" onclick="clearFeedbackDateRange()">Any date</button>
                                 </div>
-                                <label class="fb-date-field">From <input type="date" id="feedback-filter-date-from" class="ui-input" onchange="filterFeedbackData()"></label>
-                                <label class="fb-date-field">To <input type="date" id="feedback-filter-date-to" class="ui-input" onchange="filterFeedbackData()"></label>
+                                <label class="ui-filter-field">From <input type="date" id="feedback-filter-date-from" class="ui-input" onchange="filterFeedbackData()"></label>
+                                <label class="ui-filter-field">To <input type="date" id="feedback-filter-date-to" class="ui-input" onchange="filterFeedbackData()"></label>
                             </div>
-                            <select id="feedback-filter-email" class="fb-chip fb-chip-select" aria-label="Email" onchange="filterFeedbackData()">
+                            <select id="feedback-filter-email" class="ui-filter ui-filter-select" aria-label="Email" onchange="filterFeedbackData()">
                                 <option value="">Email: any</option>
                                 <option value="has_email">Has an email</option>
                                 <option value="no_email">No email</option>
                             </select>
-                            <select id="feedback-filter-visits" class="fb-chip fb-chip-select" aria-label="Visits" onchange="filterFeedbackData()">
+                            <select id="feedback-filter-visits" class="ui-filter ui-filter-select" aria-label="Visits" onchange="filterFeedbackData()">
                                 <option value="">Visits: any</option>
                                 <option value="1">1 visit</option>
                                 <option value="2">2 visits</option>
@@ -649,13 +649,13 @@
                                 <option value="5">5 visits</option>
                                 <option value="6+">6 or more visits</option>
                             </select>
-                            <select id="feedback-filter-retention" class="fb-chip fb-chip-select" aria-label="How long the record is kept" onchange="filterFeedbackData()">
+                            <select id="feedback-filter-retention" class="ui-filter ui-filter-select" aria-label="How long the record is kept" onchange="filterFeedbackData()">
                                 <option value="">Kept: any</option>
                                 <option value="7days">Kept 7 days</option>
                                 <option value="longterm">Kept long term</option>
                             </select>
-                            <button type="button" class="fb-link" id="feedback-clear-filters" onclick="clearAllFeedbackFilters()" hidden>Clear filters</button>
-                            <span class="fb-spacer"></span>
+                            <button type="button" class="ui-link" id="feedback-clear-filters" onclick="clearAllFeedbackFilters()" hidden>Clear filters</button>
+                            <span class="ui-spacer"></span>
                             <button type="button" class="ui-btn ui-btn-secondary" onclick="decryptAllEmails()" id="decrypt-emails-btn" style="display: none;">Show emails</button>
                             <button type="button" class="ui-btn ui-btn-secondary" onclick="reEncryptAllEmails()" id="re-encrypt-btn" style="display: none;">Hide emails</button>
                             <button type="button" class="ui-btn ui-btn-icon" onclick="refreshFeedbackData()" title="Load the list again" aria-label="Load the list again" data-fb-icon="refresh"></button>
@@ -665,13 +665,13 @@
                             <table class="ui-table fb-table">
                                 <thead>
                                     <tr>
-                                        <th><button type="button" class="fb-sort" onclick="sortFeedbackData('name')">Visitor<span class="sort-indicator" id="feedback-sort-name"></span></button></th>
-                                        <th class="fb-num"><button type="button" class="fb-sort" onclick="sortFeedbackData('total_visits')">Visits<span class="sort-indicator" id="feedback-sort-total_visits"></span></button></th>
+                                        <th><button type="button" class="ui-sort" onclick="sortFeedbackData('name')">Visitor<span class="sort-indicator" id="feedback-sort-name"></span></button></th>
+                                        <th class="ui-num"><button type="button" class="ui-sort" onclick="sortFeedbackData('total_visits')">Visits<span class="sort-indicator" id="feedback-sort-total_visits"></span></button></th>
                                         <th>Pledge</th>
                                         <th>Typed feedback</th>
-                                        <th><button type="button" class="fb-sort" onclick="sortFeedbackData('data_retention_days')">Kept<span class="sort-indicator" id="feedback-sort-data_retention_days"></span></button></th>
+                                        <th><button type="button" class="ui-sort" onclick="sortFeedbackData('data_retention_days')">Kept<span class="sort-indicator" id="feedback-sort-data_retention_days"></span></button></th>
                                         <th>Photos</th>
-                                        <th><button type="button" class="fb-sort" onclick="sortFeedbackData('created_at')">Date<span class="sort-indicator" id="feedback-sort-created_at"></span></button></th>
+                                        <th><button type="button" class="ui-sort" onclick="sortFeedbackData('created_at')">Date<span class="sort-indicator" id="feedback-sort-created_at"></span></button></th>
                                         <th><span class="ui-sr-only">Delete</span></th>
                                     </tr>
                                 </thead>
@@ -681,9 +681,9 @@
                             </table>
                         </div>
 
-                        <div class="fb-pager">
-                            <span id="feedback-page-info" aria-live="polite">Loading</span>
-                            <span class="fb-pager-buttons">
+                        <div class="ui-pager">
+                            <span><span id="feedback-page-info" aria-live="polite">Loading</span><span class="ui-pager-status" id="feedback-status" role="status"></span></span>
+                            <span class="ui-pager-buttons">
                                 <button type="button" class="ui-btn ui-btn-secondary" onclick="prevFeedbackPage()" id="prev-feedback-btn" disabled>Previous</button>
                                 <button type="button" class="ui-btn ui-btn-secondary" onclick="nextFeedbackPage()" id="next-feedback-btn" disabled>Next</button>
                             </span>
@@ -692,7 +692,7 @@
 
                     <!-- one submission: filled by openFeedbackPanel() in feedback.js. Not a modal dialog: the list stays
                          usable, and the photo viewer and the delete check open above it -->
-                    <aside class="fb-panel" id="feedback-panel" aria-labelledby="feedback-panel-title" hidden></aside>
+                    <aside class="ui-sidepanel" id="feedback-panel" aria-labelledby="feedback-panel-title" hidden></aside>
                     <!-- <Jun Kai end> -->
                 </div>
 

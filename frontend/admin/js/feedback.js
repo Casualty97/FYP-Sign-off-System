@@ -128,6 +128,8 @@ function filterFeedbackData() {
                 item.name || '',
                 String(item.visits || ''),
                 item.pledge || '',
+                // <Jun Kai/> the answers too: typed feedback and the labels of chosen options
+                (Array.isArray(item.question_answers) ? item.question_answers.map((a) => `${(a && a.answer_value) || ''} ${(a && a.option_label) || ''}`).join(' ') : ''),
                 item.date ? new Date(item.date).toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }) : ''
             ].join(' ').toLowerCase();
             
@@ -265,7 +267,8 @@ function feedbackHasEmail(feedback) {
 }
 
 function feedbackInitials(name) {
-    const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+    // letters and digits only, so a name with quotes or brackets still gets readable initials
+    const words = String(name || '').split(/\s+/).map((word) => word.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean);
     if (!words.length) return '?';
     return (words[0][0] + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase();
 }
@@ -294,8 +297,8 @@ function feedbackKeptBadge(feedback) {
 function feedbackThumb(feedback, kind) {
     const has = kind === 'raw' ? feedback.photo_path : feedback.processed_photo_path;
     const what = kind === 'raw' ? 'Raw photo' : 'Processed photo';
-    if (!has) return `<span class="fb-thumb fb-thumb-none" title="No ${what.toLowerCase()}">${uiIcon('image', 14)}</span>`;
-    return `<img class="fb-thumb" loading="lazy" decoding="async" width="40" height="40" src="/api/admin/feedback/${Number(feedback.id)}/thumb/${kind}" alt="${what} of ${escapeHtmlSafe(feedback.name || 'Anonymous')}" onerror="this.replaceWith(Object.assign(document.createElement('span'), { className: 'fb-thumb fb-thumb-none', title: 'The photo file is missing' }))">`;
+    if (!has) return `<span class="ui-thumb ui-thumb-none" title="No ${what.toLowerCase()}">${uiIcon('image', 14)}</span>`;
+    return `<img class="ui-thumb" loading="lazy" decoding="async" width="40" height="40" src="/api/admin/feedback/${Number(feedback.id)}/thumb/${kind}" alt="${what} of ${escapeHtmlSafe(feedback.name || 'Anonymous')}" onerror="this.replaceWith(Object.assign(document.createElement('span'), { className: 'ui-thumb ui-thumb-none', title: 'The photo file is missing' }))">`;
 }
 
 function feedbackCanDelete() {
@@ -308,6 +311,10 @@ function renderFeedbackPage() {
     const tbody = document.getElementById('feedback-table-body');
     if (!tbody) return;
 
+    // while a submission is open, the table shows the page that submission is on
+    const openAt = feedbackPanelId === null ? -1 : filteredFeedbackData.findIndex((item) => Number(item.id) === feedbackPanelId);
+    if (openAt >= 0) feedbackCurrentPage = Math.floor(openAt / feedbackItemsPerPage) + 1;
+
     const totalPages = Math.ceil(filteredFeedbackData.length / feedbackItemsPerPage);
     const startIndex = (feedbackCurrentPage - 1) * feedbackItemsPerPage;
     const pageData = filteredFeedbackData.slice(startIndex, startIndex + feedbackItemsPerPage);
@@ -317,7 +324,7 @@ function renderFeedbackPage() {
 
     if (filteredFeedbackData.length === 0) {
         const none = allFeedbackData.length === 0;
-        tbody.innerHTML = `<tr><td colspan="8" class="ui-empty">${none ? 'No feedback yet. A submission shows here as soon as a visitor sends one.' : 'No submission matches these filters. <button type="button" class="fb-link" onclick="clearAllFeedbackFilters()">Clear filters</button>'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="ui-empty">${none ? 'No feedback yet. A submission shows here as soon as a visitor sends one.' : 'No submission matches these filters. <button type="button" class="ui-link" onclick="clearAllFeedbackFilters()">Clear filters</button>'}</td></tr>`;
         updateFeedbackPaginationControls(0, 0);
         updateEncryptionButtons();
         syncFeedbackPanel();
@@ -332,12 +339,12 @@ function renderFeedbackPage() {
         const typed = getFeedbackAnswerPreview(feedback);
         const answers = Array.isArray(feedback.question_answers) ? feedback.question_answers.length : 0;
         return `<tr data-feedback-id="${id}" data-retention="${escapeHtmlSafe(feedback.data_retention || 'longterm')}" tabindex="0" aria-label="Open the submission of ${escapeHtmlSafe(name)}"${id === feedbackPanelId ? ' class="is-open"' : ''}>
-            <td><span class="fb-who"><span class="fb-avatar" style="--fb-hue: ${FEEDBACK_AVATAR_HUES[id % FEEDBACK_AVATAR_HUES.length]}" aria-hidden="true">${escapeHtmlSafe(feedbackInitials(name))}</span><span class="fb-who-text"><b>${escapeHtmlSafe(name)}</b>${feedbackEmailLine(feedback)}</span></span></td>
-            <td class="fb-num">${Number(feedback.visits) || 1}</td>
-            <td class="fb-wrap">${pledge ? `<span class="fb-clamp">${escapeHtmlSafe(pledge)}</span>` : '<span class="ui-muted">No pledge</span>'}</td>
-            <td class="fb-wrap">${typed ? `<span class="fb-clamp">${escapeHtmlSafe(typed)}</span>` : '<span class="ui-muted">No typed feedback</span>'}${answers ? `<button type="button" class="fb-link" data-fb-answers>${answers} ${answers === 1 ? 'answer' : 'answers'}</button>` : ''}</td>
+            <td><span class="ui-who"><span class="ui-avatar" style="--ui-hue: ${FEEDBACK_AVATAR_HUES[id % FEEDBACK_AVATAR_HUES.length]}" aria-hidden="true">${escapeHtmlSafe(feedbackInitials(name))}</span><span class="ui-who-text"><b>${escapeHtmlSafe(name)}</b>${feedbackEmailLine(feedback)}</span></span></td>
+            <td class="ui-num">${Number(feedback.visits) || 1}</td>
+            <td class="fb-wrap">${pledge ? `<span class="ui-clamp">${escapeHtmlSafe(pledge)}</span>` : '<span class="ui-muted">No pledge</span>'}</td>
+            <td class="fb-wrap">${typed ? `<span class="ui-clamp">${escapeHtmlSafe(typed)}</span>` : '<span class="ui-muted">No typed feedback</span>'}${answers ? `<button type="button" class="ui-link" data-fb-answers>${answers} ${answers === 1 ? 'answer' : 'answers'}</button>` : ''}</td>
             <td>${feedbackKeptBadge(feedback)}</td>
-            <td><span class="fb-thumbs">${feedbackThumb(feedback, 'raw')}${feedbackThumb(feedback, 'processed')}</span></td>
+            <td><span class="ui-thumbs">${feedbackThumb(feedback, 'raw')}${feedbackThumb(feedback, 'processed')}</span></td>
             <td class="ui-time fb-date-cell">${escapeHtmlSafe(feedbackDateText(feedback))}</td>
             <td><span class="ui-actions">${canDelete ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-fb-delete title="Delete this submission" aria-label="Delete the submission of ${escapeHtmlSafe(name)}">${uiIcon('trash', 15)}</button>` : ''}</span></td>
         </tr>`;
@@ -360,6 +367,7 @@ function feedbackRowAction(event) {
     }
     if (event.target.closest('[data-fb-delete]')) return deleteFeedback(id);
     if (event.target.closest('a, input, select')) return;
+    if (String(window.getSelection ? window.getSelection() : '').trim()) return; // text was selected by dragging: not a click on the row
     openFeedbackPanel(id, event.target.closest('[data-fb-answers]') ? 'answers' : undefined);
 }
 
@@ -390,7 +398,7 @@ function feedbackPanelPhoto(feedback, kind) {
     const open = kind === 'raw' ? 'viewRawPhoto' : 'viewProcessedPhoto';
     return `<figure class="fb-photo-box">
         <button type="button" class="fb-photo" onclick="${open}(${Number(feedback.id)})" title="Open the full photo"><img src="${escapeHtmlSafe(url)}" loading="lazy" decoding="async" alt="${what} of ${escapeHtmlSafe(feedback.name || 'Anonymous')}" onerror="this.closest('.fb-photo').classList.add('fb-photo-missing')"></button>
-        <figcaption><span>${what}</span><button type="button" class="fb-link" data-fb-download="${escapeHtmlSafe(url)}" data-fb-file="feedback_${Number(feedback.id)}_${kind}_photo${escapeHtmlSafe(ext)}">Download</button></figcaption>
+        <figcaption><span>${what}</span><button type="button" class="ui-link" data-fb-download="${escapeHtmlSafe(url)}" data-fb-file="feedback_${Number(feedback.id)}_${kind}_photo${escapeHtmlSafe(ext)}">Download</button></figcaption>
     </figure>`;
 }
 
@@ -406,37 +414,41 @@ function feedbackPanelHtml(feedback) {
     const email = decryptedEmailMap[feedback.id]
         ? `<span class="fb-email fb-email-open">${uiIcon('unlock', 12)}${escapeHtmlSafe(decryptedEmailMap[feedback.id])}</span>`
         : feedbackHasEmail(feedback)
-            ? `<span class="fb-email">${uiIcon('lock', 12)}Encrypted</span>${admin ? ' <button type="button" class="fb-link" onclick="decryptAllEmails()">Decrypt this page</button>' : ''}`
+            ? `<span class="fb-email">${uiIcon('lock', 12)}Encrypted</span>${admin ? ` <button type="button" class="ui-link" onclick="decryptOneFeedbackEmail(${id})">Decrypt</button>` : ''}`
             : 'No email provided';
     const answerRows = answers.map((answer, n) => {
         const value = answer && (answer.option_label || answer.answer_value);
-        return `<li><small>${escapeHtmlSafe(answer.question_text || `Question ${n + 1}`)}</small><span>${value ? formatAnswer(String(value), String(answer.question_type || '').toLowerCase()) : '<em>No answer</em>'}</span></li>`;
+        const type = String((answer && answer.question_type) || '').toLowerCase();
+        const translate = value && type === 'text'
+            ? `<button type="button" class="ui-link" onclick="translateAdminTextToEnglish('feedback-panel-answer-${n}', 'feedback-panel-answer-english-${n}', this)">Translate to English</button><div class="ui-text fb-translated" id="feedback-panel-answer-english-${n}" aria-live="polite"></div>`
+            : '';
+        return `<li><small>${escapeHtmlSafe((answer && answer.question_text) || `Question ${n + 1}`)}</small><span id="feedback-panel-answer-${n}">${value ? formatAnswer(String(value), type) : '<em>No answer</em>'}</span>${translate}</li>`;
     }).join('');
     return `
-        <header class="fb-panel-head">
+        <header class="ui-sidepanel-head">
             <div>
                 <h3 id="feedback-panel-title" tabindex="-1">${escapeHtmlSafe(name)}</h3>
                 <p>Submitted ${escapeHtmlSafe(feedbackDateText(feedback))}</p>
             </div>
             <button type="button" class="ui-btn ui-btn-icon" onclick="closeFeedbackPanel()" title="Close" aria-label="Close this submission">${uiIcon('close', 16)}</button>
         </header>
-        <div class="fb-panel-body">
+        <div class="ui-sidepanel-body">
             <div class="fb-photos">${feedbackPanelPhoto(feedback, 'raw')}${feedbackPanelPhoto(feedback, 'processed')}</div>
             <section>
                 <h4>Pledge</h4>
                 ${pledge
-                    ? `<div class="fb-text fb-quote" id="feedback-panel-pledge">${escapeHtmlSafe(pledge)}</div>
-                       <button type="button" class="fb-link" onclick="translateAdminTextToEnglish('feedback-panel-pledge', 'feedback-panel-pledge-english', this)">Translate to English</button>
-                       <div class="fb-text fb-translated" id="feedback-panel-pledge-english" aria-live="polite"></div>`
-                    : '<div class="fb-text ui-muted">No pledge</div>'}
+                    ? `<div class="ui-text fb-quote" id="feedback-panel-pledge">${escapeHtmlSafe(pledge)}</div>
+                       <button type="button" class="ui-link" onclick="translateAdminTextToEnglish('feedback-panel-pledge', 'feedback-panel-pledge-english', this)">Translate to English</button>
+                       <div class="ui-text fb-translated" id="feedback-panel-pledge-english" aria-live="polite"></div>`
+                    : '<div class="ui-text ui-muted">No pledge</div>'}
             </section>
             <section>
                 <h4>Typed feedback</h4>
-                <div class="fb-text${typed ? '' : ' ui-muted'}">${typed ? escapeHtmlSafe(typed) : 'No typed feedback'}</div>
+                <div class="ui-text${typed ? '' : ' ui-muted'}">${typed ? escapeHtmlSafe(typed) : 'No typed feedback'}</div>
             </section>
             <section id="feedback-panel-answers">
                 <h4>Questions and answers</h4>
-                ${answerRows ? `<ul class="fb-answers">${answerRows}</ul>` : '<div class="fb-text ui-muted">No answers</div>'}
+                ${answerRows ? `<ul class="fb-answers">${answerRows}</ul>` : '<div class="ui-text ui-muted">No answers</div>'}
             </section>
             <dl class="ui-kv fb-facts">
                 <dt>Email</dt><dd>${email}</dd>
@@ -445,9 +457,9 @@ function feedbackPanelHtml(feedback) {
                 <dt>Submitted</dt><dd>${escapeHtmlSafe(feedbackDateText(feedback))}</dd>
             </dl>
         </div>
-        <footer class="fb-panel-foot">
+        <footer class="ui-sidepanel-foot">
             ${feedbackCanDelete() ? `<button type="button" class="ui-btn ui-btn-danger" onclick="deleteFeedback(${id})">${uiIcon('trash', 15)}Delete this submission</button>` : '<span class="ui-muted">View only</span>'}
-            <span class="fb-spacer"></span>
+            <span class="ui-spacer"></span>
             <button type="button" class="ui-btn ui-btn-secondary" onclick="stepFeedbackPanel(-1)"${index <= 0 ? ' disabled' : ''}>Previous</button>
             <button type="button" class="ui-btn ui-btn-secondary" onclick="stepFeedbackPanel(1)"${index < 0 || index >= filteredFeedbackData.length - 1 ? ' disabled' : ''}>Next</button>
         </footer>`;
@@ -463,17 +475,22 @@ function openFeedbackPanel(feedbackId, part) {
     panel.innerHTML = feedbackPanelHtml(feedback);
     panel.hidden = false;
     document.querySelectorAll('#feedback-table-body tr.is-open').forEach((row) => row.classList.remove('is-open'));
-    document.querySelector(`#feedback-table-body tr[data-feedback-id="${id}"]`)?.classList.add('is-open');
+    document.getElementById('feedback-data-page')?.classList.add('ui-has-sidepanel');
+    const openRow = document.querySelector(`#feedback-table-body tr[data-feedback-id="${id}"]`);
+    if (openRow) { openRow.classList.add('is-open'); openRow.scrollIntoView({ block: 'nearest' }); }
     if (part === 'answers') document.getElementById('feedback-panel-answers')?.scrollIntoView({ block: 'start' });
-    else panel.querySelector('.fb-panel-body').scrollTop = 0;
+    else panel.querySelector('.ui-sidepanel-body').scrollTop = 0;
     document.getElementById('feedback-panel-title')?.focus({ preventScroll: true });
 }
 
-function closeFeedbackPanel() {
+// refocus: false when the list is about to be drawn again (a page turn), so the keyboard is not sent to a row that is going away
+function closeFeedbackPanel(refocus = true) {
     const panel = document.getElementById('feedback-panel');
     const id = feedbackPanelId;
     feedbackPanelId = null;
     if (panel) { panel.hidden = true; panel.innerHTML = ''; }
+    document.getElementById('feedback-data-page')?.classList.remove('ui-has-sidepanel');
+    if (!refocus) return;
     const row = id === null ? null : document.querySelector(`#feedback-table-body tr[data-feedback-id="${id}"]`);
     document.querySelectorAll('#feedback-table-body tr.is-open').forEach((open) => open.classList.remove('is-open'));
     if (row) row.focus({ preventScroll: true }); // back to where the reader was in the list
@@ -488,9 +505,60 @@ function stepFeedbackPanel(step) {
     if (page !== feedbackCurrentPage) {
         feedbackCurrentPage = page;
         feedbackPanelId = Number(next.id);
+        decryptedEmailMap = {}; // a new page: its emails are locked, exactly as when the pager turns the page
+        isAnyEmailDecrypted = false;
         renderFeedbackPage();
     }
     openFeedbackPanel(next.id);
+}
+
+// Decrypt the email of one visitor, from the panel (the toolbar button does the whole page)
+async function decryptOneFeedbackEmail(feedbackId) {
+    if (sessionStorage.getItem('userRole') !== 'system_admin') return;
+    const password = await showPasswordPrompt('Decrypt the email of this visitor?\n\nEnter your System Admin password:');
+    if (!password) return;
+    try {
+        const username = sessionStorage.getItem('loggedUser');
+        const response = await fetch('/api/admin/decrypt-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-username': username },
+            body: JSON.stringify({ feedbackId, password, username })
+        });
+        const data = await response.json();
+        if (!data.success || !data.decryptedEmail) return alert(data.error || 'The email could not be decrypted. Check the password and try again.');
+        decryptedEmailMap[feedbackId] = data.decryptedEmail;
+        isAnyEmailDecrypted = true;
+        renderFeedbackPage();
+    } catch (error) {
+        alert('The email could not be decrypted: ' + error.message);
+    }
+}
+
+// After a delete (feedbackDeletion.js): the list stays on its page, and an open panel moves on to the next submission
+function feedbackDeleted(feedbackId) {
+    const id = Number(feedbackId);
+    const index = filteredFeedbackData.findIndex((item) => Number(item.id) === id);
+    const gone = allFeedbackData.find((item) => Number(item.id) === id);
+    const neighbour = index >= 0 ? (filteredFeedbackData[index + 1] || filteredFeedbackData[index - 1] || null) : null;
+    allFeedbackData = allFeedbackData.filter((item) => Number(item.id) !== id);
+    filteredFeedbackData = filteredFeedbackData.filter((item) => Number(item.id) !== id);
+    const pages = Math.max(1, Math.ceil(filteredFeedbackData.length / feedbackItemsPerPage));
+    if (feedbackCurrentPage > pages) feedbackCurrentPage = pages;
+    const panelWasOnIt = feedbackPanelId === id;
+    if (panelWasOnIt && !neighbour) closeFeedbackPanel(false);
+    if (panelWasOnIt && neighbour) feedbackPanelId = Number(neighbour.id);
+    renderFeedbackPage();
+    const status = document.getElementById('feedback-status');
+    if (status) {
+        status.textContent = `Deleted the submission of ${gone && gone.name ? gone.name : 'the visitor'}.`;
+        clearTimeout(feedbackDeleted.timer);
+        feedbackDeleted.timer = setTimeout(() => { status.textContent = ''; }, 6000);
+    }
+    // the keyboard lands on the panel that moved on, or on the row that took the deleted row's place
+    if (feedbackPanelId !== null) return document.getElementById('feedback-panel-title')?.focus({ preventScroll: true });
+    const rows = document.querySelectorAll('#feedback-table-body tr[data-feedback-id]');
+    const at = index >= 0 ? index - (feedbackCurrentPage - 1) * feedbackItemsPerPage : 0;
+    (rows[Math.max(0, Math.min(rows.length - 1, at))] || document.getElementById('feedback-search-input'))?.focus({ preventScroll: true });
 }
 
 // after the list was drawn again (a filter, a sort, emails decrypted, a delete): the open panel follows, or closes when its submission is gone
@@ -500,9 +568,9 @@ function syncFeedbackPanel() {
     const feedback = filteredFeedbackData.find((item) => Number(item.id) === feedbackPanelId);
     if (!feedback) return closeFeedbackPanel();
     if (!panel || panel.hidden) return;
-    const scroll = panel.querySelector('.fb-panel-body')?.scrollTop || 0;
+    const scroll = panel.querySelector('.ui-sidepanel-body')?.scrollTop || 0;
     panel.innerHTML = feedbackPanelHtml(feedback);
-    const body = panel.querySelector('.fb-panel-body');
+    const body = panel.querySelector('.ui-sidepanel-body');
     if (body) body.scrollTop = scroll;
 }
 
@@ -526,17 +594,19 @@ document.addEventListener('DOMContentLoaded', () => {
         pop.style.left = `${Math.round(Math.max(8, Math.min(at.left, window.innerWidth - pop.offsetWidth - 8)))}px`;
     });
 });
-// Esc closes the panel, unless a window above it (photo viewer, pledge, answers, email, delete check) is open: that one closes first
+// Esc closes the panel, unless a window above it (photo viewer, password, email, delete check) is open: that one closes first.
+// The key is looked at on its way down (capture), before such a window removes itself, so one Esc never closes both.
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || feedbackPanelId === null) return;
-    if (document.querySelector('.photo-popup, .pledge-popup, .qa-popup, .email-popup, .delete-access-modal, #ui-info-pop:popover-open, #feedback-date-pop:popover-open')) return;
+    if (document.querySelector('.photo-popup, .pledge-popup, .qa-popup, .email-popup, .delete-access-modal, .password-prompt-modal, #ui-info-pop:popover-open, #feedback-date-pop:popover-open')) return;
     closeFeedbackPanel();
-});
+}, true);
 // <Jun Kai end>
 
 // Navigate to previous page
 function prevFeedbackPage() {
     if (feedbackCurrentPage > 1) {
+        closeFeedbackPanel(false); // <Jun Kai/> the open submission is not on the next page
         feedbackCurrentPage--;
         decryptedEmailMap = {}; // Reset decryption
         isAnyEmailDecrypted = false;
@@ -548,6 +618,7 @@ function prevFeedbackPage() {
 function nextFeedbackPage() {
     const totalPages = Math.ceil(filteredFeedbackData.length / feedbackItemsPerPage);
     if (feedbackCurrentPage < totalPages) {
+        closeFeedbackPanel(false); // <Jun Kai/> the open submission is not on the next page
         feedbackCurrentPage++;
         decryptedEmailMap = {}; // Reset decryption
         isAnyEmailDecrypted = false;
