@@ -141,7 +141,7 @@
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/feedback/feedback.css?v=kiosk-layout-2">
+    <link rel="stylesheet" href="/feedback/feedback.css?v=visitor-actions-1">
 </head>
 <body>
     <!-- Global language switcher: click/tap or use Alt+1 English, Alt+2 Chinese, Alt+3 Malay, Alt+4 Tamil (Done by Caeden) -->
@@ -391,6 +391,10 @@
                     <h2 class="consent-title" id="feedback-title">Share Your Feedback</h2>
                     <p class="consent-description" id="feedback-description">A few quick taps. Honest answers are perfect.</p>
                 </div>
+                <button type="button" id="skip-feedback-button" class="feedback-skip-action" onclick="skipFeedback()">
+                    <span id="skip-feedback-text">Skip Feedback</span>
+                    <span aria-hidden="true">→</span>
+                </button>
             </header>
             
             <form class="feedback-form" onsubmit="submitFeedback(event)" novalidate>
@@ -401,11 +405,6 @@
                     <button type="submit" class="consent-button">
                         <span id="continue-to-pledge-text">Continue to Pledge</span>
                         <span class="arrow">→</span>
-                    </button>
-
-                    <!--skip feedback button added (zihan)-->
-                     <button type="button" id="skip-feedback-button" class="skip-pledge-button" onclick="skipFeedback()" style="margin-top: 15px;">
-                        <span id="skip-feedback-text">Skip Feedback</span>
                     </button>
 
                     <button type="button" class="secondary-button" onclick="goBackToDetails()" style="margin-top: 15px;">
@@ -556,13 +555,13 @@
                 
                 <div class="experience-form-actions">
                     <button type="submit" class="consent-button" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                        <span id="continue-to-photo-text">Continue to Photo</span>
+                        <span id="continue-to-photo-text">Take a Keepsake Photo</span>
                         <span class="arrow">→</span>
                     </button>
 
                     <!-- Skip the photo straight from the pledge page (zihan) -->
                     <button type="button" class="secondary-button" onclick="submitPledgeAndSkipPhoto()">
-                        <span id="skip-photo-from-pledge-text">Skip Photo</span>
+                        <span id="skip-photo-from-pledge-text">Continue Without a Photo</span>
                     </button>
                     
                     <!--skip pledge button removed (zihan)-->
@@ -1239,7 +1238,7 @@
     <script src="/feedback/js/backNavigation.js"></script>
     <script src="/feedback/js/events.js"></script>
     <script src="/feedback/js/config.js"></script>
-    <script src="/feedback/js/language.js"></script>
+    <script src="/feedback/js/language.js?v=visitor-actions-1"></script>
     <script src="/feedback/js/heartbeat.js"></script>
 </body>
 </html>

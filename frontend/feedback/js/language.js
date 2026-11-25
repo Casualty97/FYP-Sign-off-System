@@ -49,7 +49,8 @@ const translations = {
         charactersText: "500 characters",
         pledgePrivacy: "Your pledge will be displayed on our pledgeboard, inspiring others to take action",
         skipPledge: "I do not want to make a pledge",
-        continueToPhoto: "Continue to Photo",
+        continueToPhoto: "Take a Keepsake Photo",
+        continueWithoutPhoto: "Continue Without a Photo",
         photoChoiceTitle: "Would you like to take a photo?",
         photoChoiceDescription: "You can take a keepsake photo, or skip it and submit your feedback now.",
         takePhotoChoice: "Take Photo",
@@ -146,7 +147,8 @@ const translations = {
         charactersText: "500 aksara",
         pledgePrivacy: "Ikrar anda akan dipaparkan pada papan ikrar kami untuk memberi inspirasi kepada orang lain",
         skipPledge: "Saya tidak mahu membuat ikrar",
-        continueToPhoto: "Teruskan ke Foto",
+        continueToPhoto: "Ambil Foto Kenangan",
+        continueWithoutPhoto: "Teruskan Tanpa Foto",
 
         photoTitle: "Ambil Foto Anda",
         photoDescription: "Foto anda akan dihantar kepada anda melalui e-mel",
@@ -239,7 +241,8 @@ const translations = {
         charactersText: "500个字符",
         pledgePrivacy: "您的承诺将显示在我们的承诺板上，激励其他人采取行动",
         skipPledge: "我不想作出承诺",
-        continueToPhoto: "继续到照片",
+        continueToPhoto: "拍一张纪念照",
+        continueWithoutPhoto: "不拍照，继续",
 
         photoTitle: "拍摄您的照片",
         photoDescription: "您的照片将通过电子邮件发送给您",
@@ -332,7 +335,8 @@ const translations = {
         charactersText: "500 எழுத்துகள்",
         pledgePrivacy: "உங்கள் உறுதிமொழி எங்கள் உறுதிமொழி பலகையில் காட்டப்படும், இது பிறரையும் செயல்பட தூண்டும்",
         skipPledge: "நான் உறுதிமொழி வழங்க விரும்பவில்லை",
-        continueToPhoto: "புகைப்படத்திற்கு தொடர்க",
+        continueToPhoto: "நினைவுப் புகைப்படம் எடுக்கவும்",
+        continueWithoutPhoto: "புகைப்படம் இல்லாமல் தொடரவும்",
 
         photoTitle: "உங்கள் புகைப்படத்தை எடுக்கவும்",
         photoDescription: "உங்கள் புகைப்படம் மின்னஞ்சல் மூலம் உங்களுக்கு அனுப்பப்படும்",
@@ -628,7 +632,7 @@ function applyTranslations() {
     setText('photo-choice-description', t.photoChoiceDescription || 'You can take a keepsake photo, or skip it and submit your feedback now.');
     setText('take-photo-choice-text', t.takePhotoChoice || t.continueToPhoto || 'Take Photo');
     setText('skip-photo-choice-text', t.skipPhotoChoice || 'Skip Photo');
-    setText('skip-photo-from-pledge-text', t.skipPhotoChoice || 'Skip Photo');
+    setText('skip-photo-from-pledge-text', t.continueWithoutPhoto || 'Continue Without a Photo');
     setText('back-from-photo-choice-text', t.back);
 
     setText('photo-title', t.photoTitle);

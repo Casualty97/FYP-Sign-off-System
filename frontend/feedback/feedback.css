@@ -5602,3 +5602,24 @@ textarea::placeholder {
     .experience-step-heading .consent-icon svg { width: 30px; height: 30px; }
     .experience-form-actions .consent-button { grid-column: 1 / -1; }
 }
+
+.experience-step--feedback .experience-step-heading { flex-wrap: wrap; }
+.experience-step--feedback .experience-step-copy { flex: 1 1 220px; }
+.feedback-skip-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-inline-start: auto;
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid #8ab6a0;
+    border-radius: 10px;
+    background: #214f3e;
+    color: #fafff3;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+.feedback-skip-action:hover { background: #306c54; }
+.feedback-skip-action:focus-visible { outline: 3px solid #c4ee83; outline-offset: 3px; }
