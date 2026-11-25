@@ -623,15 +623,25 @@ function showOverlayUploadPreview(inputId, previewId) {
 
     const previewUrl = URL.createObjectURL(file);
     preview.dataset.previewUrl = previewUrl;
-    // <Jun Kai/> the file name is escaped in the alt text too, so a file name cannot add HTML to the page
-    preview.innerHTML = `
-        <div class="overlay-upload-preview-frame">
-            <button type="button" class="overlay-upload-remove" aria-label="Remove selected overlay"
-                onclick="clearOverlayUploadPreview('${inputId}', '${previewId}')">×</button>
-            <img src="${previewUrl}" alt="${escapeHtmlSafe(file.name)} preview">
-        </div>
-        <div class="overlay-upload-preview-name">${escapeHtmlSafe(file.name)}</div>
-    `;
+    // <Jun Kai start> built with DOM calls: the file name and the preview address are set as text and properties, so
+    // a file name can never add HTML to the page (same elements and classes as before)
+    const frame = document.createElement('div');
+    frame.className = 'overlay-upload-preview-frame';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'overlay-upload-remove';
+    remove.setAttribute('aria-label', 'Remove selected overlay');
+    remove.textContent = '×';
+    remove.addEventListener('click', () => clearOverlayUploadPreview(inputId, previewId));
+    const image = document.createElement('img');
+    image.src = previewUrl;
+    image.alt = `${file.name} preview`;
+    frame.append(remove, image);
+    const name = document.createElement('div');
+    name.className = 'overlay-upload-preview-name';
+    name.textContent = file.name;
+    preview.replaceChildren(frame, name);
+    // <Jun Kai end>
     preview.style.display = 'block';
 }
 
