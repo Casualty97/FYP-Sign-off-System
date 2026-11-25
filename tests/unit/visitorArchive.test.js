@@ -498,6 +498,25 @@ test('buildSelection: who stays in the database, what gets encrypted, what tempo
     assert.equal('contact_info_encrypted' in legacy.records.lostFound[0] || 'contact_info' in legacy.records.lostFound[0], false, 'a preview has no contact details at all');
 });
 
+// <Jun Kai start> since migration 010 the contact is stored encrypted: the archive copies it, it never encrypts it twice
+test('buildSelection copies an already encrypted contact as it is and still encrypts a plain one from before', () => {
+    const plan = { sources: [], photos: [], missing: [], onDisk: 0, onDiskBytes: 0, includedBytes: 0, temporaryTrimmed: 0 };
+    const raw = {
+        feedback: [], answers: [], likes: [], users: [], userTotals: new Map(), orphanIds: [], questions: [], options: [],
+        lostFound: [
+            { id: 7, contact_info: '', contact_info_encrypted: 'aa:bb:cc', feedback_progress: null, created_at: CREATED },
+            { id: 8, contact_info: 'old@example.com', contact_info_encrypted: null, feedback_progress: null, created_at: CREATED }
+        ]
+    };
+    const real = writer.buildSelection(raw, plan, { encrypt: fakeEncrypt });
+    assert.equal(real.records.lostFound[0].contact_info_encrypted, 'aa:bb:cc', 'copied as it is');
+    assert.equal(real.records.lostFound[1].contact_info_encrypted, fakeEncrypt('old@example.com'), 'a plain one from before is encrypted');
+    assert.equal(real.records.lostFound.some((r) => 'contact_info' in r), false, 'no plain contact column in the archive');
+    const preview = writer.buildSelection(raw, plan, {});
+    assert.equal(preview.records.lostFound.some((r) => 'contact_info_encrypted' in r || 'contact_info' in r), false, 'a preview has no contact at all');
+});
+// <Jun Kai end>
+
 test('buildSelection keeps a visitor seen at or after the guard, the same rule as the users DELETE', () => {
     const guard = new Date('2025-11-08T16:00:00.000Z');
     const before = new Date(guard.getTime() - 1000);

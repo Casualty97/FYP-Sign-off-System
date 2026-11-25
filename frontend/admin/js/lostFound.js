@@ -41,7 +41,7 @@ function updateNickUsageAnalytics() { // Render Nick usage analytics cards (DONE
 }
 
 function downloadLostFoundCsv() { // Download Lost & Found CSV export (DONE BY NICK)
-    window.location.href = '/api/admin/lost-found-reports/export.csv';
+    exportLostFoundCsvWithPassword(); // <Jun Kai/> the file now holds the decrypted contacts, so it asks for the password
 }
 
 // Load Lost & Found reports for the Administration page - changes made by nick
@@ -85,7 +85,7 @@ function filterLostFoundReports() { // changes made by nick
             report.report_type,
             report.item_description,
             report.location_text,
-            report.contact_info,
+            lostFoundContacts[report.id] || '', // <Jun Kai/> only a contact that was decrypted on this page can be searched
             report.details,
             report.current_page,
             report.status
@@ -198,7 +198,7 @@ function updateLostFoundReportTable() { // changes made by nick
                 <td class="lf-wrap"><b>${escapeHtml(report.item_description || '-')}</b>${pageLabel}</td>
                 <td>${photoCell}</td>
                 <td class="lf-wrap">${escapeHtml(report.location_text || '-')}</td>
-                <td class="lf-wrap">${escapeHtml(report.contact_info || '-')}</td>
+                <td class="lf-wrap">${lostFoundContactCell(report, trackingCode)}</td>
                 <td class="lf-wrap lf-details">${escapeHtml(report.details || '-')}</td>
                 <td>${lostFoundStatusTag(status)}</td>
                 <td class="lf-actions">${lostFoundNextStep(report, status, trackingCode)}</td>
@@ -235,6 +235,69 @@ async function updateLostFoundReportStatus(reportId, status, button) { // change
     }
 }
 
+// <Jun Kai start> the encrypted contact (like visitor emails): "Encrypted" until a System Admin decrypts it with their
+// password; a decrypted contact stays visible by report id until Hide or a reload of the page, also when the list
+// reloads after a status change
+const lostFoundContacts = {};
+
+function lostFoundContactCell(report, code) {
+    const id = Number(report.id);
+    const open = lostFoundContacts[id];
+    if (open) return `<span class="lf-contact">${escapeHtml(open)}</span> <button type="button" class="ui-link lf-contact-btn" data-lf-contact-hide="${id}" aria-label="Hide the contact of ${escapeHtml(code)}">Hide</button>`;
+    if (!report.has_contact) return '<span class="lf-muted">None</span>';
+    const canDecrypt = sessionStorage.getItem('userRole') === 'system_admin';
+    return `<span class="lf-locked">${uiIcon('lock', 12)}Encrypted</span>${canDecrypt ? ` <button type="button" class="ui-link lf-contact-btn" data-lf-contact="${id}" aria-label="Decrypt the contact of ${escapeHtml(code)}">Decrypt</button>` : ''}`;
+}
+
+async function decryptLostFoundContact(id) {
+    const report = allLostFoundReports.find((item) => Number(item.id) === Number(id));
+    const code = report?.tracking_code || `LF-${String(id).padStart(5, '0')}`;
+    const password = await showPasswordPrompt(`Show the contact of ${code}?\n\nEnter your System Admin password:`);
+    if (!password) return;
+    try {
+        const response = await fetch(`/api/admin/lost-found-reports/${encodeURIComponent(id)}/contact`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || `the server answered ${response.status}`);
+        lostFoundContacts[Number(id)] = data.contact;
+        filterLostFoundReports();
+        lostFoundSay(`Decrypted the contact of ${code}.`);
+    } catch (error) {
+        lostFoundSay(`Could not decrypt the contact of ${code}: ${error.message}`, true);
+    }
+}
+
+async function exportLostFoundCsvWithPassword() {
+    const password = await showPasswordPrompt('Export every report with its contact as a CSV file?\n\nThe file holds the decrypted contacts. Enter your System Admin password:');
+    if (!password) return;
+    try {
+        const response = await fetch('/api/admin/lost-found-reports/export.csv', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || `the server answered ${response.status}`);
+        }
+        const blob = await response.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `lost_found_reports_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        lostFoundSay('Exported the reports as a CSV file.');
+    } catch (error) {
+        lostFoundSay(`Could not export the reports: ${error.message}`, true);
+    }
+}
+// <Jun Kai end>
+
 // <Jun Kai start> Lost & Found A (admin redesign)
 let lostFoundLoadError = ''; // the reason the last load failed, empty after a good load
 let lostFoundPageReady = false;
@@ -262,6 +325,10 @@ function prepareLostFoundPage() {
     const menu = document.getElementById('lost-found-menu');
     if (body) {
         body.addEventListener('click', (event) => {
+            const decrypt = event.target.closest('[data-lf-contact]');
+            if (decrypt) return decryptLostFoundContact(Number(decrypt.dataset.lfContact));
+            const hide = event.target.closest('[data-lf-contact-hide]');
+            if (hide) { delete lostFoundContacts[Number(hide.dataset.lfContactHide)]; filterLostFoundReports(); return; }
             const step = event.target.closest('[data-lf-status]');
             if (step) updateLostFoundReportStatus(Number(step.dataset.lfId), step.dataset.lfStatus, step);
             // a ... button opens the shared menu by itself (popovertarget); this only notes which report it is for
