@@ -1,5 +1,5 @@
 # Owner: Role 3, Jun Kai.
-# ESG Kiosk uninstaller for Windows (task-sheet point 5). Double-click uninstall.cmd in the project folder; it runs this.
+# RP Xperience Centre Kiosk uninstaller for Windows (task-sheet point 5). Double-click uninstall.cmd in the project folder; it runs this.
 #   uninstall.cmd                stops the kiosk and removes what install.cmd added to Windows: the logon start, the
 #                                desktop link and the firewall rule (Windows asks for administrator rights for the rule)
 #   uninstall.cmd -RemoveData    also drops the database (you type its name to confirm) and deletes backend\data (but
@@ -34,16 +34,12 @@ function Get-DatabaseName {
 }
 
 # The Startup shortcut belongs to this copy when it starts the kiosk from this folder
-function Test-OwnStartupLink {
-    if (-not (Test-Path $StartupLink)) { return $false }
-    $link = (New-Object -ComObject WScript.Shell).CreateShortcut($StartupLink)
-    return ($link.WorkingDirectory.TrimEnd('\') -ieq $Root.TrimEnd('\'))
-}
+function Test-OwnStartupLink { return (Test-OwnLink $StartupLink) }
 
 # The administrator part: the firewall rule
 function Remove-AdminSteps {
     if (@(Get-FirewallRules).Count -gt 0) {
-        Invoke-Change "remove the firewall rule `"$FirewallName`"" { Remove-NetFirewallRule -Group $FirewallGroup -ErrorAction Stop }
+        Invoke-Change "remove the firewall rule `"$FirewallName`"" { Get-FirewallRules | Remove-NetFirewallRule -ErrorAction Stop }
     } else { Write-Info 'no firewall rule to remove' }
 }
 
@@ -56,7 +52,7 @@ if ($AdminSteps) {
 }
 
 Write-Host ''
-Write-Host 'ESG Kiosk uninstaller' -ForegroundColor White
+Write-Host 'RP Xperience Centre Kiosk uninstaller' -ForegroundColor White
 Write-Host "Folder: $Root"
 if ($DryRun) { Write-Host 'Dry run: nothing is changed.' -ForegroundColor DarkGray }
 $failed = $false
@@ -78,9 +74,13 @@ else {
 
 Write-Step 'Logon start and desktop link'
 if (Test-OwnStartupLink) { Invoke-Change 'remove the logon start (Startup folder shortcut)' { Remove-Item -LiteralPath $StartupLink -Force } }
-elseif (Test-Path $StartupLink) { Write-Note 'the Startup shortcut "ESG Kiosk" starts a copy in another folder: left alone' }
+elseif (Test-Path $StartupLink) { Write-Note 'the Startup shortcut "RP Xperience Centre Kiosk" starts a copy in another folder: left alone' }
 else { Write-Info 'no logon start to remove' }
 if (Test-Path $DesktopLink) { Invoke-Change 'remove the desktop link to the admin page' { Remove-Item -LiteralPath $DesktopLink -Force } }
+# <Jun Kai start> what an install under the old name left behind
+if (Test-OwnLink $OldStartupLink) { Invoke-Change 'remove the logon start made under the old name' { Remove-Item -LiteralPath $OldStartupLink -Force } }
+if (Test-Path $OldDesktopLink) { Invoke-Change 'remove the desktop link made under the old name' { Remove-Item -LiteralPath $OldDesktopLink -Force } }
+# <Jun Kai end>
 else { Write-Info 'no desktop link to remove' }
 
 Write-Step 'Firewall rule'

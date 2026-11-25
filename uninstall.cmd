@@ -1,7 +1,7 @@
 @echo off
 rem Owner: Role 3, Jun Kai.
 rem <Jun Kai start>
-rem Removes the ESG Kiosk from this PC: double-click it, or run it with options, e.g. uninstall.cmd -DryRun
+rem Removes the RP Xperience Centre Kiosk from this PC: double-click it, or run it with options, e.g. uninstall.cmd -DryRun
 rem (every option is listed at the top of scripts\install\uninstall.ps1)
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\install\uninstall.ps1" %*
 set "CODE=%ERRORLEVEL%"

@@ -175,7 +175,7 @@ function showAddAssetModal(defaultBluetoothId = '') {
                     </div>
                     <div>
                         <label for="asset-location">Location</label>
-                        <input id="asset-location" name="location" type="text" placeholder="Level 3, ESG Centre">
+                        <input id="asset-location" name="location" type="text" placeholder="Level 3, RP Xperience Centre">
                     </div>
                     <div class="full-span">
                         <label for="asset-notes">Notes</label>

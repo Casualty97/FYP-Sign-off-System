@@ -68,7 +68,7 @@
 // NICK CHANGE SUMMARY (DONE BY NICK)
 // ============================================================
 //
-// 1. ESG JOURNEY PASSPORT
+// 1. RP XPERIENCE CENTRE JOURNEY PASSPORT
 //    GET /journey-passport            - Return visitor passport milestones for repeat engagement tracking (DONE BY NICK)
 //    buildJourneyPassport             - Derive feedback, pledge, keepsake, liked pledge, repeat visit and topic stamps (DONE BY NICK)
 //
@@ -304,7 +304,7 @@ async function getModel() {
     return classifier;
 }
 
-// ===================== 1. ESG JOURNEY PASSPORT (Done by Nick) =====================
+// ===================== 1. RP XPERIENCE CENTRE JOURNEY PASSPORT (Done by Nick) =====================
 const PASSPORT_TOPIC_LABELS = {
     'climate-change': 'Climate Champion',
     'renewable-energy': 'Renewable Innovator',
@@ -511,7 +511,7 @@ router.get('/intervention-alerts', auth.requireAuth, (req, res) => {
     });
 });
 
-// ESG Journey Passport dashboard summary for repeat engagement tracking.
+// RP Xperience Centre Journey Passport dashboard summary for repeat engagement tracking.
 router.get('/journey-passport', auth.requireAuth, (req, res) => {
     const query = `
         SELECT
@@ -6135,7 +6135,7 @@ function normalizeCampaignSettings(campaignSettings) {
 
   const normalized = { ...campaignSettings };
   normalized.enabled = normalized.enabled === true;
-  normalized.title = String(normalized.title || '').trim().slice(0, 80) || 'ESG Campaign';
+  normalized.title = String(normalized.title || '').trim().slice(0, 80) || 'RP Xperience Centre Campaign';
   normalized.cadence = ['weekly', 'monthly'].includes(String(normalized.cadence)) ? normalized.cadence : 'weekly';
   normalized.treeSubtitle = String(normalized.treeSubtitle || '').trim().slice(0, 180);
   normalized.badgeEmphasis = String(normalized.badgeEmphasis || '').trim().slice(0, 80);

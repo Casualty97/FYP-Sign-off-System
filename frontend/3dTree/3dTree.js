@@ -759,7 +759,7 @@ class TreeManager {
     updateTreeHeading() {
         if (this.demoFallEnabled && !this.isReviewMode) {
             if (this.treeTitle) {
-                this.treeTitle.textContent = 'ESG Digital Tree - Leaf Fall Demo';
+                this.treeTitle.textContent = 'RP Xperience Centre Digital Tree - Leaf Fall Demo';
             }
             if (this.treeSubtitle) {
                 this.treeSubtitle.textContent = `${this.visitors.length} demo leaves will fall. No live feedback data is changed.`;
@@ -769,8 +769,8 @@ class TreeManager {
 
         if (this.treeTitle) {
             this.treeTitle.textContent = this.isReviewMode
-                ? `${this.selectedYear} ESG Tree Review`
-                : '🌳 ESG Digital Tree';
+                ? `${this.selectedYear} RP Xperience Centre Tree Review`
+                : '🌳 RP Xperience Centre Digital Tree';
         }
 
         if (this.treeSubtitle) {

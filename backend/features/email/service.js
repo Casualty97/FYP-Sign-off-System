@@ -1,7 +1,7 @@
 // Owner: Role 3, Jun Kai. Previous team: XY (Xuanyang) (8), Caeden (4), Nick (4).
 // ============================================================
 // DONE BY XY - EMAIL BADGE SERVICE SUMMARY
-//  - Added the ESG Kiosk badge email system and badge configurations.
+//  - Added the RP Xperience Centre Kiosk badge email system and badge configurations.
 //  - Added topic-to-badge mapping for pledge topics selected in the feedback flow.
 //  - Added customized HTML email templates with badge visuals.
 //  - Added badge congratulation email sending and social sharing sections.
@@ -42,7 +42,7 @@ function getPhotoAttachmentContentType(filename) { // changes made by nick
 }
 
 // ==================== BADGE SYSTEM IMPLEMENTATION ====================
-// Done by XY - Complete badge awarding system for ESG Kiosk
+// Done by XY - Complete badge awarding system for RP Xperience Centre Kiosk
 //
 // SUMMARY OF CHANGES:
 // 1. Added comprehensive badge configurations with multiple dedicated badge types
@@ -86,7 +86,7 @@ const BADGE_CONFIGS = {
         icon: '📝',
         imageUrl: 'https://img.icons8.com/fluency/96/feedback.png',
         color: '#10b981',
-        textTemplate: `Hello!\n\nCongratulations on completing the feedback form! You've earned the "Feedback Contributor" badge.\n\nKeep up the great work!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on completing the feedback form! You've earned the "Feedback Contributor" badge.\n\nKeep up the great work!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: #f8fafc; padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -108,7 +108,7 @@ const BADGE_CONFIGS = {
                             🏆 Achievement Unlocked
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -149,7 +149,7 @@ const BADGE_CONFIGS = {
         icon: '🌱',
         imageUrl: 'https://img.icons8.com/fluency/96/leaf.png',
         color: '#059669',
-        textTemplate: `Hello!\n\nCongratulations! By making an environmental pledge, you've earned the "Eco Warrior" badge.\n\nYour commitment to sustainability makes a real difference!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making an environmental pledge, you've earned the "Eco Warrior" badge.\n\nYour commitment to sustainability makes a real difference!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #d1fae5); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -171,7 +171,7 @@ const BADGE_CONFIGS = {
                             🌍 Planet Protector 🛡️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -212,7 +212,7 @@ const BADGE_CONFIGS = {
         icon: '🤝',
         imageUrl: 'https://img.icons8.com/fluency/96/handshake.png',
         color: '#3b82f6',
-        textTemplate: `Hello!\n\nCongratulations on making a pledge commitment! You've earned the "Commitment Champion" badge.\n\nYour pledges help drive positive change!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on making a pledge commitment! You've earned the "Commitment Champion" badge.\n\nYour pledges help drive positive change!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #eff6ff, #dbeafe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -234,7 +234,7 @@ const BADGE_CONFIGS = {
                             💪 Commitment Champion
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -266,7 +266,7 @@ const BADGE_CONFIGS = {
         icon: '🌎',
         imageUrl: 'https://img.icons8.com/fluency/96/earth-globe.png',
         color: '#0ea5e9',
-        textTemplate: `Hello!\n\nCongratulations on pledging climate action! You've earned the "Climate Champion" badge.\n\nYour commitment to the climate helps protect our planet.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging climate action! You've earned the "Climate Champion" badge.\n\nYour commitment to the climate helps protect our planet.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfeff, #dbeafe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -288,7 +288,7 @@ const BADGE_CONFIGS = {
                             🌍 Climate Action Hero
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -329,7 +329,7 @@ const BADGE_CONFIGS = {
         icon: '⚡',
         imageUrl: 'https://img.icons8.com/fluency/96/solar-panel.png',
         color: '#22c55e',
-        textTemplate: `Hello!\n\nCongratulations on pledging renewable energy! You've earned the "Renewable Innovator" badge.\n\nYour commitment to clean power is energizing the future.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging renewable energy! You've earned the "Renewable Innovator" badge.\n\nYour commitment to clean power is energizing the future.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #e7f5ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -351,7 +351,7 @@ const BADGE_CONFIGS = {
                             ⚡ Clean Power Leader
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -392,7 +392,7 @@ const BADGE_CONFIGS = {
         icon: '🌿',
         imageUrl: 'https://img.icons8.com/fluency/96/leaf.png',
         color: '#16a34a',
-        textTemplate: `Hello!\n\nCongratulations on pledging sustainable living! You've earned the "Sustainable Living Advocate" badge.\n\nYour commitment to greener habits inspires others.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging sustainable living! You've earned the "Sustainable Living Advocate" badge.\n\nYour commitment to greener habits inspires others.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #ecfdf5, #eff6ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -414,7 +414,7 @@ const BADGE_CONFIGS = {
                             🌱 Green Lifestyle Leader
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -455,7 +455,7 @@ const BADGE_CONFIGS = {
         icon: '🌊',
         imageUrl: 'https://img.icons8.com/fluency/96/wave.png',
         color: '#0ea5e9',
-        textTemplate: `Hello!\n\nCongratulations on pledging ocean conservation! You've earned the "Ocean Guardian" badge.\n\nYour commitment to protecting marine life is truly inspiring.\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations on pledging ocean conservation! You've earned the "Ocean Guardian" badge.\n\nYour commitment to protecting marine life is truly inspiring.\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #eff6ff, #e0f2fe); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -477,7 +477,7 @@ const BADGE_CONFIGS = {
                             🌊 Marine Protector
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -518,7 +518,7 @@ const BADGE_CONFIGS = {
         icon: '🤝',
         imageUrl: 'https://img.icons8.com/fluency/96/group.png',
         color: '#f59e0b',
-        textTemplate: `Hello!\n\nCongratulations! By making a social responsibility pledge, you've earned the "Social Champion" badge.\n\nYour commitment to community and inclusion makes a real difference!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making a social responsibility pledge, you've earned the "Social Champion" badge.\n\nYour commitment to community and inclusion makes a real difference!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -540,7 +540,7 @@ const BADGE_CONFIGS = {
                             🤝 Community Builder 🏘️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -581,7 +581,7 @@ const BADGE_CONFIGS = {
         icon: '⚖️',
         imageUrl: 'https://img.icons8.com/fluency/96/justice-scale.png',
         color: '#8b5cf6',
-        textTemplate: `Hello!\n\nCongratulations! By making a governance and ethics pledge, you've earned the "Governance Guardian" badge.\n\nYour commitment to transparency and accountability strengthens our society!\n\nBest regards,\nESG Team`,
+        textTemplate: `Hello!\n\nCongratulations! By making a governance and ethics pledge, you've earned the "Governance Guardian" badge.\n\nYour commitment to transparency and accountability strengthens our society!\n\nBest regards,\nRP Xperience Centre Team`,
         htmlTemplate: `
             <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background: linear-gradient(135deg, #f3e8ff, #e9d5ff); padding: 20px; border-radius: 10px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -603,7 +603,7 @@ const BADGE_CONFIGS = {
                             ⚖️ Ethics Champion 🛡️
                         </div>
                     </div>
-                    <p>Best regards,<br><strong>ESG Team</strong></p>
+                    <p>Best regards,<br><strong>RP Xperience Centre Team</strong></p>
                     
                     <!-- Social Media Sharing Section - Added by XY -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -821,7 +821,7 @@ function stripPhotoAttachmentSentence(text) {
         .replace(/\s*Attached below is your commemorative photo from your visit\./i, '')
         .trim();
 
-    return cleaned || 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback.';
+    return cleaned || 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback.';
 }
 
 function buildVisitSummary(options = {}) {
@@ -840,7 +840,7 @@ function buildVisitSummary(options = {}) {
         pledgeTopic: topicLabel,
         retention: formatRetentionSummary(options.retention, options.retentionDays),
         badgeName,
-        treeLeafMessage: options.treeLeafMessage || 'Your virtual leaf has been added to the RP ESG digital tree.'
+        treeLeafMessage: options.treeLeafMessage || 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'
     };
 }
 
@@ -901,10 +901,10 @@ Congratulations on earning the "${badgeConfig.name}" badge.
 ${message}
 
 Key exhibits or takeaway messages:
-${highlights.map(item => `- ${item}`).join('\n') || '- Thank you for contributing to RP ESG Centre.'}
+${highlights.map(item => `- ${item}`).join('\n') || '- Thank you for contributing to RP Xperience Centre.'}
 
 Best regards,
-ESG Team`;
+RP Xperience Centre Team`;
 
     const html = `
         <div style="font-family: Arial, sans-serif; max-width:600px; margin:0 auto; background:#f8fafc; padding:20px; border-radius:12px;">
@@ -925,7 +925,7 @@ ESG Team`;
                     ${highlightsHtml}
                 </div>
                 ${userData?.pledge ? `<p style="font-size:14px; color:#475569; line-height:1.6; margin:0 0 18px 0;"><strong>Your pledge:</strong> ${escapeHtml(userData.pledge)}</p>` : ''}
-                <p style="font-size:14px; color:#475569; line-height:1.6; margin:0;">Best regards,<br><strong>ESG Team</strong></p>
+                <p style="font-size:14px; color:#475569; line-height:1.6; margin:0;">Best regards,<br><strong>RP Xperience Centre Team</strong></p>
             </div>
         </div>
     `;
@@ -957,7 +957,7 @@ ${section.highlights.map(item => `  - ${item}`).join('\n')}`
 )).join('\n\n')}
 
 Best regards,
-ESG Team`;
+RP Xperience Centre Team`;
 
     const htmlSections = sections.map(section => `
         <div style="background:#ffffff; padding:18px; border-radius:10px; border-left:5px solid ${section.badgeConfig.color}; box-shadow:0 8px 22px rgba(15,23,42,0.08); margin-bottom:14px;">
@@ -1076,11 +1076,11 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         const emailContent = parameterConfig.emailContent || {};
         const retentionDays = parameterConfig.contentSettings?.temporaryRetentionDays;
         const personalize = (value, fallback = '') => String(value || fallback).replace(/\{name\}/g, name || 'Visitor');
-        const emailIntro = personalize(emailContent.thankYouIntro, 'Thank you for taking the time to visit our ESG Experience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.');
+        const emailIntro = personalize(emailContent.thankYouIntro, 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.');
         const emailClosing = personalize(emailContent.thankYouClosing, 'We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.');
-        const senderName = personalize(emailContent.senderName, 'ESG Centre Team');
-        const footerNote = personalize(emailContent.footerNote, 'This is an automated email sent from the RP ESG kiosk system. Please do not reply to this message.');
-        const emailSubject = personalize(emailContent.thankYouSubject, `Thank you for visiting RP ESG Centre, ${name}!`);
+        const senderName = personalize(emailContent.senderName, 'RP Xperience Centre Team');
+        const footerNote = personalize(emailContent.footerNote, 'This is an automated email sent from the RP Xperience Centre kiosk system. Please do not reply to this message.');
+        const emailSubject = personalize(emailContent.thankYouSubject, `Thank you for visiting RP Xperience Centre, ${name}!`);
         let emailIntroText = emailIntro;
         const suppliedBadges = Array.isArray(visitOptions.badges) ? visitOptions.badges : [];
         const badgeSummaries = suppliedBadges.length > 0
@@ -1236,8 +1236,8 @@ ${footerNote}
 
         const photoMemoryHtml = fullPhotoPath
             ? `
-                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your ESG Centre memory</p>
-                                <img src="cid:visit_photo" alt="Your RP ESG Centre memory" style="display:block; max-width:100%; max-height:400px; height:auto; border:1px solid #e5e5e5;" />${pledgeHtml}`
+                                <p style="margin:28px 0 8px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Your RP Xperience Centre memory</p>
+                                <img src="cid:visit_photo" alt="Your RP Xperience Centre memory" style="display:block; max-width:100%; max-height:400px; height:auto; border:1px solid #e5e5e5;" />${pledgeHtml}`
             : (pledgeHtml || `
                                 <p style="margin:28px 0 0 0;">Your feedback has been recorded in your visitor passport.</p>`);
 
@@ -1248,7 +1248,7 @@ ${footerNote}
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Thank you for visiting RP ESG Centre</title>
+        <title>Thank you for visiting RP Xperience Centre</title>
     </head>
     <body style="margin:0; padding:24px 12px; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif; color:#111111;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
@@ -1257,8 +1257,8 @@ ${footerNote}
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px; border-collapse:collapse; background-color:#ffffff; border:1px solid #e5e5e5; text-align:left;">
                         <tr>
                             <td style="padding:32px 36px 0 36px;">
-                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; ESG Centre</p>
-                                <h1 style="margin:0; font-size:22px; line-height:1.35; font-weight:bold; color:#111111;">Thank you for visiting the RP ESG Centre, ${escapeHtml(name)}!</h1>
+                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                                <h1 style="margin:0; font-size:22px; line-height:1.35; font-weight:bold; color:#111111;">Thank you for visiting the RP Xperience Centre, ${escapeHtml(name)}!</h1>
                             </td>
                         </tr>
                         <tr>
@@ -1287,7 +1287,7 @@ ${footerNote}
         // <Jun Kai end>
 
         const mailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: email,
             replyTo: 'no-reply@rp.edu.sg',
             subject: emailSubject,
@@ -1415,16 +1415,16 @@ async function testEmailService(testEmail = 'test@example.com') {
         
         // Try to send a test email without attachment
         const testMailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: testEmail,
-            subject: 'Test Email from RP ESG Centre',
-            text: 'This is a test email from the RP ESG Centre system. If you receive this, email service is working correctly.',
+            subject: 'Test Email from RP Xperience Centre',
+            text: 'This is a test email from the RP Xperience Centre system. If you receive this, email service is working correctly.',
             // <Jun Kai start> the same clean, colour-free look as the thank-you email (12 Nov 2026)
             html: `
                 <div style="font-family:Arial, Helvetica, sans-serif; max-width:600px; margin:0 auto; padding:28px 32px; border:1px solid #e5e5e5; color:#333333; font-size:15px; line-height:1.6;">
-                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; ESG Centre</p>
-                    <h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.35; color:#111111;">Test Email from RP ESG Centre</h1>
-                    <p style="margin:0 0 10px 0;">This is a test email from the RP ESG Centre system.</p>
+                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                    <h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.35; color:#111111;">Test Email from RP Xperience Centre</h1>
+                    <p style="margin:0 0 10px 0;">This is a test email from the RP Xperience Centre system.</p>
                     <p style="margin:0 0 10px 0;">If you receive this, email service is working correctly.</p>
                     <p style="margin:0;"><strong style="color:#111111;">Server Time:</strong> ${new Date().toLocaleString()}</p>
                     <p style="margin:20px 0 0 0; padding-top:14px; border-top:1px solid #e5e5e5; font-size:12px; color:#777777;">This is an automated test message.</p>
@@ -1526,7 +1526,7 @@ async function sendLostFoundAlertEmail(report = {}) { // Staff Lost & Found aler
         `;
 
         const info = await emailTransporter.sendMail({
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: SENDER_EMAIL,
             subject: `Lost & Found report ${trackingCode}: ${type} item`,
             text: `New Lost & Found report ${trackingCode}\nType: ${type}\nItem: ${item}\nLocation: ${location}\nContact: ${contact}\nPage: ${page}\nDetails: ${details}`,
@@ -1586,7 +1586,7 @@ const sendBadgeEmail = async (recipientEmail, userData) => {
         }
 
         const mailOptions = {
-            from: `"RP ESG Centre" <${SENDER_EMAIL}>`,
+            from: `"RP Xperience Centre" <${SENDER_EMAIL}>`,
             to: recipientEmail,
             subject,
             text,

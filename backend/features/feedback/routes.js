@@ -783,7 +783,7 @@ router.post('/submit-feedback', async (req, res) => {
                                         badgeColor: badgeSummary.badgeColor,
                                         badgeKeys: badgeSummaries.map(badge => badge.badgeKey),
                                         badges: badgeSummaries,
-                                        treeLeafMessage: 'Your virtual leaf has been added to the RP ESG digital tree.'
+                                        treeLeafMessage: 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'
                                     }
                                 );
                                 
@@ -954,7 +954,7 @@ router.post('/feedback/:id/retry-email', async (req, res) => {
                     badgeColor: retryBadgeSummary.badgeColor,
                     badgeKeys: retryBadges.map(badge => badge.badgeKey),
                     badges: retryBadges,
-                    treeLeafMessage: 'Your virtual leaf has been added to the RP ESG digital tree.'
+                    treeLeafMessage: 'Your virtual leaf has been added to the RP Xperience Centre digital tree.'
                 }
             );
             

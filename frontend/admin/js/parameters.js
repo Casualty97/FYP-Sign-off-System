@@ -543,7 +543,7 @@ function collectParameterForm() {
         },
         campaignSettings: {
             enabled: getCheckedValue('campaign-enabled'),
-            title: getInputValue('campaign-title') || 'ESG Campaign',
+            title: getInputValue('campaign-title') || 'RP Xperience Centre Campaign',
             cadence: getInputValue('campaign-cadence') || 'weekly',
             treeSubtitle: getInputValue('campaign-treeSubtitle'),
             pulseGoal: Number(getInputValue('campaign-pulseGoal')) || 100,
