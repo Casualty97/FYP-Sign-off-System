@@ -6,6 +6,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const auth = require('../../core/auth');
+const requestLimit = require('../../core/requestLimit'); // <Jun Kai/> request limits per address
 const db = require('../../core/db');
 const zip = require('../../core/zip');
 const { logAudit } = require('../../core/audit');
@@ -340,7 +341,7 @@ router.post('/unlock', auth.requireAuth, auth.requireAdmin, async (req, res) => 
     } catch (error) { fail(res, error, 'unlock'); }
 });
 
-router.get('/runs/:id/download', auth.requireAuth, auth.requireAdmin, requireUnlocked, async (req, res) => {
+router.get('/runs/:id/download', auth.requireAuth, auth.requireAdmin, requireUnlocked, requestLimit.heavyWork, async (req, res) => {
     try {
         const row = await loadRun(req);
         const file = await presentFile(row);

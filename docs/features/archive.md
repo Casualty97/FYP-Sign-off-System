@@ -37,12 +37,12 @@ Marks feedback as archived, previews and deletes by selection or date, exports E
 | POST | `/api/admin/data-export/unlock` | backend/features/archive/exportRoutes.js |
 | POST | `/api/admin/decrypt-email` | backend/features/admin/routes.js |
 | POST | `/api/admin/decrypt-emails` | backend/features/admin/routes.js |
-| GET | `/api/admin/download-archive-excel` | backend/features/admin/routes.js |
+| POST | `/api/admin/download-archive-excel` | backend/features/admin/routes.js |
 | POST | `/api/admin/download-archive-photos` | backend/features/admin/routes.js |
 | GET | `/api/admin/download-audit-excel` | backend/features/admin/routes.js |
-| GET | `/api/admin/download-excel` | backend/features/admin/routes.js |
+| POST | `/api/admin/download-excel` | backend/features/admin/routes.js |
 | GET | `/api/admin/download-file/:filename` | backend/features/admin/routes.js |
-| GET | `/api/admin/download-photos` | backend/features/admin/routes.js |
+| POST | `/api/admin/download-photos` | backend/features/admin/routes.js |
 | POST | `/api/admin/retention-cleanup/run` | backend/features/admin/routes.js |
 | POST | `/api/admin/verify-photo-access` | backend/features/admin/routes.js |
 
