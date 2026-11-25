@@ -116,10 +116,11 @@ function updateActiveUsersTable(usersData) {
     const currentUser = sessionStorage.getItem('loggedUser');
     const currentUserRole = sessionStorage.getItem('userRole');
     const isSystemAdmin = currentUserRole === 'system_admin';
-    
+    const usersById = new Map(); // <Jun Kai/>
+
     usersData.forEach(user => {
         const row = document.createElement('tr');
-        
+
         const safeUser = {
             id: user.id || 0,
             username: user.username || 'Unknown',
@@ -140,14 +141,16 @@ function updateActiveUsersTable(usersData) {
         // KEEP SAME: Cannot delete root account, cannot delete yourself
         const canDelete = isSystemAdmin && !isProtectedRootUser && !isCurrentUser;
         
+        // <Jun Kai start> names are shown as text, and the buttons carry only the user id (see usersTableClick)
+        usersById.set(String(safeUser.id), safeUser);
         row.innerHTML = `
             <td>
-                ${safeUser.username}
+                ${escapeHtmlSafe(safeUser.username)}
                 ${isProtectedRootUser ? ' <span style="color: #10b981; font-size: 10px; margin-left: 5px;">(ROOT)</span>' : ''}
             </td>
-            <td>${safeUser.full_name}</td>
+            <td>${escapeHtmlSafe(safeUser.full_name)}</td>
             <td>${formatRoleName(safeUser.role)}</td>
-            <td>${safeUser.department}</td>
+            <td>${escapeHtmlSafe(safeUser.department)}</td>
             <td>
                 <span class="badge ${safeUser.is_active ? 'badge-active' : 'badge-warning'}">
                     ${safeUser.is_active ? 'ACTIVE' : 'INACTIVE'}
@@ -155,12 +158,12 @@ function updateActiveUsersTable(usersData) {
             </td>
             <td>
                 ${canEdit ? `
-                    <button class="btn-edit" onclick="editUser(${safeUser.id}, '${safeUser.username}', '${safeUser.role}', '${safeUser.full_name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">
+                    <button class="btn-edit" data-user-action="edit" data-user-id="${escapeHtmlSafe(safeUser.id)}">
                         ${isProtectedRootUser && isCurrentUser ? '🔐 Edit My Account' : 'Edit'}
                     </button>
                 ` : ''}
                 ${canDelete ? `
-                    <button class="btn-delete" onclick="deleteUser(${safeUser.id}, '${safeUser.username}')">
+                    <button class="btn-delete" data-user-action="delete" data-user-id="${escapeHtmlSafe(safeUser.id)}">
                         Delete
                     </button>
                 ` : ''}
@@ -169,10 +172,31 @@ function updateActiveUsersTable(usersData) {
                 ` : ''}
             </td>
         `;
-        
+        // <Jun Kai end>
+
         tbody.appendChild(row);
     });
+    tbody.onclick = (event) => usersTableClick(event, usersById); // <Jun Kai/>
 }
+
+// <Jun Kai start>
+// The buttons of both user tables carry only data-user-action and data-user-id. A name with a quote used to break the
+// inline onclick="editUser(..., 'name')" text, and HTML in a name was put into the page. The same functions are
+// called with the same values as before.
+function usersTableClick(event, usersById) {
+    const button = event.target.closest('button[data-user-action]');
+    if (!button) return;
+    const user = usersById.get(button.dataset.userId);
+    if (!user) return;
+    const actions = {
+        edit: () => editUser(user.id, user.username, user.role, user.full_name),
+        delete: () => deleteUser(user.id, user.username),
+        restore: () => restoreUser(user.id, user.username),
+        'permanent-delete': () => permanentDeleteUser(user.id, user.username)
+    };
+    if (actions[button.dataset.userAction]) actions[button.dataset.userAction]();
+}
+// <Jun Kai end>
 
 // Update deleted users table
 function updateDeletedUsersTable(usersData) {
@@ -199,10 +223,11 @@ function updateDeletedUsersTable(usersData) {
     
     const currentUserRole = sessionStorage.getItem('userRole');
     const isSystemAdmin = currentUserRole === 'system_admin';
-    
+    const usersById = new Map(); // <Jun Kai/>
+
     usersData.forEach(user => {
         const row = document.createElement('tr');
-        
+
         const safeUser = {
             id: user.id || 0,
             username: user.username || 'Unknown',
@@ -219,20 +244,22 @@ function updateDeletedUsersTable(usersData) {
         const canPermanentDelete = isSystemAdmin && !isProtectedRootUser;
         
         const deletedDate = safeUser.deleted_at ? new Date(safeUser.deleted_at).toLocaleDateString() : 'Unknown';
-        
+
+        // <Jun Kai start> names are shown as text, and the buttons carry only the user id (see usersTableClick)
+        usersById.set(String(safeUser.id), safeUser);
         row.innerHTML = `
             <td>
-                ${safeUser.username}
+                ${escapeHtmlSafe(safeUser.username)}
                 ${isProtectedRootUser ? ' <span style="color: #10b981; font-size: 10px; margin-left: 5px;">(ROOT)</span>' : ''}
             </td>
             <td>
-                ${safeUser.full_name}
+                ${escapeHtmlSafe(safeUser.full_name)}
                 <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
-                    Deleted: ${deletedDate} by ${safeUser.deleted_by}
+                    Deleted: ${escapeHtmlSafe(deletedDate)} by ${escapeHtmlSafe(safeUser.deleted_by)}
                 </div>
             </td>
             <td>${formatRoleName(safeUser.role)}</td>
-            <td>${safeUser.department}</td>
+            <td>${escapeHtmlSafe(safeUser.department)}</td>
             <td>
                 <span class="badge badge-danger">
                     DELETED
@@ -240,12 +267,12 @@ function updateDeletedUsersTable(usersData) {
             </td>
             <td>
                 ${canRestore ? `
-                    <button class="btn-success" onclick="restoreUser(${safeUser.id}, '${safeUser.username}')" style="background: #10b981;">
+                    <button class="btn-success" data-user-action="restore" data-user-id="${escapeHtmlSafe(safeUser.id)}" style="background: #10b981;">
                         🔄 Restore
                     </button>
                 ` : ''}
                 ${canPermanentDelete ? `
-                    <button class="btn-delete" onclick="permanentDeleteUser(${safeUser.id}, '${safeUser.username}')">
+                    <button class="btn-delete" data-user-action="permanent-delete" data-user-id="${escapeHtmlSafe(safeUser.id)}">
                         🗑️ Permanent Delete
                     </button>
                 ` : ''}
@@ -254,9 +281,11 @@ function updateDeletedUsersTable(usersData) {
                 ` : ''}
             </td>
         `;
-        
+        // <Jun Kai end>
+
         tbody.appendChild(row);
     });
+    tbody.onclick = (event) => usersTableClick(event, usersById); // <Jun Kai/>
 }
 
 // Legacy function for backward compatibility
@@ -480,6 +509,7 @@ function closeAddUserModal() {
 }
 
 // This is the MODIFIED VERSION that allows systemadmin to edit their own password
+// <Jun Kai/> the username and full name are escaped where the edit window puts them into its HTML
 function editUser(userId, username, currentRole, fullName) {
     const currentUserRole = sessionStorage.getItem('userRole');
     if (currentUserRole !== 'system_admin') {
@@ -558,7 +588,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Username (locked)
                         </label>
                         <input type="text" id="edit-username" 
-                            value="${username}"
+                            value="${escapeHtmlSafe(username)}"
                             disabled
                             style="
                                 width: 100%; 
@@ -580,7 +610,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Full Name
                         </label>
                         <input type="text" id="edit-full-name" 
-                            value="${fullName || 'System Administrator'}"
+                            value="${escapeHtmlSafe(fullName || 'System Administrator')}"
                             placeholder="Enter full name"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
                             required>
@@ -668,7 +698,7 @@ function editUser(userId, username, currentRole, fullName) {
                 max-width: 500px;
             ">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <h3 style="margin: 0; color: #1e293b; font-size: 20px;">Edit User: ${username}</h3>
+                    <h3 style="margin: 0; color: #1e293b; font-size: 20px;">Edit User: ${escapeHtmlSafe(username)}</h3>
                     <button onclick="closeEditUserModal()" style="
                         background: none;
                         border: none;
@@ -685,7 +715,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Username
                         </label>
                         <input type="text" id="edit-username" 
-                            value="${username}"
+                            value="${escapeHtmlSafe(username)}"
                             placeholder="Enter username"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
                             required>
@@ -699,7 +729,7 @@ function editUser(userId, username, currentRole, fullName) {
                             Full Name
                         </label>
                         <input type="text" id="edit-full-name" 
-                            value="${fullName || ''}"
+                            value="${escapeHtmlSafe(fullName || '')}"
                             placeholder="Enter full name"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
                             required>
