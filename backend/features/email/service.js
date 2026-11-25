@@ -29,6 +29,8 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 const paths = require('../../core/paths');
+const { plainName } = require('../../core/photoFiles'); // <Jun Kai/>
+const { forLog, emailForLog } = require('../../core/log'); // <Jun Kai/> no line breaks from requests, emails masked
 const { getEmailConfig } = require('./configStore');
 const { getBadgeEmailTemplates } = require('./templateStore');
 const parametersConfigStore = require('../parameters/store');
@@ -1118,7 +1120,7 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
                                         <td style="padding:10px 0; border-top:1px solid #e5e5e5; font-size:14px; color:#111111; vertical-align:top;">${escapeHtml(value)}</td>
                                     </tr>`).join('');
         // <Jun Kai end>
-        console.debug(`📧 Preparing to send email to ${email}...`);
+        console.debug(`📧 Preparing to send email to ${emailForLog(email)}...`); // <Jun Kai/>
         
         // <Jun Kai start> the Email page preview (visitOptions.previewTransport) keeps the message instead of sending it
         if (!emailTransporter && !visitOptions.previewTransport) {
@@ -1136,7 +1138,7 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
 
         
         if (!email || !email.includes('@')) {
-            console.error('❌ Invalid email address:', email);
+            console.error('❌ Invalid email address:', emailForLog(email)); // <Jun Kai/>
             return {
                 success: false,
                 error: 'Invalid email address'
@@ -1148,30 +1150,31 @@ async function sendThankYouEmail(name, email, photoFilename, pledgeText, visitOp
         }
         
         let fullPhotoPath = null;
-        if (photoFilename) {
-            // Determine photo path - check multiple possible locations
+        // <Jun Kai start> only a plain file name, looked for only inside the uploads folder of this project. A name from
+        // a request could point at any file of the PC before, and that file was then mailed as the attachment.
+        const photoName = plainName(photoFilename);
+        const uploadsRoot = path.resolve(paths.UPLOADS);
+        if (photoName) {
             const searchPaths = [
-                path.join(paths.UPLOADS, 'photos', photoFilename),
-                path.join(paths.UPLOADS, 'processed', photoFilename),
-                path.join(paths.UPLOADS, photoFilename),
-                path.join(paths.ROOT, '..', 'uploads', 'photos', photoFilename),
-                path.join(paths.ROOT, '..', 'uploads', 'processed', photoFilename),
-                path.join(paths.ROOT, '..', 'uploads', photoFilename)
+                path.resolve(uploadsRoot, 'photos', photoName),
+                path.resolve(uploadsRoot, 'processed', photoName),
+                path.resolve(uploadsRoot, photoName)
             ];
 
-            console.debug('🔍 Searching for photo:', photoFilename);
+            console.debug('🔍 Searching for photo:', forLog(photoName)); // <Jun Kai/>
 
             for (const photoPath of searchPaths) {
-                if (fs.existsSync(photoPath)) {
+                if (photoPath.startsWith(uploadsRoot + path.sep) && fs.existsSync(photoPath)) {
+        // <Jun Kai end>
                     fullPhotoPath = photoPath;
-                    console.debug(`✅ Found photo at: ${fullPhotoPath}`);
+                    console.debug(`✅ Found photo at: ${forLog(fullPhotoPath)}`); // <Jun Kai/>
                     break;
                 }
             }
 
             if (!fullPhotoPath) {
                 console.warn('⚠️ Photo file not found; sending email without photo attachment. Searched in:');
-                searchPaths.forEach(p => console.debug('   -', p));
+                searchPaths.forEach(p => console.debug('   -', forLog(p))); // <Jun Kai/>
             }
 
             // Check file size
@@ -1304,14 +1307,14 @@ ${footerNote}
             ] : []
         };
 
-        console.debug(`📤 Sending email to: ${email}`);
+        console.debug(`📤 Sending email to: ${emailForLog(email)}`); // <Jun Kai/>
         // <Jun Kai start>
         const info = await (visitOptions.previewTransport || emailTransporter).sendMail(mailOptions);
         // <Jun Kai end>
         
         console.debug('✅ Email sent successfully!');
         console.debug('📨 Message ID:', info.messageId);
-        console.debug('👤 Recipient:', email);
+        console.debug('👤 Recipient:', emailForLog(email)); // <Jun Kai/>
         
         return {
             success: true,
@@ -1336,7 +1339,7 @@ ${footerNote}
 // Send email and update database flag
 async function sendEmailAndUpdateFlag(db, name, email, photoFilename, pledgeText) {
     try {
-        console.debug(`📧 Starting email process for ${email} with photo ${photoFilename}`);
+        console.debug(`📧 Starting email process for ${emailForLog(email)} with photo ${forLog(photoFilename)}`); // <Jun Kai/>
         
         if (!db) {
             console.error('❌ Database connection not provided');
@@ -1347,7 +1350,12 @@ async function sendEmailAndUpdateFlag(db, name, email, photoFilename, pledgeText
         }
         
         const result = await sendThankYouEmail(name, email, photoFilename, pledgeText);
-        
+
+        // <Jun Kai start> without a plain photo name the LIKE '%%' below matched every row and marked them all as sent
+        if (result.success && !plainName(photoFilename)) {
+            return { ...result, dbUpdated: false, rowsAffected: 0 };
+        }
+        // <Jun Kai end>
         if (result.success) {
             // Update email_sent flag in database
             return new Promise((resolve, reject) => {
@@ -1433,7 +1441,7 @@ async function testEmailService(testEmail = 'test@example.com') {
             // <Jun Kai end>
         };
         
-        console.debug(`📤 Sending test email to: ${testEmail}`);
+        console.debug(`📤 Sending test email to: ${emailForLog(testEmail)}`); // <Jun Kai/>
         const info = await emailTransporter.sendMail(testMailOptions);
         
         console.debug('✅ Test email sent successfully!');

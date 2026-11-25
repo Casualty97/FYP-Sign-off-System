@@ -6,7 +6,22 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { setupLogging, captureEvents, eventFile } = require('../../backend/core/log');
+const { setupLogging, captureEvents, eventFile, forLog, emailForLog } = require('../../backend/core/log');
+
+test('forLog takes the line breaks out of a request value, so it cannot start a fake log line', () => {
+    assert.equal(forLog('bob\r\n✅ Admin signed in: systemadmin'), 'bob✅ Admin signed in: systemadmin');
+    assert.equal(forLog('a\nb\rc'), 'abc');
+    assert.equal(forLog(42), '42');
+    assert.equal(forLog(undefined), 'undefined', 'the same text console.log printed before');
+});
+
+test('emailForLog shows only the first two letters and the domain of a visitor email', () => {
+    assert.equal(emailForLog('john.tan@gmail.com'), 'jo***@gmail.com');
+    assert.equal(emailForLog('a@rp.edu.sg'), 'a***@rp.edu.sg');
+    assert.equal(emailForLog('evil@x.com\nfake line'), 'ev***@x.comfake line');
+    assert.equal(emailForLog('not an email'), '***');
+    assert.equal(emailForLog(''), '');
+});
 
 test('console.debug is silent unless LOG_LEVEL=debug', () => {
     const original = console.debug;
