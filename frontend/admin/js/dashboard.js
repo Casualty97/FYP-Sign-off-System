@@ -9,9 +9,91 @@ let dailyLeafPledgeChartType = 'bar';
 let dailyLeafPledgeChartData = { labels: [], leafData: [], pledgeData: [] };
 let currentChartRange = 'week';
 
+// <Jun Kai start> Dashboard C: tabs, the "Needs you" card, the kiosk tile and charts that follow light and dark
+let dashboardPageReady = false;
+let dashboardTrendsData = null;
+let dashboardStatsData = null;
+
+function prepareDashboardPage() {
+    if (dashboardPageReady) return;
+    dashboardPageReady = true;
+    document.querySelectorAll('#dashboard-page [data-fb-icon]').forEach((slot) => {
+        slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.closest('button') ? 15 : 18);
+    });
+    const tabs = [...document.querySelectorAll('#dashboard-page [data-db-tab]')];
+    tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => showDashboardTab(tab.dataset.dbTab));
+        tab.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+            const next = tabs[(i + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+            showDashboardTab(next.dataset.dbTab);
+            next.focus();
+        });
+    });
+    // the charts are drawn again when the admin switches between light and dark
+    new MutationObserver(() => {
+        if (dashboardTrendsData && document.getElementById('visitorTrendsChart')) createVisitorTrendsChart(dashboardTrendsData.labels, dashboardTrendsData.data);
+        if (dailyLeafPledgeChart) createDailyLeafPledgeChart(dailyLeafPledgeChartData.labels, dailyLeafPledgeChartData.leafData, dailyLeafPledgeChartData.pledgeData);
+        if (dashboardStatsData) createFeedbackDistributionChart(dashboardStatsData);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+function showDashboardTab(name) {
+    document.querySelectorAll('#dashboard-page [data-db-tab]').forEach((tab) => {
+        const on = tab.dataset.dbTab === name;
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+        tab.tabIndex = on ? 0 : -1;
+        const panel = document.getElementById(tab.getAttribute('aria-controls'));
+        if (panel) panel.hidden = !on;
+    });
+}
+
+function dashboardChartColors() {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    return { text: dark ? '#cbd5e1' : '#475569', grid: dark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(15, 23, 42, 0.07)' };
+}
+
+function setDashboardPill(el, tone, text) {
+    if (!el) return;
+    el.className = `ui-pill ui-pill-${tone}`;
+    el.innerHTML = `<span class="ui-dot"></span>${escapeHtmlSafe(text)}`;
+}
+
+function setDashboardCount(id, count) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = count;
+    el.hidden = !count;
+}
+
+// the three alerts that most need staff, on the Overview; the full list stays in the System tab
+function renderDashboardNeeds(alerts) {
+    const list = document.getElementById('db-needs-list');
+    if (!list) return;
+    const order = { high: 0, medium: 1, low: 2 };
+    const needs = alerts.filter((a) => a.id !== 'monitoring-normal' && String(a.severity || 'low').toLowerCase() !== 'low')
+        .sort((a, b) => order[String(a.severity).toLowerCase()] - order[String(b.severity).toLowerCase()]);
+    setDashboardCount('db-needs-count', needs.length);
+    setDashboardCount('db-system-count', needs.length + (dashboardSystemIssues || 0));
+    if (!needs.length) {
+        list.innerHTML = '<p class="db-empty"><span class="ui-pill ui-pill-ok"><span class="ui-dot"></span>Nothing needs you right now</span></p>';
+        return;
+    }
+    list.innerHTML = needs.slice(0, 3).map((a) => {
+        const high = String(a.severity).toLowerCase() === 'high';
+        return `<div class="db-need">
+            <div class="db-need-text"><strong>${escapeHtmlSafe(a.title || 'Alert')}</strong><span>${escapeHtmlSafe(a.message || '')}</span></div>
+            <span class="ui-pill ui-pill-${high ? 'down' : 'warn'}">${high ? 'High' : 'Medium'}</span>
+        </div>`;
+    }).join('');
+}
+let dashboardSystemIssues = 0;
+// <Jun Kai end>
+
 // ==================== ENHANCED DASHBOARD DATA LOADING ====================
 // Enhanced dashboard data loading with chart data
 async function loadDashboardData() {
+    prepareDashboardPage(); // <Jun Kai/>
     try {
         console.log('📊 [PRETI] Loading enhanced dashboard data...');
         const response = await fetch('/api/admin/dashboard');
@@ -71,74 +153,50 @@ async function updateSystemStatus(activity) {
     let allSystemsOk = true;
     let statusMessages = [];
     
-    // Check Kiosk Server Status
+    // <Jun Kai start> the same two checks; the results are pills, and the kiosk also fills its tile on the Overview
+    const kioskValue = document.getElementById('db-kiosk-value');
+    const kioskNote = document.getElementById('db-kiosk-note');
+    const kioskTile = document.getElementById('db-kiosk-tile');
+    let issues = 0;
     try {
         const kioskResponse = await fetch('/api/admin/server/status');
         const kioskData = await kioskResponse.json();
-        const kioskStatusEl = document.getElementById('kiosk-server-status');
-        
-        if (kioskStatusEl) {
-            if (kioskData.success && kioskData.kiosk_running) {
-                kioskStatusEl.className = 'status-badge status-online';
-                kioskStatusEl.textContent = 'Online';
-                statusMessages.push('Kiosk Server: Online');
-            } else {
-                kioskStatusEl.className = 'status-badge status-offline';
-                kioskStatusEl.textContent = 'Offline';
-                allSystemsOk = false;
-                statusMessages.push('Kiosk Server: Offline');
-            }
-        }
+        const running = Boolean(kioskData.success && kioskData.kiosk_running);
+        setDashboardPill(document.getElementById('kiosk-server-status'), running ? 'ok' : 'down', running ? 'Online' : 'Offline');
+        if (kioskValue) kioskValue.textContent = running ? 'Running' : 'Stopped';
+        if (kioskNote) kioskNote.textContent = running ? 'the kiosk page is open' : 'the kiosk page is closed';
+        if (kioskTile) kioskTile.dataset.state = running ? 'on' : 'off';
+        statusMessages.push(`Kiosk Server: ${running ? 'Online' : 'Offline'}`);
+        if (!running) { allSystemsOk = false; issues++; }
     } catch (error) {
         console.error('❌ Error checking kiosk status:', error);
-        const kioskStatusEl = document.getElementById('kiosk-server-status');
-        if (kioskStatusEl) {
-            kioskStatusEl.className = 'status-badge status-error';
-            kioskStatusEl.textContent = 'Error';
-            allSystemsOk = false;
-        }
+        setDashboardPill(document.getElementById('kiosk-server-status'), 'down', 'Error');
+        if (kioskValue) kioskValue.textContent = 'Unknown';
+        if (kioskNote) kioskNote.textContent = 'the status could not be read';
+        if (kioskTile) kioskTile.dataset.state = 'off';
+        allSystemsOk = false;
+        issues++;
     }
-    
-    // Check Database Status
+
     try {
         const dbResponse = await fetch('/api/test-db');
         const dbData = await dbResponse.json();
-        const dbStatusEl = document.getElementById('database-status');
-        
-        if (dbStatusEl) {
-            if (dbData.message && dbData.message.includes('working')) {
-                dbStatusEl.className = 'status-badge status-online';
-                dbStatusEl.textContent = 'Connected';
-                statusMessages.push('Database: Connected');
-            } else {
-                dbStatusEl.className = 'status-badge status-error';
-                dbStatusEl.textContent = 'Error';
-                allSystemsOk = false;
-                statusMessages.push('Database: Error');
-            }
-        }
+        const ok = Boolean(dbData.message && dbData.message.includes('working'));
+        setDashboardPill(document.getElementById('database-status'), ok ? 'ok' : 'down', ok ? 'Connected' : 'Error');
+        statusMessages.push(`Database: ${ok ? 'Connected' : 'Error'}`);
+        if (!ok) { allSystemsOk = false; issues++; }
     } catch (error) {
         console.error('❌ Error checking database status:', error);
-        const dbStatusEl = document.getElementById('database-status');
-        if (dbStatusEl) {
-            dbStatusEl.className = 'status-badge status-offline';
-            dbStatusEl.textContent = 'Disconnected';
-            allSystemsOk = false;
-        }
+        setDashboardPill(document.getElementById('database-status'), 'down', 'Disconnected');
+        allSystemsOk = false;
+        issues++;
     }
-    
-    // Update Overall System Status
-    const overallStatusEl = document.getElementById('overall-system-status');
-    if (overallStatusEl) {
-        if (allSystemsOk) {
-            overallStatusEl.className = 'status-indicator status-online';
-            overallStatusEl.innerHTML = '<span class="status-dot"></span>All Systems Operational';
-        } else {
-            overallStatusEl.className = 'status-indicator status-warning';
-            overallStatusEl.innerHTML = '<span class="status-dot"></span>System Issues Detected';
-        }
-    }
-    
+
+    setDashboardPill(document.getElementById('overall-system-status'), allSystemsOk ? 'ok' : 'warn', allSystemsOk ? 'All systems working' : 'Something needs a look');
+    dashboardSystemIssues = issues;
+    const needs = Number(document.getElementById('db-needs-count')?.textContent || 0);
+    setDashboardCount('db-system-count', needs + issues);
+    // <Jun Kai end>
     console.log('✅ System status check complete:', statusMessages);
 }
 
@@ -162,6 +220,7 @@ function renderInterventionAlerts(alerts) {
 
     const safeAlerts = Array.isArray(alerts) ? alerts : [];
     const actionableAlerts = safeAlerts.filter(alert => alert.severity !== 'low' || alert.id !== 'monitoring-normal');
+    renderDashboardNeeds(safeAlerts); // <Jun Kai/>
 
     if (count) {
         count.textContent = actionableAlerts.length > 0
@@ -230,6 +289,10 @@ async function loadInterventionAlerts() {
         if (list) {
             list.innerHTML = `<p class="intervention-alert-empty intervention-alert-error">${escapeHtmlSafe(error.message || 'Unable to load intervention alerts. Check server logs if this repeats.')}</p>`;
         }
+        // <Jun Kai start>
+        const needs = document.getElementById('db-needs-list');
+        if (needs) needs.innerHTML = '<p class="db-empty"><span class="ui-pill ui-pill-down"><span class="ui-dot"></span>The alerts could not be loaded</span></p>';
+        // <Jun Kai end>
     }
 }
 
@@ -259,6 +322,7 @@ function renderJourneyPassport(passport) {
     updatePassportMetric('passport-repeat-count', summary.repeatVisitors || 0);
     updatePassportMetric('passport-stamp-count', summary.totalStamps || 0);
     updatePassportMetric('passport-average-count', summary.averageStamps || 0);
+    updatePassportMetric('db-passport-count', summary.passportHolders || 0); // <Jun Kai/> the count on the tab
 
     setPassportStatus(topPassports.length > 0 ? `${topPassports.length} shown` : 'No passports yet', topPassports.length > 0 ? 'is-ready' : '');
 
@@ -391,16 +455,15 @@ function animateValue(element, start, end, duration) {
 
 // Update last updated timestamp
 function updateLastUpdated() {
+    // <Jun Kai start> one line under the title: today's date and the time of the last refresh
     const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    const lastUpdatedElement = document.querySelector('.last-updated');
+    const day = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const lastUpdatedElement = document.getElementById('dashboard-updated') || document.querySelector('.last-updated');
     if (lastUpdatedElement) {
-        lastUpdatedElement.textContent = `Last updated: ${timeString}`;
+        lastUpdatedElement.textContent = `${day} · updated ${time}`;
     }
+    // <Jun Kai end>
 }
 
 // Get default statistics for offline mode
@@ -414,13 +477,13 @@ function getDefaultStats() {
 
 // Refresh dashboard
 function refreshDashboard() {
-    const btn = document.querySelector('#dashboard-page .refresh-btn svg');
+    // <Jun Kai start> the icon turns once while the numbers load again
+    const btn = document.getElementById('dashboard-refresh-btn');
     if (btn) {
-        btn.style.animationPlayState = 'running';
-        setTimeout(() => {
-            btn.style.animationPlayState = 'paused';
-        }, 1000);
+        btn.classList.add('is-spinning');
+        setTimeout(() => btn.classList.remove('is-spinning'), 900);
     }
+    // <Jun Kai end>
     loadDashboardData();
     showNotification('Dashboard refreshed', 'success');
 }
@@ -567,7 +630,12 @@ function createVisitorTrendsChart(labels, feedbackData) {
     if (visitorTrendsChart) {
         visitorTrendsChart.destroy();
     }
-    
+    // <Jun Kai start> kept for a redraw when light or dark changes; the dashboard's graph needs no legend
+    const onDashboard = ctx.id === 'visitorTrendsChart';
+    if (onDashboard) dashboardTrendsData = { labels, data: feedbackData };
+    const colors = dashboardChartColors();
+    // <Jun Kai end>
+
     visitorTrendsChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -576,13 +644,13 @@ function createVisitorTrendsChart(labels, feedbackData) {
                 {
                     label: 'Feedback',
                     data: feedbackData,
-                    borderColor: 'rgb(99, 102, 241)',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    borderWidth: 3,
+                    borderColor: 'rgb(37, 99, 235)',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2.5,
                     fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointBackgroundColor: 'rgb(99, 102, 241)',
+                    tension: 0.35,
+                    pointRadius: 3.5,
+                    pointBackgroundColor: 'rgb(37, 99, 235)',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
                     pointHoverRadius: 6
@@ -598,7 +666,7 @@ function createVisitorTrendsChart(labels, feedbackData) {
             },
             plugins: {
                 legend: {
-                    display: true,
+                    display: !onDashboard, // <Jun Kai/>
                     position: 'bottom',
                     labels: {
                         usePointStyle: true,
@@ -634,12 +702,14 @@ function createVisitorTrendsChart(labels, feedbackData) {
             scales: {
                 y: {
                     beginAtZero: true,
+                    grace: '10%', // <Jun Kai/> room above the highest point, so the smooth line is not cut off
                     grid: {
-                        color: 'rgba(0, 0, 0, 0.05)',
+                        color: colors.grid, // <Jun Kai/>
                         drawBorder: false
                     },
                     ticks: {
                         precision: 0,
+                        color: colors.text, // <Jun Kai/>
                         font: {
                             size: 11
                         }
@@ -651,6 +721,7 @@ function createVisitorTrendsChart(labels, feedbackData) {
                         drawBorder: false
                     },
                     ticks: {
+                        color: colors.text, // <Jun Kai/>
                         font: {
                             size: 10
                         }
@@ -659,7 +730,7 @@ function createVisitorTrendsChart(labels, feedbackData) {
             }
         }
     });
-    
+
     console.log('✅ Visitor trends chart created with REAL data');
 }
 
@@ -708,44 +779,55 @@ function createFeedbackDistributionChart(stats) {
     if (feedbackDistributionChart) {
         feedbackDistributionChart.destroy();
     }
-    
+    // <Jun Kai start> the ring shows the two parts that add up (with and without an email) and the total in the middle;
+    // photo and storage numbers overlap with those two, so they are listed in the Visitors tab instead
+    dashboardStatsData = stats;
+    const withEmail = Number(stats.withEmail || 0);
+    const withoutEmail = Number(stats.withoutEmail || 0);
+    const totalEl = document.getElementById('db-donut-total');
+    if (totalEl) totalEl.textContent = (withEmail + withoutEmail).toLocaleString();
+    const legend = document.getElementById('db-donut-legend');
+    if (legend) {
+        legend.innerHTML = `<span><i class="db-key db-key-green"></i>With email ${withEmail.toLocaleString()}</span>
+            <span><i class="db-key db-key-grey"></i>Without email ${withoutEmail.toLocaleString()}</span>`;
+    }
+    const facts = document.getElementById('db-breakdown-list');
+    if (facts) {
+        facts.innerHTML = [
+            ['With an email', withEmail], ['Without an email', withoutEmail],
+            ['With a photo', Number(stats.withPhoto || 0)], ['Kept long term', Number(stats.longterm || 0)]
+        ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value.toLocaleString()}</dd></div>`).join('');
+    }
+    const dark = document.documentElement.dataset.theme === 'dark';
+    // <Jun Kai end>
+
     feedbackDistributionChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: [
-                'With Email',
-                'Without Email', 
-                'With Photo',
-                'Long-term Storage'
+                'With email',
+                'Without email'
             ],
             datasets: [{
                 data: [
-                    stats.withEmail || 0,
-                    stats.withoutEmail || 0,
-                    stats.withPhoto || 0,
-                    stats.longterm || 0
+                    withEmail,
+                    withoutEmail
                 ],
                 backgroundColor: [
-                    'rgba(16, 185, 129, 0.8)',
-                    'rgba(156, 163, 175, 0.8)',
-                    'rgba(59, 130, 246, 0.8)',
-                    'rgba(245, 158, 11, 0.8)'
+                    'rgb(22, 163, 74)',
+                    dark ? 'rgb(100, 116, 139)' : 'rgb(148, 163, 184)'
                 ],
-                borderColor: [
-                    'rgb(16, 185, 129)',
-                    'rgb(156, 163, 175)',
-                    'rgb(59, 130, 246)',
-                    'rgb(245, 158, 11)'
-                ],
-                borderWidth: 2
+                borderColor: dark ? 'rgb(17, 26, 43)' : '#fff',
+                borderWidth: 3
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '72%', // <Jun Kai/>
             plugins: {
                 legend: {
-                    display: true,
+                    display: false, // <Jun Kai/> the legend is the line under the ring
                     position: 'bottom',
                     labels: {
                         usePointStyle: true,
@@ -795,6 +877,10 @@ function setDailyLeafPledgeChartType(type) {
 
     document.getElementById('daily-leaf-bar-btn')?.classList.toggle('active', type === 'bar');
     document.getElementById('daily-leaf-line-btn')?.classList.toggle('active', type === 'line');
+    // <Jun Kai start>
+    document.getElementById('daily-leaf-bar-btn')?.setAttribute('aria-pressed', type === 'bar' ? 'true' : 'false');
+    document.getElementById('daily-leaf-line-btn')?.setAttribute('aria-pressed', type === 'line' ? 'true' : 'false');
+    // <Jun Kai end>
 
     createDailyLeafPledgeChart(
         dailyLeafPledgeChartData.labels,
@@ -842,14 +928,15 @@ function createDailyLeafPledgeChart(labels, leafData, pledgeData) {
     if (dailyLeafPledgeChart) {
         dailyLeafPledgeChart.destroy();
     }
+    const colors = dashboardChartColors(); // <Jun Kai/>
 
     dailyLeafPledgeChart = new Chart(ctx, {
         type: dailyLeafPledgeChartType,
         data: {
             labels,
             datasets: [
-                createDailyLeafPledgeDataset('Leaves', leafData, 'rgb(22, 163, 74)', 'rgba(34, 197, 94, 0.72)'),
-                createDailyLeafPledgeDataset('Pledges', pledgeData, 'rgb(2, 132, 199)', 'rgba(14, 165, 233, 0.72)')
+                createDailyLeafPledgeDataset('Leaves', leafData, 'rgb(22, 163, 74)', 'rgba(22, 163, 74, 0.85)'),
+                createDailyLeafPledgeDataset('Pledges', pledgeData, 'rgb(37, 99, 235)', 'rgba(37, 99, 235, 0.85)')
             ]
         },
         options: {
@@ -862,6 +949,7 @@ function createDailyLeafPledgeChart(labels, leafData, pledgeData) {
                     labels: {
                         usePointStyle: true,
                         padding: 15,
+                        color: colors.text, // <Jun Kai/>
                         font: {
                             size: 12,
                             weight: '500'
@@ -881,14 +969,17 @@ function createDailyLeafPledgeChart(labels, leafData, pledgeData) {
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: { color: colors.grid }, // <Jun Kai/>
                     ticks: {
-                        precision: 0
+                        precision: 0,
+                        color: colors.text // <Jun Kai/>
                     }
                 },
                 x: {
                     grid: {
                         display: false
-                    }
+                    },
+                    ticks: { color: colors.text } // <Jun Kai/>
                 }
             }
         }
@@ -952,17 +1043,20 @@ function createFeedbackDistributionChartWithSampleData() {
 }
 
 // Update chart range
-function updateChartRange(range) {
+function updateChartRange(range, button) {
     currentChartRange = range;
-    
-    document.querySelectorAll('.chart-control-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    loadVisitorTrendsData();
-    
-    showNotification(`Chart updated to ${range} view`, 'info');
+    // <Jun Kai start> only the buttons next to the pressed one change: before, every chart button on the page lost its
+    // active look (also Bar and Line). The old buttons pass no button, so the click event finds it.
+    const pressed = button || (typeof event !== 'undefined' && event && event.target ? event.target.closest('button') : null);
+    if (pressed && pressed.parentElement) {
+        pressed.parentElement.querySelectorAll('button').forEach(btn => {
+            btn.classList.toggle('active', btn === pressed);
+            if (btn.hasAttribute('aria-pressed')) btn.setAttribute('aria-pressed', btn === pressed ? 'true' : 'false');
+        });
+    }
+    // <Jun Kai end>
+
+    loadVisitorTrendsData(); // <Jun Kai/> the graph itself shows the change, no extra message
 }
 
 
