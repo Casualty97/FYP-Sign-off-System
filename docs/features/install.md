@@ -53,7 +53,8 @@ gets the matching step (the user's rule of 12 Nov 2026: keep the installer in st
    user and gives it its rights. `database/schema.sql` starts with `DROP TABLE`, so it is only loaded into an **empty**
    database; then every migration is applied. A database that has tables is never dropped: running install again only
    applies new migrations. It ends with a check: at least 14 tables, an admin account, no migration pending. On a fresh
-   database it prints the first login (`systemadmin`, change the password in User Management).
+   database it prints the first login (`systemadmin`, change the password in User Management and add the account's email
+   there, so "Forgot password?" on the login card can send it a reset code).
 5. **Wall PC, as the user:** a shortcut in the Startup folder starts `node startAll.js --logon` at logon (minimised
    window; `--logon` makes the History list on Server Schedule say "Started: Windows sign-in"), and
    an "RP Xperience Centre Kiosk Admin" link to `https://localhost:<PORT>/admin` goes on the desktop.

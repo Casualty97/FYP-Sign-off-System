@@ -10,7 +10,7 @@ everything from a web page. Built by the AY2025/26 FYP team; enhanced by the cur
 |---|---|---|
 | Windows PC behind the wall | `node startAll.js`: the HTTPS server (:3000) and the local kiosk server (:3003) | wall pages at `http://localhost:3003/tree`, `/pulse` |
 | Android tablets on the same Wi-Fi | Chrome | `https://<pc-ip>:3000/feedback` (the QR on the landing page carries this) |
-| Admin | any browser | `https://<pc-ip>:3000/admin` (seeded login: `systemadmin`, change it) |
+| Admin | any browser | `https://<pc-ip>:3000/admin` (seeded login: `systemadmin`, change it and add its email on Users, so "Forgot password?" can reset it) |
 
 MySQL 8.4 runs on the PC. Ollama is optional and only used by the admin feedback analysis.
 
