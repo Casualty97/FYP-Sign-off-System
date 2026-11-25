@@ -608,7 +608,7 @@ function editUser(userId, username, currentRole, fullName, email = '') { // <Jun
                         <input type="email" id="edit-email" value="${emailHtml}"
                             placeholder="name@example.com" autocomplete="off" maxlength="254"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            required>
+                            ${emailHtml ? 'required' : ''}>
                         <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
                             Where a code and a link to reset your forgotten password are sent. Only you can change the email of this account.
                         </div>
@@ -742,7 +742,7 @@ function editUser(userId, username, currentRole, fullName, email = '') { // <Jun
                         <input type="email" id="edit-email" value="${emailHtml}"
                             placeholder="name@example.com" autocomplete="off" maxlength="254"
                             style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            required>
+                            ${emailHtml ? 'required' : ''}>
                         <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
                             A code and a link to reset a forgotten password are sent here. Each email belongs to one account.
                         </div>
