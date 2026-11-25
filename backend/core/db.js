@@ -33,6 +33,7 @@ const path = require('path');
 const POOL_OPTIONS = {
 // <Jun Kai end>
     host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT) || 3306, // <Jun Kai/> the kiosk's own MySQL (install.cmd) runs on another port
     user: process.env.DB_USER || 'kiosk_user',
     password: process.env.DB_PASSWORD || 'kiosk123',
     database: process.env.DB_NAME || 'dp_kiosk_db',
