@@ -203,6 +203,8 @@ const AUDIT_SENTENCES = {
     ARCHIVE_BULK_DECRYPT_FAILED: 'tried to decrypt the archived emails, but it failed',
     ARCHIVE_PHOTOS_DOWNLOAD: 'downloaded {n} archived photos',
     EDIT_LOST_FOUND_REPORT: 'updated Lost & Found report {id}',
+    VIEW_LOST_FOUND_CONTACT: 'decrypted the contact of Lost & Found report {id}',
+    DOWNLOAD_LOST_FOUND_CSV: 'exported {n} Lost & Found reports with their contacts',
     ADD_OVERLAY: 'added an overlay',
     DELETE_OVERLAY: 'deleted overlay {id}',
     DELETE_QUESTION: 'deleted question {id}',

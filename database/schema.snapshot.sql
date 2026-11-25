@@ -219,6 +219,7 @@ CREATE TABLE `lost_found_reports` (
   `item_description` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `location_text` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `contact_info` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `contact_info_encrypted` text COLLATE utf8mb4_unicode_ci,
   `details` text COLLATE utf8mb4_unicode_ci,
   `item_photo_path` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `item_photo_original_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

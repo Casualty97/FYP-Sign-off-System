@@ -81,10 +81,12 @@ function buildSelection(raw, plan, { encrypt = null } = {}) {
     });
 
     const lostFound = raw.lostFound.map((row) => {
-        const { contact_info: contact, feedback_progress: progress, ...rest } = row;
+        // the contact is stored encrypted since migration 010: it is copied as it is (same key and format as the
+        // archive's own encryption); only a row from before that change still has a plain contact to encrypt here
+        const { contact_info: contact, contact_info_encrypted: encryptedContact, feedback_progress: progress, ...rest } = row;
         const record = { ...rest, photo: entryOf.get(`lost_found_reports:${row.id}:item_photo_path`) || null };
         if (encrypt) {
-            record.contact_info_encrypted = contact ? encrypt(String(contact)) : null;
+            record.contact_info_encrypted = encryptedContact || (contact ? encrypt(String(contact)) : null);
             record.feedback_progress_encrypted = progress ? encrypt(String(progress)) : null;
         }
         return record;

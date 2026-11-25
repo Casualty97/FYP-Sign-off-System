@@ -9117,3 +9117,9 @@ html[data-theme="dark"] .users-btn.ui-danger:hover:not(:disabled) { background: 
 /* one column below 1300px: next to the card the table would push its buttons out of view */
 @media (max-width: 1299px) { .users-layout { grid-template-columns: 1fr; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> Lost & Found: the encrypted contact with its Decrypt and Hide links */
+.lf-locked { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--color-dark-gray); white-space: nowrap; }
+.lf-contact { overflow-wrap: anywhere; }
+.lf-contact-btn { display: block; margin-top: 2px; font-size: 12px; }
+/* <Jun Kai end> */
