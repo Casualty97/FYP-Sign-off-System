@@ -32,8 +32,15 @@ test('the limit on every request answers 429 with a JSON message once an address
     await withApp((app) => {
         app.use(rateLimit({ ...requestLimit.EVERY_REQUEST, limit: 3 })); // the real settings, with a small count
         app.get('/x', (req, res) => res.json({ ok: true }));
+        app.get(['/uploads/photos/a.png', '/admin/js/core.js'], (req, res) => res.send('file'));
+        app.post('/uploads/photos/a.png', (req, res) => res.send('not a file read'));
     }, async (base) => {
+        for (let i = 0; i < 20; i++) {
+            assert.equal((await fetch(`${base}/uploads/photos/a.png`)).status, 200, 'photos are not counted');
+            assert.equal((await fetch(`${base}/admin/js/core.js`)).status, 200, 'scripts are not counted');
+        }
         for (let i = 0; i < 3; i++) assert.equal((await fetch(`${base}/x`)).status, 200);
+        assert.equal((await post(`${base}/uploads/photos/a.png`)).status, 429, 'a POST is counted even with a file name');
         const over = await fetch(`${base}/x`);
         assert.equal(over.status, 429);
         assert.deepEqual(await over.json(), { success: false, error: 'Too many requests from this address. Wait a minute and try again.' });
@@ -41,13 +48,21 @@ test('the limit on every request answers 429 with a JSON message once an address
     });
 });
 
-test('password routes count only wrong passwords, so many right ones in a row never lock anyone out', async () => {
+test('password routes count only wrong passwords, so many right ones or other errors in a row never lock anyone out', async () => {
     await withApp((app) => {
-        app.post('/check', requestLimit.passwordChecks, (req, res) => (req.body.password === 'right'
-            ? res.json({ success: true }) : res.status(401).json({ success: false, error: 'Invalid password' })));
+        app.post('/check', requestLimit.passwordChecks, (req, res) => {
+            if (req.body.password === 'right') return res.json({ success: true });
+            if (req.body.password === 'broken-row') return res.status(500).json({ success: false, error: 'Failed to decrypt email' });
+            if (req.body.password === 'none') return res.status(400).json({ error: 'Password required' });
+            if (req.body.password === 'wrong-200') return res.json({ success: false, message: 'Invalid password' }); // as /bulk-decrypt-archive answers
+            return res.status(401).json({ success: false, error: 'Invalid password' });
+        });
     }, async (base) => {
         for (let i = 0; i < 30; i++) assert.equal((await post(`${base}/check`, { password: 'right' })).status, 200, `right password ${i + 1}`);
-        for (let i = 0; i < 20; i++) assert.equal((await post(`${base}/check`, { password: 'wrong' })).status, 401, `wrong password ${i + 1}`);
+        for (let i = 0; i < 25; i++) assert.equal((await post(`${base}/check`, { password: 'broken-row' })).status, 500, `a row that cannot be decrypted ${i + 1}`);
+        for (let i = 0; i < 25; i++) assert.equal((await post(`${base}/check`, { password: 'none' })).status, 400, `no password ${i + 1}`);
+        for (let i = 0; i < 10; i++) assert.equal((await post(`${base}/check`, { password: 'wrong-200' })).status, 200, `wrong password answered with 200 ${i + 1}`);
+        for (let i = 0; i < 10; i++) assert.equal((await post(`${base}/check`, { password: 'wrong' })).status, 401, `wrong password ${i + 1}`);
         const locked = await post(`${base}/check`, { password: 'right' });
         assert.equal(locked.status, 429, 'after 20 wrong ones even the right password waits');
         assert.match((await locked.json()).error, /Too many wrong passwords/);

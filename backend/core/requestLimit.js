@@ -13,24 +13,46 @@ const { rateLimit } = require('express-rate-limit');
 const answer = (text) => ({ success: false, error: text });
 const common = { standardHeaders: 'draft-7', legacyHeaders: false };
 
-// Every request of one address, pages and files included. Each server makes its own limiter from these settings with
+// Static files (pictures, photos, scripts, styles, fonts, models) are only read from disk and grow with the data, for
+// example the small photos of a list page, so they are not counted. Pages and API routes always are.
+const STATIC_FILE = /\.(js|mjs|css|map|png|jpe?g|gif|webp|svg|ico|bmp|woff2?|ttf|otf|mp3|mp4|webm|wav|glb|gltf|bin|task|tflite|wasm)$/i;
+const isStaticFile = (req) => (req.method === 'GET' || req.method === 'HEAD') && STATIC_FILE.test(req.path);
+
+// Every request of one address except static files. Each server makes its own limiter from these settings with
 // rateLimit(EVERY_REQUEST) next to its app.use, so the code scan sees the limit in front of the routes.
 const EVERY_REQUEST = {
     ...common,
     windowMs: 60 * 1000,
     limit: 1000,
+    skip: isStaticFile,
     message: answer('Too many requests from this address. Wait a minute and try again.')
 };
 
-// Routes that check the admin password. Only wrong passwords count (an answer of 400 or more), so decrypting 25
-// emails in a row with the right password never locks anyone out.
-const passwordChecks = rateLimit({
+// Routes that check the admin password: 20 wrong passwords per 15 minutes. Every one of these routes answers a wrong
+// password with "Invalid password" (as a 401, a 403 or a 200 with success false), so only answers with that text
+// count. The right password, a missing field, a row that cannot be decrypted or a server error never use up the 20,
+// so decrypting 25 emails in a row never locks anyone out.
+function markWrongPassword(req, res, next) {
+    const json = res.json.bind(res);
+    res.json = (body) => {
+        const text = body && typeof body === 'object' ? `${body.error || ''} ${body.message || ''}` : '';
+        if (/invalid password/i.test(text)) res.locals.wrongPassword = true;
+        return json(body);
+    };
+    next();
+}
+
+const passwordLimiter = rateLimit({
     ...common,
     windowMs: 15 * 60 * 1000,
     limit: 20,
     skipSuccessfulRequests: true,
+    requestWasSuccessful: (req, res) => !res.locals.wrongPassword,
     message: answer('Too many wrong passwords from this address. Wait 15 minutes and try again.')
 });
+
+// used as one middleware in a route: router.post('/x', auth.requireAuth, requestLimit.passwordChecks, handler)
+const passwordChecks = [markWrongPassword, passwordLimiter];
 
 // Downloads that build a file (Excel, ZIP of photos, exports)
 const heavyWork = rateLimit({
