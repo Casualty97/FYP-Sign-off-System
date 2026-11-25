@@ -105,7 +105,12 @@ folder is private to that user.
     addresses.
 
 If any step fails, everything this run made is undone in reverse order (the administrator items with one more
-prompt), and data kept by an earlier uninstall goes back to `data\kept` first.
+prompt), and data kept by an earlier uninstall goes back to `data\kept` first. If the PC is turned off in the
+middle, `data\install-state.json` remembers the database login and whether kept data was moved; the next
+`install.cmd` moves that data back and finishes the install.
+
+Stopping the kiosk (before an update or an uninstall) ends only the node.exe processes that run from the install
+folder and the console window they run in, for example the `cmd /k` window "Restart application" opens.
 
 ## Update, in order
 
@@ -178,16 +183,20 @@ Release, so `releases/latest/download/<name>` always gives the newest one. The z
 
 ## Tests
 
-CI job `package` (Windows runner): builds the package, runs `tests/install/kiosk-data.test.ps1` (the passphrase lock)
-and `tests/install/installer-checks.test.ps1` (refusals and the dry run on a fake package), then
-`tests/install/package-flow.ps1`: the one command install from a download, a repair, an update, two failed updates
-that must put everything back, a refused older package, an export, an uninstall that keeps the data, a reinstall
-that finds it, a full uninstall, a laptop install that loads the exported data, and a failed fresh install. After
-every uninstall it checks that nothing of the kiosk is left. Unit tests: `tests/unit/installPackage.test.js`.
+CI job `package` (Windows runner): builds both packages, runs `tests/install/kiosk-data.test.ps1` (the passphrase
+lock) and `tests/install/installer-checks.test.ps1` (refusals, the dry run on a fake package, and that every command
+the scripts call exists), then `tests/install/package-flow.ps1`: the one command install from a download, the MySQL
+service stopped and started again, a repair through the package's `install.cmd`, an update through its `update.cmd`
+with a "Restart application" window open, two failed updates that must put everything back, a refused older
+package, the installed `update.cmd` with another source, an export, an uninstall that keeps the data, a reinstall
+cut off half way and then finished, a full uninstall, a laptop install that loads the exported data, and a failed
+fresh install. After every uninstall it checks that nothing of the kiosk is left. It also checks that the `-ai` zip
+holds the model. Unit tests: `tests/unit/installPackage.test.js`.
 
 Not covered by CI (the runner is already an administrator and has the Visual C++ runtime): the real Windows prompt,
-a PC that never had Visual Studio or the Visual C++ runtime, a network that Windows calls Public, and a Wall PC that
-restarts. These are for the test on the school VM.
+answered by a different administrator account while a standard user installs, the questions when `install.cmd` is
+double clicked, a PC that never had Visual Studio or the Visual C++ runtime, a network that Windows calls Public,
+and a real restart of the Wall PC. These are for the test on the school VM.
 
 ## Not here on purpose
 

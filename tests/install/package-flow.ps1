@@ -38,6 +38,22 @@ function Test-Marker([string]$R) {
     return ($LASTEXITCODE -eq 0)
 }
 function Get-Info([string]$R) { return (Get-InstallInfo $R) }
+# The window "Restart application" on the admin page leaves: restart-app.bat runs "cmd /k node startAll.js" in the
+# app folder, so that window keeps the folder as its current folder. An update or uninstall must still get through.
+function Open-RestartWindow([string]$R) {
+    Stop-KioskServers $R | Out-Null
+    $before = $env:PATH
+    $env:PATH = (Join-Path $R 'app\runtime\node') + ';' + $env:PATH
+    Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', 'title Kiosk App & node startAll.js' -WorkingDirectory (Join-Path $R 'app') -WindowStyle Minimized | Out-Null
+    $env:PATH = $before
+    & (Get-Node $R) (Join-Path $R 'app\scripts\install\wait-ready.js') 3000 120 | Out-Null
+    return ($LASTEXITCODE -eq 0)
+}
+# A .cmd of the package or the install, run the way a person runs it (PowerShell passes it to cmd.exe)
+function Invoke-Cmd([string]$File, [string[]]$CmdArgs) {
+    & $File @CmdArgs 2>&1 | ForEach-Object { Write-Host "     | $_" }
+    return $LASTEXITCODE
+}
 # A copy of the package with another build number (version.json and its checksum), as a newer or older release
 function New-PackageCopy([string]$From, [string]$To, [int]$Build) {
     Copy-Item -LiteralPath $From -Destination $To -Recurse
@@ -84,6 +100,17 @@ try {
     Test-That 'app.zip brings its own Node.js and the Windows packages (bcrypt, sharp)' (($appList -contains 'runtime/node/node.exe') -and @($appList | Where-Object { $_ -like 'node_modules/bcrypt/*' }).Count -and @($appList | Where-Object { $_ -like 'node_modules/@img/sharp-win32-x64/*' }).Count) 'missing'
     $pkgInfo = Get-PackageInfo $pkg
     $build = [int]$pkgInfo.build
+    $aiZip = Join-Path $Dist 'rp-xperience-kiosk-windows-x64-ai.zip'
+    if (Test-Path $aiZip) {
+        $aiWork = Join-Path $work 'ai'
+        New-Item -ItemType Directory -Path $aiWork -Force | Out-Null
+        & $Tar -xf $aiZip -C $aiWork 'rp-xperience-kiosk/payload/app.zip' 'rp-xperience-kiosk/version.json'
+        $aiList = @(& $Tar -tf (Join-Path $aiWork 'rp-xperience-kiosk\payload\app.zip'))
+        $model = @($aiList | Where-Object { $_ -match 'node_modules/@xenova/transformers/\.cache/Xenova/bert-base-multilingual-uncased-sentiment/.*\.onnx$' })
+        $aiInfo = Get-PackageInfo (Join-Path $aiWork 'rp-xperience-kiosk')
+        Test-That 'the -ai zip holds the offline sentiment model and says so' ($model.Count -ge 1 -and $aiInfo.aiModel -eq $true) "$($model.Count) model file(s), aiModel $($aiInfo.aiModel)"
+        Remove-Item -LiteralPath $aiWork -Recurse -Force -ErrorAction SilentlyContinue
+    } else { Test-That 'the -ai zip was built' $false $aiZip }
 
     Write-Part 'One command install from a download (Wall PC, MySQL service, firewall rule)'
     $server = Start-Process -FilePath 'node' -ArgumentList @((ConvertTo-Arg (Join-Path $PSScriptRoot 'serve-dir.js')), (ConvertTo-Arg $Dist), '8099') -PassThru -WindowStyle Hidden
@@ -137,15 +164,16 @@ try {
     }
     Test-That 'the service stops, starts again and still has the data' ($stopped -and $back -and (Test-Marker $Root)) "stopped $stopped, back $back"
 
-    Write-Part 'The same package again: a repair keeps everything'
-    $code = Invoke-Ps (Join-Path $pkg 'installer\Install-Kiosk.ps1') @('-InstallDir', $Root, '-NonInteractive')
+    Write-Part 'The same package again (its install.cmd): a repair keeps everything'
+    $code = Invoke-Cmd (Join-Path $pkg 'install.cmd') @('-InstallDir', $Root, '-NonInteractive')
     Test-That 'the repair finishes (exit 0)' ($code -eq 0) "exit $code"
     Test-That 'after the repair: photo, uploaded picture, visitor row and password are kept' ((Test-Path (Join-Path $Root 'app\uploads\photos\ci-marker.txt')) -and (Test-Path (Join-Path $Root 'app\assets\backgrounds\ci-uploaded.png')) -and (Test-Marker $Root) -and (Get-Login $Root 3000 'systemadmin' 'KIOSK_ADMIN_PASSWORD') -eq '200') 'something is gone'
 
-    Write-Part 'A newer build: the update keeps everything and makes a backup'
+    Write-Part 'A newer build (its update.cmd), with a "Restart application" window open: the update keeps everything'
     $newer = Join-Path $work 'newer'
     New-PackageCopy $pkg $newer ($build + 1)
-    $code = Invoke-Ps (Join-Path $newer 'installer\Install-Kiosk.ps1') @('-InstallDir', $Root, '-NonInteractive')
+    Test-That 'the kiosk runs in a window like the one "Restart application" opens' (Open-RestartWindow $Root) 'did not start'
+    $code = Invoke-Cmd (Join-Path $newer 'update.cmd') @('-InstallDir', $Root, '-NonInteractive')
     Test-That 'the update finishes (exit 0)' ($code -eq 0) "exit $code"
     Test-That 'the record says the newer build' ([int](Get-Info $Root).build -eq $build + 1) (Get-Info $Root).build
     Test-That 'after the update: photo, uploaded picture, visitor row and password are kept' ((Test-Path (Join-Path $Root 'app\uploads\photos\ci-marker.txt')) -and (Test-Path (Join-Path $Root 'app\assets\backgrounds\ci-uploaded.png')) -and (Test-Marker $Root) -and (Get-Login $Root 3000 'systemadmin' 'KIOSK_ADMIN_PASSWORD') -eq '200') 'something is gone'
@@ -169,6 +197,10 @@ try {
     $code = Invoke-Ps (Join-Path $pkg 'installer\Install-Kiosk.ps1') @('-InstallDir', $Root, '-NonInteractive')
     Test-That 'the older package is refused (exit 3) and nothing changes' ($code -eq 3 -and [int](Get-Info $Root).build -eq $build + 1) "exit $code"
 
+    Write-Part 'update.cmd of the installed copy, with another source'
+    $code = Invoke-Cmd (Join-Path $Root 'app\update.cmd') @('-From', $newer, '-NonInteractive')
+    Test-That 'app\update.cmd runs the package it is given (exit 0) and everything is kept' ($code -eq 0 -and (Test-Path (Join-Path $Root 'app\uploads\photos\ci-marker.txt')) -and (Test-Marker $Root)) "exit $code"
+
     Write-Part 'Status and export'
     $code = Invoke-Ps (Join-Path $Root 'app\scripts\install\package\Show-KioskStatus.ps1') @()
     Test-That 'kiosk-status runs' ($code -eq 0) "exit $code"
@@ -177,15 +209,23 @@ try {
     & (Join-Path $Root 'app\export-data.cmd') -OutFile $export -NonInteractive 2>&1 | ForEach-Object { Write-Host "     | $_" }
     Test-That 'export-data.cmd makes the locked data file' ($LASTEXITCODE -eq 0 -and (Test-Path $export)) "exit $LASTEXITCODE"
 
-    Write-Part 'Uninstall, keeping the visitor data'
-    & (Join-Path $Root 'app\uninstall.cmd') -NonInteractive 2>&1 | ForEach-Object { Write-Host "     | $_" }
-    Test-That 'uninstall.cmd finishes (exit 0)' ($LASTEXITCODE -eq 0) "exit $LASTEXITCODE"
+    Write-Part 'Uninstall, keeping the visitor data (with a "Restart application" window open)'
+    Test-That 'the kiosk runs in a "Restart application" window again' (Open-RestartWindow $Root) 'did not start'
+    $code = Invoke-Cmd (Join-Path $Root 'app\uninstall.cmd') @('-NonInteractive')
+    Test-That 'uninstall.cmd finishes (exit 0)' ($code -eq 0) "exit $code"
     Test-NothingLeft $Root 'after uninstall' $true
     Test-That 'the photo and the uploaded picture are kept in data\kept' ((Test-Path (Join-Path $Root 'data\kept\app\uploads\photos\ci-marker.txt')) -and (Test-Path (Join-Path $Root 'data\kept\app\assets\backgrounds\ci-uploaded.png'))) 'not kept'
 
-    Write-Part 'Install again: the kept data is used'
+    Write-Part 'Install again, and the PC is turned off half way (after the kept data moved into the new version)'
+    $env:KIOSK_INSTALL_TEST_FAIL = 'kill-after-kept'
+    $code = Invoke-Ps (Join-Path $newer 'installer\Install-Kiosk.ps1') @('-InstallDir', $Root, '-Role', 'WallPC', '-NonInteractive')
+    Remove-Item Env:\KIOSK_INSTALL_TEST_FAIL
+    Test-That 'the install was cut off right after moving the kept data (exit 9)' ($code -eq 9 -and (Test-Path (Join-Path $Root 'app.new\uploads\photos\ci-marker.txt'))) "exit $code"
+
+    Write-Part 'Install again: the stopped install is finished and the kept data is used'
     $code = Invoke-Ps (Join-Path $newer 'installer\Install-Kiosk.ps1') @('-InstallDir', $Root, '-Role', 'WallPC', '-NonInteractive')
     Test-That 'the install over kept data finishes (exit 0)' ($code -eq 0) "exit $code"
+    Test-That 'nothing half made is left' (-not (Test-Path (Join-Path $Root 'app.new')) -and -not (Test-Path (Join-Path $Root 'data\install-state.json')) -and -not (Test-Path (Join-Path $Root 'data\kept'))) 'leftovers'
     Test-That 'photo, uploaded picture, visitor row and the earlier password are back' ((Test-Path (Join-Path $Root 'app\uploads\photos\ci-marker.txt')) -and (Test-Path (Join-Path $Root 'app\assets\backgrounds\ci-uploaded.png')) -and (Test-Marker $Root) -and (Get-Login $Root 3000 'systemadmin' 'KIOSK_ADMIN_PASSWORD') -eq '200') 'not back'
 
     Write-Part 'Uninstall with -RemoveData: nothing may be left'

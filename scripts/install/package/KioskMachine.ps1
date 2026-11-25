@@ -68,15 +68,8 @@ function Show-MySqlError($m) {
         Write-Info "  MySQL in the event log: $($e.Message)"
     }
     foreach ($p in @($m.Ini, $m.Data, $err, (Join-Path $m.Data 'ibdata1'))) {
-        if (Test-Path -LiteralPath $p) { Write-Info "  rights of ${p}: $((& icacls.exe $p 2>&1 | Select-Object -Skip 0 -First 6) -join ' ; ')" }
+        if (Test-Path -LiteralPath $p) { Write-Info "  rights of ${p}: $((& icacls.exe $p 2>&1 | Select-Object -First 6) -join ' ; ')" }
     }
-    # the same server in a console for a few seconds (as administrator): it prints the reason it stops
-    $out = Join-Path $env:TEMP ('rpk-mysqld-' + [guid]::NewGuid().ToString('N') + '.txt')
-    try {
-        $p = Start-Process -FilePath $m.Mysqld -ArgumentList @((ConvertTo-Arg "--defaults-file=$($m.Ini)"), '--console') -RedirectStandardError $out -RedirectStandardOutput "$out.out" -PassThru -WindowStyle Hidden
-        if (-not $p.WaitForExit(15000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; Write-Info '  in a console as administrator MySQL keeps running (so the service account is the problem)' }
-        foreach ($line in @(Get-Content -LiteralPath $out -Tail 15 -ErrorAction SilentlyContinue)) { Write-Info "  console: $line" }
-    } catch { Write-Info "  console run failed: $($_.Exception.Message)" } finally { Remove-Item -LiteralPath $out, "$out.out" -Force -ErrorAction SilentlyContinue }
 }
 
 function Install-MySqlFiles {

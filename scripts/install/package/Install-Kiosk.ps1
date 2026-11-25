@@ -45,6 +45,13 @@ function Stop-Here([string]$Message, [int]$Code) {
 function Test-Fail([string]$Point) {
     if ($TestFail -eq $Point) { throw "test failure at $Point (KIOSK_INSTALL_TEST_FAIL)" }
 }
+# What a new install has done so far, for a run after a power cut: the database login it made and whether data kept
+# by an earlier uninstall was moved into the new version. The data folder is private to the user, like backend\.env.
+function Write-InstallState([string]$Root, [string]$Password, [bool]$KeptMoved) {
+    $dir = Join-Path $Root 'data'
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    Write-JsonFile (Join-Path $dir 'install-state.json') ([pscustomobject]@{ action = 'fresh'; started = (Get-Date).ToString('s'); dbPassword = $Password; keptMoved = $KeptMoved })
+}
 
 # ---------------------------------------------------------------- the package
 function Test-Package {
@@ -73,6 +80,23 @@ function Repair-Leftovers([string]$Root) {
     $new = Join-Path $Root 'app.new'
     $old = Join-Path $Root 'app.old'
     $fixed = $false
+    $stateFile = Join-Path $Root 'data\install-state.json'
+    $state = Read-JsonFile $stateFile
+    # a new install that stopped half way (the PC was turned off): data kept by an earlier uninstall goes back to
+    # data\kept, and this run finishes the install with the same database login (the state file keeps it)
+    if ($state -and $state.action -eq 'fresh' -and -not (Test-Path -LiteralPath $app)) {
+        Write-Note 'an install stopped half way (was the PC turned off?): it is finished now'
+        Stop-KioskServers $Root | Out-Null
+        if (Test-Path -LiteralPath $new) {
+            if ($state.keptMoved) {
+                Move-AppData $new (Join-Path $Root 'data\kept\app')
+                Write-Ok 'the data kept by the earlier uninstall is back in data\kept'
+            }
+            [void](Remove-Tree $new)
+        }
+        $script:Resume = $state
+        return
+    }
     if (-not (Test-Path -LiteralPath $app) -and (Test-Path -LiteralPath $old)) {
         Write-Note 'an update stopped half way: the previous version is put back first'
         Stop-KioskServers $Root | Out-Null
@@ -91,8 +115,7 @@ function Repair-Leftovers([string]$Root) {
         [void](Remove-Tree $old)
         $fixed = $true
     }
-    $state = Join-Path $Root 'data\install-state.json'
-    if (Test-Path -LiteralPath $state) { Remove-Item -LiteralPath $state -Force; $fixed = $true }
+    if (Test-Path -LiteralPath $stateFile) { Remove-Item -LiteralPath $stateFile -Force; $fixed = $true }
     if ($fixed) { Write-Ok 'the leftovers of the unfinished run are cleared' }
 }
 
@@ -125,8 +148,12 @@ function Test-Before($Plan, $Pkg) {
     }
     if (Test-InsideRoot $PackageDir $full) { Write-Bad 'the install folder cannot be inside the package folder'; $problems++ }
     if ($Plan.Action -eq 'fresh' -and (Test-Path -LiteralPath $full)) {
-        $other = @(Get-ChildItem -LiteralPath $full -Force -ErrorAction SilentlyContinue | Where-Object { @('data', 'mysql-data') -notcontains $_.Name })
+        # an install that stopped half way also left its MySQL program files: they are used again
+        $allowed = @('data', 'mysql-data')
+        if ($script:Resume) { $allowed += 'mysql' }
+        $other = @(Get-ChildItem -LiteralPath $full -Force -ErrorAction SilentlyContinue | Where-Object { $allowed -notcontains $_.Name })
         if ($other.Count) { Write-Bad "$full already exists and holds other files; choose an empty or new folder"; $problems++ }
+        elseif ($script:Resume) { Write-Ok "$full holds the install that stopped half way: it is finished now" }
         elseif (Test-Path -LiteralPath (Join-Path $full 'data\kept')) { Write-Ok "$full holds the data kept by an earlier uninstall: it is used again" }
     }
 
@@ -141,7 +168,7 @@ function Test-Before($Plan, $Pkg) {
             $svc = Get-CimInstance Win32_Service -Filter "Name = '$ServiceName'" -ErrorAction SilentlyContinue
             $ours = ($svc -and (Test-InsideRoot $root ($svc.PathName -replace '^"([^"]+)".*$', '$1')))
         }
-        if ($ours -and $Plan.Action -ne 'fresh') { Write-Ok "port $($entry.p) is used by this install ($($owner.Name))"; continue }
+        if ($ours -and ($Plan.Action -ne 'fresh' -or $script:Resume)) { Write-Ok "port $($entry.p) is used by this install ($($owner.Name))"; continue }
         if ($entry.p -eq $KioskServerPort) { Write-Bad "port $KioskServerPort ($($entry.what)) is already used by $($owner.Name) (process $($owner.ProcessId)). The kiosk screen server always uses it: close that program first (another copy of the kiosk?)." }
         else { Write-Bad "port $($entry.p) ($($entry.what)) is already used by $($owner.Name) (process $($owner.ProcessId)). Close it, or choose another port with -Port or -MySqlPort." }
         $problems++
@@ -299,11 +326,18 @@ function Install-Fresh($Plan, $Pkg, $Admin, $Import) {
     $info = [pscustomobject]@{ build = $Pkg.build; commit = $Pkg.commit; role = $Plan.Role; mode = $Plan.Mode; port = $Plan.Port; mysqlPort = $Plan.MySqlPort; mysqlVersion = $Pkg.mysql; root = $root; installedAt = (Get-Date).ToString('s'); updatedAt = (Get-Date).ToString('s'); source = "$env:KIOSK_PACKAGE_SOURCE"; items = @() }
     $rootExisted = Test-Path -LiteralPath $root
     $pwFile = $null
+    if ($script:Resume) {
+        # what the install that stopped half way had already made stays on its list
+        $earlier = Get-InstallInfo $root
+        if ($earlier) { $info.items = @($earlier.items) }
+    }
     try {
-        # the database user's password: a new one, or the one of the data kept by an earlier uninstall
+        # the database user's password: the one of an install that stopped half way, the one of the data kept by an
+        # earlier uninstall, or a new one
         $appPassword = New-Secret 24
         $keptEnv = Join-Path $kept 'backend\.env'
-        if (Test-Path -LiteralPath $keptEnv) {
+        if ($script:Resume -and $script:Resume.dbPassword) { $appPassword = $script:Resume.dbPassword }
+        elseif (Test-Path -LiteralPath $keptEnv) {
             $keptPw = Get-EnvValue (Read-EnvLines $keptEnv) 'DB_PASSWORD' ''
             if ($keptPw) { $appPassword = $keptPw }
         }
@@ -328,6 +362,7 @@ function Install-Fresh($Plan, $Pkg, $Admin, $Import) {
                 foreach ($it in @($r.items)) { Add-Record $info $it.type $it.id $it.text }
                 if ($r.mysqlVersion) { $info.mysqlVersion = $r.mysqlVersion }
                 Save-InstallInfo $root $info
+                Write-InstallState $root $appPassword $false
             }
         }
         if ($Plan.Mode -eq 'process') {
@@ -338,6 +373,7 @@ function Install-Fresh($Plan, $Pkg, $Admin, $Import) {
             Set-PrivateAcl $root $userSid
             Write-Ok "folder $root, readable only by $env:USERNAME, SYSTEM and administrators"
             Save-InstallInfo $root $info
+            Write-InstallState $root $appPassword $false
             $m = Get-MySqlPaths $root
             if (-not (Test-Path -LiteralPath $m.Mysqld)) {
                 New-Item -ItemType Directory -Path $m.Base -Force | Out-Null
@@ -361,7 +397,7 @@ function Install-Fresh($Plan, $Pkg, $Admin, $Import) {
                 if ($r.ok) { foreach ($it in @($r.items)) { Add-Record $info $it.type $it.id $it.text } } else { $script:AdminMissing = $true; Write-Note 'the firewall rule is skipped (no administrator rights)' }
             }
         }
-        Write-JsonFile (Join-Path $root 'data\install-state.json') ([pscustomobject]@{ action = 'fresh'; started = (Get-Date).ToString('s') })
+        if (-not (Test-Path -LiteralPath (Join-Path $root 'data\install-state.json'))) { Write-InstallState $root $appPassword $false }
         Move-KioskLog $root
         Save-InstallInfo $root $info
 
@@ -373,9 +409,12 @@ function Install-Fresh($Plan, $Pkg, $Admin, $Import) {
         Add-Record $info 'folder' 'app' "kiosk program files in $app (with Node.js $($Pkg.node))"
         Write-Ok "kiosk build $($Pkg.build) unpacked, with its own Node.js $($Pkg.node)"
         if (Test-Path -LiteralPath $kept) {
-            # moved, not copied; an undo moves it back to data\kept, which is only deleted once the install worked
+            # moved, not copied; an undo moves it back to data\kept, which is only deleted once the install worked.
+            # The state file says so first, so a run after a power cut can move it back too.
             $script:KeptIn = $new
+            Write-InstallState $root $appPassword $true
             Move-AppData $kept $new
+            if ($TestFail -eq 'kill-after-kept') { [Environment]::Exit(9) }
             $n = Copy-UserAssets $kept $new
             Write-Ok "the data kept by the earlier uninstall is back (settings, keys, visitor photos, $n uploaded picture(s))"
         }

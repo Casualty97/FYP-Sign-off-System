@@ -309,7 +309,13 @@ function Get-KioskProcesses([string]$Root, [string[]]$Names = @('node.exe', 'mys
 function Stop-KioskServers([string]$Root) {
     $nodes = @(Get-KioskProcesses $Root @('node.exe'))
     if ($nodes.Count -eq 0) { return 0 }
+    # the console windows they run in (start-kiosk.cmd, or the "cmd /k" window that restart-app.bat opens) have the
+    # app folder as their current folder and would block moving or deleting it: only a cmd.exe that is the direct
+    # parent of one of these node processes is closed, never any other window
+    $parents = @($nodes | ForEach-Object { $_.ParentProcessId })
+    $windows = @(Get-CimInstance Win32_Process -Filter "Name = 'cmd.exe'" -ErrorAction SilentlyContinue | Where-Object { $parents -contains $_.ProcessId })
     foreach ($p in $nodes) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
+    foreach ($w in $windows) { Stop-Process -Id $w.ProcessId -Force -ErrorAction SilentlyContinue }
     Start-Sleep -Seconds 2
     return $nodes.Count
 }
