@@ -310,6 +310,26 @@ body {
 /* a label that screen readers read; the field shows its name as the placeholder */
 .login-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 440px) { .login-glass { padding: 32px 24px 24px; border-radius: 28px; } }
+/* <Jun Kai start> a forgotten password: the link under the password field, and the reset card in the same glass style */
+.login-glass[hidden] { display: none; }
+.login-forgot { align-self: flex-end; margin: 10px 2px 0; padding: 2px 0; border: 0; background: none; color: var(--login-accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.login-forgot:hover { text-decoration: underline; }
+.login-forgot:focus-visible, .reset-link:focus-visible, .reset-btn:focus-visible { outline: 2px solid var(--login-accent); outline-offset: 2px; border-radius: 6px; }
+#reset-title { outline: none; }
+.reset-step { display: flex; flex-direction: column; }
+.reset-step[hidden] { display: none; }
+.reset-btn { height: 42px; margin-top: 16px; border: 1px solid var(--login-field-edge); border-radius: 8px; background: var(--login-accent); color: #00243a; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: filter 0.15s ease; }
+.reset-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.reset-btn:disabled { opacity: 0.6; cursor: wait; }
+.reset-link { align-self: center; margin-top: 12px; padding: 4px 6px; border: 0; background: none; color: var(--login-accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.reset-link:disabled { color: var(--login-faint); cursor: default; }
+.reset-link:hover:not(:disabled) { text-decoration: underline; }
+.reset-back { margin-top: 18px; color: var(--login-soft); }
+#login-page .reset-rule { margin: 10px 2px 0; font-size: 12px; line-height: 1.45; color: var(--login-faint) !important; }
+.reset-show { margin-top: 10px; }
+#reset-code:not(:placeholder-shown) { letter-spacing: 0.3em; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .reset-btn { transition: none; } }
+/* <Jun Kai end> */
 /* a low window: the card starts at the top so none of it is cut off, and the footer line follows under it */
 @media (max-height: 620px) { .login-screen { flex-direction: column; justify-content: flex-start; padding-bottom: 24px; } #login-page .login-foot { position: static; margin-top: 16px; } }
 @media (prefers-reduced-motion: reduce) {
