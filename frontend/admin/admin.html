@@ -1952,188 +1952,102 @@
                 </div>
 
                 <!-- Data Export Page (DONE BY PRETI)-->
-                <div id="data-export-page" class="page">
-                    <!-- Password Panel (shown by default) (DONE BY PRETI)-->
-                    <div id="data-export-password-panel" class="data-export-password-panel">
-                        <div class="password-panel-card">
-                            <div class="panel-icon">🔓</div>
-                            <h2 style="text-align: center; color: #1e293b; margin-bottom: 10px;">Data Export Access</h2>
-                            <p class="panel-subtitle">System Administrator verification required</p>
-                            
-                            <div class="warning-badge">
-                                ⚠️ Contains sensitive information – handle securely
-                            </div>
-                            
-                            <form id="data-export-unlock-form" onsubmit="unlockDataExport(event)">
-                                <div class="form-group">
-                                    <label for="export-username" >Username</label>
-                                    <input type="text" id="export-username" readonly style="background: #f8fafc; cursor: not-allowed;  color: black">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="export-password">Password</label>
-                                    <input type="password" id="export-password" placeholder="Enter your system admin password" required color: black">     
-                                </div>
-                                
-                                <button type="submit" class="btn-primary" style="width: 100%;">
-                                    🔓 Unlock Data Exports
-                                </button>
-                                
-                                <div id="export-unlock-error" class="error-message" style="display: none;"></div>
-                            </form>
-                            
-                            <div class="panel-info">
-                                <p><strong>For system administrators only.</strong></p>
-                                <p>Exports may contain personal data including:</p>
-                                <ul>
-                                    <li>User names and encrypted emails</li>
-                                    <li>Feedback responses and photos</li>
-                                    <li>Admin activity logs</li>
-                                </ul>
-                                <p style="margin-top: 10px;">Session expires after 30 minutes of inactivity.</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Export Cards (hidden by default) (DONE BY PRETI)-->
-                    <div id="data-export-cards" class="data-export-cards" style="display: none;">
-                        <div class="page-header">
+                <div id="data-export-page" class="page is-locked">
+                    <!-- <Jun Kai start> Data Export page (admin redesign, Data Export A): the nine downloads are always in view in
+                         four groups and stay greyed out until the System Admin password is typed in the bar on top; the same
+                         page then unlocks for 30 minutes. The ids of the unlock form and its fields are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
                             <h2>Data Export</h2>
-                            <p>System administrator area for exporting feedback data, photos and audit logs</p>
-                        </div>
-                        
-                        <div class="export-warning-bar">
-                            <div style="display: flex; align-items: center;">
-                                <span class="warning-icon">⚠️</span>
-                                <span>Contains sensitive information – handle securely</span>
-                            </div>
-                            <span class="session-info" id="export-session-info"></span>
-                        </div>
-                        
-                        <div class="export-grid">
-                            <!-- School Impact Report (DONE BY XY)-->
-                            <div class="export-card export-card-report">
-                                <div class="export-card-icon">REPORT</div>
-                                <h3 class="export-card-title">School impact report</h3>
-                                <p class="export-card-description">
-                                    Staff-friendly RP Xperience Centre report with pledge count, common topics, campaign progress,
-                                    class participation and anonymized sample pledges.
-                                </p>
-                                <div class="export-card-meta">Format: PDF (.pdf)</div>
-                                <button class="export-btn" onclick="downloadExport('school-impact/pdf')">
-                                    Download PDF
-                                </button>
-                            </div>
-
-                            <div class="export-card export-card-report">
-                                <div class="export-card-icon">CSV</div>
-                                <h3 class="export-card-title">School impact report data</h3>
-                                <p class="export-card-description">
-                                    Spreadsheet version of the school impact report for further analysis,
-                                    evidence tables and FYP documentation.
-                                </p>
-                                <div class="export-card-meta">Format: CSV (.csv)</div>
-                                <button class="export-btn" onclick="downloadExport('school-impact/csv')">
-                                    Download CSV
-                                </button>
-                            </div>
-
-                            <!-- Card A: Full Feedback (DONE BY PRETI)-->
-                            <div class="export-card">
-                                <div class="export-card-icon">📊</div>
-                                <h3 class="export-card-title">Full feedback data (all)</h3>
-                                <p class="export-card-description">
-                                    All feedback records with users, questions and answers. 
-                                    Includes both archived and not archived entries. Emails are decrypted.
-                                </p>
-                                <div class="export-card-meta">Format: CSV (.csv)</div>
-                                <button class="export-btn" onclick="downloadExport('feedback/full')">
-                                    Download
-                                </button>
-                            </div>
-                            
-                            <!-- Card B: Feedback Not Archived (DONE BY PRETI)-->
-                            <div class="export-card">
-                                <div class="export-card-icon">✅</div>
-                                <h3 class="export-card-title">Feedback – not archived</h3>
-                                <p class="export-card-description">
-                                    Only active feedback where archive_status = not_archived, 
-                                    including all questions and answers. Emails are decrypted.
-                                </p>
-                                <div class="export-card-meta">Format: CSV (.csv)</div>
-                                <button class="export-btn" onclick="downloadExport('feedback/not-archived')">
-                                    Download
-                                </button>
-                            </div>
-                            
-                            <!-- Card C: Feedback Archived (DONE BY PRETI)-->
-                            <div class="export-card">
-                                <div class="export-card-icon">📦</div>
-                                <h3 class="export-card-title">Feedback – archived</h3>
-                                <p class="export-card-description">
-                                    Only feedback where archive_status = archived, 
-                                    including all questions and answers. Emails are decrypted.
-                                </p>
-                                <div class="export-card-meta">Format: CSV (.csv)</div>
-                                <button class="export-btn" onclick="downloadExport('feedback/archived')">
-                                    Download
-                                </button>
-                            </div>
-                            
-                            <!-- Card D: All Photos (DONE BY PRETI)-->
-                            <div class="export-card">
-                                <div class="export-card-icon">🖼️</div>
-                                <h3 class="export-card-title">All photos (raw & processed)</h3>
-                                <p class="export-card-description">
-                                    All files from uploads/photos and uploads/processed 
-                                    for every feedback record.
-                                </p>
-                                <div class="export-card-meta">Format: ZIP (with readme.txt)</div>
-                                <button class="export-btn" onclick="downloadExport('photos/all')">
-                                    Download
-                                </button>
-                            </div>
-                            
-                            <!-- Card E: Photos Not Archived (DONE BY PRETI)-->
-                            <div class="export-card">
-                                <div class="export-card-icon">🌟</div>
-                                <h3 class="export-card-title">Photos – not archived feedback</h3>
-                                <p class="export-card-description">
-                                    Photos linked to feedback where archive_status = not_archived.
-                                </p>
-                                <div class="export-card-meta">Format: ZIP (with readme.txt)</div>
-                                <button class="export-btn" onclick="downloadExport('photos/not-archived')">
-                                    Download
-                                </button>
-                            </div>
-                            
-                            <!-- Card F: Photos Archived (DONE BY PRETI)-->
-                            <div class="export-card">
-                                <div class="export-card-icon">📦</div>
-                                <h3 class="export-card-title">Photos – archived feedback</h3>
-                                <p class="export-card-description">
-                                    Photos linked to feedback where archive_status = archived.
-                                </p>
-                                <div class="export-card-meta">Format: ZIP (with readme.txt)</div>
-                                <button class="export-btn" onclick="downloadExport('photos/archived')">
-                                    Download
-                                </button>
-                            </div>
-                            
-                            <!-- Card G: Audit Log (DONE BY PRETI)-->
-                            <div class="export-card">
-                                <div class="export-card-icon">🧾</div>
-                                <h3 class="export-card-title">Audit log</h3>
-                                <p class="export-card-description">
-                                    Full history of admin actions and access logs.
-                                </p>
-                                <div class="export-card-meta">Format: CSV (.csv)</div>
-                                <button class="export-btn" onclick="downloadExport('audit-log')">
-                                    Download
-                                </button>
-                            </div>
+                            <p>Download reports, feedback, photos and logs. For System Admins only.</p>
                         </div>
                     </div>
+
+                    <form id="data-export-unlock-form" class="dx-unlock" onsubmit="unlockDataExport(event)">
+                        <span class="dx-unlock-icon" id="dx-unlock-icon" data-fb-icon="lock"></span>
+                        <div class="dx-unlock-text">
+                            <strong id="dx-unlock-title">Type your System Admin password to unlock the downloads</strong>
+                            <span id="export-session-info">Exports hold personal data: names, encrypted emails, feedback, photos and admin activity. The unlock lasts 30 minutes.</span>
+                        </div>
+                        <div class="dx-unlock-fields" id="data-export-password-panel">
+                            <label class="ui-sr-only" for="export-username">Username</label>
+                            <input type="text" id="export-username" class="ui-input" readonly autocomplete="username">
+                            <label class="ui-sr-only" for="export-password">System Admin password</label>
+                            <input type="password" id="export-password" class="ui-input" placeholder="System Admin password" autocomplete="current-password">
+                            <button type="submit" class="ui-btn ui-btn-primary" id="export-unlock-btn"><span data-fb-icon="unlock"></span>Unlock</button>
+                        </div>
+                        <div id="export-unlock-error" class="dx-unlock-error" role="alert" hidden></div>
+                    </form>
+                    <div id="dx-status" class="ui-status-slot dx-status" aria-live="polite"></div>
+
+                    <div id="data-export-cards" class="dx-groups" aria-live="polite">
+                        <section class="dx-group" aria-labelledby="dx-group-reports">
+                            <h3 class="ui-section-title" id="dx-group-reports">Reports</h3>
+                            <div class="dx-grid">
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">School impact report</span><span class="ui-tag">PDF</span></div>
+                                    <div class="dx-card-text">A report of visitors, pledges and badges for the school</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="school-impact/pdf" data-format="PDF" disabled></button>
+                                </div>
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">School impact report data</span><span class="ui-tag">CSV</span></div>
+                                    <div class="dx-card-text">The numbers behind the report</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="school-impact/csv" data-format="CSV" disabled></button>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="dx-group" aria-labelledby="dx-group-feedback">
+                            <h3 class="ui-section-title" id="dx-group-feedback">Feedback</h3>
+                            <div class="dx-grid">
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">Full feedback data (all)</span><span class="ui-tag">CSV</span></div>
+                                    <div class="dx-card-text">Every submission, archived or not, with emails decrypted</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="feedback/full" data-format="CSV" disabled></button>
+                                </div>
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">Feedback, not archived</span><span class="ui-tag">CSV</span></div>
+                                    <div class="dx-card-text">Submissions still in Feedback</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="feedback/not-archived" data-format="CSV" disabled></button>
+                                </div>
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">Feedback, archived</span><span class="ui-tag">CSV</span></div>
+                                    <div class="dx-card-text">Submissions in Archived Feedback</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="feedback/archived" data-format="CSV" disabled></button>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="dx-group" aria-labelledby="dx-group-photos">
+                            <h3 class="ui-section-title" id="dx-group-photos">Photos</h3>
+                            <div class="dx-grid">
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">All photos (raw and processed)</span><span class="ui-tag">ZIP</span></div>
+                                    <div class="dx-card-text">Every visitor photo</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="photos/all" data-format="ZIP" disabled></button>
+                                </div>
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">Photos, not archived feedback</span><span class="ui-tag">ZIP</span></div>
+                                    <div class="dx-card-text">Photos of submissions still in Feedback</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="photos/not-archived" data-format="ZIP" disabled></button>
+                                </div>
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">Photos, archived feedback</span><span class="ui-tag">ZIP</span></div>
+                                    <div class="dx-card-text">Photos of archived submissions</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="photos/archived" data-format="ZIP" disabled></button>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="dx-group" aria-labelledby="dx-group-logs">
+                            <h3 class="ui-section-title" id="dx-group-logs">Logs</h3>
+                            <div class="dx-grid">
+                                <div class="dx-card">
+                                    <div class="dx-card-head"><span class="dx-card-title">Audit log</span><span class="ui-tag">CSV</span></div>
+                                    <div class="dx-card-text">Admin actions and sign ins</div>
+                                    <button type="button" class="ui-btn ui-btn-secondary dx-download" data-export="audit-log" data-format="CSV" disabled></button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Theme Settings Page (DONE BY PRETI)-->
