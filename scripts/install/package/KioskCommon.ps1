@@ -253,6 +253,8 @@ function Get-UserAssets([string]$App, [string]$ListFile) {
     if ($ListFile) { $list = $ListFile }
     if (Test-Path -LiteralPath $list) { foreach ($l in [IO.File]::ReadAllLines($list)) { if ($l) { $shipped[$l.ToLowerInvariant()] = $true } } }
     $out = @()
+    # the long form of the folder: a short name (RUNNER~1) in the path would make the cut below land wrong
+    $assets = (Get-Item -LiteralPath $assets).FullName
     foreach ($f in @(Get-ChildItem -LiteralPath $assets -Recurse -File -Force -ErrorAction SilentlyContinue)) {
         $rel = $f.FullName.Substring($assets.Length).TrimStart('\').Replace('\', '/')
         if (-not $shipped.ContainsKey($rel.ToLowerInvariant())) { $out += $rel }

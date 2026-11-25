@@ -19,8 +19,10 @@ function Invoke-Installer([string[]]$InstallerArgs) {
 }
 function Write-Checksums {
     $lines = @()
-    foreach ($f in @(Get-ChildItem -LiteralPath $pkg -Recurse -File | Where-Object { $_.Name -ne 'checksums.sha256' })) {
-        $rel = $f.FullName.Substring($pkg.Length + 1).Replace('\', '/')
+    # the long form of the folder: on a runner TEMP is a short name (RUNNER~1) but file listings give the long one
+    $base = (Get-Item -LiteralPath $pkg).FullName
+    foreach ($f in @(Get-ChildItem -LiteralPath $base -Recurse -File | Where-Object { $_.Name -ne 'checksums.sha256' })) {
+        $rel = $f.FullName.Substring($base.Length + 1).Replace('\', '/')
         $sha = [Security.Cryptography.SHA256]::Create()
         $s = [IO.File]::OpenRead($f.FullName)
         try { $hash = (($sha.ComputeHash($s) | ForEach-Object { $_.ToString('x2') }) -join '') } finally { $s.Dispose(); $sha.Dispose() }

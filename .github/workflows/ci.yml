@@ -447,15 +447,24 @@ jobs:
         if: always()
         shell: powershell
         run: Get-ChildItem C:\rpkb\dist -ErrorAction SilentlyContinue | ForEach-Object { "{0,-45} {1,8:N0} MB" -f $_.Name, ($_.Length / 1MB) }
+      # the logs sit on C: and outside the workspace, which upload-artifact cannot take: copied in first
+      - name: Collect the install logs
+        if: failure()
+        shell: powershell
+        run: |
+          $to = Join-Path $env:GITHUB_WORKSPACE 'install-logs'
+          New-Item -ItemType Directory -Path $to -Force | Out-Null
+          foreach ($from in @((Join-Path $env:TEMP 'rp-xperience-kiosk'), 'C:\RPXK\data\logs', 'C:\RPXK2\data\logs', 'C:\RPXK3\data\logs')) {
+            if (Test-Path $from) { Copy-Item -Path (Join-Path $from '*') -Destination $to -Force -ErrorAction SilentlyContinue }
+          }
+          foreach ($err in @('C:\RPXK\mysql-data\mysqld.err', 'C:\RPXK2\mysql-data\mysqld.err', 'C:\RPXK3\mysql-data\mysqld.err')) {
+            if (Test-Path $err) { Copy-Item $err (Join-Path $to ((Split-Path (Split-Path (Split-Path $err)) -Leaf) + '-mysqld.err')) -ErrorAction SilentlyContinue }
+          }
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: install-logs
-          path: |
-            ${{ runner.temp }}\rp-xperience-kiosk
-            C:\Users\runneradmin\AppData\Local\Temp\rp-xperience-kiosk
-            C:\RPXK\data\logs
-            C:\RPXK\mysql-data\mysqld.err
+          path: install-logs
           retention-days: 7
           if-no-files-found: ignore
   # <Jun Kai end>
