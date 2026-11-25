@@ -71,6 +71,8 @@ function effective(values, key, fallback = '', env = process.env) {
 function dbConfig(values, env = process.env) {
     return {
         host: effective(values, 'DB_HOST', 'localhost', env),
+        // the kiosk's own MySQL (install.cmd) runs on another port; db.js falls back to 3306 the same way
+        port: Number(effective(values, 'DB_PORT', '', env)) || 3306,
         user: effective(values, 'DB_USER', 'kiosk_user', env),
         password: effective(values, 'DB_PASSWORD', 'kiosk123', env),
         database: effective(values, 'DB_NAME', 'dp_kiosk_db', env)
@@ -133,7 +135,7 @@ async function inspect(cfg, mysql) {
     const stats = { reachable: false, appUser: false, databaseExists: false, tables: 0, admins: 0, encryptedEmails: 0, archives: 0, pending: [], error: null };
     let conn;
     try {
-        conn = await mysql.createConnection({ host: cfg.host, user: cfg.user, password: cfg.password });
+        conn = await mysql.createConnection({ host: cfg.host, port: cfg.port, user: cfg.user, password: cfg.password });
     } catch (e) {
         if (e.code === 'ER_ACCESS_DENIED_ERROR') stats.reachable = true;
         else stats.error = ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND'].includes(e.code) ? `MySQL does not answer on ${cfg.host} (is the MySQL service running?)` : e.message;
@@ -194,7 +196,7 @@ function rootPassword(opts) {
 }
 
 async function asRoot(cfg, mysql, password, work) {
-    const conn = await mysql.createConnection({ host: cfg.host, user: process.env.ESG_MYSQL_ROOT_USER || 'root', password });
+    const conn = await mysql.createConnection({ host: cfg.host, port: cfg.port, user: process.env.ESG_MYSQL_ROOT_USER || 'root', password });
     try { return await work(conn); } finally { await conn.end(); }
 }
 
@@ -266,7 +268,7 @@ async function install(opts) {
             reachable = true;
         } else {
             try {
-                const conn = await mysql.createConnection({ host: cfg.host, user: cfg.user, password: cfg.password });
+                const conn = await mysql.createConnection({ host: cfg.host, port: cfg.port, user: cfg.user, password: cfg.password });
                 try { await conn.query('CREATE DATABASE IF NOT EXISTS ?? CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci', [cfg.database]); } finally { await conn.end(); }
                 reachable = true;
                 say.ok(`create the database ${cfg.database}`);
@@ -391,7 +393,7 @@ async function removeData(opts) {
     const mysql = loadMysql();
     if (!mysql) { say.bad(`${NO_PACKAGES}; nothing removed`); return 1; }
     try {
-        const conn = await mysql.createConnection({ host: cfg.host, user: cfg.user, password: cfg.password });
+        const conn = await mysql.createConnection({ host: cfg.host, port: cfg.port, user: cfg.user, password: cfg.password });
         try { await conn.query('DROP DATABASE IF EXISTS ??', [cfg.database]); } finally { await conn.end(); }
     } catch (e) {
         if (!/denied/i.test(e.message)) { say.bad(e.message); return 1; }

@@ -38,8 +38,15 @@ test('a .env is read the way dotenv reads it', () => {
 test('the database settings follow the servers: environment first, then the file, then the default', () => {
     const values = setup.parseEnv('DB_NAME=from_file\nDB_USER=\n');
     const cfg = setup.dbConfig(values, { DB_HOST: '127.0.0.1' });
-    assert.deepEqual(cfg, { host: '127.0.0.1', user: 'kiosk_user', password: 'kiosk123', database: 'from_file' });
+    assert.deepEqual(cfg, { host: '127.0.0.1', port: 3306, user: 'kiosk_user', password: 'kiosk123', database: 'from_file' });
     assert.equal(setup.dbConfig(values, { DB_NAME: '' }).database, 'dp_kiosk_db', 'an empty variable falls back to the default, as db.js does');
+});
+
+test('the MySQL port comes from DB_PORT, and an empty or wrong value means 3306', () => {
+    assert.equal(setup.dbConfig(setup.parseEnv('DB_PORT=3307\n'), {}).port, 3307);
+    assert.equal(setup.dbConfig(setup.parseEnv('DB_PORT=3307\n'), { DB_PORT: '3310' }).port, 3310, 'the environment wins, as dotenv does');
+    assert.equal(setup.dbConfig(setup.parseEnv('DB_PORT=\n'), {}).port, 3306);
+    assert.equal(setup.dbConfig(setup.parseEnv('DB_PORT=abc\n'), {}).port, 3306);
 });
 
 test('a new encryption key only when nothing stored depends on the current one', () => {
