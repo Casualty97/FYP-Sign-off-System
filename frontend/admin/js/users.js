@@ -4,6 +4,8 @@
 
 // Track current user management tab
 let currentUserTab = 'active'; // 'active' or 'deleted'
+// <Jun Kai/> the number of the newest load of each list: an older answer that arrives after a newer one is not drawn
+const usersLoadSeq = { active: 0, deleted: 0 };
 
 // Switch between active and deleted users tabs
 function switchUserTab(tab) {
@@ -35,8 +37,10 @@ async function loadUserManagementData() {
 async function loadActiveUsers() {
     try {
         console.log('👤 Loading active users...');
+        const seq = ++usersLoadSeq.active; // <Jun Kai/> only the newest load of this list is drawn
         const response = await fetch('/api/admin/users');
-        
+        if (seq !== usersLoadSeq.active) return;
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -44,6 +48,7 @@ async function loadActiveUsers() {
         const data = await response.json();
         console.log('Active users API response:', data);
         
+        if (seq !== usersLoadSeq.active) return; // <Jun Kai/>
         if (data.success && data.users) {
             updateActiveUsersTable(data.users);
         } else {
@@ -59,8 +64,10 @@ async function loadActiveUsers() {
 async function loadDeletedUsers() {
     try {
         console.log('🗑️ Loading deleted users...');
+        const seq = ++usersLoadSeq.deleted; // <Jun Kai/> only the newest load of this list is drawn
         const response = await fetch('/api/admin/users/deleted');
-        
+        if (seq !== usersLoadSeq.deleted) return;
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -68,6 +75,7 @@ async function loadDeletedUsers() {
         const data = await response.json();
         console.log('Deleted users API response:', data);
         
+        if (seq !== usersLoadSeq.deleted) return; // <Jun Kai/>
         if (data.success && data.users) {
             updateDeletedUsersTable(data.users);
         } else {

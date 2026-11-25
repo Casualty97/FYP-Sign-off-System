@@ -9112,5 +9112,6 @@ html[data-theme="dark"] .users-btn.ui-danger:hover:not(:disabled) { background: 
 /* the Sign-in card in the side column: the field above its explanation, and no extra space above the card */
 .users-layout .idle-card { margin-top: 0; }
 .users-layout .idle-body { grid-template-columns: 1fr; align-items: start; }
-@media (max-width: 1180px) { .users-layout { grid-template-columns: 1fr; } }
+/* one column below 1300px: next to the card the table would push its buttons out of view */
+@media (max-width: 1299px) { .users-layout { grid-template-columns: 1fr; } }
 /* <Jun Kai end> */
