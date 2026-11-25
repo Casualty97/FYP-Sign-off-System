@@ -52,7 +52,7 @@ window.addEventListener('DOMContentLoaded', function() {
         // <Jun Kai start> why the page signed out by itself, if it did (core.js), then a remembered sign-in
         showAdminSignOutNote();
         const loginNote = document.getElementById('login-note');
-        if (location.hash === ADMIN_HISTORY_LINK && loginNote && loginNote.hidden) showLoginNote('Sign in to open the History of the Server Schedule.');
+        if (location.hash === ADMIN_HISTORY_LINK && loginNote && loginNote.hidden) showLoginNote('Sign in to open the History of Operating Hours.');
         tryRememberedSignIn();
         // <Jun Kai end>
     }

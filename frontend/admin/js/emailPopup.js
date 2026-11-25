@@ -8,6 +8,7 @@ function showPasswordPrompt(message) {
     return new Promise((resolve) => {
         // Create modal overlay
         const modal = document.createElement('div');
+        modal.className = 'password-prompt-modal'; // <Jun Kai/> so a page can tell this window is open (Esc on the Feedback page)
         modal.style.cssText = `
             position: fixed;
             top: 0;

@@ -11,7 +11,7 @@ const FIXES = {
     'start-kiosk': {
         label: 'Start the kiosk server',
         forIncident: 'Kiosk server down',
-        describe: 'Runs the same start as Start kiosk on Server Schedule. The tablets come back in about 30 seconds.',
+        describe: 'Runs the same start as Start kiosk on Operating Hours. The tablets come back in about 30 seconds.',
         modes: ['ask', 'delayed', 'auto'],
         appliesTo: (incident) => incident.detector === 'services' && incident.kind === 'down' && incident.subject === 'kiosk'
     }

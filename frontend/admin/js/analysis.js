@@ -39,14 +39,9 @@ async function loadFlaggedFeedback() {
     const summary = document.getElementById('flagged-feedback-summary');
 
     if (!tbody) return;
+    prepareFeedbackReportsPage(); // <Jun Kai/>
 
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">
-                Loading flagged feedback...
-            </td>
-        </tr>
-    `;
+    tbody.innerHTML = '<tr><td colspan="6" class="fr-empty">Loading flagged feedback...</td></tr>'; // <Jun Kai/>
 
     try {
         const response = await fetch('/api/admin/flagged-feedback', {
@@ -61,23 +56,14 @@ async function loadFlaggedFeedback() {
             throw new Error(data.error || 'Failed to load flagged feedback');
         }
 
-        renderFlaggedFeedback(data.flagged || [], data.feedbackCount || 0);
-
-        if (summary) {
-            const flaggedItems = Number(data.flaggedCount || 0);
-            const flaggedFeedback = Number(data.feedbackCount || 0);
-            summary.textContent = `${flaggedItems} flagged text item(s) found across ${flaggedFeedback} feedback submission(s). These submissions are hidden from /tree page.`;
-        }
+        renderFlaggedFeedback(data.flagged || [], data.feedbackCount || 0); // <Jun Kai/> it also writes the summary and the count
     } catch (error) {
         console.error('Error loading flagged feedback:', error);
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" style="text-align: center; padding: 24px; color: #ef4444;">
-                    Unable to load flagged feedback<br>
-                    <small>${escapeHtmlSafe(error.message)}</small>
-                </td>
-            </tr>
-        `;
+        // <Jun Kai start>
+        tbody.innerHTML = `<tr><td colspan="6" class="fr-empty is-error">Unable to load flagged feedback<br><small>${escapeHtmlSafe(error.message)}</small></td></tr>`;
+        const count = document.getElementById('flagged-count');
+        if (count) count.hidden = true;
+        // <Jun Kai end>
 
         if (summary) {
             summary.textContent = 'Flagged feedback could not be loaded. Check the server logs if this repeats.';
@@ -89,16 +75,16 @@ function renderFlaggedFeedback(items, feedbackCount) {
     const tbody = document.getElementById('flagged-feedback-table-body');
     if (!tbody) return;
 
+    // <Jun Kai start> the red count next to the title and one sentence under it
+    const count = document.getElementById('flagged-count');
+    const summary = document.getElementById('flagged-feedback-summary');
     if (!items.length) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">
-                    No flagged feedback found.
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = '<tr><td colspan="6" class="fr-empty">No flagged feedback. Nothing is hidden from the tree page.</td></tr>';
+        if (count) count.hidden = true;
+        if (summary) summary.textContent = 'Keyword analysis checks feedback answers and visitor comments. Flagged submissions are hidden from the tree page.';
         return;
     }
+    // <Jun Kai end>
 
     // Aggregate items by feedback_id so we display one row per feedback entry.
     const grouped = {};
@@ -129,30 +115,40 @@ function renderFlaggedFeedback(items, feedbackCount) {
         }
     });
 
+    // <Jun Kai start> one row per submission: where the flagged words were (feedback, pledge or both), the words as tags,
+    // and "none" for a text that was not flagged
+    const none = '<span class="fr-none">none</span>';
     const rows = Object.values(grouped).map(entry => {
         const uniqueKeywords = Array.from(new Set(entry.matchedKeywords || []));
-        const keywordBadges = (uniqueKeywords || []).map(k => `<span class="flagged-keyword-badge">${escapeHtmlSafe(k)}</span>`).join('');
+        const keywordBadges = uniqueKeywords.map(k => `<span class="ui-tag is-amber">${escapeHtmlSafe(k)}</span>`).join('');
         const feedbackText = (entry.answers || []).join('; ');
         const pledgeText = entry.comment || '';
+        const source = feedbackText && pledgeText ? 'Feedback and pledge' : pledgeText ? 'Pledge' : 'Feedback';
 
         return `
             <tr data-feedback-id="${escapeHtmlSafe(entry.feedback_id)}">
-                <td>${escapeHtmlSafe(entry.date)}</td>
+                <td class="fr-date">${escapeHtmlSafe(formatFlaggedDate(entry.date))}</td>
                 <td>${escapeHtmlSafe(entry.name)}</td>
-                <td>Feedback</td>
+                <td>${source}</td>
                 <td><div class="flagged-keyword-list">${keywordBadges}</div></td>
-                <td class="flagged-feedback-text">${escapeHtmlSafe(feedbackText)}</td>
-                <td class="flagged-pledge-text">${escapeHtmlSafe(pledgeText)}</td>
+                <td class="flagged-feedback-text">${feedbackText ? escapeHtmlSafe(feedbackText) : none}</td>
+                <td class="flagged-pledge-text">${pledgeText ? escapeHtmlSafe(pledgeText) : none}</td>
             </tr>
         `;
     }).join('');
 
     tbody.innerHTML = rows;
 
-    const summary = document.getElementById('flagged-feedback-summary');
-    if (summary) {
-        summary.textContent = `${Object.keys(grouped).length} flagged text item(s) found across ${Number(feedbackCount || 0)} feedback submission(s). These submissions are hidden from /tree page.`;
+    const submissions = Object.keys(grouped).length;
+    if (count) {
+        count.textContent = String(submissions);
+        count.hidden = false;
     }
+    if (summary) {
+        const texts = items.length;
+        summary.textContent = `${texts} flagged text${texts === 1 ? '' : 's'} in ${submissions} submission${submissions === 1 ? '' : 's'}. These submissions are hidden from the tree page.`;
+    }
+    // <Jun Kai end>
 }
 
 // <Jun Kai start>
@@ -165,9 +161,9 @@ async function refreshAnalysisModes() {
     if (!select) return;
     let localAi = true;
     try {
-        const response = await fetch('/api/admin/aiops/settings', { cache: 'no-store' });
+        const response = await fetch('/api/admin/ai-settings', { cache: 'no-store' }); // <Jun Kai/> the AI Settings page
         const data = await response.json();
-        if (response.ok && data.success && data.settings) localAi = data.settings.localAi !== false;
+        if (response.ok && data.success && data.effective) localAi = data.effective.reportModels !== false;
     } catch {
         // the server refuses those modes anyway while they are off
     }
@@ -183,6 +179,61 @@ async function refreshAnalysisModes() {
     }
     const note = document.getElementById('analysis-mode-note');
     if (note) note.hidden = localAi;
+    renderAnalysisModes();
+}
+
+// Feedback Reports A: the five modes as one switch. The hidden select stays the source of truth, so the analysis and
+// refreshAnalysisModes (which turns the AI modes off) work as before; the switch only mirrors it.
+function renderAnalysisModes() {
+    const select = document.getElementById('analysis-mode');
+    const box = document.getElementById('fr-modes');
+    if (!select || !box) return;
+    box.innerHTML = [...select.options].map((option) => `
+        <button type="button" role="radio" data-mode="${escapeHtmlSafe(option.value)}" aria-checked="${option.value === select.value}"
+            ${option.disabled ? 'disabled title="Switched off on the AI Settings page"' : ''}>${escapeHtmlSafe(option.textContent)}</button>`).join('');
+}
+
+let feedbackReportsReady = false;
+function prepareFeedbackReportsPage() {
+    if (feedbackReportsReady) return;
+    feedbackReportsReady = true;
+    document.querySelectorAll('#feedback-report-page [data-fb-icon]').forEach((slot) => {
+        slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.tagName === 'BUTTON' ? 18 : 15);
+    });
+    renderAnalysisModes();
+    document.getElementById('fr-modes').addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-mode]');
+        if (!button || button.disabled) return;
+        document.getElementById('analysis-mode').value = button.dataset.mode;
+        updateAnalysisTitle();
+        renderAnalysisModes();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !document.getElementById('ai-cache-panel').hidden) closeAiCachePanel();
+    });
+}
+
+function openAiCachePanel() {
+    const panel = document.getElementById('ai-cache-panel');
+    panel.hidden = false;
+    document.getElementById('feedback-report-page').classList.add('ui-has-sidepanel');
+    document.getElementById('ai-cache-title').focus({ preventScroll: true });
+    loadCacheStorageMode();
+}
+
+function closeAiCachePanel() {
+    const panel = document.getElementById('ai-cache-panel');
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    document.getElementById('feedback-report-page').classList.remove('ui-has-sidepanel');
+    document.getElementById('ai-cache-open').focus({ preventScroll: true });
+}
+
+// "21 Nov, 09:58" for a date the browser can read; anything else is shown as it came
+function formatFlaggedDate(value) {
+    const date = new Date(value);
+    if (!value || Number.isNaN(date.getTime())) return value || '-';
+    return `${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
 }
 // <Jun Kai end>
 
@@ -197,7 +248,7 @@ function updateAnalysisTitle() {
         select.options[select.selectedIndex].text;
 
     title.textContent =
-        `Feedback Analysis (${selectedText})`;
+        `Feedback analysis (${selectedText})`; // <Jun Kai/> the new page's sentence case
 }
 
 // Done by Yu Kang
@@ -278,51 +329,51 @@ async function analyzeFeedbackDataLegacy() {
 }
 
 // Render AI Insight Summary category cards (Done by Yu Kang)
-function renderInsightPanel(title, items, accentColor, emptyText) {
+// <Jun Kai start> tone is a class of the page ("is-negative", "is-positive") instead of an inline colour
+function renderInsightPanel(title, items, tone, emptyText) {
     const content = items.length
         ? items.map(item => `
-            <div style="padding: 12px 0; border-top: 1px solid #e2e8f0;">
-                <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
-                    <strong style="color: #0f172a;">${escapeHtml(item.label)}</strong>
-                    <span style="color: ${accentColor}; font-weight: 800;">${Number(item.count || 0)}</span>
+            <div class="fr-panel-item">
+                <div class="fr-panel-row">
+                    <strong>${escapeHtml(item.label)}</strong>
+                    <span class="fr-panel-count">${Number(item.count || 0)}</span>
                 </div>
-                ${(item.examples || []).map(example => `
-                    <blockquote style="margin: 8px 0 0; padding-left: 10px; border-left: 3px solid ${accentColor}; color: #475569; font-size: 13px; line-height: 1.5;">
-                        ${escapeHtml(example.text)}
-                    </blockquote>
-                `).join('')}
+                ${(item.examples || []).map(example => `<blockquote>${escapeHtml(example.text)}</blockquote>`).join('')}
             </div>
         `).join('')
-        : `<p style="margin: 12px 0 0; color: #64748b;">${escapeHtml(emptyText)}</p>`;
+        : `<p class="fr-panel-empty">${escapeHtml(emptyText)}</p>`;
 
     return `
-        <section style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
-            <h4 style="margin: 0; color: ${accentColor};">${escapeHtml(title)}</h4>
+        <section class="fr-panel ${tone}">
+            <h4>${escapeHtml(title)}</h4>
             ${content}
         </section>
     `;
 }
+// <Jun Kai end>
 
 // Render AI Insight Summary suggested admin action cards (Done by Yu Kang)
 function renderActionPanel(title, items) {
+    // <Jun Kai start> styled by the page's classes
     const content = items.length
         ? items.map(item => `
-            <div style="padding: 12px 0; border-top: 1px solid #e2e8f0;">
-                <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px;">
-                    <strong style="color: #0f172a;">${escapeHtml(item.title)}</strong>
-                    <span style="font-size: 12px; color: #1d4ed8; font-weight: 800;">${escapeHtml(item.priority || 'Medium')}</span>
+            <div class="fr-panel-item">
+                <div class="fr-panel-row">
+                    <strong>${escapeHtml(item.title)}</strong>
+                    <span class="ui-tag is-blue">${escapeHtml(item.priority || 'Medium')}</span>
                 </div>
-                <p style="margin: 0; color: #475569; font-size: 13px; line-height: 1.5;">${escapeHtml(item.action)}</p>
+                <p>${escapeHtml(item.action)}</p>
             </div>
         `).join('')
-        : '<p style="margin: 12px 0 0; color: #64748b;">No action needed yet.</p>';
+        : '<p class="fr-panel-empty">No action needed yet.</p>';
 
     return `
-        <section style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
-            <h4 style="margin: 0; color: #1d4ed8;">${escapeHtml(title)}</h4>
+        <section class="fr-panel is-action">
+            <h4>${escapeHtml(title)}</h4>
             ${content}
         </section>
     `;
+    // <Jun Kai end>
 }
 
 function getFeedbackInsightsBySentiment(sentiment) {
@@ -517,7 +568,7 @@ async function analyzeFeedbackData() {
     feedbackAnalysisAbortController = controller;
 
     resultsContainer.style.display = 'block';
-    output.innerHTML = '<div style="padding: 20px; color: #64748b; text-align: center;">Analyzing feedback insights...</div>';
+    output.innerHTML = '<div class="fr-wait">Analyzing feedback insights...</div>'; // <Jun Kai/>
     if (analyzeButton) {
         analyzeButton.disabled = true;
         analyzeButton.dataset.originalText = analyzeButton.dataset.originalText || analyzeButton.textContent;
@@ -568,38 +619,22 @@ async function analyzeFeedbackData() {
         }
         console.log('📊 Timeline for line chart:', timeline);
 
+        // <Jun Kai start> the same parts as before, styled by the page's classes (light and dark) instead of inline colours
+        const modeLabel = document.getElementById('analysis-mode')?.selectedOptions[0]?.textContent || 'Rule-based';
+        const sub = document.getElementById('fr-analysis-sub');
+        if (sub) sub.textContent = `${modeLabel} result, ${total} text response${total === 1 ? '' : 's'} analysed`;
         output.innerHTML = `
-            <style>
-                .btn-range {
-                    padding: 4px 12px;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 4px;
-                    background: #fff;
-                    cursor: pointer;
-                    font-size: 12px;
-                    transition: background 0.2s;
-                }
-                .btn-range.active {
-                    background: #3b82f6;
-                    color: #fff;
-                    border-color: #3b82f6;
-                }
-                .btn-range:hover:not(.active) {
-                    background: #e2e8f0;
-                }
-            </style>
-
-            <div style="display: grid; grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr); gap: 22px; align-items: stretch;">
-                <div style="position: relative; height: 300px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+            <div class="fr-result-top">
+                <div class="fr-chart">
                     <canvas id="sentimentChart"></canvas>
                 </div>
 
-                <div style="padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
-                    <h4 style="margin: 0 0 10px; color: #0f172a;">AI Insight Summary</h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
-                        <button type="button" onclick="openFeedbackInsightsModal('positive')" style="border: 1px solid rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.12); color: #047857; border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 800; cursor: pointer;">Positive ${positive}</button>
-                        <button type="button" onclick="openFeedbackInsightsModal('neutral')" style="border: 1px solid rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.12); color: #92400e; border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 800; cursor: pointer;">Neutral ${neutral}</button>
-                        <button type="button" onclick="openFeedbackInsightsModal('negative')" style="border: 1px solid rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.12); color: #991b1b; border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 800; cursor: pointer;">Negative ${negative}</button>
+                <div class="fr-summary">
+                    <h4>AI insight summary</h4>
+                    <div class="fr-sentiments">
+                        <button type="button" class="is-positive" onclick="openFeedbackInsightsModal('positive')">Positive ${positive}</button>
+                        <button type="button" class="is-neutral" onclick="openFeedbackInsightsModal('neutral')">Neutral ${neutral}</button>
+                        <button type="button" class="is-negative" onclick="openFeedbackInsightsModal('negative')">Negative ${negative}</button>
                     </div>
                     <!--<div style=" 
                         display: inline-block;
@@ -614,48 +649,42 @@ async function analyzeFeedbackData() {
                         Analysis Engine: ${escapeHtml((data.mode || 'rule-based').toUpperCase())}
                     </div> -->
 
-                    <p style="margin: 0 0 16px; color: #475569; line-height: 1.6;">${escapeHtml(customSummaryText)}</p>
-                    <div style="margin-bottom: 15px; font-size: 14px;">
-                        <div style="color: #475569; margin-bottom: 12px;"><strong style="color: #10b981;">Positive:</strong> ${positive} (${total > 0 ? ((positive / total) * 100).toFixed(1) : 0}%)</div>
-                        <div style="color: #475569; margin-bottom: 12px;"><strong style="color: #f59e0b;">Neutral:</strong> ${neutral} (${total > 0 ? ((neutral / total) * 100).toFixed(1) : 0}%)</div>
-                        <div style="color: #475569;"><strong style="color: #ef4444;">Negative:</strong> ${negative} (${total > 0 ? ((negative / total) * 100).toFixed(1) : 0}%)</div>
+                    <p class="fr-summary-text">${escapeHtml(customSummaryText)}</p>
+                    <div class="fr-shares">
+                        <div><strong class="is-positive">Positive</strong> ${positive} (${total > 0 ? ((positive / total) * 100).toFixed(1) : 0}%)</div>
+                        <div><strong class="is-neutral">Neutral</strong> ${neutral} (${total > 0 ? ((neutral / total) * 100).toFixed(1) : 0}%)</div>
+                        <div><strong class="is-negative">Negative</strong> ${negative} (${total > 0 ? ((negative / total) * 100).toFixed(1) : 0}%)</div>
                     </div>
-                    <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 13px; color: #64748b;">
-                        <strong>Total text responses analyzed:</strong> ${total}<br>
-                        <strong>Window:</strong> All Time<br>
-                        <strong>Pledge mentions:</strong> ${Number(weeklySummary.pledgeMentions || 0)}
+                    <div class="fr-facts">
+                        <span><strong>Text responses analysed:</strong> ${total}</span>
+                        <span><strong>Window:</strong> All time</span>
+                        <span><strong>Pledge mentions:</strong> ${Number(weeklySummary.pledgeMentions || 0)}</span>
                     </div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 18px;">
-                ${renderInsightPanel('Top Concerns', insights.topConcerns || [], '#ef4444', 'No repeated concern detected.')}
-                ${renderInsightPanel('Top Compliments', insights.topCompliments || [], '#10b981', 'No repeated compliment detected.')}
-                ${renderActionPanel('Suggested Admin Actions', insights.suggestedActions || [])}
+            <div class="fr-panels">
+                ${renderInsightPanel('Top concerns', insights.topConcerns || [], 'is-negative', 'No repeated concern detected.')}
+                ${renderInsightPanel('Top compliments', insights.topCompliments || [], 'is-positive', 'No repeated compliment detected.')}
+                ${renderActionPanel('Suggested admin actions', insights.suggestedActions || [])}
             </div>
 
-            <div style="margin-top: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
-                <h4 id="feedbackDemographicsHeading" style="margin: 0 0 12px;">Feedback Demographics (All Time)</h4>
-
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <label for="timeRangeSelect" style="font-size: 13px; font-weight: 500;">Range:</label>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span style="font-size: 13px; font-weight: 500;"></span>
-                        <div class="btn-group" id="timeRangeButtons" style="display: flex; gap: 4px;">
-                            <button class="btn-range" data-range="weekly">Weekly</button>
-                            <button class="btn-range" data-range="monthly">Monthly</button>
-                            <button class="btn-range" data-range="yearly">Yearly</button>
-                            <button class="btn-range active" data-range="all">All Time</button>
-                        </div>
+            <div class="fr-trend">
+                <div class="fr-trend-head">
+                    <h4 id="feedbackDemographicsHeading">Feedback over time (all time)</h4>
+                    <div class="fr-ranges" id="timeRangeButtons" role="group" aria-label="Range">
+                        <button type="button" class="btn-range" data-range="weekly">Weekly</button>
+                        <button type="button" class="btn-range" data-range="monthly">Monthly</button>
+                        <button type="button" class="btn-range" data-range="yearly">Yearly</button>
+                        <button type="button" class="btn-range active" data-range="all">All time</button>
                     </div>
                 </div>
-
-                <div style="position: relative; height: 250px;">
+                <div class="fr-trend-chart">
                     <canvas id="sentimentLineChart"></canvas>
                 </div>
             </div>
-
         `;
+        // <Jun Kai end>
 
         setTimeout(() => {
             createSentimentChart(positive, neutral, negative); 
@@ -691,12 +720,7 @@ async function analyzeFeedbackData() {
         }
 
         console.error('Error analyzing feedback insights:', error);
-        output.innerHTML = `
-            <div style="padding: 20px; color: #ef4444; text-align: center;">
-                Error analyzing feedback insights<br>
-                <small>${escapeHtml(error.message)}</small>
-            </div>
-        `;
+        output.innerHTML = `<div class="fr-wait is-error">Error analyzing feedback insights<br><small>${escapeHtml(error.message)}</small></div>`; // <Jun Kai/>
     } finally {
         if (feedbackAnalysisAbortController === controller) {
             feedbackAnalysisAbortController = null;
@@ -895,8 +919,8 @@ function updateLineChartForRange(range) {
     // Update the heading to show the current range
     const heading = document.getElementById('feedbackDemographicsHeading');
     if (heading) {
-        const rangeLabel = range.charAt(0).toUpperCase() + range.slice(1);
-        heading.textContent = `Feedback Demographics (${rangeLabel})`;
+        // <Jun Kai/> the new page's wording: "Feedback over time (weekly)", "(all time)"
+        heading.textContent = `Feedback over time (${range === 'all' ? 'all time' : range})`;
     }
 }
 

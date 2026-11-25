@@ -55,7 +55,7 @@ const INCIDENT_MODE_SENTENCE = {
     auto: 'Runs by itself as soon as the incident opens, at most once every 10 minutes, and never while the policies keep the kiosk off.'
 };
 const INCIDENT_RANK = { critical: 0, warn: 1, info: 2 };
-const INCIDENT_FIELD_ID = { enabled: 'incidents-enabled', learnFromVerdicts: 'incidents-learn', offerFixes: 'incidents-offer-fixes', quietHours: 'incidents-quiet', localAi: 'incidents-local-ai', intervalSeconds: 'incidents-interval', retentionDays: 'incidents-retention', keepIncidentsDays: 'incidents-keep', clearAfterMinutes: 'incidents-clear-after', cooldownMinutes: 'incidents-cooldown', healthEverySeconds: 'incidents-health-every', fixDelayMinutes: 'incidents-fix-delay', learnStreak: 'incidents-learn-streak', learnMaxSteps: 'incidents-learn-steps', learnWindowDays: 'incidents-learn-window' };
+const INCIDENT_FIELD_ID = { enabled: 'incidents-enabled', learnFromVerdicts: 'incidents-learn', offerFixes: 'incidents-offer-fixes', quietHours: 'incidents-quiet', intervalSeconds: 'incidents-interval', retentionDays: 'incidents-retention', keepIncidentsDays: 'incidents-keep', clearAfterMinutes: 'incidents-clear-after', cooldownMinutes: 'incidents-cooldown', healthEverySeconds: 'incidents-health-every', fixDelayMinutes: 'incidents-fix-delay', learnStreak: 'incidents-learn-streak', learnMaxSteps: 'incidents-learn-steps', learnWindowDays: 'incidents-learn-window' };
 // the Advanced fold: [settings key, its list, how a value reads when it is not one of the list's choices]
 const INCIDENT_ADVANCED = [
     ['clearAfterMinutes', 'incidents-clear-after', (v) => incidentWait(v)],
@@ -637,7 +637,7 @@ function incidentWhyHtml(incident) {
     const causes = (Array.isArray(advice.causes) ? advice.causes : []).map((c) => `<div class="inc-cause"><span class="inc-likely is-${escapeHtmlSafe(c.likelihood || 'medium')}">${escapeHtmlSafe(INCIDENT_LIKELY[c.likelihood] || 'Possible')}</span><span>${escapeHtmlSafe(c.cause || '')}</span></div>`).join('');
     let source;
     if (advice.source === 'llm') source = `From the local AI (${advice.model || 'model'}) at ${incidentWhen(advice.at)}`;
-    else source = `Rule-based at ${incidentWhen(advice.at)}: ${advice.localAiOff ? 'Local AI models is switched off in Settings' : 'the local AI was not available'}`;
+    else source = `Rule-based at ${incidentWhen(advice.at)}: ${advice.localAiOff ? 'AI is switched off on the AI Settings page' : 'the local AI was not available'}`;
     const again = canAsk ? ` · ${askButton(busy ? 'Asking' : 'Ask again')}` : '';
     return `${advice.summary ? `<div class="inc-story">${escapeHtmlSafe(advice.summary)}</div>` : ''}
             ${causes ? `<div class="inc-causes">${causes}</div>` : ''}
@@ -779,6 +779,28 @@ function incidentStepsHtml(incident, entry) {
 
 // ---- was this right, history ----
 
+// <Jun Kai start>
+// The notes behind the "i" buttons of an incident (admin redesign): where the explanation comes from, what the app may
+// do by itself, and what an answer to "Was this right?" changes. Fixed text; uiInfo() is in uiKit.js.
+const INCIDENT_NOTE_WHY = uiInfo('Where this explanation comes from',
+    '<div>A free AI model that runs <b>on this PC</b> (through Ollama) writes it. Only this incident\'s own data goes in, never a visitor record, and nothing is sent anywhere.</div>'
+    + '<ul><li>It also sees up to three earlier incidents of the same kind that an admin marked Correct.</li>'
+    + '<li>When the model is off, slow or gives an unusable answer, a fixed explanation from rules is shown, so an incident always has one.</li>'
+    + '<li>Ask again works at most once every 30 seconds.</li></ul>');
+const INCIDENT_NOTE_TODO = uiInfo('Fixes need approval',
+    '<div>The AI only suggests. The one thing the app can do by itself is <b>start the kiosk server</b>, the same start as the Start kiosk button on Operating Hours.</div>'
+    + '<ul><li><b>Ask first</b> (the default): it runs only after a System Admin presses Approve.</li>'
+    + '<li><b>Auto after 5 min</b>: it runs by itself if nobody approves in time.</li>'
+    + '<li><b>Automatic</b>: it runs in the check that opens the incident.</li></ul>'
+    + '<div>It never runs by itself on an incident someone acknowledged, or while the policies keep the kiosk off. Every run is written in the incident\'s history and in Audit Logs.</div>');
+const INCIDENT_NOTE_VERDICT = uiInfo('What your answer does',
+    '<div>Your answer tunes the detector that raised this incident.</div>'
+    + '<ul><li>3 answers in a row of False alarm or Not useful: that detector becomes one level less sensitive, at most 2 levels.</li>'
+    + '<li>3 answers of Correct in a row: it goes one step back, never above the level set in Settings.</li>'
+    + '<li>Incidents marked Correct are shown to the AI as examples.</li>'
+    + '<li>Test incidents tune nothing.</li></ul>');
+// <Jun Kai end>
+
 function incidentVerdictHtml(incident) {
     const buttons = Object.entries(INCIDENT_VERDICT_LABEL).map(([key, label]) => {
         const chosen = incident.verdict === key;
@@ -787,7 +809,7 @@ function incidentVerdictHtml(incident) {
     let hint = 'Your answer tunes this detector';
     if (incident.test) hint = 'A test incident tunes nothing';
     else if (incidentsStatus && incidentsStatus.learnFromVerdicts === false) hint = 'Your answer is kept with the incident';
-    return `<span class="inc-verdict-label">Was this right?</span><span class="inc-verdict-btns" role="group" aria-label="Was this right?">${buttons}</span><span class="inc-verdict-hint">${hint}</span>`;
+    return `<span class="inc-verdict-label">Was this right?</span><span class="inc-verdict-btns" role="group" aria-label="Was this right?">${buttons}</span><span class="inc-verdict-hint">${hint}</span>${INCIDENT_NOTE_VERDICT}`;
 }
 
 function incidentTimelineHtml(events, unit, id) {
@@ -822,7 +844,7 @@ function incidentTimelineHtml(events, unit, id) {
             case 'note': type = 'Note'; text = d.note || ''; break;
             case 'advice':
                 type = 'Advice';
-                text = d.source === 'llm' ? `from the local AI (${d.model || 'model'}) in ${incidentIsNumber(d.seconds) ? d.seconds : '?'} s` : d.localAiOff ? 'rule-based: Local AI models is switched off' : 'rule-based: the local AI was not available';
+                text = d.source === 'llm' ? `from the local AI (${d.model || 'model'}) in ${incidentIsNumber(d.seconds) ? d.seconds : '?'} s` : d.localAiOff ? 'rule-based: AI is switched off on the AI Settings page' : 'rule-based: the local AI was not available';
                 break;
             case 'fix':
                 type = d.automatic ? 'Fix ran by itself' : 'Fix approved';
@@ -844,7 +866,7 @@ const INCIDENT_DETAIL_SKELETON = `
     </div>
     <div class="inc-d-meta" data-zone="meta"></div>
     <section class="inc-sec"><h4 class="inc-sec-title"><span class="inc-sec-num">1</span>What happened</h4><div data-zone="happened"></div></section>
-    <section class="inc-sec"><h4 class="inc-sec-title"><span class="inc-sec-num">2</span>Why it might be</h4><div data-zone="why"></div></section>
+    <section class="inc-sec"><h4 class="inc-sec-title"><span class="inc-sec-num">2</span>Why it might be${INCIDENT_NOTE_WHY}</h4><div data-zone="why"></div></section>
     <section class="inc-sec"><h4 class="inc-sec-title" data-zone="todo-title"></h4><div data-zone="fix"></div><div data-zone="steps"></div></section>
     <div class="inc-verdict" data-zone="verdict"></div>
     <div class="inc-history"><div data-zone="history-toggle"></div><ul class="ui-events" data-zone="history"></ul></div>`;
@@ -928,7 +950,7 @@ function renderIncidentDetail(nowMs) {
         meta: escapeHtmlSafe(incidentMetaText(incident, nowMs)),
         happened: incidentHappenedHtml(incident, data ? data.floor : null, nowMs),
         why: incidentWhyHtml(incident),
-        'todo-title': `<span class="inc-sec-num">3</span>${incident.status === 'resolved' ? 'What was done' : 'What to do'}`,
+        'todo-title': `<span class="inc-sec-num">3</span>${incident.status === 'resolved' ? 'What was done' : `What to do${INCIDENT_NOTE_TODO}`}`,
         fix: incidentFixHtml(incident, data),
         steps: incidentStepsHtml(incident, entry),
         verdict: incidentVerdictHtml(incident),
@@ -1584,7 +1606,7 @@ function incidentsApplyFixesState() {
     }
     if (note) {
         const text = automation === 'off'
-            ? 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so a fix waits for an approval whatever is chosen here. An approval on the incident still runs, like Start kiosk on Server Schedule.'
+            ? 'This PC does not start programmes by itself (KIOSK_AUTOMATION=off in backend/.env), so a fix waits for an approval whatever is chosen here. An approval on the incident still runs, like Start kiosk on Operating Hours.'
             : automation === 'dry-run' ? 'KIOSK_AUTOMATION=dry-run in backend/.env: what would run by itself is only recorded. An approval on the incident still runs.' : '';
         note.textContent = text;
         note.hidden = !text;
@@ -1613,7 +1635,7 @@ async function fillIncidentSettings() {
         document.getElementById('incidents-offer-fixes').checked = settings.offerFixes !== false;
         document.getElementById('incidents-quiet').checked = settings.quietHours !== false;
         document.getElementById('incidents-advisor').checked = !settings.advisor || settings.advisor.enabled !== false;
-        document.getElementById('incidents-local-ai').checked = settings.localAi !== false;
+        await incidentsLoadAiAll(); // <Jun Kai/> the switch for all AI features (AI Settings page)
         renderIncidentFixes(data, settings);
         renderIncidentDetectors(data, settings);
         const interval = Number(settings.intervalSeconds) || 60;
@@ -1677,16 +1699,27 @@ async function fillIncidentAdvisorModels(saved) {
     incidentsAiState();
 }
 
-// The model hint and the note under the two AI switches follow the switches as they are on screen, saved or not
+// <Jun Kai start> the switch for all AI features lives on the AI Settings page; read when the drawer opens
+let incidentsAiAllOn = true;
+async function incidentsLoadAiAll() {
+    try {
+        const response = await fetch('/api/admin/ai-settings', { cache: 'no-store' });
+        const data = await response.json();
+        if (response.ok && data.success && data.settings) incidentsAiAllOn = data.settings.all !== false;
+    } catch {
+        incidentsAiAllOn = true;
+    }
+}
+// <Jun Kai end>
+
+// The model hint and the note under the AI switch follow the switch as it is on screen, saved or not
 function incidentsAiState() {
-    const on = (id) => { const el = document.getElementById(id); return !!(el && el.checked); };
-    const localAi = on('incidents-local-ai');
+    const localAi = incidentsAiAllOn; // <Jun Kai/> the AI Settings switch for all AI features
     const note = document.getElementById('incidents-advisor-help');
-    if (note) note.textContent = !localAi ? 'Not used while Local AI models is off.' : incidentsModelsAsked ? incidentsModelsHelp : 'Ollama is asked for its models once this is saved.';
+    if (note) note.textContent = !localAi ? 'Not used while AI is switched off on the AI Settings page.' : incidentsModelsAsked ? incidentsModelsHelp : 'Ollama is asked for its models once this is saved.';
     const allOff = document.getElementById('incidents-ai-all-off');
     if (allOff) {
         allOff.hidden = localAi;
-        allOff.textContent = `${on('incidents-advisor') ? 'No AI model runs on this PC for the admin pages now: the advisor gives rule-based advice.' : 'The advisor and the local AI models are both off, so no AI model runs on this PC for the admin pages.'} Not covered here: the kiosk's pledge check and face detection keep their own models, and Translate to English uses Google's online service.`;
     }
 }
 
@@ -1715,7 +1748,7 @@ function bindIncidentsDrawer(drawer) {
             if (note) note.textContent = incidentModeText(INCIDENT_MODE_SENTENCE, input.value, wait ? wait.value : 5);
         } else if (input.id === 'incidents-offer-fixes') {
             incidentsApplyFixesState();
-        } else if (input.id === 'incidents-advisor' || input.id === 'incidents-local-ai') {
+        } else if (input.id === 'incidents-advisor') {
             incidentsAiState();
         } else if (INCIDENT_ADVANCED.some(([, id]) => id === input.id)) {
             incidentsAdvancedTexts();
@@ -1773,7 +1806,6 @@ function readIncidentSettings() {
         fixes,
         detectors,
         advisor: { enabled: checked('incidents-advisor'), model: (document.getElementById('incidents-advisor-model') || {}).value || 'qwen2.5:3b' },
-        localAi: checked('incidents-local-ai'),
         quietHours: checked('incidents-quiet'),
         intervalSeconds: number('incidents-interval'),
         retentionDays: number('incidents-retention'),

@@ -83,7 +83,7 @@ async function recoveryLoad() {
     } catch (error) {
         if (recoveryView.events) return recoveryNote('This view is no longer updated. Sign in to the admin page for the newest History lines.');
         recoveryNote(error instanceof TypeError ? 'The History could not be loaded: the server does not answer.' : error.message);
-        document.getElementById('recovery-story').innerHTML = '<li class="ui-empty">Sign in to the admin page to see the History of the Server Schedule.</li>';
+        document.getElementById('recovery-story').innerHTML = '<li class="ui-empty">Sign in to the admin page to see the History of Operating Hours.</li>';
     }
 }
 
