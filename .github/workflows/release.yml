@@ -19,7 +19,9 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # <Jun Kai/> only a green CI of a push to this repo's main: "branches: [main]" also matches a pull request from a
+    # fork whose branch is called main, and this job may publish
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
     # <Jun Kai start>
     # Windows, because the package carries packages built for Windows x64 (bcrypt, sharp) and the Visual C++ runtime.
     # A normal release (not a pre-release) with fixed asset names, so .../releases/latest/download/<name> always
@@ -35,7 +37,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      # no download cache here: a job that may publish must not read files a pull request could have cached
+      # no cache for the Node.js and MySQL downloads here: a job that may publish must not read files a pull request
+      # could have cached (the npm cache of setup-node is kept per branch, so main's own)
       - name: Build the package, with and without the offline AI model
         run: node scripts/install/build-package.js --out C:\rpkb --with-ai-model
       - name: Publish the release

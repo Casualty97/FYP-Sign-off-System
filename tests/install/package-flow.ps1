@@ -115,7 +115,11 @@ try {
     Write-Part 'One command install from a download (Wall PC, MySQL service, firewall rule)'
     $server = Start-Process -FilePath 'node' -ArgumentList @((ConvertTo-Arg (Join-Path $PSScriptRoot 'serve-dir.js')), (ConvertTo-Arg $Dist), '8099') -PassThru -WindowStyle Hidden
     Start-Sleep -Seconds 2
-    $code = Invoke-Ps (Join-Path $PSScriptRoot '..\..\scripts\install\get-kiosk.ps1') @('-From', "http://127.0.0.1:8099/$zipName", '-Role', 'WallPC', '-InstallDir', $Root, '-NonInteractive')
+    $getKiosk = Join-Path $PSScriptRoot '..\..\scripts\install\get-kiosk.ps1'
+    $code = Invoke-Ps $getKiosk @('-From', "http://127.0.0.1:8099/$zipName", '-Role', 'WallPC', '-InstallDir', $Root, '-NonInteractive')
+    Test-That 'a plain http:// download without -Sha256 is refused (exit 1) before anything is installed' ($code -eq 1 -and -not (Test-Path $Root)) "exit $code"
+    $zipSha = ((Get-Content -LiteralPath (Join-Path $Dist "$zipName.sha256") -Raw) -split '\s+')[0]
+    $code = Invoke-Ps $getKiosk @('-From', "http://127.0.0.1:8099/$zipName", '-Sha256', $zipSha, '-Role', 'WallPC', '-InstallDir', $Root, '-NonInteractive')
     Test-That 'the one command install finishes (exit 0)' ($code -eq 0) "exit $code"
     $info = Get-Info $Root
     Test-That 'the install record lists the folder, MySQL, its data, the service, the firewall rule, the app and two shortcuts' (@($info.items).Count -ge 8 -and @($info.items | Where-Object { $_.type -eq 'service' }).Count -eq 1 -and @($info.items | Where-Object { $_.type -eq 'firewall' }).Count -eq 1 -and @($info.items | Where-Object { $_.type -eq 'shortcut' }).Count -eq 2) ($info.items | ForEach-Object { $_.text })

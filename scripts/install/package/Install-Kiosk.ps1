@@ -644,11 +644,27 @@ function Update-MySql($Plan, $Pkg, $Info) {
             $oldDir = Join-Path $root 'mysql.old'
             Move-Folder $m.Base $oldDir
             Move-Folder $next $m.Base
-            [void](Remove-Tree $oldDir)
         }
         Write-MySqlIni $root $Plan.MySqlPort
-        if (-not (Start-KioskMySql $root $Plan.MySqlPort 'process')) { throw "MySQL $($Pkg.mysql) did not start; see $($m.Data)\mysqld.err" }
+        if (-not (Start-KioskMySql $root $Plan.MySqlPort 'process')) {
+            # the previous program files and my.ini (old version, old port) come back, and that MySQL runs again
+            Stop-KioskMySql $root $Plan.MySqlPort 'process'
+            $oldDir = Join-Path $root 'mysql.old'
+            if (Test-Path -LiteralPath $oldDir) { [void](Remove-Tree $m.Base); Move-Folder $oldDir $m.Base }
+            else { Write-MySqlIni $root ([int]$Info.mysqlPort) }
+            [void](Start-KioskMySql $root ([int]$Info.mysqlPort) 'process')
+            throw "MySQL $($Pkg.mysql) did not start (see $($m.Data)\mysqld.err); the previous MySQL is back"
+        }
+        $oldDir = Join-Path $root 'mysql.old'
+        if (Test-Path -LiteralPath $oldDir) { [void](Remove-Tree $oldDir) }
     }
+    # from here the record and the running app use the new MySQL, whatever happens to the rest of the update
+    if ([int]$Plan.MySqlPort -ne [int]$Info.mysqlPort) {
+        if ((Invoke-Setup (Join-Path $root 'app') @('set-env') "DB_PORT=$($Plan.MySqlPort)") -ne 0) { throw 'backend\.env could not be given the new MySQL port' }
+    }
+    $Info.mysqlVersion = $Pkg.mysql
+    $Info.mysqlPort = $Plan.MySqlPort
+    Save-InstallInfo $root $Info
     Write-Ok "MySQL $($Pkg.mysql) runs on port $($Plan.MySqlPort) (the data is kept)"
 }
 

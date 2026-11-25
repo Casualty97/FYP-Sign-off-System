@@ -48,7 +48,11 @@ function Invoke-Undo($Step) {
 function Test-SafeRoot([string]$Path) {
     $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
     if ($full.Length -le 3) { return $false }
-    foreach ($bad in @($env:SystemRoot, $env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramData, (Split-Path $env:USERPROFILE -Parent), $env:USERPROFILE)) {
+    # nothing inside Windows, Program Files or ProgramData; not the Users folder or a profile itself
+    foreach ($bad in @($env:SystemRoot, $env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramData)) {
+        if ($bad -and (Test-InsideRoot $bad $full)) { return $false }
+    }
+    foreach ($bad in @((Split-Path $env:USERPROFILE -Parent), $env:USERPROFILE)) {
         if ($bad -and $full -ieq $bad.TrimEnd('\')) { return $false }
     }
     return $true
@@ -96,8 +100,9 @@ function Install-MySqlFiles {
             Move-Folder $old $m.Base
             throw
         }
-        [void](Remove-Tree $old)
-        Write-Ok "MySQL program files updated to $MySqlVersion"
+        # the old program files (with the old my.ini) stay until the new MySQL answers, so they can come back
+        $script:MySqlOld = $old
+        Write-Ok "MySQL program files updated to $MySqlVersion (the old ones stay until it answers)"
         return
     }
     $made = -not (Test-Path -LiteralPath $m.Base)
@@ -225,8 +230,18 @@ try {
             if ((Get-ServiceState) -ne 'Running') { & sc.exe start $ServiceName 2>&1 | ForEach-Object { Write-Log 'OUT' "$_" } }
             if (-not (Wait-TcpOpen $MySqlPort 120)) {
                 Show-MySqlError $m
+                if ($script:MySqlOld -and (Test-Path -LiteralPath $script:MySqlOld)) {
+                    # an update to a newer MySQL that does not start: the previous program files and my.ini come back
+                    & sc.exe stop $ServiceName 2>&1 | Out-Null
+                    for ($i = 0; $i -lt 30 -and (Get-ServiceState) -ne 'Stopped'; $i++) { Start-Sleep -Seconds 1 }
+                    [void](Remove-Tree $m.Base)
+                    Move-Folder $script:MySqlOld $m.Base
+                    & sc.exe start $ServiceName 2>&1 | Out-Null
+                    Write-Info 'the previous MySQL program files are back'
+                }
                 throw "the MySQL service did not answer on port $MySqlPort; see $($m.Data)\mysqld.err"
             }
+            if ($script:MySqlOld) { [void](Remove-Tree $script:MySqlOld) }
             Write-Ok "the MySQL service answers on 127.0.0.1:$MySqlPort (this PC only)"
             $result.mysqlVersion = Get-MySqlVersion $Root
         }

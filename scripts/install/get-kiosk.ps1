@@ -61,6 +61,8 @@ $code = 1
 try {
     if ($From -match '^https?://') {
         if (-not (Test-Path -LiteralPath $Curl)) { Write-Bad 'curl.exe is missing (Windows 10 version 1803 or newer has it)'; exit 1 }
+        # anything on the way can change a plain http download, and a .sha256 from the same place proves nothing then
+        if ($From -match '^http://' -and -not $Sha256) { Write-Bad 'a plain http:// download needs its checksum: add -Sha256 <hash> (the .sha256 file next to the zip), or use an https:// address'; exit 1 }
         $zip = Join-Path $work $ZipName
         if ($From -notmatch '\.zip(\?|$)') { $zip = Join-Path $work 'package.zip' }
         Write-Info "Downloading $From"
@@ -70,6 +72,8 @@ try {
             $sumFile = "$zip.sha256"
             & $Curl -fsL -o $sumFile "$($From -replace '\?.*$', '').sha256" 2>$null
             if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $sumFile)) { $Sha256 = ((Get-Content -LiteralPath $sumFile -Raw) -split '\s+')[0] }
+            # a GitHub release always has the .sha256 next to the zip: without it nothing is installed
+            if (-not $Sha256 -and $From.StartsWith("$Repo/")) { Write-Bad 'the checksum file of the GitHub release could not be read: try again later'; exit 1 }
         }
     } elseif (Test-Path -LiteralPath $From -PathType Container) {
         $package = (Resolve-Path -LiteralPath $From).Path
