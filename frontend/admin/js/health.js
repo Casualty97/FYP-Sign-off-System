@@ -322,6 +322,7 @@ function healthDeviceCell(d) {
                     <div class="ui-muted">${d.name ? `<span class="health-nowrap">${escapeHtmlSafe(deviceName)}</span> · ` : ''}<span class="health-nowrap">${escapeHtmlSafe(kind)}</span></div>
                 </div>
                 <button type="button" class="ui-btn ui-btn-icon health-rename-btn" data-rename="${id}" aria-label="Rename ${escapeHtmlSafe(shown)}" title="Rename">${uiIcon('edit', 15)}</button>
+                ${sessionStorage.getItem('userRole') === 'system_admin' ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-remove-tablet="${id}" aria-label="Remove ${escapeHtmlSafe(shown)}" title="Remove">${uiIcon('trash', 15)}</button>` : ''}
             </div>`;
 }
 
@@ -412,7 +413,9 @@ function bindHealthTablets() {
     body.dataset.bound = '1';
     body.addEventListener('click', (event) => {
         const open = event.target.closest('[data-rename]');
-        if (open) startHealthRename(open.dataset.rename);
+        const remove = event.target.closest('[data-remove-tablet]');
+        if (remove) void removeHealthTablet(remove.dataset.removeTablet);
+        else if (open) startHealthRename(open.dataset.rename);
         else if (event.target.closest('[data-rename-cancel]')) stopHealthRename();
     });
     body.addEventListener('submit', (event) => {
@@ -427,6 +430,36 @@ function bindHealthTablets() {
             stopHealthRename();
         }
     });
+}
+
+async function removeHealthTablet(deviceId) {
+    const check = healthTabletCheck();
+    const device = check?.detail?.devices.find(item => item.device_id === deviceId);
+    if (!device) return;
+    const name = device.name || device.label || deviceId;
+    const confirmed = await showConfirmDialog(
+        'Remove device?',
+        `Remove "${name}" from the tablet list? It will reappear if its feedback page sends another check-in.`,
+        'Remove',
+        'danger'
+    );
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(`/api/admin/health/tablets/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Could not remove the device entry');
+        const currentCheck = healthTabletCheck();
+        if (currentCheck?.detail?.devices) {
+            currentCheck.detail.devices = currentCheck.detail.devices.filter(item => item.device_id !== deviceId);
+            if (!currentCheck.detail.devices.length) currentCheck.summary = 'No tablet has reported yet';
+            renderHealthTablets(currentCheck);
+        }
+        showNotification('Device removed', 'success');
+        void loadHealth();
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
 }
 
 function startHealthRename(deviceId) {

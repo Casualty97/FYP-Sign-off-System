@@ -82,6 +82,19 @@ router.put('/settings', auth.requireAdmin, (req, res) => {
     }
 });
 
+// DELETE /api/admin/health/tablets/:deviceId removes a saved heartbeat entry.
+router.delete('/tablets/:deviceId', auth.requireAdmin, (req, res) => {
+    const { deviceId } = req.params;
+    if (!tabletNames.isDeviceId(deviceId)) return res.status(400).json({ success: false, error: 'Not a device id' });
+    db.run('DELETE FROM device_heartbeats WHERE device_id = ?', [deviceId], (error) => {
+        if (error) {
+            console.error('❌ Could not remove tablet entry:', error.message);
+            return res.status(500).json({ success: false, error: 'Could not remove the device entry' });
+        }
+        res.json({ success: true });
+    });
+});
+
 // PUT /api/admin/health/tablets/:deviceId/name  { name }  an empty name shows the device name again
 router.put('/tablets/:deviceId/name', auth.requireAuth, (req, res) => {
     const deviceId = String(req.params.deviceId || '');
