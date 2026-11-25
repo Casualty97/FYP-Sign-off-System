@@ -71,4 +71,19 @@ jobs:
             "$D/rp-xperience-kiosk-windows-x64-ai.zip" "$D/rp-xperience-kiosk-windows-x64-ai.zip.sha256" \
             "$D/get-kiosk.ps1" \
             --title "Kiosk build $BUILD" --notes-file notes.md --target "$(git rev-parse HEAD)" --latest
+      # Only the newest release stays (each one holds about 545 MB of zips). Only releases this workflow made (tag
+      # build-...) are deleted, so a release made by hand (for example for the hand over) is never touched. The git
+      # tags stay: they only mark the commits.
+      - name: Delete the older build releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          KEEP="build-$(git rev-list --count HEAD)-$(git rev-parse --short=7 HEAD)"
+          gh release view "$KEEP" --json tagName --jq .tagName
+          gh api --paginate "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name' | grep '^build-' | grep -v -x "$KEEP" > old.txt || true
+          echo "keeping $KEEP, deleting $(wc -l < old.txt) older build release(s)"
+          while read -r tag; do
+            gh release delete "$tag" --yes
+          done < old.txt
     # <Jun Kai end>
