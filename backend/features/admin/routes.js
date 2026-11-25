@@ -1446,6 +1446,10 @@ router.get('/test-db', auth.requireAuth, auth.requireAdmin, (req, res) => { // <
 
 // ==================== 6. FEEDBACK MANAGEMENT ROUTES ====================
 
+// <Jun Kai start> small pictures for the Feedback list (photoThumb.js): the file path comes from the record, never from the request
+router.get('/feedback/:id/thumb/:kind', auth.requireAuth, require('./photoThumb').handler);
+// <Jun Kai end>
+
 router.get('/feedback', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-in admins only
     console.debug('🔍 Fetching ALL feedback data (pagination handled by frontend)...');
     
@@ -1527,6 +1531,11 @@ router.get('/feedback', auth.requireAuth, (req, res) => { // <Jun Kai/> signed-i
                 
                 if (processed === feedbackRows.length) {
                     console.debug(`✅ Found ${feedbackWithAnswers.length} feedback entries with answers`);
+                    // <Jun Kai start> back into the order of the first query (newest first): the rows were added as each
+                    // row's answers query finished, so the list reached the page in a different order on every load
+                    const place = new Map(feedbackRows.map((row, index) => [row.id, index]));
+                    feedbackWithAnswers.sort((a, b) => place.get(a.id) - place.get(b.id));
+                    // <Jun Kai end>
                     
                     res.json({
                         success: true,

@@ -17,8 +17,10 @@ function updateEncryptionButtons() {
     // Decrypt button
     if (encryptedFeedbackIds.length > 0 && !isAnyEmailDecrypted) {
         if (decryptBtn) {
-            decryptBtn.style.display = 'inline-block';
-            decryptBtn.innerHTML = `🔓 Decrypt Page (${encryptedFeedbackIds.length})`;
+            // <Jun Kai start> UI kit button with an icon (admin redesign)
+            decryptBtn.style.display = 'inline-flex';
+            decryptBtn.innerHTML = `${uiIcon('unlock', 15)}Decrypt emails (${encryptedFeedbackIds.length})`;
+            // <Jun Kai end>
         }
     } else {
         if (decryptBtn) decryptBtn.style.display = 'none';
@@ -27,9 +29,11 @@ function updateEncryptionButtons() {
     // Re-encrypt button
     if (isAnyEmailDecrypted) {
         if (reEncryptBtn) {
-            reEncryptBtn.style.display = 'inline-block';
+            // <Jun Kai start> UI kit button with an icon (admin redesign)
+            reEncryptBtn.style.display = 'inline-flex';
             const count = Object.keys(decryptedEmailMap).length;
-            reEncryptBtn.innerHTML = `🔒 Re-encrypt Page (${count})`;
+            reEncryptBtn.innerHTML = `${uiIcon('lock', 15)}Lock emails again (${count})`;
+            // <Jun Kai end>
         }
     } else {
         if (reEncryptBtn) reEncryptBtn.style.display = 'none';

@@ -604,147 +604,96 @@
                 
                 <!-- Feedback Data Page (DONE BY PRETI)-->
                 <div id="feedback-data-page" class="page">
-                    <div class="page-header">
-                        <h2>Feedback</h2>
-                        <p>Manage and review visitor feedback submissions</p>
+                    <!-- <Jun Kai start> Feedback page (admin redesign, Feedback A): the filters are chips that are always in
+                         view, each row shows the pledge and the typed feedback, and a click on a row opens a side panel with
+                         both photos, the pledge, the answers and Delete. The ids of the search box, the filters, the pager and
+                         the two email buttons are the old ones, so the filter, sort and email code works unchanged. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Feedback</h2>
+                            <p>Every visitor submission, newest first.</p>
+                        </div>
                     </div>
 
-                    <div class="feedback-section">
-                        <div class="section-header">
-                            <h3>Visitor Feedback</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="toggleFeedbackAdvancedFilters()">
-                                    <span id="feedback-filter-toggle-icon">▼</span> Advanced Filters
-                                </button>
-                                <button class="btn-primary" onclick="refreshFeedbackData()">🔄 Refresh</button>
+                    <div class="ui-card fb-card">
+                        <div class="fb-toolbar" role="search" aria-label="Filter the feedback list">
+                            <label class="fb-search">
+                                <span class="ui-sr-only">Search the feedback</span>
+                                <span class="fb-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="feedback-search-input" placeholder="Search name, email, pledge or answers" autocomplete="off" oninput="filterFeedbackData()">
+                            </label>
+                            <button type="button" class="fb-chip" id="feedback-date-button" popovertarget="feedback-date-pop" aria-haspopup="dialog">
+                                <span data-fb-icon="calendar"></span><span id="feedback-date-label">Any date</span>
+                            </button>
+                            <div class="fb-date-pop" id="feedback-date-pop" popover aria-label="Date range">
+                                <div class="fb-date-presets">
+                                    <button type="button" onclick="setFeedbackDateRangePreset('today')">Today</button>
+                                    <button type="button" onclick="setFeedbackDateRangePreset('week')">This week</button>
+                                    <button type="button" onclick="setFeedbackDateRangePreset('month')">This month</button>
+                                    <button type="button" onclick="clearFeedbackDateRange()">Any date</button>
+                                </div>
+                                <label class="fb-date-field">From <input type="date" id="feedback-filter-date-from" class="ui-input" onchange="filterFeedbackData()"></label>
+                                <label class="fb-date-field">To <input type="date" id="feedback-filter-date-to" class="ui-input" onchange="filterFeedbackData()"></label>
                             </div>
+                            <select id="feedback-filter-email" class="fb-chip fb-chip-select" aria-label="Email" onchange="filterFeedbackData()">
+                                <option value="">Email: any</option>
+                                <option value="has_email">Has an email</option>
+                                <option value="no_email">No email</option>
+                            </select>
+                            <select id="feedback-filter-visits" class="fb-chip fb-chip-select" aria-label="Visits" onchange="filterFeedbackData()">
+                                <option value="">Visits: any</option>
+                                <option value="1">1 visit</option>
+                                <option value="2">2 visits</option>
+                                <option value="3">3 visits</option>
+                                <option value="4">4 visits</option>
+                                <option value="5">5 visits</option>
+                                <option value="6+">6 or more visits</option>
+                            </select>
+                            <select id="feedback-filter-retention" class="fb-chip fb-chip-select" aria-label="How long the record is kept" onchange="filterFeedbackData()">
+                                <option value="">Kept: any</option>
+                                <option value="7days">Kept 7 days</option>
+                                <option value="longterm">Kept long term</option>
+                            </select>
+                            <button type="button" class="fb-link" id="feedback-clear-filters" onclick="clearAllFeedbackFilters()" hidden>Clear filters</button>
+                            <span class="fb-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="decryptAllEmails()" id="decrypt-emails-btn" style="display: none;">Show emails</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="reEncryptAllEmails()" id="re-encrypt-btn" style="display: none;">Hide emails</button>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="refreshFeedbackData()" title="Load the list again" aria-label="Load the list again" data-fb-icon="refresh"></button>
                         </div>
 
-                        <!-- Global Search (DONE BY PRETI)-->
-                        <div class="toolbar">
-                            <input type="text" id="feedback-search-input" class="search-input" 
-                                   placeholder="🔍 Search across all columns (name, email, pledge, visits, date)..." 
-                                   oninput="filterFeedbackData()">
-                            <div class="toolbar-buttons">
-                                <button class="btn-secondary" onclick="clearAllFeedbackFilters()">Clear Filters</button>
-                                <button class="btn-secondary" onclick="decryptAllEmails()" id="decrypt-emails-btn" style="display: none;">🔓 Decrypt All</button>
-                                <button class="btn-warning" onclick="reEncryptAllEmails()" id="re-encrypt-btn" style="display: none;">🔒 Re-encrypt All</button>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Filter Panel (DONE BY PRETI)-->
-                        <div id="feedback-advanced-filters-panel" class="advanced-filters-panel" style="display: none;">
-                            <div class="filter-grid">
-                                <!-- Date Range Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📅 Date Range</label>
-                                    <div class="date-range-inputs">
-                                        <input type="date" id="feedback-filter-date-from" class="filter-date" onchange="filterFeedbackData()">
-                                        <span class="date-separator">to</span>
-                                        <input type="date" id="feedback-filter-date-to" class="filter-date" onchange="filterFeedbackData()">
-                                    </div>
-                                    <button class="btn-link" onclick="setFeedbackDateRangePreset('today')">Today</button>
-                                    <button class="btn-link" onclick="setFeedbackDateRangePreset('week')">This Week</button>
-                                    <button class="btn-link" onclick="setFeedbackDateRangePreset('month')">This Month</button>
-                                </div>
-
-                                <!-- Email Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📧 Email Status</label>
-                                    <select id="feedback-filter-email" class="filter-select" onchange="filterFeedbackData()">
-                                        <option value="">All</option>
-                                        <option value="has_email">Has Email</option>
-                                        <option value="no_email">No Email</option>
-                                    </select>
-                                </div>
-
-                                <!-- Visits Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">👥 Visit Count</label>
-                                    <select id="feedback-filter-visits" class="filter-select" onchange="filterFeedbackData()">
-                                        <option value="">All Visits</option>
-                                        <option value="1">1 Visit</option>
-                                        <option value="2">2 Visits</option>
-                                        <option value="3">3 Visits</option>
-                                        <option value="4">4 Visits</option>
-                                        <option value="5">5 Visits</option>
-                                        <option value="6+">6+ Visits</option>
-                                    </select>
-                                </div>
-
-                                <!-- Data Retention Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">⏱️ Data Retention</label>
-                                    <select id="feedback-filter-retention" class="filter-select" onchange="filterFeedbackData()">
-                                        <option value="">All Types</option>
-                                        <option value="7days">7 Days</option>
-                                        <option value="longterm">Long-Term Use</option>
-                                    </select>
-                                </div>
-
-                                <!-- Results Count (DONE BY PRETI)-->
-                                <div class="filter-group filter-results">
-                                    <label class="filter-label">📊 Results</label>
-                                    <div class="results-display">
-                                        <span id="feedback-filtered-count">0</span> / <span id="feedback-total-count">0</span> records
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Results Info Bar (DONE BY PRETI)-->
-                        <div class="results-info-bar" id="feedback-results-info-bar" style="display: none;">
-                            <span class="info-text">
-                                <strong id="feedback-active-filters-count">0</strong> filter(s) active - 
-                                Showing <strong id="feedback-results-count">0</strong> of <strong id="feedback-total-records">0</strong> records
-                            </span>
-                        </div>
-
-                        <div class="data-table">
-                            <table>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table fb-table">
                                 <thead>
                                     <tr>
-                                        <th onclick="sortFeedbackData('name')" class="sortable">
-                                            Name <span class="sort-indicator" id="feedback-sort-name"></span>
-                                        </th>
-                                        <th onclick="sortFeedbackData('email')" class="sortable">
-                                            Email <span class="sort-indicator" id="feedback-sort-email"></span>
-                                        </th>
-                                        <th onclick="sortFeedbackData('total_visits')" class="sortable">
-                                            Visits <span class="sort-indicator" id="feedback-sort-total_visits"></span>
-                                        </th>
+                                        <th><button type="button" class="fb-sort" onclick="sortFeedbackData('name')">Visitor<span class="sort-indicator" id="feedback-sort-name"></span></button></th>
+                                        <th class="fb-num"><button type="button" class="fb-sort" onclick="sortFeedbackData('total_visits')">Visits<span class="sort-indicator" id="feedback-sort-total_visits"></span></button></th>
                                         <th>Pledge</th>
-                                        <!-- User feedback preview column added so admins can see typed answers immediately. (Done by Caeden) -->
-                                        <th>User Feedback</th>
-                                        <th>Questions & Answers</th>
-                                        <th onclick="sortFeedbackData('data_retention_days')" class="sortable">
-                                            Data Retention <span class="sort-indicator" id="feedback-sort-data_retention_days"></span>
-                                        </th>
-                                        <th>Raw Photo</th>
-                                        <th>Processed Photo</th>
-                                        <th onclick="sortFeedbackData('created_at')" class="sortable">
-                                            Date <span class="sort-indicator" id="feedback-sort-created_at"></span>
-                                        </th>
-                                        <th>Actions</th>
+                                        <th>Typed feedback</th>
+                                        <th><button type="button" class="fb-sort" onclick="sortFeedbackData('data_retention_days')">Kept<span class="sort-indicator" id="feedback-sort-data_retention_days"></span></button></th>
+                                        <th>Photos</th>
+                                        <th><button type="button" class="fb-sort" onclick="sortFeedbackData('created_at')">Date<span class="sort-indicator" id="feedback-sort-created_at"></span></button></th>
+                                        <th><span class="ui-sr-only">Delete</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="feedback-table-body">
-                                    <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                    <tr>
-                                        <td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">
-                                            Loading feedback data...
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="8" class="ui-empty">Loading the feedback</td></tr>
                                 </tbody>
                             </table>
-                            
-                            <div class="pagination" style="margin-top: 20px;">
-                                <button onclick="prevFeedbackPage()" id="prev-feedback-btn" disabled>← Previous</button>
-                                <span id="feedback-page-info">Page 1 of 0 (0 total)</span>
-                                <button onclick="nextFeedbackPage()" id="next-feedback-btn">Next →</button>
-                            </div>
+                        </div>
+
+                        <div class="fb-pager">
+                            <span id="feedback-page-info" aria-live="polite">Loading</span>
+                            <span class="fb-pager-buttons">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="prevFeedbackPage()" id="prev-feedback-btn" disabled>Previous</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="nextFeedbackPage()" id="next-feedback-btn" disabled>Next</button>
+                            </span>
                         </div>
                     </div>
+
+                    <!-- one submission: filled by openFeedbackPanel() in feedback.js. Not a modal dialog: the list stays
+                         usable, and the photo viewer and the delete check open above it -->
+                    <aside class="fb-panel" id="feedback-panel" aria-labelledby="feedback-panel-title" hidden></aside>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Feedback Reports Page (DONE BY Yu Kang) -->

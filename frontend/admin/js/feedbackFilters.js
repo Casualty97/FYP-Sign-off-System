@@ -2,16 +2,6 @@
 // Part 7/30 of the admin page: filter controls for the feedback and archive tabs (load order in admin.html).
 // ==================== 7. FILTER CONTROLS (BOTH TABS) ====================
 
-function toggleFeedbackAdvancedFilters() {
-    const panel = document.getElementById('feedback-advanced-filters-panel');
-    const icon = document.getElementById('feedback-filter-toggle-icon');
-    if (panel && icon) {
-        const isHidden = panel.style.display === 'none' || !panel.style.display;
-        panel.style.display = isHidden ? 'block' : 'none';
-        icon.textContent = isHidden ? '▲' : '▼';
-    }
-}
-
 function toggleArchiveAdvancedFilters() {
     const panel = document.getElementById('archive-advanced-filters-panel');
     const icon = document.getElementById('archive-filter-toggle-icon');
