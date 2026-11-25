@@ -670,14 +670,14 @@
                             <table class="ui-table fb-table">
                                 <thead>
                                     <tr>
-                                        <th><button type="button" class="ui-sort" onclick="sortFeedbackData('name')">Visitor<span class="sort-indicator" id="feedback-sort-name"></span></button></th>
-                                        <th class="ui-num"><button type="button" class="ui-sort" onclick="sortFeedbackData('total_visits')">Visits<span class="sort-indicator" id="feedback-sort-total_visits"></span></button></th>
-                                        <th>Pledge</th>
-                                        <th>Typed feedback</th>
-                                        <th><button type="button" class="ui-sort" onclick="sortFeedbackData('data_retention_days')">Kept<span class="sort-indicator" id="feedback-sort-data_retention_days"></span></button></th>
-                                        <th>Photos</th>
-                                        <th><button type="button" class="ui-sort" onclick="sortFeedbackData('created_at')">Date<span class="sort-indicator" id="feedback-sort-created_at"></span></button></th>
-                                        <th><span class="ui-sr-only">Delete</span></th>
+                                        <th class="col-visitor"><button type="button" class="ui-sort" onclick="sortFeedbackData('name')">Visitor<span class="sort-indicator" id="feedback-sort-name"></span></button></th>
+                                        <th class="ui-num col-visits"><button type="button" class="ui-sort" onclick="sortFeedbackData('total_visits')">Visits<span class="sort-indicator" id="feedback-sort-total_visits"></span></button></th>
+                                        <th class="col-pledge">Pledge</th>
+                                        <th class="col-typed">Typed feedback</th>
+                                        <th class="col-kept"><button type="button" class="ui-sort" onclick="sortFeedbackData('data_retention_days')">Kept<span class="sort-indicator" id="feedback-sort-data_retention_days"></span></button></th>
+                                        <th class="col-photos">Photos</th>
+                                        <th class="col-date"><button type="button" class="ui-sort" onclick="sortFeedbackData('created_at')">Date<span class="sort-indicator" id="feedback-sort-created_at"></span></button></th>
+                                        <th class="col-bin"><span class="ui-sr-only">Delete</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="feedback-table-body">
@@ -1660,205 +1660,139 @@
               
                 <!-- Archive Page (DONE BY PRETI)-->
                 <div id="archive-page" class="page">
-                    <div class="page-header">
-                        <!-- <Jun Kai start> -->
-                        <h2>Archived Feedback</h2>
-                        <p>Feedback older than the auto-archive period (Kiosk Settings). After its keep period, set on <button type="button" class="inline-link-btn" onclick="showPage('visitor-archive')">Visitor Data Archive</button>, feedback can be saved to disk and removed from the database.</p>
-                        <!-- <Jun Kai end> -->
+                    <!-- <Jun Kai start> Archived Feedback (admin redesign, list style A, like Feedback): the list first; ticking
+                         rows shows a bar with Delete selected; Delete by date opens a side panel with the date, the quick
+                         picks, Preview and the warning. The old ids stay, so the filter, sort, email and delete code works. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Archived Feedback</h2>
+                            <p>Feedback older than the auto-archive period (Kiosk Settings). After its keep period, set on <button type="button" class="inline-link-btn" onclick="showPage('visitor-archive')">Visitor Data Archive</button>, feedback can be saved to disk and removed from the database.</p>
+                        </div>
                     </div>
 
-                    <div class="feedback-section">
-                        <div class="section-header">
-                            <h3>Archived Feedback</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="toggleArchiveAdvancedFilters()">
-                                    <span id="archive-filter-toggle-icon">▼</span> Advanced Filters
-                                </button>
-                                <button class="btn-primary" onclick="refreshArchiveData()">🔄 Refresh</button>
+                    <div class="ui-card fb-card">
+                        <div class="ui-filterbar" role="search" aria-label="Filter the archived feedback">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the archived feedback</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="archive-search-input" placeholder="Search name, pledge or answers" autocomplete="off" oninput="filterArchiveData()">
+                            </label>
+                            <button type="button" class="ui-filter" id="archive-date-button" popovertarget="archive-date-pop" aria-haspopup="dialog">
+                                <span data-fb-icon="calendar"></span><span id="archive-date-label">Any date</span>
+                            </button>
+                            <div class="ui-filter-pop" id="archive-date-pop" popover aria-label="Date range">
+                                <div class="ui-filter-presets">
+                                    <button type="button" onclick="setArchiveDateRangePreset('today')">Today</button>
+                                    <button type="button" onclick="setArchiveDateRangePreset('week')">This week</button>
+                                    <button type="button" onclick="setArchiveDateRangePreset('month')">This month</button>
+                                    <button type="button" onclick="archiveView.clearDates()">Any date</button>
+                                </div>
+                                <label class="ui-filter-field">From <input type="date" id="archive-filter-date-from" class="ui-input" onchange="filterArchiveData()"></label>
+                                <label class="ui-filter-field">To <input type="date" id="archive-filter-date-to" class="ui-input" onchange="filterArchiveData()"></label>
                             </div>
+                            <select id="archive-filter-email" class="ui-filter ui-filter-select" aria-label="Email" onchange="filterArchiveData()">
+                                <option value="">Email: any</option>
+                                <option value="has_email">Has an email</option>
+                                <option value="no_email">No email</option>
+                            </select>
+                            <select id="archive-filter-visits" class="ui-filter ui-filter-select" aria-label="Visits" onchange="filterArchiveData()">
+                                <option value="">Visits: any</option>
+                                <option value="1">1 visit</option>
+                                <option value="2">2 visits</option>
+                                <option value="3">3 visits</option>
+                                <option value="4">4 visits</option>
+                                <option value="5">5 visits</option>
+                                <option value="6+">6 or more visits</option>
+                            </select>
+                            <select id="archive-filter-retention" class="ui-filter ui-filter-select" aria-label="How long the record is kept" onchange="filterArchiveData()">
+                                <option value="">Kept: any</option>
+                                <option value="7days">Kept 7 days</option>
+                                <option value="longterm">Kept long term</option>
+                            </select>
+                            <button type="button" class="ui-link" id="archive-clear-filters" onclick="clearAllArchiveFilters()" hidden>Clear filters</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="decryptAllArchiveEmails()" id="decrypt-archive-emails-btn" style="display: none;">Show emails</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="reEncryptAllArchiveEmails()" id="re-encrypt-archive-btn" style="display: none;">Hide emails</button>
+                            <span id="archive-deletion-controls" hidden><button type="button" class="ui-btn ui-btn-danger" onclick="openArchiveDeletePanel()"><span data-fb-icon="trash"></span>Delete by date</button></span>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="refreshArchiveData()" title="Load the list again" aria-label="Load the list again" data-fb-icon="refresh"></button>
                         </div>
 
-                        <!-- DELETION CONTROLS (System Admin Only) (DONE BY PRETI)-->
-                        <div id="archive-deletion-controls" class="deletion-controls-section" style="display: none;">
-                            <div class="deletion-header">
-                                <h4>🗑️ Permanent Data Deletion</h4>
-                                <span class="deletion-badge">System Admin Only</span>
-                            </div>
-                            
-                            <div class="deletion-controls">
-                                <!-- Selected Items Deletion (DONE BY PRETI)-->
-                                <div class="deletion-group">
-                                    <label class="deletion-label">Selected Items:</label>
-                                    <div class="deletion-actions">
-                                        <span id="selected-count" class="selected-count">0 selected</span>
-                                        <button class="btn-warning btn-sm" onclick="deleteSelectedArchive()" id="delete-selected-btn" disabled>
-                                            🗑️ Delete Selected
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Date Range Deletion (DONE BY PRETI)-->
-                                <div class="deletion-group">
-                                    <label class="deletion-label">Bulk Delete by Date:</label>
-                                    <div class="deletion-date-controls">
-                                        <label>Delete all archived before:</label>
-                                        <input type="date" id="bulk-delete-date" class="deletion-date-input">
-                                        <select id="bulk-delete-quick" class="deletion-select" onchange="setQuickDeleteDate(this.value)">
-                                            <option value="">Quick Select...</option>
-                                            <option value="3months">3 Months Ago</option>
-                                            <option value="6months">6 Months Ago</option>
-                                            <option value="1year">1 Year Ago</option>
-                                            <option value="2years">2 Years Ago</option>
-                                            <option value="3years">3 Years Ago</option>
-                                        </select>
-                                        <button class="btn-danger btn-sm" onclick="previewBulkDelete()" id="preview-delete-btn">
-                                            👁️ Preview
-                                        </button>
-                                        <button class="btn-danger btn-sm" onclick="bulkDeleteByDate()" id="bulk-delete-btn" disabled>
-                                            🗑️ Delete by Date
-                                        </button>
-                                    </div>
-                                    <div id="preview-count" class="preview-count" style="display: none;">
-                                        ⚠️ This will delete <strong id="preview-number">0</strong> records
-                                    </div>
-                                </div>
-
-                                <!-- Warning Message (DONE BY PRETI)-->
-                                <div class="deletion-warning">
-                                    ⚠️ <strong>Warning:</strong> Deletion is permanent and cannot be undone. 
-                                    Please ensure you have exported a backup before proceeding.
-                                </div>
-                            </div>
+                        <div class="ui-selectbar" id="archive-selection-bar" hidden>
+                            <span id="selected-count" aria-live="polite">0 selected</span>
+                            <button type="button" class="ui-btn ui-btn-danger" onclick="deleteSelectedArchive()" id="delete-selected-btn" disabled><span data-fb-icon="trash"></span>Delete selected</button>
+                            <button type="button" class="ui-link" onclick="clearArchiveSelection()">Clear the selection</button>
                         </div>
 
-                        <!-- Global Search (DONE BY PRETI)-->
-                        <div class="toolbar">
-                            <input type="text" id="archive-search-input" class="search-input" 
-                                placeholder="🔍 Search across all columns (name, email, pledge, visits, date)..." 
-                                oninput="filterArchiveData()">
-                            <div class="toolbar-buttons">
-                                <button class="btn-secondary" onclick="clearAllArchiveFilters()">Clear Filters</button>
-                                <button class="btn-secondary" onclick="decryptAllArchiveEmails()" id="decrypt-archive-emails-btn">🔓 Decrypt Page</button>
-                                <button class="btn-warning" onclick="reEncryptAllArchiveEmails()" id="re-encrypt-archive-btn" style="display: none;">🔒 Re-encrypt All</button>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Filter Panel (DONE BY PRETI)-->
-                        <div id="archive-advanced-filters-panel" class="advanced-filters-panel" style="display: none;">
-                            <div class="filter-grid">
-                                <!-- Date Range Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📅 Date Range</label>
-                                    <div class="date-range-inputs">
-                                        <input type="date" id="archive-filter-date-from" class="filter-date" onchange="filterArchiveData()">
-                                        <span class="date-separator">to</span>
-                                        <input type="date" id="archive-filter-date-to" class="filter-date" onchange="filterArchiveData()">
-                                    </div>
-                                    <button class="btn-link" onclick="setArchiveDateRangePreset('today')">Today</button>
-                                    <button class="btn-link" onclick="setArchiveDateRangePreset('week')">This Week</button>
-                                    <button class="btn-link" onclick="setArchiveDateRangePreset('month')">This Month</button>
-                                </div>
-
-                                <!-- Email Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">📧 Email Status</label>
-                                    <select id="archive-filter-email" class="filter-select" onchange="filterArchiveData()">
-                                        <option value="">All</option>
-                                        <option value="has_email">Has Email</option>
-                                        <option value="no_email">No Email</option>
-                                    </select>
-                                </div>
-
-                                <!-- Visits Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">👥 Visit Count</label>
-                                    <select id="archive-filter-visits" class="filter-select" onchange="filterArchiveData()">
-                                        <option value="">All Visits</option>
-                                        <option value="1">1 Visit</option>
-                                        <option value="2">2 Visits</option>
-                                        <option value="3">3 Visits</option>
-                                        <option value="4">4 Visits</option>
-                                        <option value="5">5 Visits</option>
-                                        <option value="6+">6+ Visits</option>
-                                    </select>
-                                </div>
-
-                                <!-- Data Retention Filter (DONE BY PRETI)-->
-                                <div class="filter-group">
-                                    <label class="filter-label">⏱️ Data Retention</label>
-                                    <select id="archive-filter-retention" class="filter-select" onchange="filterArchiveData()">
-                                        <option value="">All Types</option>
-                                        <option value="7days">7 Days</option>
-                                        <option value="longterm">Long-Term Use</option>
-                                    </select>
-                                </div>
-
-                                <!-- Results Count (DONE BY PRETI)-->
-                                <div class="filter-group filter-results">
-                                    <label class="filter-label">📊 Results</label>
-                                    <div class="results-display">
-                                        <span id="archive-filtered-count">0</span> / <span id="archive-total-count">0</span> records
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Results Info Bar (DONE BY PRETI)-->
-                        <div class="results-info-bar" id="archive-results-info-bar" style="display: none;">
-                            <span class="info-text">
-                                <strong id="archive-active-filters-count">0</strong> filter(s) active - 
-                                Showing <strong id="archive-results-count">0</strong> of <strong id="archive-total">0</strong> records
-                            </span>
-                        </div>
-
-                        <div class="data-table">
-                            <table>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table fb-table">
                                 <thead>
                                     <tr>
-                                        <th class="checkbox-col">
-                                            <input type="checkbox" id="select-all-archive" onclick="toggleSelectAllArchive(this)" title="Select All">
-                                        </th>
-                                        <th onclick="sortArchiveData('name')" class="sortable">
-                                            Name <span class="sort-indicator" id="archive-sort-name"></span>
-                                        </th>
-                                        <th onclick="sortArchiveData('email')" class="sortable">
-                                            Email <span class="sort-indicator" id="archive-sort-email"></span>
-                                        </th>
-                                        <th onclick="sortArchiveData('total_visits')" class="sortable">
-                                            Visits <span class="sort-indicator" id="archive-sort-total_visits"></span>
-                                        </th>
-                                        <th>Pledge</th>
-                                        <th>Questions & Answers</th>
-                                        <th onclick="sortArchiveData('data_retention')" class="sortable">
-                                            Data Retention <span class="sort-indicator" id="archive-sort-data_retention"></span>
-                                        </th>
-                                        <th>Raw Photo</th>
-                                        <th>Processed Photo</th>
-                                        <th onclick="sortArchiveData('created_at')" class="sortable">
-                                            Date <span class="sort-indicator" id="archive-sort-created_at"></span>
-                                        </th>
-                                        <th>Actions</th>
+                                        <th class="col-tick"><input type="checkbox" id="select-all-archive" onclick="toggleSelectAllArchive(this)" aria-label="Select every row of this page" hidden></th>
+                                        <th class="col-visitor"><button type="button" class="ui-sort" onclick="sortArchiveData('name')">Visitor<span class="sort-indicator" id="archive-sort-name"></span></button></th>
+                                        <th class="ui-num col-visits"><button type="button" class="ui-sort" onclick="sortArchiveData('total_visits')">Visits<span class="sort-indicator" id="archive-sort-total_visits"></span></button></th>
+                                        <th class="col-pledge">Pledge</th>
+                                        <th class="col-typed">Typed feedback</th>
+                                        <th class="col-kept"><button type="button" class="ui-sort" onclick="sortArchiveData('data_retention')">Kept<span class="sort-indicator" id="archive-sort-data_retention"></span></button></th>
+                                        <th class="col-photos">Photos</th>
+                                        <th class="col-date"><button type="button" class="ui-sort" onclick="sortArchiveData('created_at')">Date<span class="sort-indicator" id="archive-sort-created_at"></span></button></th>
+                                        <th class="col-bin"><span class="ui-sr-only">Delete</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="archive-table-body">
-                                    <tr>
-                                        <td colspan="11" style="text-align: center; padding: 40px; color: #64748b;">
-                                            No archived feedback found. Feedback moved by the archive rules will appear here.
-                                        </td>
-                                    </tr>
+                                    <tr><td colspan="9" class="ui-empty">Loading the archived feedback</td></tr>
                                 </tbody>
                             </table>
-                            
-                            <div class="pagination" style="margin-top: 20px;">
-                                <button onclick="prevArchivePage()" id="prev-archive-btn" disabled>← Previous</button>
-                                <span id="archive-page-info">Page 1 of 0 (0 total)</span>
-                                <button onclick="nextArchivePage()" id="next-archive-btn">Next →</button>
-                            </div>
+                        </div>
+
+                        <div class="ui-pager">
+                            <span><span id="archive-page-info" aria-live="polite">Loading</span><span class="ui-pager-status" id="archive-status" role="status"></span></span>
+                            <span class="ui-pager-buttons">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="prevArchivePage()" id="prev-archive-btn" disabled>Previous</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="nextArchivePage()" id="next-archive-btn" disabled>Next</button>
+                            </span>
                         </div>
                     </div>
+
+                    <!-- one submission: filled by archiveView (submissionList.js) -->
+                    <aside class="ui-sidepanel" id="archive-panel" aria-labelledby="archive-panel-title" hidden></aside>
+
+                    <!-- Delete by date (System Admins): the list stays usable beside it -->
+                    <aside class="ui-sidepanel" id="archive-delete-panel" aria-labelledby="archive-delete-title" hidden>
+                        <header class="ui-sidepanel-head">
+                            <div>
+                                <h3 id="archive-delete-title" tabindex="-1">Delete by date</h3>
+                                <p>Every archived record older than the date</p>
+                            </div>
+                            <button type="button" class="ui-btn ui-btn-icon" onclick="closeArchiveDeletePanel()" title="Close" aria-label="Close Delete by date" data-fb-icon="close"></button>
+                        </header>
+                        <div class="ui-sidepanel-body">
+                            <div class="ui-field-stack">
+                                <label for="bulk-delete-date">Delete every archived record from before</label>
+                                <input type="date" id="bulk-delete-date" class="ui-input" onchange="archiveDeleteDateChanged()">
+                            </div>
+                            <div class="ui-field-stack">
+                                <span class="ui-label">Quick picks</span>
+                                <div class="ui-quick" id="bulk-delete-quick">
+                                    <button type="button" data-quick="3months">3 months ago</button>
+                                    <button type="button" data-quick="6months">6 months ago</button>
+                                    <button type="button" data-quick="1year">1 year ago</button>
+                                    <button type="button" data-quick="2years">2 years ago</button>
+                                    <button type="button" data-quick="3years">3 years ago</button>
+                                </div>
+                            </div>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="previewBulkDelete()" id="preview-delete-btn">Preview how many</button>
+                            <p class="ui-preview-count" id="preview-count" hidden>This deletes <strong id="preview-number">0</strong> records.</p>
+                            <div class="ui-note ui-note-warn">Deleting is permanent and cannot be undone. Save the records first on <button type="button" class="inline-link-btn" onclick="closeArchiveDeletePanel(); showPage('visitor-archive')">Visitor Data Archive</button> if they may be needed later. VIP leaves are kept.</div>
+                        </div>
+                        <footer class="ui-sidepanel-foot">
+                            <button type="button" class="ui-btn ui-btn-danger" onclick="bulkDeleteByDate()" id="bulk-delete-btn" disabled><span data-fb-icon="trash"></span>Delete by date</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="closeArchiveDeletePanel()">Cancel</button>
+                        </footer>
+                    </aside>
+                    <!-- <Jun Kai end> -->
                 </div>
-                
-                <!-- Audit Logs Page (DONE BY PRETI)-->
+
                 <div id="audit-page" class="page">
                     <div class="page-header">
                         <h2>Audit Logs</h2>

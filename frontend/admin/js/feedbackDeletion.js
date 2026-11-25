@@ -158,7 +158,7 @@ async function performFeedbackDeletion(feedbackId) {
         if (data.success) {
             // <Jun Kai start> the Feedback page keeps its place and says it in a status line (feedbackDeleted in feedback.js);
             // the Archived Feedback page still loads its list again
-            if (currentDeleteSource === 'archive') { alert('✅ Feedback deleted successfully!'); loadArchiveData(); } else feedbackDeleted(feedbackId);
+            if (currentDeleteSource === 'archive') archiveDeleted(feedbackId); else feedbackDeleted(feedbackId);
             // <Jun Kai end>
         } else {
             alert('❌ Failed to delete feedback: ' + (data.error || 'Unknown error'));

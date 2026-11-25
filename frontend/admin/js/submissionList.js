@@ -15,7 +15,8 @@
 //   decrypted, resetDecrypted, markDecrypted, setEncryptedIds, updateButtons     the email state kept by encryption.js
 //   remove(id) asks for the password and deletes one record (feedbackDeletion.js)
 //   clearFilters, refilter     the page's own functions
-//   selectable true: a tick box per row (class cfg.tickClass) and cfg.onTick() after a change
+//   tickColumn true: the table starts with a tick column; canTick() decides if the role gets the boxes (class
+//              cfg.tickClass) and onTick() runs after a change
 //   columns    how many columns the table has; emptyText / filteredText for an empty list
 const SUBMISSION_AVATAR_HUES = [262, 168, 334, 28, 214, 150, 12, 232];
 
@@ -135,22 +136,23 @@ function makeSubmissionList(cfg) {
         }
 
         const mayDelete = canDelete();
+        const mayTick = cfg.tickColumn && cfg.canTick ? cfg.canTick() : false;
         body.innerHTML = pageData.map((feedback) => {
             const id = Number(feedback.id);
             const name = feedback.name || 'Anonymous';
             const pledge = String(feedback.pledge || '').trim();
             const typed = getFeedbackAnswerPreview(feedback);
             const answers = Array.isArray(feedback.question_answers) ? feedback.question_answers.length : 0;
-            const tick = cfg.selectable ? `<td class="ui-tick"><input type="checkbox" class="${cfg.tickClass}" value="${id}" aria-label="Select the submission of ${escapeHtmlSafe(name)}"></td>` : '';
+            const tick = !cfg.tickColumn ? '' : `<td class="col-tick">${mayTick ? `<input type="checkbox" class="${cfg.tickClass}" value="${id}" aria-label="Select the submission of ${escapeHtmlSafe(name)}">` : ''}</td>`;
             return `<tr data-feedback-id="${id}" data-retention="${escapeHtmlSafe(feedback.data_retention || 'longterm')}" tabindex="0" aria-label="Open the submission of ${escapeHtmlSafe(name)}"${id === view.openId ? ' class="is-open"' : ''}>
-            ${tick}<td><span class="ui-who"><span class="ui-avatar" style="--ui-hue: ${SUBMISSION_AVATAR_HUES[id % SUBMISSION_AVATAR_HUES.length]}" aria-hidden="true">${escapeHtmlSafe(submissionInitials(name))}</span><span class="ui-who-text"><b title="${escapeHtmlSafe(name)}">${escapeHtmlSafe(name)}</b>${emailLine(feedback)}</span></span></td>
-            <td class="ui-num">${Number(feedback.visits) || 1}</td>
-            <td class="fb-wrap">${pledge ? `<span class="ui-clamp">${escapeHtmlSafe(pledge)}</span>` : '<span class="ui-muted">No pledge</span>'}</td>
-            <td class="fb-wrap">${typed ? `<span class="ui-clamp">${escapeHtmlSafe(typed)}</span>` : '<span class="ui-muted">No typed feedback</span>'}${answers ? `<button type="button" class="ui-link" data-fb-answers>${answers} ${answers === 1 ? 'answer' : 'answers'}</button>` : ''}</td>
-            <td>${submissionKeptBadge(feedback)}</td>
-            <td><span class="ui-thumbs">${submissionThumb(feedback, 'raw')}${submissionThumb(feedback, 'processed')}</span></td>
-            <td class="ui-time fb-date-cell">${escapeHtmlSafe(submissionDateText(feedback))}</td>
-            <td><span class="ui-actions">${mayDelete ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-fb-delete title="Delete this submission" aria-label="Delete the submission of ${escapeHtmlSafe(name)}">${uiIcon('trash', 15)}</button>` : ''}</span></td>
+            ${tick}<td class="col-visitor"><span class="ui-who"><span class="ui-avatar" style="--ui-hue: ${SUBMISSION_AVATAR_HUES[id % SUBMISSION_AVATAR_HUES.length]}" aria-hidden="true">${escapeHtmlSafe(submissionInitials(name))}</span><span class="ui-who-text"><b title="${escapeHtmlSafe(name)}">${escapeHtmlSafe(name)}</b>${emailLine(feedback)}</span></span></td>
+            <td class="ui-num col-visits">${Number(feedback.visits) || 1}</td>
+            <td class="fb-wrap col-pledge">${pledge ? `<span class="ui-clamp">${escapeHtmlSafe(pledge)}</span>` : '<span class="ui-muted">No pledge</span>'}</td>
+            <td class="fb-wrap col-typed">${typed ? `<span class="ui-clamp">${escapeHtmlSafe(typed)}</span>` : '<span class="ui-muted">No typed feedback</span>'}${answers ? `<button type="button" class="ui-link" data-fb-answers>${answers} ${answers === 1 ? 'answer' : 'answers'}</button>` : ''}</td>
+            <td class="col-kept">${submissionKeptBadge(feedback)}</td>
+            <td class="col-photos"><span class="ui-thumbs">${submissionThumb(feedback, 'raw')}${submissionThumb(feedback, 'processed')}</span></td>
+            <td class="ui-time fb-date-cell col-date">${escapeHtmlSafe(submissionDateText(feedback))}</td>
+            <td class="col-bin"><span class="ui-actions">${mayDelete ? `<button type="button" class="ui-btn ui-btn-icon ui-danger" data-fb-delete title="Delete this submission" aria-label="Delete the submission of ${escapeHtmlSafe(name)}">${uiIcon('trash', 15)}</button>` : ''}</span></td>
         </tr>`;
         }).join('');
 
@@ -171,7 +173,7 @@ function makeSubmissionList(cfg) {
             return view.open(id);
         }
         if (event.target.closest('[data-fb-delete]')) return cfg.remove(id);
-        if (event.target.closest('a, input, select, label, .ui-tick')) return;
+        if (event.target.closest('a, input, select, label, .col-tick')) return;
         if (String(window.getSelection ? window.getSelection() : '').trim()) return; // text was selected by dragging: not a click on the row
         view.open(id, event.target.closest('[data-fb-answers]') ? 'answers' : undefined);
     }
@@ -376,7 +378,7 @@ function makeSubmissionList(cfg) {
     document.addEventListener('DOMContentLoaded', () => {
         const body = tbody();
         if (body) { body.addEventListener('click', rowAction); body.addEventListener('keydown', rowAction); }
-        if (body && cfg.selectable) body.addEventListener('change', (event) => { if (event.target.classList.contains(cfg.tickClass) && cfg.onTick) cfg.onTick(); });
+        if (body && cfg.tickColumn) body.addEventListener('change', (event) => { if (event.target.classList.contains(cfg.tickClass) && cfg.onTick) cfg.onTick(); });
         const side = panel();
         if (side) side.addEventListener('click', (event) => {
             const download = event.target.closest('[data-fb-download]');

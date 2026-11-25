@@ -8926,20 +8926,33 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 .ui-pager-status { margin-left: 12px; font-weight: 600; color: var(--theme-text-color); }
 .ui-pager-status:empty { display: none; }
 /* while a submission is open on a wide window the page makes room for the panel, and the columns the panel shows in full step aside */
+/* the columns have names (col-...) so a table with a tick column first follows the same rules */
 @media (min-width: 1100px) {
-    #feedback-data-page.ui-has-sidepanel { padding-right: 494px; }
-    #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(2), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(2),
-    #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(4), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(4),
-    #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(5), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(5),
-    #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(6), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(6) { display: none; }
+    /* the ids too: the old page rules set the padding of these two pages by id */
+    .page.ui-has-sidepanel, #feedback-data-page.ui-has-sidepanel, #archive-page.ui-has-sidepanel { padding-right: 494px; }
+    .ui-has-sidepanel .fb-table .col-visits, .ui-has-sidepanel .fb-table .col-typed,
+    .ui-has-sidepanel .fb-table .col-kept, .ui-has-sidepanel .fb-table .col-photos { display: none; }
 }
 /* on a window narrower than 1400 px the date steps aside as well while the panel is open (the panel shows it), so the bin stays in view */
 @media (min-width: 1100px) and (max-width: 1399px) {
-    #feedback-data-page.ui-has-sidepanel .fb-table th:nth-child(7), #feedback-data-page.ui-has-sidepanel .fb-table td:nth-child(7) { display: none; }
+    .ui-has-sidepanel .fb-table .col-date { display: none; }
 }
 /* narrow windows: fewer columns (the panel shows everything), and the panel takes the full width */
-@media (max-width: 1280px) { .fb-table th:nth-child(4), .fb-table td:nth-child(4) { display: none; } }
-@media (max-width: 1024px) { .fb-table th:nth-child(6), .fb-table td:nth-child(6), .fb-table th:nth-child(5), .fb-table td:nth-child(5) { display: none; } }
+@media (max-width: 1280px) { .fb-table .col-typed { display: none; } }
+@media (max-width: 1024px) { .fb-table .col-photos, .fb-table .col-kept { display: none; } }
+/* a table with tick boxes (Archived Feedback): the tick column, and the bar that appears once rows are ticked */
+.fb-table .col-tick { width: 1%; padding-right: 4px; }
+.fb-table .col-tick input { width: 16px; height: 16px; cursor: pointer; }
+.ui-selectbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--theme-border-color); background: color-mix(in srgb, var(--theme-btn-primary-bg) 7%, var(--theme-card-bg)); font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
+.ui-selectbar[hidden] { display: none; }
+.ui-field-stack { display: grid; gap: 6px; }
+.ui-field-stack label { font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
+.ui-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.ui-quick button { height: 32px; padding: 0 12px; border: 1px solid var(--theme-border-color); border-radius: 999px; background: var(--theme-card-bg); color: var(--theme-text-color); font: inherit; font-size: 13px; cursor: pointer; }
+.ui-quick button:hover { background: var(--theme-bg-color); }
+.ui-quick button.is-set { border-color: var(--theme-btn-primary-bg); color: var(--theme-btn-primary-bg); font-weight: 600; }
+.ui-preview-count { margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--theme-bg-color); font-size: 14px; color: var(--theme-text-color); }
+.ui-preview-count[hidden] { display: none; }
 /* <Jun Kai end> */
 
 /* <Jun Kai start> AI Settings page: a row per feature with what it runs on and what happens when it is off */
