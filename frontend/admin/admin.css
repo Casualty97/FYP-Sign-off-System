@@ -5729,272 +5729,7 @@ input[type="color"]::-webkit-color-swatch {
     border: 1px solid #fecaca;
 }
 
-/* ==================== BADGE EMAIL TEMPLATE MANAGEMENT ==================== */
-
-#badge-email-templates-page {
-    min-height: 100%;
-    padding: 30px;
-    background:
-        radial-gradient(circle at 86% 8%, rgba(45, 212, 191, 0.18), transparent 26%),
-        radial-gradient(circle at 12% 18%, rgba(16, 185, 129, 0.18), transparent 24%),
-        linear-gradient(135deg, #071813 0%, #0d1f1f 50%, #111827 100%);
-    color: #e5f5ef;
-}
-
-#badge-email-templates-page .page-header h2 {
-    color: #f8fafc;
-}
-
-#badge-email-templates-page .page-header p {
-    color: #b6c8c1;
-}
-
-.badge-template-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 28px;
-    align-items: center;
-    margin-bottom: 22px;
-    padding: 30px;
-    border-radius: 8px;
-    background:
-        linear-gradient(135deg, rgba(0, 105, 55, 0.98), rgba(8, 47, 73, 0.92)),
-        url('/assets/Tree/BackGround.png') center / cover no-repeat;
-    color: #ffffff;
-    border: 1px solid rgba(167, 243, 208, 0.2);
-    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
-}
-
-.badge-template-kicker {
-    display: inline-flex;
-    margin-bottom: 12px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: rgba(167, 243, 208, 0.16);
-    color: #bbf7d0;
-    border: 1px solid rgba(187, 247, 208, 0.28);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.badge-template-hero h3 {
-    margin: 0 0 10px;
-    max-width: 760px;
-    color: #ffffff !important;
-    font-size: clamp(30px, 3vw, 46px);
-    line-height: 1.05;
-    letter-spacing: 0;
-}
-
-.badge-template-hero p {
-    max-width: 680px;
-    margin: 0;
-    color: #d8f3e8 !important;
-    font-size: 16px;
-    line-height: 1.65;
-}
-
-.badge-email-template-section {
-    background: rgba(8, 19, 25, 0.9);
-    border: 1px solid rgba(148, 163, 184, 0.24);
-    border-radius: 8px;
-    padding: 26px;
-    box-shadow: 0 24px 54px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(16px);
-}
-
-.badge-email-template-section h3 {
-    color: #f8fafc;
-}
-
-.badge-template-section-header {
-    align-items: flex-start;
-    margin-bottom: 22px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
-}
-
-.badge-template-section-header p {
-    margin-top: 4px;
-    color: #9fb8b0;
-    font-size: 13px;
-}
-
-.badge-template-grid {
-    display: grid;
-    grid-template-columns: minmax(260px, 420px) minmax(0, 1fr);
-    gap: 20px;
-    align-items: stretch;
-    margin-bottom: 20px;
-}
-
-#badge-email-templates-page .form-group label {
-    color: #e5f5ef;
-}
-
-#badge-email-templates-page .form-group input,
-#badge-email-templates-page .form-group select,
-#badge-email-templates-page .form-group textarea {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 8px;
-    background: rgba(15, 23, 42, 0.82);
-    color: #f8fafc;
-    font-size: 14px;
-    line-height: 1.55;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-#badge-email-templates-page .form-group input::placeholder,
-#badge-email-templates-page .form-group textarea::placeholder {
-    color: #94a3b8;
-}
-
-#badge-email-templates-page .form-group select option {
-    background: #0f172a;
-    color: #f8fafc;
-}
-
-#badge-email-templates-page .form-group textarea {
-    min-height: 132px;
-    resize: vertical;
-}
-
-#badge-email-templates-page .form-group input:focus,
-#badge-email-templates-page .form-group select:focus,
-#badge-email-templates-page .form-group textarea:focus {
-    outline: none;
-    border-color: #5eead4;
-    box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.14);
-}
-
-.badge-template-help {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 96px;
-    padding: 16px 18px;
-    border-radius: 8px;
-    background: rgba(6, 78, 59, 0.34);
-    border: 1px solid rgba(94, 234, 212, 0.24);
-}
-
-.badge-template-help strong {
-    margin-bottom: 6px;
-    color: #99f6e4;
-    font-size: 13px;
-}
-
-.badge-template-help p {
-    margin: 0;
-    color: #caeee3;
-    line-height: 1.6;
-    font-size: 14px;
-}
-
-.badge-template-badge-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-    margin: 2px 0 24px;
-}
-
-.badge-template-badge-card {
-    min-height: 96px;
-    padding: 14px;
-    border-radius: 8px;
-    border: 1px solid rgba(148, 163, 184, 0.26);
-    background: rgba(15, 23, 42, 0.62);
-    color: #e2e8f0;
-    text-align: left;
-    cursor: pointer;
-    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-}
-
-.badge-template-badge-card:hover,
-.badge-template-badge-card.active {
-    transform: translateY(-2px);
-    border-color: var(--badge-color);
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(6, 78, 59, 0.42));
-}
-
-.badge-template-badge-dot {
-    width: 10px;
-    height: 10px;
-    display: block;
-    margin-bottom: 10px;
-    border-radius: 999px;
-    background: var(--badge-color);
-    box-shadow: 0 0 18px var(--badge-color);
-}
-
-.badge-template-badge-card strong {
-    display: block;
-    margin-bottom: 6px;
-    color: #ffffff;
-    font-size: 14px;
-    line-height: 1.25;
-}
-
-.badge-template-badge-card small {
-    display: block;
-    color: #a8b8c3;
-    font-size: 12px;
-    line-height: 1.45;
-}
-
-#badge-template-status.fm-status {
-    margin-top: 6px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    display: inline-flex;
-    border: 1px solid transparent;
-}
-
-#badge-template-status.fm-status--hidden {
-    display: none;
-}
-
-#badge-template-status.fm-status--success {
-    background: #ecfdf5;
-    border-color: #a7f3d0;
-    color: #065f46;
-}
-
-#badge-template-status.fm-status--error {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #991b1b;
-}
-
-#badge-template-status.fm-status--info {
-    background: #eff6ff;
-    border-color: #bfdbfe;
-    color: #1e40af;
-}
-
-@media (max-width: 980px) {
-    .badge-template-hero,
-    .badge-template-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 640px) {
-    #badge-email-templates-page {
-        padding: 20px;
-    }
-
-    .badge-template-hero,
-    .badge-email-template-section {
-        padding: 20px;
-    }
-}
+/* <Jun Kai/> the old Badge Emails rules went with the old page; the new look is the .be-* block at the end of this file */
 
 /* ==================== TIMER COUNTDOWN MANAGEMENT (DONE BY BERNISSA) ==================== */
 
@@ -9122,4 +8857,76 @@ html[data-theme="dark"] .users-btn.ui-danger:hover:not(:disabled) { background: 
 .lf-locked { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--color-dark-gray); white-space: nowrap; }
 .lf-contact { overflow-wrap: anywhere; }
 .lf-contact-btn { display: block; margin-top: 2px; font-size: 12px; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Data Export A: the unlock bar on top and the nine downloads in four groups. Locked, the cards are
+   greyed out and say Locked; unlocked, the bar turns green and each card has its Download button. */
+.dx-unlock { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 0 0 6px; padding: 16px 20px; border-radius: 14px; background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
+.dx-unlock-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: #fef3c7; color: #b45309; flex: 0 0 auto; }
+.dx-unlock-text { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.45; }
+.dx-unlock-text strong { font-size: 16px; font-weight: 700; color: #78350f; }
+.dx-unlock-fields { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.dx-unlock-fields .ui-input { width: 190px; }
+.dx-unlock-fields .ui-input[readonly] { opacity: 0.8; cursor: default; }
+.dx-unlock-fields .ui-btn svg { margin-right: 6px; }
+.dx-unlock-error { flex-basis: 100%; margin: 0; color: #b91c1c; font-size: 13px; font-weight: 600; }
+.dx-unlock.is-unlocked { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
+.dx-unlock.is-unlocked .dx-unlock-icon { background: #dcfce7; color: #15803d; }
+.dx-unlock.is-unlocked .dx-unlock-text strong { color: #14532d; }
+.dx-unlock.is-unlocked .dx-unlock-fields { display: none; }
+.dx-status { margin: 4px 0 14px; }
+.dx-group + .dx-group { margin-top: 22px; }
+.dx-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.dx-card { display: flex; flex-direction: column; gap: 6px; min-height: 128px; padding: 18px; border-radius: 14px; background: var(--l3-card); border: 1px solid var(--l3-card-edge); box-shadow: var(--l3-card-shadow); }
+.dx-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.dx-card-title { font-size: 15px; font-weight: 600; color: var(--theme-card-text); }
+.dx-card-text { font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+.dx-download { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+.dx-download:disabled { background: transparent; border-color: transparent; box-shadow: none; padding-left: 0; color: var(--color-dark-gray); cursor: not-allowed; opacity: 1; }
+#data-export-page.is-locked .dx-card { opacity: 0.7; }
+@media (max-width: 1100px) { .dx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .dx-grid { grid-template-columns: 1fr; } .dx-unlock-fields, .dx-unlock-fields .ui-input { width: 100%; } }
+html[data-theme="dark"] .dx-unlock { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.32); color: #fde68a; }
+html[data-theme="dark"] .dx-unlock-text strong { color: #fef3c7; }
+html[data-theme="dark"] .dx-unlock-icon { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+html[data-theme="dark"] .dx-unlock.is-unlocked { background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); color: #bbf7d0; }
+html[data-theme="dark"] .dx-unlock.is-unlocked .dx-unlock-text strong { color: #dcfce7; }
+html[data-theme="dark"] .dx-unlock.is-unlocked .dx-unlock-icon { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+html[data-theme="dark"] .dx-unlock-error { color: #fca5a5; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Badge Emails A: badges, editor and a live preview side by side */
+#badge-email-templates-page { min-height: 100%; padding: 30px; margin-top: 0; }
+@media (max-width: 640px) { #badge-email-templates-page { padding: 20px; } }
+.be-actions { display: flex; gap: 10px; align-items: center; }
+.be-status { margin: 0 0 12px; }
+.be-grid { display: grid; grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.be-grid > .ui-card + .ui-card { margin-top: 0; }
+.be-card { overflow: hidden; }
+.be-card-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--l3-card-edge); }
+.be-card-head h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--theme-card-text); }
+.be-card-sub { margin-top: 3px; font-size: 13px; color: var(--color-dark-gray); }
+.be-card-body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.be-card-body textarea.ui-input { resize: vertical; min-height: 96px; line-height: 1.5; font-family: inherit; }
+.be-badge-list { display: flex; flex-direction: column; }
+.be-badge { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 12px 18px; border: 0; border-left: 3px solid transparent; border-top: 1px solid var(--l3-card-edge); background: transparent; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.be-badge:first-child { border-top: 0; }
+.be-badge:hover { background: var(--l3-nav-hover, rgba(148, 163, 184, 0.1)); }
+.be-badge.is-active { background: rgba(59, 130, 246, 0.08); border-left-color: #3b82f6; }
+.be-badge:focus-visible { outline: 2px solid var(--l3-focus, #3b82f6); outline-offset: -2px; }
+.be-badge-dot { flex: 0 0 auto; width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; background: var(--badge-color, #10b981); }
+.be-badge-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.be-badge-text strong { font-size: 14px; font-weight: 600; color: var(--theme-card-text); }
+.be-badge-text small { font-size: 12px; line-height: 1.4; color: var(--color-dark-gray); }
+.be-mail { padding: 22px; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff; color: #1e293b; display: flex; flex-direction: column; gap: 10px; }
+.be-mail-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; }
+.be-mail-subject { font-size: 19px; font-weight: 700; line-height: 1.35; color: #0f172a; overflow-wrap: anywhere; }
+.be-mail-text { font-size: 14px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+.be-mail-list { margin: 6px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.55; }
+.be-mail-list li { overflow-wrap: anywhere; }
+.be-mail-list li + li { margin-top: 4px; }
+@media (max-width: 1280px) { .be-grid { grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); } .be-grid > .be-card:last-child { grid-column: 1 / -1; } }
+@media (max-width: 860px) { .be-grid { grid-template-columns: 1fr; } }
+html[data-theme="dark"] .be-badge.is-active { background: rgba(59, 130, 246, 0.16); border-left-color: #60a5fa; }
+html[data-theme="dark"] .be-mail { background: #f8fafc; }
 /* <Jun Kai end> */
