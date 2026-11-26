@@ -22,6 +22,16 @@ import { sprigsOf } from './tree-growth.js';
 const BARK_DIM = 0.4;            // how much of the bark's own colour shows under its light streams
 const STREAM_WIDTH = 0.032;      // how wide a stream of light is, as a share of the way round the wood (at 100%)
 const STREAM_HALO = 3.2;         // its soft halo, this many times as wide
+// Softer than at first, so the tree is not glaring: every stream at STREAM_LEVEL of its first brightness. Out
+// towards the canopy's ends, all round the tree, the branches split into hundreds of thin twigs, each with its
+// streams, whose soft halos together glowed as a bright haze: from OUTER_FADE[0] metres out from the trunk to
+// OUTER_FADE[1], each stream keeps its line of light (OUTER_LINES of it) but its halo fades to OUTER_HALOS, so
+// every side of the tree still shows its light streams, without the haze.
+const STREAM_LEVEL = 0.75;
+const OUTER_FADE = [3.5, 9];
+const OUTER_LINES = 0.7;
+const OUTER_HALOS = 0.3;
+const LEAF_LEVEL = 0.7;          // the tree's own glowing leaves, as a share of their first brightness
 const TRUNK_GLOW_FADE = 0.8;     // seconds the streams take to fade in or out when turned on or off
 
 // Whether to show the glowing look: from the page address if it names one (fixed), otherwise the admin's
@@ -83,9 +93,12 @@ const BARK_GLOW = /* glsl */`
   float orangePulse = pow( fract( along * .085 - glowTime * .2 ), 5. );
   float bluePulse = pow( fract( along * .07 - glowTime * .27 + .5 ), 5. );
   float greenPulse = pow( fract( along * .078 - glowTime * .23 + .25 ), 5. );
-  vec3 streams = vec3( 1., .5, .1 ) * ( orangeLine * ( .5 + 2.4 * orangePulse ) + orangeHalo * ( .28 + .7 * orangePulse ) )
-    + vec3( .2, .6, 1. ) * ( blueLine * ( .45 + 2.2 * bluePulse ) + blueHalo * ( .26 + .65 * bluePulse ) )
-    + vec3( .25, 1., .35 ) * ( greenLine * ( .45 + 2.2 * greenPulse ) + greenHalo * ( .26 + .65 * greenPulse ) );
+  float outer = smoothstep( ${OUTER_FADE[0].toFixed(1)}, ${OUTER_FADE[1].toFixed(1)}, length( fromTrunk.xz ) ); // 1 out on the twigs
+  float lineLevel = ${STREAM_LEVEL.toFixed(2)} * mix( 1., ${OUTER_LINES.toFixed(2)}, outer );
+  float haloLevel = ${STREAM_LEVEL.toFixed(2)} * mix( 1., ${OUTER_HALOS.toFixed(2)}, outer );
+  vec3 streams = vec3( 1., .5, .1 ) * ( orangeLine * ( .5 + 2.4 * orangePulse ) * lineLevel + orangeHalo * ( .28 + .7 * orangePulse ) * haloLevel )
+    + vec3( .2, .6, 1. ) * ( blueLine * ( .45 + 2.2 * bluePulse ) * lineLevel + blueHalo * ( .26 + .65 * bluePulse ) * haloLevel )
+    + vec3( .25, 1., .35 ) * ( greenLine * ( .45 + 2.2 * greenPulse ) * lineLevel + greenHalo * ( .26 + .65 * greenPulse ) * haloLevel );
   // Off (the admin's Trunk glow), the bark shows as it is, in the moonlight.
   diffuseColor.rgb = mix( diffuseColor.rgb, diffuseColor.rgb * ${BARK_DIM.toFixed(2)} + streams * 1.5 * bright, trunkGlowOn );
 `;
@@ -106,7 +119,8 @@ const LEAF_GLOW = /* glsl */`
   float veinAround = dot( texture2D( map, vMapUv, 2.5 ).rgb, leafLuma );
   float vein = smoothstep( .03, .14, ( veinPoint - veinAround ) / max( veinAround, .05 ) );
   float twinkle = step( .965, fract( vLeafPick * 173.1 ) ) * pow( max( 0., sin( glowTime * 1.7 + vLeafPick * 60. ) ), 24. );
-  diffuseColor.rgb = hue * ( .18 + .75 * shade + .9 * edge ) + mix( hue, vec3( 1. ), .4 ) * ( .45 * vein + 1.5 * twinkle );
+  diffuseColor.rgb = ( hue * ( .18 + .75 * shade + .9 * edge ) + mix( hue, vec3( 1. ), .4 ) * ( .45 * vein + 1.5 * twinkle ) )
+    * ${LEAF_LEVEL.toFixed(2)}; // softer than at first (LEAF_LEVEL)
 #endif
 `;
 
@@ -191,7 +205,7 @@ function platform(clock, centre, radius) {
 export const GLOW_LAYER = 4;
 const BLOOM_SCALE = 1 / 3;
 const BLOOM_THRESHOLD = 0.24;
-const BLOOM_STRENGTH = 0.7;
+const BLOOM_STRENGTH = 0.55;     // (0.7 at first: the glow round the lit things a little softer)
 function createBloom(renderer) {
   const target = () => new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, depthBuffer: false });
   const glowing = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType });
