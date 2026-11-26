@@ -6088,7 +6088,7 @@ router.get('/form-ui', auth.requireAuth, (req, res) => {
 
 // PUT /api/admin/form-ui
 // Save/update form UI configuration
-router.put('/form-ui', auth.requireAuth, (req, res) => {
+router.put('/form-ui', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const { background, landingTitle, landingSubtitle, showLandingPageQRCode } = req.body;
 
@@ -7464,7 +7464,7 @@ router.get('/countdown-management', auth.requireAuth, (req, res) => {
 
 // PUT /api/admin/countdown-management
 
-router.put('/countdown-management', auth.requireAuth, (req, res) => {
+router.put('/countdown-management', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     console.debug('🔄 PUT /countdown-management - Updating countdown');
     
     // Get username from session
