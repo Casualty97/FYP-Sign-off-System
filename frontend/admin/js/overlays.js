@@ -401,8 +401,9 @@ function overlayFileProblem(file, label) {
     return '';
 }
 
-// the chosen picture shows in its box, with its name and a Remove button
-function showOverlayUploadPreview(kind) {
+// the chosen picture shows in its box, with its name and a Remove button. It is drawn into a canvas, so no address of the
+// file goes into the page; an animated GIF shows its first frame.
+async function showOverlayUploadPreview(kind) {
     const input = document.getElementById(`ov-add-${kind}`);
     const box = document.getElementById(`ov-add-${kind}-box`);
     if (!input || !box) return;
@@ -412,13 +413,21 @@ function showOverlayUploadPreview(kind) {
     const problem = overlayFileProblem(file, kind);
     overlayAddFieldError(kind, problem);
     if (problem) return;
-    const url = URL.createObjectURL(file);
-    box.dataset.previewUrl = url;
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('aria-hidden', 'true');
+    try {
+        const bitmap = await createImageBitmap(file);
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0);
+        bitmap.close();
+    } catch (error) {
+        overlayAddFieldError(kind, 'This picture could not be read. Choose another file.');
+        return;
+    }
+    if (input.files[0] !== file) return; // another file was chosen while this one was read
     box.classList.add('has-picture');
-    // built from elements, so neither the picture address nor the file name is ever read as HTML
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = '';
+    // built from elements, so the file name is never read as HTML
     const fileName = document.createElement('span');
     fileName.className = 'ov-add-file-name';
     fileName.textContent = file.name;
@@ -429,7 +438,7 @@ function showOverlayUploadPreview(kind) {
     remove.title = 'Remove';
     remove.innerHTML = uiIcon('close', 14);
     remove.addEventListener('click', () => clearOverlayUploadPreview(kind));
-    box.replaceChildren(img, fileName, remove);
+    box.replaceChildren(canvas, fileName, remove);
 }
 
 function clearOverlayUploadPreview(kind, clearInput = true) {
@@ -437,7 +446,6 @@ function clearOverlayUploadPreview(kind, clearInput = true) {
     const box = document.getElementById(`ov-add-${kind}-box`);
     if (input && clearInput) { input.value = ''; overlayAddFieldError(kind, ''); input.focus(); }
     if (!box) return;
-    if (box.dataset.previewUrl) { URL.revokeObjectURL(box.dataset.previewUrl); delete box.dataset.previewUrl; }
     box.classList.remove('has-picture');
     box.innerHTML = '<span class="ov-add-empty">No picture chosen</span>';
 }
