@@ -2220,12 +2220,32 @@
                                 </div>
                                 <div class="ui-field">
                                     <label class="ui-label" for="fm-title">Landing title</label>
-                                    <input id="fm-title" class="ui-input" type="text" maxlength="100">
+                                    <input id="fm-title" class="ui-input" type="text" maxlength="100" oninput="renderFormUiPreview()">
                                 </div>
                                 <div class="ui-field">
                                     <label class="ui-label" for="fm-subtitle">Landing subtitle</label>
-                                    <input id="fm-subtitle" class="ui-input" type="text" maxlength="200">
+                                    <input id="fm-subtitle" class="ui-input" type="text" maxlength="200" oninput="renderFormUiPreview()">
                                     <span class="ui-help">An empty title or subtitle shows the kiosk's own text.</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- the kiosk's first screen with the text in the fields (formUi.js renderFormUiPreview) -->
+                        <section class="ui-card" aria-labelledby="fm-preview-title">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3 id="fm-preview-title">How visitors see it</h3>
+                                    <p>The kiosk's first screen, with the text in the fields before you save.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ks-screen" id="fm-preview" aria-hidden="true">
+                                    <div class="ks-card">
+                                        <div class="ks-brand"><span class="ks-logo"></span>RP Xperience Centre Feedback Portal</div>
+                                        <div class="ks-title" id="fm-preview-heading"></div>
+                                        <div class="ks-subtitle" id="fm-preview-subtitle"></div>
+                                        <div class="ks-buttons"><span class="ks-btn">Start Feedback Form</span><span class="ks-btn ks-btn-wide">View Pledgeboards</span></div>
+                                    </div>
                                 </div>
                             </div>
                         </section>

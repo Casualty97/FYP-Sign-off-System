@@ -14,6 +14,24 @@ function setFormPill(id, message, type) {
 function setFormStatus(message, type = 'info') {
   setFormPill('fm-status', message, type);
 }
+
+// the kiosk keeps its own text when the saved title or subtitle is empty (feedback.html, config.js)
+const START_SCREEN_DEFAULT_TITLE = "Let's turn your ideas into reality";
+const START_SCREEN_DEFAULT_SUBTITLE = 'Share your thoughts and help us improve our services. Your feedback matters.';
+
+function renderStartScreenPreview(prefix, title, subtitle) {
+  const heading = document.getElementById(prefix + '-preview-heading');
+  const sub = document.getElementById(prefix + '-preview-subtitle');
+  if (!heading || !sub) return;
+  heading.textContent = String(title || '').trim() || START_SCREEN_DEFAULT_TITLE;
+  sub.textContent = String(subtitle || '').trim() || START_SCREEN_DEFAULT_SUBTITLE;
+}
+
+function renderFormUiPreview() {
+  const title = document.getElementById('fm-title');
+  const subtitle = document.getElementById('fm-subtitle');
+  if (title && subtitle) renderStartScreenPreview('fm', title.value, subtitle.value);
+}
 // <Jun Kai end>
 
 async function loadFormUISettings() {
@@ -26,6 +44,7 @@ async function loadFormUISettings() {
     document.getElementById('fm-bg').value = cfg.background || '';
     document.getElementById('fm-title').value = cfg.landingTitle || '';
     document.getElementById('fm-subtitle').value = cfg.landingSubtitle || '';
+    renderFormUiPreview(); // <Jun Kai/> setting .value fires no input event
 
     setFormStatus('Settings loaded', 'success');
   } catch (err) {

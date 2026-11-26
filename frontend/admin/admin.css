@@ -2162,6 +2162,26 @@ html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback
 .qr-toggle-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .qr-toggle-text strong { font-size: 14px; font-weight: 600; color: var(--theme-card-text); }
 .qr-toggle-text small { font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+
+/* the kiosk's first screen in small, copied from the look of feedback.html; it stays light in dark mode like the kiosk */
+.ks-screen { position: relative; display: flex; align-items: center; justify-content: center; gap: 4%; aspect-ratio: 16 / 10; padding: 4%; overflow: hidden; border: 8px solid #1e293b; border-radius: 18px; background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14); box-sizing: border-box; }
+.ks-card { display: flex; flex-direction: column; gap: 8px; width: 62%; max-height: 100%; padding: 16px 18px; overflow: hidden; border-top: 3px solid #8bc58f; border-radius: 6px; background: rgba(248, 250, 244, 0.95); box-shadow: 0 8px 20px rgba(24, 57, 43, 0.16); box-sizing: border-box; }
+.ks-brand { display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 600; color: #2f6f45; }
+.ks-logo { width: 14px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, #4a7c59, #8bc58f); flex: 0 0 auto; }
+.ks-title { font-size: 19px; font-weight: 800; line-height: 1.15; color: #1d4a32; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ks-subtitle { font-size: 10px; line-height: 1.5; color: #4b5a52; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ks-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: 2px; }
+.ks-btn { display: inline-flex; align-items: center; justify-content: center; width: 50%; height: 22px; border-radius: 5px; background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.ks-btn-wide { width: 100%; }
+@media (max-width: 640px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } }
+/* the dark twins colorScheme.js makes would darken the kiosk copy, so these stronger rules keep its own colours */
+html[data-theme="dark"] .ui-card-body .ks-screen { background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; border-color: #1e293b; }
+html[data-theme="dark"] .ks-screen .ks-card { background: rgba(248, 250, 244, 0.95); border-top-color: #8bc58f; }
+html[data-theme="dark"] .ks-screen .ks-brand { color: #2f6f45; }
+html[data-theme="dark"] .ks-screen .ks-logo { background: linear-gradient(135deg, #4a7c59, #8bc58f); }
+html[data-theme="dark"] .ks-screen .ks-title { color: #1d4a32; }
+html[data-theme="dark"] .ks-screen .ks-subtitle { color: #4b5a52; }
+html[data-theme="dark"] .ks-screen .ks-btn { background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; }
 /* <Jun Kai end> */
 
 /* ==================== EMAIL MANAGEMENT PAGE STYLES ==================== */
