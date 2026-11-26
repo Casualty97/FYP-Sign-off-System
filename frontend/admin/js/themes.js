@@ -2127,7 +2127,104 @@ function updateSavedThemesUI() {
     listElement.innerHTML = '';
     savedThemesCache.forEach(theme => listElement.appendChild(createSavedThemeCard(theme)));
     themeUpdateSaveCard();
+    renderStarterThemes(); // <Jun Kai/> a starter card says whether it is already one of the saved themes
 }
+
+// <Jun Kai start> Starter themes (26 Nov 2026): the user asked for a better looking green than the dark green header and
+// strong light green of the mock-ups. Emerald keeps the header and sidebar white, the page a very light mint and the
+// buttons a deep emerald that white text reads on (5.5:1). Taking one saves it as one of the admin's own themes and uses it.
+const THEME_STARTERS = [
+    {
+        name: 'Emerald',
+        about: 'Light mint page, white header and sidebar, emerald buttons',
+        colors: {
+            'page-background': '#ecfdf5', 'primary-text': '#064e3b', 'secondary-text': '#3f6b5a',
+            'admin-header-bg': '#ffffff', 'primary-header-text': '#064e3b', 'secondary-header-text': '#3f6b5a',
+            'navbar-background': '#ffffff', 'navbar-primary-text': '#064e3b', 'navbar-secondary-text': '#3f6b5a',
+            'navbar-active-selection': '#d1fae5', 'navbar-hover': '#d1fae5',
+            'card-background': '#ffffff', 'card-border-color': '#bbf0d6', 'card-primary-text': '#064e3b', 'card-secondary-text': '#3f6b5a',
+            'button-color': '#047857', 'button-text-color': '#ffffff'
+        }
+    }
+];
+
+// the saved theme with the same name, if the admin already took this starter
+function themeStarterSaved(starter) {
+    return savedThemesCache.find(theme => String(theme.theme_name || '').trim().toLowerCase() === starter.name.toLowerCase()) || null;
+}
+
+function renderStarterThemes() {
+    const list = document.getElementById('starter-themes-list');
+    if (!list) return;
+    list.innerHTML = '';
+    THEME_STARTERS.forEach((starter, index) => {
+        const saved = themeStarterSaved(starter);
+        const full = !saved && savedThemesCache.length >= THEME_MAX_SAVED;
+        const card = document.createElement('div');
+        card.className = 'ui-card theme-saved-card theme-starter-card' + (saved && saved.is_active ? ' active' : '');
+        const strip = extractPreviewColors({ global: { colors: starter.colors } })
+            .map(color => `<span style="--theme-dot: ${themeSafeColor(color)};"></span>`).join('');
+        let action = '';
+        if (saved && saved.is_active) action = '<span class="ui-tag is-green">In use</span>';
+        else action = `<button type="button" class="ui-btn ui-btn-secondary theme-saved-apply" data-starter="${index}"${full ? ' disabled' : ''}>${saved ? 'Apply' : 'Use this theme'}</button>`;
+        const note = saved
+            ? 'In your saved themes'
+            : (full ? 'All 6 places are used. Delete a saved theme first.' : 'Saved into your themes when you use it');
+        card.innerHTML = `
+            <div class="theme-saved-strip" aria-hidden="true">${strip}</div>
+            <div class="theme-saved-foot">
+                <div class="theme-saved-name"></div>
+                ${action}
+            </div>
+            <div class="theme-starter-about"></div>
+            <div class="theme-saved-sub"><span class="theme-starter-note"></span></div>`;
+        card.querySelector('.theme-saved-name').textContent = starter.name;
+        card.querySelector('.theme-starter-about').textContent = starter.about;
+        card.querySelector('.theme-starter-note').textContent = note;
+        const button = card.querySelector('[data-starter]');
+        if (button) {
+            button.setAttribute('aria-label', `${saved ? 'Apply' : 'Use'} the starter theme ${starter.name}`);
+            button.addEventListener('click', () => useStarterTheme(index));
+        }
+        list.appendChild(card);
+    });
+}
+
+async function useStarterTheme(index) {
+    const starter = THEME_STARTERS[index];
+    if (!starter) return;
+    const saved = themeStarterSaved(starter);
+    if (saved) return activateSavedTheme(saved.id);
+    if (savedThemesCache.length >= THEME_MAX_SAVED) {
+        themeSay('All 6 places are used. Delete a saved theme first, then use the starter theme.', 'error');
+        return;
+    }
+    const button = document.querySelector(`#starter-themes-list [data-starter="${index}"]`);
+    if (button) button.disabled = true;
+    const themeData = { global: { useGlobal: false, colors: { ...starter.colors } } };
+    try {
+        const response = await fetch('/api/admin/saved-themes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ theme_name: starter.name, theme_data: themeData, is_active: true })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        applyThemeData(themeData);
+        themeMarkUnsaved(false);
+        renderSectionList();
+        renderThemeControls(currentSection);
+        updatePreview(currentSection);
+        themeSay(`${starter.name} is saved in your themes and in use.`, 'ok');
+        await loadSavedThemes();
+    } catch (error) {
+        console.error('Error using the starter theme:', error);
+        themeSay(`${starter.name} could not be saved: ${error.message}. Try again.`, 'error');
+        if (button) button.disabled = false;
+    }
+}
+// <Jun Kai end>
 
 // the save card says when the six places are used
 function themeUpdateSaveCard() {

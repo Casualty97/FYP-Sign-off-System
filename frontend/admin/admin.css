@@ -9513,3 +9513,9 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
 @media (max-width: 560px) { .users-dialog-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .users-role { transition: none; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> Style & Theme: the starter themes use the saved theme cards, with one line on what the colours are */
+.theme-starters { margin-top: 18px; }
+.theme-starter-about { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--color-dark-gray); }
+.theme-starter-card .theme-saved-sub { margin-top: 6px; }
+/* <Jun Kai end> */
