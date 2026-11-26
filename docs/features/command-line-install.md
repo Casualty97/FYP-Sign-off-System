@@ -184,9 +184,10 @@ pinned in `scripts/install/runtime.js`. The result is in `C:\rpkb\dist`.
 
 `release.yml` builds the zip after CI passes on main and publishes it, with `get-kiosk.ps1`, as a normal GitHub
 Release, so `releases/latest/download/<name>` always gives the newest one. The zips are never committed. After
-publishing, it deletes the older releases it made (tags starting with `build-`), so only the newest one stays; a
-release made by hand is never deleted, and the git tags stay. Keep a copy of a zip elsewhere if an older build may
-be needed again.
+publishing, it deletes the older releases it made (tags `build-<number>-<commit>` with a lower number), so only the
+newest one stays; a release made by hand is never deleted, and the git tags stay. CI runs can finish out of order,
+so a run for an older commit than the newest release publishes nothing. Keep a copy of a zip elsewhere if an older
+build may be needed again.
 
 ## Tests
 
