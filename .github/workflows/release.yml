@@ -39,8 +39,8 @@ jobs:
           cache: npm
       # no cache for the Node.js and MySQL downloads here: a job that may publish must not read files a pull request
       # could have cached (the npm cache of setup-node is kept per branch, so main's own)
-      - name: Build the package, with and without the offline AI model
-        run: node scripts/install/build-package.js --out C:\rpkb --with-ai-model
+      - name: Build the package (with the offline AI model)
+        run: node scripts/install/build-package.js --out C:\rpkb
       - name: Publish the release
         shell: bash
         env:
@@ -62,13 +62,12 @@ jobs:
           \`\`\`
 
           Running install.cmd of a newer build updates an installed PC and keeps all data. Uninstall: C:\\RPXperienceKiosk\\app\\uninstall.cmd.
-          The -ai zip also holds the sentiment model, so that AI feature works without internet.
+          The zip also holds the sentiment model, so the local AI check works without internet.
           Check a download: each zip has a .sha256 file next to it.
           EOF
           sed -i 's/^          //' notes.md
           gh release create "$TAG" \
             "$D/rp-xperience-kiosk-windows-x64.zip" "$D/rp-xperience-kiosk-windows-x64.zip.sha256" \
-            "$D/rp-xperience-kiosk-windows-x64-ai.zip" "$D/rp-xperience-kiosk-windows-x64-ai.zip.sha256" \
             "$D/get-kiosk.ps1" \
             --title "Kiosk build $BUILD" --notes-file notes.md --target "$(git rev-parse HEAD)" --latest
       # Only the newest release stays (each one holds about 545 MB of zips). Only releases this workflow made (tag
