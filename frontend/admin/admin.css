@@ -9514,6 +9514,12 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
 @media (prefers-reduced-motion: reduce) { .users-role { transition: none; } }
 /* <Jun Kai end> */
 
+/* <Jun Kai start> Style & Theme: the starter themes use the saved theme cards, with one line on what the colours are */
+.theme-starters { margin-top: 18px; }
+.theme-starter-about { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--color-dark-gray); }
+.theme-starter-card .theme-saved-sub { margin-top: 6px; }
+/* <Jun Kai end> */
+
 /* <Jun Kai start> Tree Settings, view only for IT Admins and IT Staff (sidebar.js, applyTreeSettingsViewOnly): the change
    buttons are hidden even when the page shows one itself (the Revert buttons), and the fields take no clicks */
 #tree-adjustment-page.is-view-only [data-tree-change] { display: none !important; }
