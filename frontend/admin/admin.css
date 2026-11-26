@@ -7673,7 +7673,7 @@ input:checked + .slider:before {
 .ui-chip input { position: absolute; opacity: 0; pointer-events: none; }
 .ui-chip span { display: inline-flex; align-items: center; justify-content: center; min-width: 52px; height: 34px; padding: 0 12px; border: 1px solid var(--theme-border-color); border-radius: 999px; background: var(--theme-card-bg); font-size: 13px; font-weight: 600; color: var(--theme-text-color); transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
 .ui-chip:hover span { border-color: var(--color-light-gray); }
-.ui-chip input:checked + span { background: var(--theme-btn-primary-bg); border-color: var(--theme-btn-primary-bg); color: #ffffff; }
+.ui-chip input:checked + span { background: var(--theme-btn-primary-bg); border-color: var(--theme-btn-primary-bg); color: var(--theme-btn-primary-text, #ffffff); } /* <Jun Kai/> the theme may give the accent a dark text */
 .ui-chip input:focus-visible + span { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
 .ui-check { display: inline-flex; align-items: center; gap: 8px; margin-right: 24px; font-size: 14px; color: var(--theme-text-color); cursor: pointer; }
 .ui-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--theme-btn-primary-bg); }
@@ -7727,7 +7727,7 @@ input:checked + .slider:before {
 .health-card { min-height: 150px; }
 .health-card-side { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 /* a link inside a card's detail lines (the Server PC card points to the Hardware page) */
-.health-card-link { padding: 0; border: 0; background: none; font: inherit; color: var(--theme-btn-primary-bg); font-weight: 500; cursor: pointer; }
+.health-card-link { padding: 0; border: 0; background: none; font: inherit; color: var(--l3-link, var(--theme-btn-primary-bg)); font-weight: 500; cursor: pointer; }
 .health-card-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 .health-card-link:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; border-radius: 3px; }
 /* "Offline" with the time under it keeps the Status column narrow, so tablet names stay on one line */
@@ -7921,7 +7921,7 @@ input:checked + .slider:before {
 .inc-step-refresh { margin-left: 4px; font-size: 12px; }
 .inc-done { display: grid; gap: 6px; margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5; color: var(--theme-text-color); }
 .inc-next { margin-top: 12px; }
-.inc-next summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--theme-btn-primary-bg); }
+.inc-next summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--l3-link, var(--theme-btn-primary-bg)); }
 .inc-next[open] summary { margin-bottom: 10px; }
 .inc-verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 16px; }
 .inc-verdict-label { font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
@@ -8196,7 +8196,7 @@ html[data-theme="dark"] #incidents-card .inc-chart-tag.is-band { color: #4ade80;
 .va-facts .is-problem .va-fact-path { white-space: normal; }
 .va-alert { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; padding: 10px 12px 10px 16px; border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; font-size: 13px; line-height: 1.5; color: #991b1b; }
 
-.va-link { padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; font-weight: 600; color: var(--theme-btn-primary-bg); cursor: pointer; }
+.va-link { padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; font-weight: 600; color: var(--l3-link, var(--theme-btn-primary-bg)); cursor: pointer; }
 .va-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .va-link:focus-visible { outline: 2px solid var(--theme-btn-primary-bg); outline-offset: 2px; }
 .va-fact-change { margin-left: 8px; font-size: 12px; }
@@ -8949,7 +8949,7 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 .ui-filter-select { appearance: none; padding-right: 30px; background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); }
 .ui-filter-select.is-set { background-color: color-mix(in srgb, var(--theme-btn-primary-bg) 9%, transparent); }
 .ui-filter-select option { color: #1e293b; background: #ffffff; font-weight: 400; }
-.ui-link { padding: 0; border: 0; background: none; color: var(--theme-btn-primary-bg); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ui-link { padding: 0; border: 0; background: none; color: var(--l3-link, var(--theme-btn-primary-bg)); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .ui-link:hover { text-decoration: underline; }
 .ui-link:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; border-radius: 4px; }
 .ui-link:disabled { color: var(--color-muted); cursor: default; text-decoration: none; }
@@ -9387,7 +9387,7 @@ html[data-theme="dark"] .theme-row-dots span { box-shadow: inset 0 0 0 1px rgba(
 .theme-preview-nav b { padding: 4px 6px; border-radius: 6px; background: color-mix(in srgb, var(--preview-nav-text) 14%, transparent); font-weight: 600; }
 .theme-preview-nav span { padding: 0 6px; }
 .theme-preview-page { padding: 12px; background: var(--preview-bg); }
-.theme-preview-title { font-size: 13px; font-weight: 700; color: var(--preview-heading); }
+.theme-preview-title { font-size: 13px; font-weight: 700; color: var(--preview-title, var(--preview-heading)); }
 .theme-preview-text { margin-top: 2px; color: var(--preview-text); line-height: 1.4; }
 .theme-preview-card { margin-top: 10px; padding: 10px; border: 1px solid var(--preview-border); border-radius: 8px; background: var(--preview-card-bg); }
 .theme-preview-card-title { font-weight: 700; color: var(--preview-heading); }
@@ -9457,4 +9457,10 @@ html[data-theme="dark"] .pb-heart { color: #fb7185; }
     .pb-decide-row { grid-template-columns: auto minmax(0, 1fr); padding: 14px 16px; }
     .pb-decide-actions { grid-column: 1 / -1; justify-content: flex-start; }
 }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Option A (theme on the new look): text links read --l3-link, which falls back to the accent. In dark
+   mode the kit's own link colour is a lighter blue: the button blue read only about 3:1 on the dark cards. A theme sets
+   --l3-link itself (themes.js, themeKitLight and themeKitDark). */
+html[data-theme="dark"] { --l3-link: #60a5fa; }
 /* <Jun Kai end> */
