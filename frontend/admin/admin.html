@@ -1359,25 +1359,28 @@
 
                 <!-- Overlay Management Page (DONE BY PRETI)-->
                 <div id="overlay-page" class="page">
-                    <div class="page-header">
-                        <h2>Photo Overlays</h2>
-                        <p>Manage photo overlay themes for the kiosk</p>
-                    </div>
-
-                    <div class="overlay-section">
-                        <div class="section-header">
-                            <h3>Available Overlays</h3>
-                            <button class="btn-primary" onclick="showAddOverlayModal()">+ Add Overlay</button>
+                    <!-- <Jun Kai start> Photo Overlays page (admin redesign, Overlays A): a picture gallery. Each card leads
+                         with the desktop and mobile pictures, with the name, theme ID, order and file type under them; the
+                         ID, both file paths and the date it was added open in the details panel. The .overlay-grid
+                         container and every function of overlays.js stay. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Photo Overlays</h2>
+                            <p>Overlay themes a visitor can put on their photo.</p>
                         </div>
-
-                        <!-- This is the container that will be populated by JavaScript (DONE BY PRETI)-->
-                        <div class="overlay-grid">
-                            <!-- Overlay cards will be dynamically inserted here (DONE BY PRETI)-->
-                            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;">
-                                Loading overlays...
-                            </div>
+                        <div class="ui-row">
+                            <button type="button" class="ui-btn ui-btn-primary" onclick="showAddOverlayModal()"><span data-fb-icon="plus"></span>Add overlay</button>
                         </div>
                     </div>
+
+                    <!-- This is the container that will be populated by JavaScript (DONE BY PRETI)-->
+                    <div class="overlay-grid ov-gallery" aria-live="polite">
+                        <p class="ui-empty ov-loading">Loading overlays...</p>
+                    </div>
+                    <p class="ov-hint">Click a card to see its ID, both file paths and the date it was added.</p>
+
+                    <aside class="ui-sidepanel" id="overlay-panel" aria-labelledby="overlay-panel-title" hidden></aside>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Question Management Page (DONE BY PRETI)-->
