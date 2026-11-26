@@ -32,6 +32,20 @@ function renderFormUiPreview() {
   const subtitle = document.getElementById('fm-subtitle');
   if (title && subtitle) renderStartScreenPreview('fm', title.value, subtitle.value);
 }
+
+// the Feedback QR Code preview follows the switch before it is saved
+function renderLandingQrPreview() {
+  const toggle = document.getElementById('qr-code-toggle');
+  const screen = document.getElementById('qr-preview');
+  const caption = document.getElementById('qr-preview-caption');
+  if (!toggle || !screen) return;
+  screen.classList.toggle('has-qr', toggle.checked);
+  if (caption) {
+    caption.textContent = toggle.checked
+      ? 'The QR code shows beside the text. A visitor scans it to fill in the form on their own phone.'
+      : 'No QR code. Visitors fill in the form on the kiosk itself.';
+  }
+}
 // <Jun Kai end>
 
 async function loadFormUISettings() {
@@ -95,11 +109,17 @@ async function loadLandingPageQR() {
     if (toggle) {
       toggle.checked = Boolean(cfg.showLandingPageQRCode);
     }
+    // <Jun Kai start> the preview, as setting .checked fires no change event
+    renderStartScreenPreview('qr', cfg.landingTitle, cfg.landingSubtitle);
+    renderLandingQrPreview();
+    // <Jun Kai end>
 
     setFormPill('landing-qr-status', 'QR setting loaded', 'success'); // <Jun Kai/> clears the pill
   } catch (error) {
     console.error('Failed to load landing page QR setting:', error);
     setFormPill('landing-qr-status', 'Failed to load the QR setting', 'error'); // <Jun Kai/>
+    renderStartScreenPreview('qr', '', ''); // <Jun Kai/>
+    renderLandingQrPreview(); // <Jun Kai/>
   }
 }
 

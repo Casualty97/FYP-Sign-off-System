@@ -4485,8 +4485,34 @@
                                         <strong>Show the QR code on the start screen</strong>
                                         <small>Visitors scan it to fill in the form on their own phone.</small>
                                     </span>
-                                    <span class="ui-switch"><input type="checkbox" id="qr-code-toggle" checked><span class="ui-switch-track"></span></span>
+                                    <span class="ui-switch"><input type="checkbox" id="qr-code-toggle" checked onchange="renderLandingQrPreview()"><span class="ui-switch-track"></span></span>
                                 </label>
+                            </div>
+                        </section>
+
+                        <!-- the kiosk's first screen with or without the QR code (formUi.js renderLandingQrPreview) -->
+                        <section class="ui-card" aria-labelledby="qr-preview-title">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3 id="qr-preview-title">How visitors see it</h3>
+                                    <p>The kiosk's first screen with the switch as it is now, before you save. The title and subtitle come from Start Screen Text.</p>
+                                </div>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="ks-screen" id="qr-preview" aria-hidden="true">
+                                    <div class="ks-card">
+                                        <div class="ks-brand"><span class="ks-logo"></span>RP Xperience Centre Feedback Portal</div>
+                                        <div class="ks-title" id="qr-preview-heading"></div>
+                                        <div class="ks-subtitle" id="qr-preview-subtitle"></div>
+                                        <div class="ks-buttons"><span class="ks-btn">Start Feedback Form</span><span class="ks-btn ks-btn-wide">View Pledgeboards</span></div>
+                                    </div>
+                                    <div class="ks-qr">
+                                        <div class="ks-qr-head">Scan for Mobile Feedback</div>
+                                        <svg class="ks-qr-image" viewBox="0 0 29 29" shape-rendering="crispEdges"><rect width="29" height="29" fill="#ffffff"></rect><path fill="#111827" fill-rule="evenodd" d="M2 2h7v7H2zM3 3v5h5V3zM4 4h3v3H4zM20 2h7v7h-7zM21 3v5h5V3zM22 4h3v3h-3zM2 20h7v7H2zM3 21v5h5v-5zM4 22h3v3H4zM11 2h2v2h-2zM14 3h2v2h-2zM11 6h3v2h-3zM16 6h2v3h-2zM12 10h2v2h-2zM2 11h3v2H2zM7 11h3v2H7zM15 11h3v2h-3zM20 11h2v3h-2zM24 11h3v2h-3zM11 14h2v3h-2zM14 15h3v2h-3zM3 15h2v3H3zM6 15h3v2H6zM19 16h3v2h-3zM24 15h2v4h-2zM11 19h3v2h-3zM16 19h2v2h-2zM20 20h3v3h-3zM25 21h2v2h-2zM12 23h2v3h-2zM15 22h3v2h-3zM19 25h3v2h-3zM24 24h3v3h-3zM15 26h2v1h-2z"></path></svg>
+                                        <div class="ks-qr-text">Point your phone camera here</div>
+                                    </div>
+                                </div>
+                                <p class="qr-preview-caption" id="qr-preview-caption"></p>
                             </div>
                         </section>
                     </div>
