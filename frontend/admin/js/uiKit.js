@@ -202,6 +202,9 @@ window.addEventListener('resize', () => { if (uiInfoOpenButton) placeUiInfo(); }
 // cancels, and the focus goes back to where it was. Each one returns a Promise, so a caller awaits it:
 //   if (!(await uiConfirm({ title: 'Delete this overlay?', message: 'It cannot be undone.', confirmText: 'Delete', danger: true }))) return;
 //   const password = await uiPrompt({ title: 'Confirm it is you', label: 'Your password', type: 'password' }); // null when cancelled
+//   // "wrong password, try again" in the same dialog: check returns an error text to stay open, or nothing to close
+//   const ok = await uiPrompt({ title: 'Confirm it is you', label: 'Your password', type: 'password',
+//       check: async (value) => (await passwordIsRight(value)) ? null : 'That password is not right. Try again.' });
 //   await uiAlert({ title: 'Could not save', message: 'The server did not answer.' }); // only when it must be read; else showNotification
 // Texts are set as plain text (line breaks kept), never as HTML.
 function uiDialog(options, input) {
@@ -244,16 +247,42 @@ function uiDialog(options, input) {
             if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) close();
             else { dialog.classList.add('is-closing'); setTimeout(close, 150); }
         };
-        dialog.querySelector('form').addEventListener('submit', (event) => {
+        let busy = false;
+        const showError = (text) => {
+            const error = dialog.querySelector('.ui-dialog-error');
+            error.textContent = text;
+            error.hidden = false;
+            field.setAttribute('aria-invalid', 'true');
+            field.focus();
+            field.select();
+        };
+        dialog.querySelector('form').addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (busy) return;
             if (!field) return finish(cancel ? true : undefined);
             const value = field.value;
             if (input.required !== false && !value.trim()) {
-                const error = dialog.querySelector('.ui-dialog-error');
-                error.textContent = input.emptyText || `Type ${(input.label || 'an answer').toLowerCase()} first.`;
-                error.hidden = false;
-                field.focus();
+                showError(input.emptyText || `Type ${(input.label || 'an answer').toLowerCase()} first.`);
                 return;
+            }
+            if (typeof input.check === 'function') {
+                // the answer is checked while the dialog stays open; an error text keeps it open for another try
+                busy = true;
+                const okButton = dialog.querySelector('[data-ui-ok]');
+                const label = okButton.textContent;
+                okButton.disabled = true;
+                okButton.textContent = input.checkingText || 'Checking...';
+                let problem = null;
+                try {
+                    problem = await input.check(value);
+                } catch (error) {
+                    problem = `Could not check it: ${error && error.message ? error.message : 'unknown error'}. Try again.`;
+                }
+                busy = false;
+                okButton.disabled = false;
+                okButton.textContent = label;
+                if (done) return;
+                if (problem) { showError(String(problem)); return; }
             }
             finish(value);
         });
@@ -279,7 +308,7 @@ function uiAlert(options) {
 }
 
 function uiPrompt(options) {
-    const { label, type, value, placeholder, required, emptyText, ...rest } = options || {};
-    return uiDialog({ confirmText: 'OK', ...rest, cancel: true }, { label, type, value, placeholder, required, emptyText });
+    const { label, type, value, placeholder, required, emptyText, check, checkingText, ...rest } = options || {};
+    return uiDialog({ confirmText: 'OK', ...rest, cancel: true }, { label, type, value, placeholder, required, emptyText, check, checkingText });
 }
 // <Jun Kai end>
