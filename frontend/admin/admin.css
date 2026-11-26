@@ -7578,7 +7578,7 @@ input:checked + .slider:before {
 
 /* Role 3 pages share the schedule page's content padding (the other pages pad themselves) */
 /* <Jun Kai start> */
-#health-page, #incidents-page, #hardware-page, #visitor-archive-page { min-height: 100%; padding: 30px; }
+#health-page, #incidents-page, #hardware-page, #visitor-archive-page, #ai-settings-page { min-height: 100%; padding: 30px; }
 /* <Jun Kai end> */
 #server-schedule-page .ui-table td { font-weight: 400; }
 
