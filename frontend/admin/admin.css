@@ -2275,8 +2275,8 @@ html[data-theme="dark"] .dt-screen-note { background: #1e293b; color: #cbd5e1; }
 .ui-status-slot.dt-vip-status { margin-top: 10px; min-height: 0; }
 .ui-status-slot.dt-vip-status:empty { display: none; }
 .dt-vip-list { margin-top: 8px; }
-.dt-vip-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--theme-border-color); }
-.dt-vip-row:first-child { border-top: 0; }
+.dt-vip-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.dt-vip-row + .dt-vip-row { border-top: 1px solid var(--theme-border-color); }
 .dt-vip-star { display: inline-flex; color: #d97706; flex-shrink: 0; }
 .dt-vip-name { display: grid; flex: 1 1 auto; min-width: 0; }
 .dt-vip-name b { font-size: 14px; font-weight: 600; color: var(--theme-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
