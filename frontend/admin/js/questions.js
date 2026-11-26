@@ -151,7 +151,20 @@ function updateQuestionManagementTable(questionsData) {
         return;
     }
     
-    // <Jun Kai start> the map is filled first, so an empty list also clears the old questions
+    // <Jun Kai start> an open Edit card is carried across the redraw (coming back to the page, or a delete of another
+    // question) together with what was typed in it
+    const openEdit = document.getElementById('edit-question-form');
+    const carried = openEdit ? {
+        id: Number(openEdit.dataset.questionId),
+        text: document.getElementById('edit-question-text').value,
+        order: document.getElementById('edit-display-order').value,
+        required: document.getElementById('edit-is-required').value,
+        active: document.getElementById('edit-is-active').checked,
+        focused: openEdit.contains(document.activeElement),
+        scroll: document.scrollingElement.scrollTop
+    } : null;
+
+    // the map is filled first, so an empty list also clears the old questions
     window.questionsDataMap.clear();
     (questionsData || []).forEach((question) => window.questionsDataMap.set(question.id, question));
     
@@ -167,6 +180,15 @@ function updateQuestionManagementTable(questionsData) {
     }
     
     container.innerHTML = questionsData.map(questionRowHtml).join('');
+    if (carried && window.questionsDataMap.has(carried.id)) {
+        editQuestionById(carried.id);
+        document.getElementById('edit-question-text').value = carried.text;
+        document.getElementById('edit-display-order').value = carried.order;
+        document.getElementById('edit-is-required').value = carried.required;
+        document.getElementById('edit-is-active').checked = carried.active;
+        if (!carried.focused) document.activeElement.blur();
+        document.scrollingElement.scrollTop = carried.scroll;
+    }
     renderQuestionPreview();
     // <Jun Kai end>
 }
