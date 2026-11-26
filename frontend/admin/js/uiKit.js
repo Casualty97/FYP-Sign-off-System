@@ -239,10 +239,11 @@ function uiDialog(options, input) {
         }
         const cancelled = input ? null : (cancel ? false : undefined);
         let done = false;
+        let answer;
         const finish = (value) => {
             if (done) return;
             done = true;
-            resolve(value);
+            answer = value; // given back once the dialog is closed and the focus is back, so a caller's own focus move wins
             const close = () => { if (dialog.open) dialog.close(); };
             if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) close();
             else { dialog.classList.add('is-closing'); setTimeout(close, 150); }
@@ -258,7 +259,7 @@ function uiDialog(options, input) {
         };
         dialog.querySelector('form').addEventListener('submit', async (event) => {
             event.preventDefault();
-            if (busy) return;
+            if (busy || done) return; // no second run while it checks or while it closes
             if (!field) return finish(cancel ? true : undefined);
             const value = field.value;
             if (input.required !== false && !value.trim()) {
@@ -271,6 +272,7 @@ function uiDialog(options, input) {
                 const okButton = dialog.querySelector('[data-ui-ok]');
                 const label = okButton.textContent;
                 okButton.disabled = true;
+                if (cancelButton) cancelButton.disabled = true; // the step may already be running on the server
                 okButton.textContent = input.checkingText || 'Checking...';
                 let problem = null;
                 try {
@@ -280,17 +282,20 @@ function uiDialog(options, input) {
                 }
                 busy = false;
                 okButton.disabled = false;
+                if (cancelButton) cancelButton.disabled = false;
                 okButton.textContent = label;
                 if (done) return;
                 if (problem) { showError(String(problem)); return; }
             }
             finish(value);
         });
-        if (cancelButton) cancelButton.addEventListener('click', () => finish(cancelled));
-        dialog.addEventListener('cancel', (event) => { event.preventDefault(); finish(cancelled); });
+        // while a check runs, Cancel and Escape wait for it: the caller must hear what really happened on the server
+        if (cancelButton) cancelButton.addEventListener('click', () => { if (!busy) finish(cancelled); });
+        dialog.addEventListener('cancel', (event) => { event.preventDefault(); if (!busy) finish(cancelled); });
         dialog.addEventListener('close', () => {
             dialog.remove();
             if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus();
+            resolve(answer);
         });
         document.body.appendChild(dialog);
         dialog.showModal();

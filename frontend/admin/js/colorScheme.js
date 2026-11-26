@@ -18,6 +18,15 @@ const ADMIN_NAMED_COLORS = {
     honeydew: [240, 255, 240], mintcream: [245, 255, 250], seashell: [255, 245, 238], floralwhite: [255, 250, 240], oldlace: [253, 245, 230]
 };
 const ADMIN_VAR_SHORTHANDS = [['background', 'bg'], ['border', 'border'], ['border-color', 'border'], ['border-top', 'border'], ['border-right', 'border'], ['border-bottom', 'border'], ['border-left', 'border'], ['outline', 'border']];
+// <Jun Kai/> Previews of screens that have no dark mode (the kiosk screens, the emails) keep their light look in dark mode,
+// like the real screens (user, 26 Nov 2026: "if it does not have a dark mode like gmail, leave it"). They are left out of
+// the dark twins, get the light theme variables back and their inline colours stay. A new preview of such a screen
+// only needs the class ui-light-only.
+const ADMIN_LIGHT_ONLY = ['.ui-light-only', '.pa-device', '.pa-landing-preview', '.feedback-style-preview', '#questions-preview-screen',
+    '#fm-preview', '#qr-preview', '#pt-preview', '.pulse-launch-section', '#be-preview', '#email-preview-frame', '#dt-tree-frame'];
+const ADMIN_LIGHT_ONLY_LIST = ADMIN_LIGHT_ONLY.join(', ');
+// zero specificity (:where), so the twins keep the same order of strength among themselves
+const ADMIN_LIGHT_ONLY_GUARD = `:not(:where(${ADMIN_LIGHT_ONLY.map((s) => `${s}, ${s} *`).join(', ')}))`;
 const ADMIN_COLOR_TOKEN = new RegExp(`#[0-9a-fA-F]{3,8}\\b|rgba?\\([^)]*\\)|\\b(?:${Object.keys(ADMIN_NAMED_COLORS).join('|')})\\b`, 'g');
 
 function adminSchemeSaved() {
@@ -114,8 +123,42 @@ function adminDarkSelector(selector) {
         const t = s.trim();
         if (/^:root\b/.test(t)) return t.replace(/^:root/, ':root[data-theme="dark"]');
         if (/^html\b/i.test(t)) return t.replace(/^html/i, ADMIN_SCHEME_PREFIX);
-        return `${ADMIN_SCHEME_PREFIX} ${t}`;
+        return `${ADMIN_SCHEME_PREFIX} ${adminLightOnlyGuard(t)}`;
     }).join(', ');
+}
+
+// <Jun Kai/> "a .b::before" -> "a .b:not(:where(light only previews))::before": a pseudo-element has to stay last
+function adminLightOnlyGuard(selector) {
+    let depth = 0;
+    for (let i = 0; i < selector.length - 1; i++) {
+        const ch = selector[i];
+        if (ch === '(' || ch === '[') depth++;
+        else if (ch === ')' || ch === ']') depth--;
+        else if (depth === 0 && ch === ':' && selector[i + 1] === ':') return selector.slice(0, i) + ADMIN_LIGHT_ONLY_GUARD + selector.slice(i);
+    }
+    return selector + ADMIN_LIGHT_ONLY_GUARD;
+}
+
+// <Jun Kai/> The light value of every theme variable that dark mode changes, for the light only previews: the variables
+// of :root (light) and of html[data-theme="dark"] / :root[data-theme="dark"] (dark) in admin.css
+function adminLightOnlyRule(rules) {
+    const light = new Map();
+    const darkened = new Set();
+    for (const rule of rules) {
+        if (rule.type !== 1) continue;
+        const sel = rule.selectorText.trim();
+        const isLight = sel === ':root' || sel === 'html';
+        const isDark = sel === ADMIN_SCHEME_PREFIX || sel === ':root[data-theme="dark"]';
+        if (!isLight && !isDark) continue;
+        for (let i = 0; i < rule.style.length; i++) {
+            const prop = rule.style[i];
+            if (!prop.startsWith('--')) continue;
+            if (isLight) light.set(prop, rule.style.getPropertyValue(prop).trim());
+            else darkened.add(prop);
+        }
+    }
+    const vars = [...darkened].filter((prop) => light.has(prop)).map((prop) => `${prop}: ${light.get(prop)}`);
+    return `${ADMIN_SCHEME_PREFIX} :is(${ADMIN_LIGHT_ONLY_LIST}) { color-scheme: light; ${vars.map((v) => v + '; ').join('')}color: var(--theme-text-color); }`;
 }
 
 // The dark twin of one style rule: every colour declaration, changed or not, and the background's repeat, position
@@ -174,7 +217,10 @@ function adminBuildDarkStyles() {
     const css = [];
     for (const sheet of document.styleSheets) {
         if (!sheet.href || !/\/admin\/admin\.css(\?|$)/.test(sheet.href)) continue;
-        try { css.push(...adminDarkRules(sheet.cssRules)); } catch (error) { console.warn('[dark mode] admin.css could not be read:', error.message); }
+        try {
+            css.push(...adminDarkRules(sheet.cssRules));
+            css.push(adminLightOnlyRule(sheet.cssRules)); // <Jun Kai/> last, so the light only previews keep the light variables
+        } catch (error) { console.warn('[dark mode] admin.css could not be read:', error.message); }
     }
     const style = document.createElement('style');
     style.id = ADMIN_SCHEME_STYLE_ID;
@@ -190,7 +236,7 @@ let adminInlineObserver = null;
 
 function adminDarkInline(el) {
     const style = el && el.style;
-    if (!style || !style.length || el.closest('.preview-content')) return;
+    if (!style || !style.length || el.closest(`.preview-content, ${ADMIN_LIGHT_ONLY_LIST}`)) return; // <Jun Kai/> light only previews too
     let saved = adminInlineLight.get(el);
     for (let i = 0; i < style.length; i++) {
         const prop = style[i];
