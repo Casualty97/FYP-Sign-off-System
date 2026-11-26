@@ -22,6 +22,9 @@ const DEFAULT_LANDING_LAYOUT_SETTINGS = {
 function switchParameterTab(tabId) {
     document.querySelectorAll('#parameter-adjustment-page .param-tab').forEach(tab => {
         tab.classList.toggle('active', tab.getAttribute('onclick')?.includes(tabId));
+        // <Jun Kai start>
+        tab.setAttribute('aria-selected', String(tab.classList.contains('active')));
+        // <Jun Kai end>
     });
 
     document.querySelectorAll('#parameter-adjustment-page .parameter-section').forEach(section => {
@@ -29,13 +32,22 @@ function switchParameterTab(tabId) {
     });
 }
 
+// <Jun Kai start>
+// the page's icons are drawn once, the first time it opens
+function fillParameterIcons() {
+    document.querySelectorAll('#parameter-adjustment-page [data-fb-icon]').forEach((slot) => {
+        if (!slot.firstChild) slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.closest('button') ? 15 : 16);
+    });
+}
+
+// the status sits in the save bar as a small coloured pill
 function setParameterStatus(message, type = 'info') {
     const status = document.getElementById('parameter-status');
     if (!status) return;
-    status.textContent = message;
-    status.className = `status-message status-message-${type}`;
-    status.style.display = 'block';
+    const tone = type === 'success' ? 'ok' : type === 'error' ? 'down' : 'info';
+    status.innerHTML = `<span class="ui-pill ui-pill-${tone}"><span class="ui-dot"></span>${escapeHtmlSafe(message)}</span>`;
 }
+// <Jun Kai end>
 
 function setInputValue(id, value) {
     const input = document.getElementById(id);
@@ -644,6 +656,9 @@ function collectParameterForm() {
 
 async function loadParameters() {
     try {
+        // <Jun Kai start>
+        fillParameterIcons();
+        // <Jun Kai end>
         setParameterStatus('Loading parameters...', 'info');
         loadParameterOverlayOptions();
         const response = await fetch('/api/admin/parameters', { credentials: 'include' });

@@ -6950,6 +6950,55 @@ input:checked + .slider:before {
     }
 }
 
+/* <Jun Kai start> Kiosk Settings in the new look (admin redesign, Parameter Adjustment B). The rules above stay for the
+   Tree page, which shares some of them; everything here starts with the page id or a pa- class. */
+#parameter-adjustment-page { margin-top: 0; }
+/* the content column is a scroll container that never scrolls (the window does), which would stop the save bar from sticking */
+.page-content:has(> #parameter-adjustment-page.active) { overflow: visible; }
+#parameter-adjustment-page .pa-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#parameter-adjustment-page .pa-tabs { flex-wrap: wrap; padding: 0; margin-bottom: 16px; }
+#parameter-adjustment-page .pa-tabs [data-fb-icon] { display: inline-flex; }
+#parameter-adjustment-page .parameter-section { padding: 0; border: 1px solid var(--l3-card-edge); border-radius: 18px; background: var(--l3-card); box-shadow: var(--l3-card-shadow); }
+#parameter-adjustment-page .pa-textarea { height: auto; min-height: 84px; padding: 9px 12px; line-height: 1.5; resize: vertical; font-family: inherit; }
+#parameter-adjustment-page .pa-short { max-width: 160px; }
+.pa-subhead { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.pa-form > .pa-subhead { margin: 6px 0 -8px; }
+.pa-subhead-help { margin: 0 0 14px; }
+.pa-settings { border: 1px solid var(--theme-border-color); border-radius: 12px; overflow: hidden; }
+.pa-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0; padding: 12px 16px; cursor: pointer; }
+.pa-setting + .pa-setting { border-top: 1px solid var(--theme-border-color); }
+.pa-setting-text { min-width: 0; }
+.pa-setting-text strong { display: block; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.pa-setting-text small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--color-dark-gray); }
+.pa-settings + .pa-form, .pa-form + .pa-settings { margin-top: 18px; }
+.pa-choice { display: flex; flex-wrap: wrap; align-items: center; min-height: 38px; }
+.pa-range { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 12px; align-items: center; min-height: 38px; }
+.pa-range input[type="range"] { width: 100%; margin: 0; accent-color: var(--theme-btn-primary-bg); }
+.pa-range output { padding: 6px 8px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-bg-color); color: var(--theme-text-color); font-size: 13px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.pa-color-row { display: flex; align-items: center; gap: 12px; }
+#parameter-adjustment-page .pa-color-row input[type="color"] { width: 54px; height: 38px; padding: 3px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-card-bg); }
+#parameter-adjustment-page .pa-color-row .feedback-style-preview { min-height: 38px; padding: 8px 14px; box-shadow: none; }
+.pa-upload-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pa-file { max-width: 100%; font-size: 13px; color: var(--color-dark-gray); }
+.pa-file::file-selector-button { height: 36px; margin-right: 10px; padding: 0 14px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-card-bg); color: var(--theme-text-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pa-inline-btn { margin-top: 18px; }
+.pa-landing { display: grid; grid-template-columns: minmax(280px, 0.85fr) minmax(340px, 1.15fr); gap: 22px; align-items: start; }
+#parameter-adjustment-page .pa-landing-preview { padding: 12px; border-color: var(--theme-border-color); border-radius: 12px; background: var(--theme-bg-color); }
+.pa-savebar { position: sticky; bottom: 16px; z-index: 5; display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 10px 12px 10px 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; background: var(--theme-card-bg); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 1px 2px rgba(15, 23, 42, 0.06); }
+.pa-status { min-width: 0; }
+.pa-status .ui-pill { white-space: normal; }
+.pa-savebar-spacer { flex: 1; }
+@media (max-width: 1100px) {
+    .pa-landing { grid-template-columns: 1fr; }
+    #parameter-adjustment-page .pa-landing-preview { position: static; }
+}
+@media (max-width: 640px) {
+    #parameter-adjustment-page { padding: 20px; }
+    #parameter-adjustment-page .pa-form { grid-template-columns: minmax(0, 1fr); }
+    .pa-savebar { flex-wrap: wrap; }
+}
+/* <Jun Kai end> */
+
 .admin-translation-result { /* Translation result styling (Done by Caeden) */
     margin: 4px 0 14px;
     padding: 14px;
