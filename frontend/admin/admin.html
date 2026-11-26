@@ -770,6 +770,28 @@
                                     </div>
                                 </div>
                             </section>
+                            <!-- VIPs (admin redesign, VIP B): a card on Tree Leaves instead of their own page, for a
+                                 System Admin only (the VIP routes refuse anyone else, and vips.js hides the card for them). The
+                                 ids vip-count and vip-list are the old ones; the VIPs link and showPage('vip') land here. -->
+                            <section class="ui-card dt-vip-card" id="dt-vip-card" aria-labelledby="dt-vip-title" hidden>
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3 id="dt-vip-title">VIPs<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: VIPs" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="VIPs"><ul><li>Every leaf whose name matches a VIP is golden on the tree. Capital letters do not matter.</li><li>A visitor who did not agree to show their name cannot be a VIP, so their row has no Make VIP.</li><li>The tree screen shows a change within 30 seconds.</li></ul></template></span></h3>
+                                        <p>Golden leaves on the tree</p>
+                                    </div>
+                                    <span class="ui-pill ui-pill-muted" id="vip-count">Loading</span>
+                                </div>
+                                <div class="ui-card-body">
+                                    <form class="dt-vip-add" onsubmit="event.preventDefault(); addVip();">
+                                        <label class="ui-sr-only" for="vip-name-input">VIP name</label>
+                                        <input type="text" id="vip-name-input" class="ui-input" placeholder="Type a name" maxlength="255" autocomplete="off">
+                                        <button type="submit" class="ui-btn ui-btn-primary" id="vip-add-btn"><span data-fb-icon="plus"></span>Add VIP</button>
+                                    </form>
+                                    <p class="ui-help dt-vip-help">Or press Make VIP on a visitor in the list, so the name is never typed wrong.</p>
+                                    <div class="ui-status-slot dt-vip-status" id="vip-status" role="status" aria-live="polite"></div>
+                                    <div class="dt-vip-list" id="vip-list"><div class="ui-empty">Loading VIPs</div></div>
+                                </div>
+                            </section>
                         </div>
 
                         <section class="ui-card dt-list-card" aria-label="Visitors on the tree">
@@ -787,7 +809,7 @@
                                             <th>Name</th>
                                             <th class="dt-num">Visits</th>
                                             <th>Leaf added</th>
-                                            <th class="dt-tag-col"><span class="ui-sr-only">Leaf</span></th>
+                                            <th class="dt-tag-col"><span class="ui-sr-only">VIP</span></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1550,44 +1572,11 @@
                 </div>
 
                 <!-- VIP Management (DONE BY ZAH) -->
-                <div id="vip-page" class="page">
-                    <div class="page-header">
-                        <h2>VIPs</h2>
-                        <p>VIPs will appear as a golden leaf on the tree.</p>
-                    </div>
+                <!-- <Jun Kai start> VIPs are a card on Tree Leaves since the admin redesign (VIP B). This empty page stays only so
+                     showPage('vip') keeps working: vips.js loadVipManagementData opens Tree Leaves with the card in view. -->
+                <div id="vip-page" class="page" aria-hidden="true"></div>
+                <!-- <Jun Kai end> -->
 
-                    <!-- VIP Card -->
-                    <div class="vip-card">
-                        <div class="vip-card-header">
-                            <div>
-                                <h3>VIP List</h3>
-                                <p class="vip-subtext">Add names exactly as they appear in the tree (case-insensitive).</p>
-                            </div>
-
-                            <button class="vip-add-btn" onclick="addVip()">
-                                + Add VIP
-                            </button>
-                        </div>
-
-                        <!-- Status / Info row -->
-                        <div class="vip-info-row">
-                            <div class="vip-info-pill">
-                                👑 Golden Leaf Enabled
-                            </div>
-                            <div class="vip-count" id="vip-count">
-                                Loading...
-                            </div>
-                        </div>
-
-                        <!-- VIP List -->
-                        <div class="vip-list" id="vip-list">
-                            <div class="vip-empty">
-                                Loading VIPs...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-              
                 <!-- Archive Page (DONE BY PRETI)-->
                 <div id="archive-page" class="page">
                     <!-- <Jun Kai start> Archived Feedback (admin redesign, list style A, like Feedback): the list first; ticking

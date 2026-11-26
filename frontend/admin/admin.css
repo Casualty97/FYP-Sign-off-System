@@ -2267,6 +2267,23 @@ html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
 html[data-theme="dark"] .dt-screen { border-color: #0b1220; background: #1e293b; }
 html[data-theme="dark"] .dt-screen-note { background: #1e293b; color: #cbd5e1; }
 .dt-preview-card .ui-card-header { align-items: flex-start; }
+.dt-vip-card .ui-card-header h3 { display: flex; align-items: center; gap: 6px; }
+.dt-vip-add { display: flex; gap: 8px; }
+.dt-vip-add .ui-input { flex: 1 1 auto; min-width: 0; }
+.dt-vip-add .ui-btn { flex-shrink: 0; }
+.dt-vip-help { margin: 8px 0 0; }
+.ui-status-slot.dt-vip-status { margin-top: 10px; min-height: 0; }
+.ui-status-slot.dt-vip-status:empty { display: none; }
+.dt-vip-list { margin-top: 8px; }
+.dt-vip-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--theme-border-color); }
+.dt-vip-row:first-child { border-top: 0; }
+.dt-vip-star { display: inline-flex; color: #d97706; flex-shrink: 0; }
+.dt-vip-name { display: grid; flex: 1 1 auto; min-width: 0; }
+.dt-vip-name b { font-weight: 600; color: var(--theme-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-vip-name small { font-size: 12px; color: var(--color-muted); }
+.dt-vip-row.is-asking { flex-wrap: wrap; }
+.dt-vip-row.is-asking .ui-btn { height: 32px; }
+html[data-theme="dark"] .dt-vip-star { color: #fbbf24; }
 .dt-preview-card .ui-card-header .ui-btn { flex-shrink: 0; text-decoration: none; }
 @media (max-width: 1180px) {
     .dt-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "list" "side"; }
@@ -3296,169 +3313,7 @@ html[data-theme="dark"] #asset-page .asset-status-pill.offline { background: rgb
     box-sizing: border-box;
 }
 
-#vip-page .vip-card {
-    background: #ffffff;
-    border-radius: 18px;
-    border: 1px solid #e5e7eb;
-    padding: 22px;
-
-    width: 100%;         
-    max-width: none;      
-    box-sizing: border-box;
-}
-
-/* Header */
-#vip-page .vip-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid #eef2f7;
-}
-
-#vip-page .vip-card-header h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-}
-
-#vip-page .vip-subtext {
-    margin-top: 6px;
-    color: #64748b;
-    font-size: 14px;
-}
-
-/* Add VIP Button (unique) */
-#vip-page .vip-add-btn {
-    border: none;
-    background: #111827;
-    color: #ffffff;
-    padding: 10px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-#vip-page .vip-add-btn:hover {
-    opacity: 0.92;
-}
-
-/* Info row */
-#vip-page .vip-info-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 16px;
-}
-
-#vip-page .vip-info-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    color: #9a3412;
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-#vip-page .vip-count {
-    color: #334155;
-    font-size: 13px;
-}
-
-/* VIP list layout */
-#vip-page .vip-list {
-    margin-top: 18px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-@media (max-width: 700px) {
-    #vip-page .vip-list {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* VIP item */
-#vip-page .vip-item {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-#vip-page .vip-item-left {
-    min-width: 0;
-}
-
-#vip-page .vip-item-actions {
-    flex-shrink: 0;
-    margin-left: auto;
-}
-
-#vip-page .vip-name {
-    font-weight: 700;
-    color: #0f172a;
-}
-
-#vip-page .vip-date {
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
-}
-
-#vip-page .vip-badge {
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
-    color: #92400e;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-#vip-page .vip-delete-btn {
-    background: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-}
-
-#vip-page .vip-delete-btn:hover {
-    background: #fecaca;
-    border-color: #fca5a5;
-    transform: translateY(-1px);
-}
-
-#vip-page .vip-delete-btn:active {
-    transform: translateY(0);
-}
-
-/* Empty state */
-#vip-page .vip-empty {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 26px;
-    color: #64748b;
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    border-radius: 14px;
-}
+/* <Jun Kai/> the VIP list is a card on Tree Leaves since the admin redesign; its rules are in the Tree Leaves block */
 
 
 /* ==================== AUDIT LOGS PAGE STYLES ==================== */

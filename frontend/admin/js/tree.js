@@ -7,6 +7,7 @@ async function loadDigitalTreeData() {
     try {
         console.log('🌳 Loading digital tree data...');
         loadTreePreview(); // <Jun Kai/> the small copy of the tree screen on Tree Leaves
+        showTreeVipCard(); // <Jun Kai/> the VIP card, for a System Admin only
         await loadTreeStageSelection();
         await loadAvailableTreeBackgrounds();
         const response = await fetch('/api/tree');
@@ -565,6 +566,7 @@ async function uploadTreeBackground() {
 let treeVisitorRows = [];
 let treeVisitorPage = 1;
 let treeLeavesReady = false;
+let treeScrollToVips = false;
 const TREE_VISITORS_PER_PAGE = 10;
 const TREE_AVATAR_HUES = [262, 172, 330, 28, 245, 152, 18, 218];
 
@@ -574,6 +576,43 @@ function prepareTreeLeavesPage() {
     document.querySelectorAll('#digital-tree-page [data-fb-icon]').forEach((slot) => {
         slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.closest('button, a') ? 15 : 16);
     });
+    const tbody = document.querySelector('#digital-tree-page table tbody');
+    if (tbody) tbody.addEventListener('click', treeListClick);
+}
+
+// Make VIP on a row: the name exactly as the tree has it (vips.js makeVip)
+function treeListClick(event) {
+    const button = event.target.closest('[data-make-vip]');
+    const row = button && treeVisitorRows[Number(button.dataset.makeVip)];
+    if (row && typeof makeVip === 'function') makeVip(String(row.name || '').trim(), button);
+}
+
+function showTreeVipCard() {
+    const card = document.getElementById('dt-vip-card');
+    if (!card) return;
+    const admin = typeof canManageVips === 'function' && canManageVips();
+    card.hidden = !admin;
+    if (admin) loadVipData();
+}
+
+// the VIPs link and old showPage('vip') calls: once the list has its rows the card is scrolled into view again,
+// because on a narrow screen the list above it grows
+function scrollTreeLeavesToVips() {
+    const card = document.getElementById('dt-vip-card');
+    if (!card || card.hidden) return;
+    treeScrollToVips = true;
+    card.scrollIntoView({ block: 'start' });
+}
+
+// a VIP was added or removed: the rows with that name change at once, without loading the tree again
+function markTreeVip(name, isVip) {
+    const target = String(name || '').trim().toLowerCase();
+    treeVisitorRows.forEach((row) => {
+        if (row.hasPublicName && !row.archived && String(row.name || '').trim().toLowerCase() === target) row.isVip = isVip;
+    });
+    const golden = document.getElementById('dt-vip-leaves');
+    if (golden) golden.textContent = treeVisitorRows.filter((row) => row.isVip).length;
+    renderTreeVisitors();
 }
 
 function setTreeLeavesStatus(tone, message) {
@@ -593,7 +632,7 @@ function treeLeafDate(value) {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function treeVisitorRowHtml(row) {
+function treeVisitorRowHtml(row, index) {
     const name = String(row.name || 'Anonymous visitor');
     const named = Boolean(row.hasPublicName) && !row.archived;
     const hue = TREE_AVATAR_HUES[Math.abs(Number(row.id) || 0) % TREE_AVATAR_HUES.length];
@@ -601,6 +640,7 @@ function treeVisitorRowHtml(row) {
     if (row.isVip) tag = '<span class="ui-tag is-amber">VIP</span>';
     else if (row.archived) tag = '<span class="ui-tag">Archived</span>';
     else if (!named) tag = '<span class="ui-tag">Name hidden</span>';
+    else if (typeof canManageVips === 'function' && canManageVips()) tag = `<button type="button" class="ui-link" data-make-vip="${index}">Make VIP</button>`;
     const avatar = named
         ? `<span class="ui-avatar" style="--ui-hue: ${hue}" aria-hidden="true">${escapeHtmlSafe(treeInitials(name))}</span>`
         : '<span class="ui-avatar dt-avatar-none" aria-hidden="true">?</span>';
@@ -612,14 +652,14 @@ function renderTreeVisitors() {
     const tbody = document.querySelector('#digital-tree-page table tbody');
     if (!tbody) return;
     const query = (document.getElementById('dt-search')?.value || '').trim().toLowerCase();
-    const list = treeVisitorRows.filter((row) => !query || String(row.name || '').toLowerCase().includes(query));
+    const list = treeVisitorRows.map((row, index) => ({ row, index })).filter(({ row }) => !query || String(row.name || '').toLowerCase().includes(query));
     const pages = Math.max(1, Math.ceil(list.length / TREE_VISITORS_PER_PAGE));
     treeVisitorPage = Math.min(Math.max(1, treeVisitorPage), pages);
     const first = (treeVisitorPage - 1) * TREE_VISITORS_PER_PAGE;
     const shown = list.slice(first, first + TREE_VISITORS_PER_PAGE);
 
     if (shown.length) {
-        tbody.innerHTML = shown.map(treeVisitorRowHtml).join('');
+        tbody.innerHTML = shown.map(({ row, index }) => treeVisitorRowHtml(row, index)).join('');
     } else {
         const year = new Date().getFullYear();
         const text = treeVisitorRows.length ? 'No visitor matches the search.' : `No visitors on the ${year} tree yet.`;
@@ -657,6 +697,11 @@ function updateDigitalTreeTable(treeData) {
     treeVisitorRows = rows.slice().sort((a, b) => (new Date(b.created_at).getTime() || 0) - (new Date(a.created_at).getTime() || 0));
     treeVisitorPage = 1;
     renderTreeVisitors();
+    if (treeScrollToVips) {
+        treeScrollToVips = false;
+        const card = document.getElementById('dt-vip-card');
+        if (card && !card.hidden) card.scrollIntoView({ block: 'start' });
+    }
 }
 
 // The small copy of the tree screen: the real /tree (or /3dtree in 3D mode) page in a frame, drawn at 1600 x 900 and
