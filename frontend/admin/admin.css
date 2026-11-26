@@ -9519,3 +9519,10 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
 .theme-starter-about { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--color-dark-gray); }
 .theme-starter-card .theme-saved-sub { margin-top: 6px; }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> Tree Settings, view only for IT Admins and IT Staff (sidebar.js, applyTreeSettingsViewOnly): the change
+   buttons are hidden even when the page shows one itself (the Revert buttons), and the fields take no clicks */
+#tree-adjustment-page.is-view-only [data-tree-change] { display: none !important; }
+#tree-adjustment-page.is-view-only :is(input, select, textarea) { pointer-events: none; }
+.tree-view-only-note { margin: 0 0 16px; }
+/* <Jun Kai end> */
