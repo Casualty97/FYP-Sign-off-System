@@ -202,7 +202,8 @@ function useNameStyle(settings) {
     ? nameStyleOf(settings.vipNameFont, settings.vipNameWeight, settings.vipNameColor, settings.vipNameSize)
     : normal;
   nameStyles = { normal, vip };
-  return [normal, vip].map(style => [style.font, style.lineHeight, style.colour].join('|')).join('||');
+  nameScroll = settings.leafNameScroll !== false; // long names scroll inside the leaf (or are shortened with "…")
+  return [normal, vip].map(style => [style.font, style.lineHeight, style.colour].join('|')).join('||') + `|${nameScroll}`;
 }
 
 // A flat normal, for a leaf model without a normal map.
@@ -228,6 +229,14 @@ const NAME_BOXES = [            // lines -> widest box inside the blade, centred
   { lines: 3, width: 0.045 },
 ];
 const NAME_FONT_PX = 64;          // canvas pixels per font size
+// A long name scrolling inside the leaf (scrollingNameLabel; the admin's "Scroll long names", leafNameScroll):
+const SCROLL_HOLD = 1.4;          // seconds the start of the name shows before it scrolls
+const SCROLL_SPEED = 0.5;         // how fast: the name box's width each second, a steady reading pace
+const SCROLL_GAP = 0.6;           // the gap before the name comes round again, as a share of the box
+const SCROLL_INSET = 0.1;         // where the name starts in the box, as a share of it (inside the fade)
+const SCROLL_FADE = 0.12;         // the soft fade at each end of the box, as a share of it
+const SCROLL_MAX_CHARS = 60;      // longer names are cut there (very rare)
+let nameScroll = true;            // the admin's "Scroll long names" (useNameStyle)
 const NAME_LIFT = 0.0006;        // how far the name sits off the leaf surface, towards the viewer
 const GOLD_GLOW = new T.Color(0xffd23f); // the 2D VIP leaf's gold glow (vipGoldPulse in tree.css)
 // In the glowing look a VIP's gold leaf already glows like the others, so it is darker there, for its name to
@@ -268,7 +277,7 @@ const SPARKLE_EVERY = 2.4;       // seconds between its brightest twinkles
 const VIP_TURN_ANGLE = (40 * Math.PI) / 180;
 const VIP_TURN_SECONDS = 6;
 const VIP_TURN_EASE_IN = 1.5;
-const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24, leafScale: 1, showLeafNames: true,
+const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24, leafScale: 1, showLeafNames: true, leafNameScroll: true,
   leafAreaWidth: 100, leafAreaHeight: 100, leafAreaOffset: 0, leafRefreshMs: POLL_MS, leafOpacity: 1,
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS, leafBatchMode: 'groups', leafBatchCount: BATCH_SIZE, leafBatchSize: BATCH_SIZE,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
@@ -401,7 +410,8 @@ function fitName(name, nameStyle) {
   }
   const used = lines.join(' ').split(/\s+/).filter(Boolean).length;
   lines.push(words.slice(used).join(' ') || line);
-  return { lines: lines.slice(0, box.lines).map(text => shorten(text, box.width)), box, pxPerUnit };
+  const shortened = lines.slice(0, box.lines).map(text => shorten(text, box.width));
+  return { lines: shortened, box, pxPerUnit, shortened: shortened.join(' ') !== words.join(' ') };
 }
 
 // The name drawn for the leaf, on a canvas the size of its box in the blade, in the admin's font, weight and
@@ -412,48 +422,108 @@ function fitName(name, nameStyle) {
 // onGold: a VIP's name, on its gold leaf: always crisp letters with a strong dark edge (a soft glow washes out
 // on the light gold).
 function nameLabel(name, nameStyle = nameStyles.normal, onGold = false) {
-  const { lines, box, pxPerUnit } = fitName(name, nameStyle);
+  const fitted = fitName(name, nameStyle);
+  // Too long for the leaf: shown in full, scrolling, when the admin's "Scroll long names" is on (nameScroll).
+  if (nameScroll && fitted.shortened) return scrollingNameLabel(name, nameStyle, onGold, fitted.pxPerUnit);
+  const { lines, box, pxPerUnit } = fitted;
   const height = lines.length * nameStyle.lineHeight;
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(box.width * pxPerUnit);
   canvas.height = Math.ceil(height * pxPerUnit);
+  const context = nameContext(canvas, nameStyle, 'center');
+  const linePx = canvas.height / lines.length;
+  lines.forEach((line, i) => drawNameLine(context, line, canvas.width / 2, linePx * (i + 0.5), nameStyle, onGold));
+  return { texture: nameTexture(canvas), width: box.width, height };
+}
+
+function nameContext(canvas, nameStyle, align) {
   const context = canvas.getContext('2d');
   context.font = nameStyle.font;
-  context.textAlign = 'center';
+  context.textAlign = align;
   context.textBaseline = 'middle';
   context.lineJoin = 'round';
-  const { colour, dark } = nameStyle;
-  const behind = dark ? 'rgba(255, 255, 255, 0.85)' : onGold ? 'rgba(46, 26, 0, 0.92)' : 'rgba(8, 28, 14, 0.85)';
-  const linePx = canvas.height / lines.length;
-  lines.forEach((line, i) => {
-    const y = linePx * (i + 0.5);
-    // Natural look, or dark letters on a glowing leaf: crisp letters with an edge (a glow would blur dark letters).
-    if (!leafLook.aura || dark || onGold) {
-      // A thin light edge round dark letters (a thick one would cover them, so they would look white); on gold
-      // a bolder dark edge.
-      context.lineWidth = NAME_FONT_PX * (dark ? 0.07 : onGold ? 0.22 : 0.16);
-      context.strokeStyle = behind;
-      context.fillStyle = colour;
-      context.strokeText(line, canvas.width / 2, y);
-      context.fillText(line, canvas.width / 2, y);
-      return;
-    }
-    // A soft dark shadow behind the letters, then the letters with a glow in their own colour.
-    context.shadowColor = 'rgba(0, 16, 10, 0.75)';
-    context.shadowBlur = NAME_FONT_PX * 0.14;
-    context.fillStyle = 'rgba(0, 16, 10, 0.45)';
-    context.fillText(line, canvas.width / 2, y);
-    context.shadowColor = `${colour}e6`;
-    context.shadowBlur = NAME_FONT_PX * 0.2;
-    context.fillStyle = colour;
-    context.fillText(line, canvas.width / 2, y);
-    context.shadowBlur = 0;
-  });
+  return context;
+}
+
+function nameTexture(canvas) {
   const texture = new T.CanvasTexture(canvas);
   texture.colorSpace = T.SRGBColorSpace;
   texture.anisotropy = 4;
-  return { texture, width: box.width, height };
+  return texture;
 }
+
+// One line of a name at x (as the context aligns it) and y, in the look's way (see nameLabel).
+function drawNameLine(context, line, x, y, nameStyle, onGold) {
+  const { colour, dark } = nameStyle;
+  const behind = dark ? 'rgba(255, 255, 255, 0.85)' : onGold ? 'rgba(46, 26, 0, 0.92)' : 'rgba(8, 28, 14, 0.85)';
+  // Natural look, dark letters, or a VIP's name on its gold leaf: crisp letters with an edge (a glow would blur
+  // dark letters, and wash out on the gold).
+  if (!leafLook.aura || dark || onGold) {
+    // A thin light edge round dark letters (a thick one would cover them, so they would look white); on gold
+    // a bolder dark edge.
+    context.lineWidth = NAME_FONT_PX * (dark ? 0.07 : onGold ? 0.22 : 0.16);
+    context.strokeStyle = behind;
+    context.fillStyle = colour;
+    context.strokeText(line, x, y);
+    context.fillText(line, x, y);
+    return;
+  }
+  // A soft dark shadow behind the letters, then the letters with a glow in their own colour.
+  context.shadowColor = 'rgba(0, 16, 10, 0.75)';
+  context.shadowBlur = NAME_FONT_PX * 0.14;
+  context.fillStyle = 'rgba(0, 16, 10, 0.45)';
+  context.fillText(line, x, y);
+  context.shadowColor = `${colour}e6`;
+  context.shadowBlur = NAME_FONT_PX * 0.2;
+  context.fillStyle = colour;
+  context.fillText(line, x, y);
+  context.shadowBlur = 0;
+}
+
+// A long name in full on one line, scrolling inside the leaf's one-line name box (Owner: Role 2, Wei Jie): drawn
+// twice, a gap apart, on a long canvas of which the box shows a window (texture repeat); the window slides along
+// it (the update, by the texture's offset): it holds at the start for SCROLL_HOLD seconds, then moves at a steady
+// SCROLL_SPEED (the name glides from right to left, so it reads from left to right) until the second copy is
+// where the first began, which looks the same, so it goes round again seamlessly. Its ends fade (scrollFadeMap).
+function scrollingNameLabel(name, nameStyle, onGold, pxPerUnit) {
+  const box = NAME_BOXES.find(item => item.lines === 1) || NAME_BOXES[0];
+  const text = [...String(name || '').trim().replace(/\s+/g, ' ')].slice(0, SCROLL_MAX_CHARS).join('');
+  measureContext.font = nameStyle.font;
+  const boxPx = box.width * pxPerUnit;
+  const startPx = boxPx * SCROLL_INSET;
+  const copyPx = Math.ceil(measureContext.measureText(text).width + boxPx * SCROLL_GAP);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(copyPx * 2 + boxPx);
+  canvas.height = Math.ceil(nameStyle.lineHeight * pxPerUnit);
+  const context = nameContext(canvas, nameStyle, 'left');
+  for (const at of [startPx, startPx + copyPx]) drawNameLine(context, text, at, canvas.height / 2, nameStyle, onGold);
+  const texture = nameTexture(canvas);
+  texture.repeat.set(boxPx / canvas.width, 1);
+  return {
+    texture, width: box.width, height: nameStyle.lineHeight,
+    scroll: { share: copyPx / canvas.width, travel: copyPx / (boxPx * SCROLL_SPEED) },
+  };
+}
+
+// The scrolling name's soft ends: transparent at both edges of its box, fading in over SCROLL_FADE of it.
+let scrollFadeTexture = null;
+function scrollFadeMap() {
+  if (scrollFadeTexture) return scrollFadeTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 4;
+  const context = canvas.getContext('2d');
+  const fade = context.createLinearGradient(0, 0, canvas.width, 0);
+  fade.addColorStop(0, '#000');
+  fade.addColorStop(SCROLL_FADE, '#fff');
+  fade.addColorStop(1 - SCROLL_FADE, '#fff');
+  fade.addColorStop(1, '#000');
+  context.fillStyle = fade;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  scrollFadeTexture = new T.CanvasTexture(canvas);
+  return scrollFadeTexture;
+}
+
 
 const NAME_PLANE = new T.PlaneGeometry(1, 1);
 
@@ -1228,8 +1298,11 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   function shapeNameLabel(nameMesh, name, vip = false) {
     const label = nameLabel(name || 'Anonymous visitor', vip ? nameStyles.vip : nameStyles.normal, vip);
     nameMesh.material.map = label.texture;
+    nameMesh.material.alphaMap = label.scroll ? scrollFadeMap() : null; // a scrolling name's soft ends
     nameMesh.material.needsUpdate = true;
-    nameMesh.userData = { name, vip, width: label.width, height: label.height };
+    nameMesh.userData = { name, vip, width: label.width, height: label.height,
+      // A scrolling name: each at its own moment of its round (phase, in seconds).
+      scroll: label.scroll ? { ...label.scroll, phase: Math.random() * (SCROLL_HOLD + label.scroll.travel) } : null };
     nameMesh.position.set(NAME_CENTRE_X, NAME_LIFT, NAME_CENTRE_Z); // the middle of the leaf
   }
 
@@ -1885,6 +1958,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         .multiplyScalar(!leaf.isVip ? 1 : vipBright * (leafLook.aura ? VIP_GLOWING.leaf * (1 + gold * VIP_GLOWING.pulse) : 1 + gold * VIP_NATURAL.pulse));
       if (!leafLook.aura) leaf.material.color.multiply(nightLight);
       placeName(leaf);
+      // A long name scrolling inside the leaf (scrollingNameLabel): its window held at the start, then sliding
+      // along at a steady pace, and round again.
+      const scroll = leaf.nameLabel.userData.scroll;
+      if (scroll && leaf.nameLabel.visible) {
+        const round = (time / 1000 + scroll.phase) % (SCROLL_HOLD + scroll.travel);
+        leaf.nameLabel.material.map.offset.x = round < SCROLL_HOLD ? 0 : ((round - SCROLL_HOLD) / scroll.travel) * scroll.share;
+      }
       // Glowing look: every leaf glows in its own colour (AURA), breathing gently, each at its own pace, with
       // a light sweeping across it now and then. In both looks a new visitor's leaf glows green, and a VIP's
       // pulses gold.

@@ -50,6 +50,12 @@ test('VIP leaf brightness: softer by default (70%), 30 to 120 percent', () => {
     assert.throws(() => normalizeTree3dParameters({ vipLeafBrightness: 'shiny' }), { statusCode: 400, message: /VIP leaf brightness/ });
 });
 
+test('long names scroll inside the leaf by default, and that can be turned off', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.leafNameScroll, true);
+    assert.deepEqual(normalizeTree3dParameters({ leafNameScroll: false }), { leafNameScroll: false });
+    assert.throws(() => normalizeTree3dParameters({ leafNameScroll: 'yes' }), { statusCode: 400, message: /Scroll long names/ });
+});
+
 test('the glowing look is on by default and can be turned off', () => {
     assert.equal(DEFAULT_TREE3D_PARAMETERS.glowLook, true);
     assert.equal(normalizeTree3dParameters({ glowLook: false }).glowLook, false);

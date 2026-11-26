@@ -563,6 +563,37 @@ body.tree-from-3d #treeImageLeaves.stage-leaves-upward {
     overflow: hidden;
 }
 
+/* A long name scrolling inside the leaf (tree.js makeLeafNameScroll; tree3dParameters.leafNameScroll;
+   Owner: Role 2, Wei Jie): one line, its ends fading softly, the name gliding from right to left at a steady
+   pace after a pause at the start, and round again. */
+.leaf-name.leaf-name-scroll {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    white-space: nowrap;
+    text-align: left;
+    height: var(--leaf-name-height);
+    max-height: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+}
+.leaf-name-scroll .leaf-name-track {
+    display: inline-flex;
+    padding-left: 10%;
+    animation: leafNameScroll var(--leaf-name-scroll-duration, 8s) linear var(--leaf-name-scroll-delay, 0s) infinite;
+    will-change: transform;
+}
+.leaf-name-scroll .leaf-name-track > span {
+    padding-right: var(--leaf-name-scroll-gap, 30px);
+}
+@keyframes leafNameScroll {
+    0%, 20% { transform: translateX(0); }
+    100% { transform: translateX(calc(-1 * var(--leaf-name-scroll-distance, 100px))); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .leaf-name-scroll .leaf-name-track { animation: none; }
+}
+
 /* Hidden copy that tree.js uses to measure how many lines a name wraps to. */
 .leaf-name.leaf-name-measure {
     position: fixed;

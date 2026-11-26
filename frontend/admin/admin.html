@@ -1746,6 +1746,19 @@
                                         <p id="tree3d-leafNameCaption" style="font-size:12px; color:#666; margin-top:6px;">Name preview</p>
                                     </div>
                                 </div>
+                                <!-- Long names scrolling inside the leaf: a row of its own, across the whole width (Owner: Role 2, Wei Jie;
+                                     tree3dParameters.leafNameScroll: frontend/3dTree/feedback-leaves.js scrollingNameLabel, frontend/tree/tree.js
+                                     makeLeafNameScroll). -->
+                                <div class="name-scroll-row">
+                                    <label class="name-scroll-switch">
+                                        <input type="checkbox" id="tree3d-leafNameScroll" onchange="updateTree3dNameScrollDemo()"> Scroll long names inside the leaf (2D and 3D trees)
+                                    </label>
+                                    <div class="name-scroll-demo" id="tree3d-nameScrollDemo" aria-label="Example: a long name on a leaf">
+                                        <span class="name-scroll-track"><span>Muhammad Hafiz bin Abdullah Rahman</span><span aria-hidden="true">Muhammad Hafiz bin Abdullah Rahman</span></span>
+                                        <span class="name-scroll-short">Muhammad Hafiz…</span>
+                                    </div>
+                                    <p class="name-scroll-help">A name too long for its leaf is shortened with "…". <strong>On</strong> (the default): it shows in full instead, gliding smoothly from right to left inside the leaf so it reads from left to right; it pauses at the start, scrolls at a steady pace, then starts again, its ends fading softly. Short names stay still. <strong>Off</strong>: long names are shortened with "…". Press Save; both trees change within about 5 seconds.</p>
+                                </div>
                                 <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start;">
                                     <div style="flex:1; min-width:300px;">
                                         <div style="margin-bottom:16px;">

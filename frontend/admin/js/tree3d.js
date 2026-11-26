@@ -51,6 +51,7 @@ const TREE3D_TITLE_DEFAULTS = {
 const TREE3D_LEAF_DEFAULTS = {
     showFeedbackLeaves: true,
     showLeafNames: true,
+    leafNameScroll: true, // long names scroll inside the leaf (both trees)
     leafNewColor: '#7cb342',
     leafOldColor: '#1f5f2e',
     leafSide: 'both',
@@ -575,6 +576,21 @@ function tree3dDimColour(hex, share) {
     return `#${part(16)}${part(8)}${part(0)}`;
 }
 
+// Scroll long names: the example leaf scrolls its long name when on, shows it shortened with "…" when off; its
+// scroll at the trees' pace (half its width each second, after a pause of a fifth of the round).
+function updateTree3dNameScrollDemo() {
+    const demo = tree3dField('nameScrollDemo');
+    if (!demo) return;
+    demo.classList.toggle('is-off', tree3dField('leafNameScroll')?.checked === false);
+    const first = demo.querySelector('.name-scroll-track > span');
+    if (!first) return;
+    const context = (updateTree3dNameScrollDemo.context ||= document.createElement('canvas').getContext('2d'));
+    context.font = `700 13px ${getComputedStyle(demo).fontFamily}`;
+    const distance = Math.ceil(context.measureText(first.textContent).width) + 60; // the name and its gap
+    demo.style.setProperty('--demo-distance', `${distance}px`);
+    demo.style.setProperty('--demo-duration', `${(distance / (170 * 0.5) / 0.8).toFixed(2)}s`);
+}
+
 function updateTree3dNamePreview() {
     const glowing = tree3dField('glowLook')?.checked !== false;
     const look = glowing ? 'glowing look' : 'natural look';
@@ -798,6 +814,10 @@ function fillTree3dForm(settings) {
 
     tree3dField('showFeedbackLeaves').checked = leaves.showFeedbackLeaves !== false;
     tree3dField('showLeafNames').checked = leaves.showLeafNames !== false;
+    if (tree3dField('leafNameScroll')) {
+        tree3dField('leafNameScroll').checked = leaves.leafNameScroll !== false;
+        updateTree3dNameScrollDemo();
+    }
     // A colour saved before the greens-only choice falls back to the default green.
     const offered = (which, hex) => TREE3D_LEAF_COLOURS[which].some(([, value]) => value === String(hex).toLowerCase());
     tree3dField('leafNewColor').value = offered('New', leaves.leafNewColor) ? leaves.leafNewColor.toLowerCase() : TREE3D_LEAF_DEFAULTS.leafNewColor;
@@ -901,6 +921,7 @@ function collectTree3dSettings() {
         showYearReview: tree3dField('showYearReview').checked,
         showFeedbackLeaves: tree3dField('showFeedbackLeaves').checked,
         showLeafNames: tree3dField('showLeafNames').checked,
+        ...(tree3dField('leafNameScroll') ? { leafNameScroll: tree3dField('leafNameScroll').checked } : {}),
         leafNewColor: tree3dField('leafNewColor').value,
         leafOldColor: tree3dField('leafOldColor').value,
         leafSide: tree3dField('leafSide').value,

@@ -485,6 +485,8 @@ class TreeManager {
             const assets = data.parameters?.visualAssets || {};
             const campaign = data.parameters?.campaignSettings || {};
             const badgeLeafStyles = data.parameters?.badgeLeafStyles || {};
+            // Long names scroll inside the leaf (one switch for both trees: 3D Tree Settings, leafNameScroll).
+            this.leafNameScroll = data.parameters?.tree3dParameters?.leafNameScroll !== false;
 
             this.ovalWidth = Number(tree.ovalWidth) || this.ovalWidth;
             this.ovalHeight = Number(tree.ovalHeight) || this.ovalHeight;
@@ -2141,6 +2143,7 @@ class TreeManager {
         nameElement.style.setProperty('--leaf-name-lines', String(nameLayout.lines));
         nameElement.style.setProperty('--leaf-name-font-size', `${nameLayout.fontSize}px`);
         nameElement.style.fontSize = `${nameLayout.fontSize}px`;
+        if (this.leafNameScroll !== false && nameLayout.scroll) this.makeLeafNameScroll(nameElement, nameLayout);
         leaf.appendChild(nameElement);
 
         leaf.addEventListener('click', (event) => {
@@ -2590,8 +2593,46 @@ class TreeManager {
             const height = Math.ceil(fontSize * lineHeight);
             result = { text: `${fullText.slice(0, 1)}…`, fontSize, lines: 1, width: Math.floor(leafSize * 0.3), height };
         }
+        // Shortened: the full name and the one-line box it can scroll in (makeLeafNameScroll).
+        if (result.text.endsWith('…')) {
+            const lineBox = Math.ceil(fontSize * lineHeight);
+            const oneLine = Math.floor((leafSize * widthPercentAt((100 * lineBox) / leafSize)) / 100);
+            result = { ...result, scroll: { full: fullText, width: Math.max(oneLine, Math.floor(leafSize * 0.3)), height: lineBox } };
+        }
         this.leafNameFitCache.set(cacheKey, result);
         return result;
+    }
+
+    // A long name (shortened with "…" to fit the blade) shown in full instead, scrolling inside the leaf (Owner:
+    // Role 2, Wei Jie; tree3dParameters.leafNameScroll, one switch for both trees): on one line in the blade's
+    // one-line box, twice, a gap apart; it holds at the start, then glides from right to left at a steady pace
+    // (so it reads from left to right) until the second copy is where the first began, and goes round again
+    // (tree.css .leaf-name-scroll). Each leaf at its own moment.
+    makeLeafNameScroll(nameElement, nameLayout) {
+        const { full, width, height } = nameLayout.scroll;
+        if (!this.leafNameScrollContext) this.leafNameScrollContext = document.createElement('canvas').getContext('2d');
+        const family = this.leafNameMeasurer ? getComputedStyle(this.leafNameMeasurer).fontFamily : getComputedStyle(document.body).fontFamily;
+        this.leafNameScrollContext.font = `bold ${nameLayout.fontSize}px ${family}`;
+        const gap = Math.round(width * 0.6);
+        const copy = Math.ceil(this.leafNameScrollContext.measureText(full).width) + gap;
+        const travel = copy / (width * 0.5); // seconds: half the box's width each second
+        nameElement.classList.add('leaf-name-scroll');
+        nameElement.style.setProperty('--leaf-name-width', `${width}px`);
+        nameElement.style.setProperty('--leaf-name-height', `${height}px`);
+        nameElement.style.setProperty('--leaf-name-lines', '1');
+        nameElement.style.setProperty('--leaf-name-scroll-distance', `${copy}px`);
+        nameElement.style.setProperty('--leaf-name-scroll-gap', `${gap}px`);
+        nameElement.style.setProperty('--leaf-name-scroll-duration', `${(travel / 0.8).toFixed(2)}s`); // its first 20%: the pause
+        nameElement.style.setProperty('--leaf-name-scroll-delay', `${(-Math.random() * travel).toFixed(2)}s`);
+        const track = document.createElement('span');
+        track.className = 'leaf-name-track';
+        for (const copyIndex of [0, 1]) {
+            const part = document.createElement('span');
+            part.textContent = full;
+            if (copyIndex) part.setAttribute('aria-hidden', 'true');
+            track.appendChild(part);
+        }
+        nameElement.replaceChildren(track);
     }
 
     // A new leaf has landed: the oldest leaves held on the tree for it (getLeafCycleState) start to fall,

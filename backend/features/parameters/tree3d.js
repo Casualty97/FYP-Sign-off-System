@@ -53,6 +53,8 @@
 //                      position (the page's own layout: top centre, top left on a wall-shaped screen)
 //   showFeedbackLeaves one leaf per feedback on the tree (the RainTree leaf model)
 //   showLeafNames      the visitor's name on each leaf, as on the 2D tree
+//   leafNameScroll     a name too long for its leaf shown in full, scrolling smoothly inside the leaf (on by
+//                      default), instead of shortened with "…"; on the 2D and 3D trees
 //   leafNameFont, leafNameWeight, leafNameColor, leafNameSize
 //                      how the names are written: a font style (LEAF_NAME_FONTS; 'auto' is the look's own,
 //                      handwriting when glowing, clean letters when natural), a weight (LEAF_NAME_WEIGHTS), any
@@ -201,6 +203,7 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   sunsetRequestedAt: '',
   showFeedbackLeaves: true,
   showLeafNames: true,
+  leafNameScroll: true,
   leafNameFont: 'auto',
   leafNameWeight: 700,
   leafNameColor: '#ffffff',
@@ -342,6 +345,7 @@ function normalizeTree3dParameters(updates) {
   if (has('sunsetRequestedAt')) out.sunsetRequestedAt = timestamp(updates.sunsetRequestedAt, 'Sunset time');
   if (has('showFeedbackLeaves')) out.showFeedbackLeaves = bool(updates.showFeedbackLeaves, 'Show leaves');
   if (has('showLeafNames')) out.showLeafNames = bool(updates.showLeafNames, 'Show names on leaves');
+  if (has('leafNameScroll')) out.leafNameScroll = bool(updates.leafNameScroll, 'Scroll long names');
   // The names' style, and the VIP names' own (with the same choices).
   const nameStyle = (prefix, label) => {
     if (has(`${prefix}Font`)) out[`${prefix}Font`] = oneOf(updates[`${prefix}Font`], LEAF_NAME_FONTS, `${label} font style`);
