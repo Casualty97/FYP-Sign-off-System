@@ -415,11 +415,21 @@ function showOverlayUploadPreview(kind) {
     const url = URL.createObjectURL(file);
     box.dataset.previewUrl = url;
     box.classList.add('has-picture');
-    box.innerHTML = `<img src="${url}" alt="">
-        <span class="ov-add-file-name"></span>
-        <button type="button" class="ui-btn ui-btn-icon ov-add-remove" aria-label="Remove the ${kind} picture" title="Remove">${uiIcon('close', 14)}</button>`;
-    box.querySelector('.ov-add-file-name').textContent = file.name;
-    box.querySelector('.ov-add-remove').addEventListener('click', () => clearOverlayUploadPreview(kind));
+    // built from elements, so neither the picture address nor the file name is ever read as HTML
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    const fileName = document.createElement('span');
+    fileName.className = 'ov-add-file-name';
+    fileName.textContent = file.name;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'ui-btn ui-btn-icon ov-add-remove';
+    remove.setAttribute('aria-label', `Remove the ${kind} picture`);
+    remove.title = 'Remove';
+    remove.innerHTML = uiIcon('close', 14);
+    remove.addEventListener('click', () => clearOverlayUploadPreview(kind));
+    box.replaceChildren(img, fileName, remove);
 }
 
 function clearOverlayUploadPreview(kind, clearInput = true) {
