@@ -212,6 +212,11 @@ body.tree-from-3d #treeImageLeaves.stage-leaves-upward {
     filter: hue-rotate(302deg) saturate(1.35) brightness(1.1) drop-shadow(0 8px 12px rgba(217, 119, 6, 0.32));
 }
 
+/* Several pledge topics chosen: a brown leaf (Owner: Role 2, Wei Jie) */
+.leaf.badge-multi {
+    filter: sepia(0.85) saturate(1.3) hue-rotate(-12deg) brightness(0.82) drop-shadow(0 8px 12px rgba(139, 90, 43, 0.34));
+}
+
 .leaf.leaf-tinted:not(.vip) {
     filter: drop-shadow(0 8px 12px rgba(12, 50, 27, 0.28));
 }

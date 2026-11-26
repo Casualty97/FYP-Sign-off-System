@@ -35,6 +35,13 @@ test('the automatic weather: at Woodlands only, whatever place is sent or was sa
     assert.equal(mergeTree3dParameters({ rainArea: 'Tampines' }, { manualSky: 'day' }).rainArea, 'Woodlands');
 });
 
+test('several pledge topics: one "Multiple pledges" leaf, brown by default, a colour the admin can change', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.badgeLeafColors['multi-pledge'], '#8b5a2b');
+    const saved = normalizeTree3dParameters({ badgeLeafColors: { 'multi-pledge': '#123abc' } });
+    assert.equal(saved.badgeLeafColors['multi-pledge'], '#123abc');
+    assert.equal(mergeTree3dParameters({}, {}).badgeLeafColors['multi-pledge'], '#8b5a2b');
+});
+
 test('the glowing look is on by default and can be turned off', () => {
     assert.equal(DEFAULT_TREE3D_PARAMETERS.glowLook, true);
     assert.equal(normalizeTree3dParameters({ glowLook: false }).glowLook, false);

@@ -27,7 +27,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { getBadgeSummary } = require('../email/service');
+const { getBadgeSummary, determineBadgeKeys, BADGE_CONFIGS } = require('../email/service');
+const { MULTI_PLEDGE_KEY, MULTI_PLEDGE_COLOUR } = require('../parameters/tree3d');
 const { isFeedbackFlagged } = require('../analysis/flagged');
 const paths = require('../../core/paths');
 const { createTreeLiveEvents, FINGERPRINT_SQL } = require('./liveEvents');
@@ -269,10 +270,23 @@ function mapRowsToVisitors(rows, vipSet) {
         const pledgeText = String(r.comment || metadata.pledge || '').trim();
         const pledgeSnippet = pledgeText.length > 140 ? `${pledgeText.slice(0, 137)}...` : pledgeText;
         const isVip = canShowName && vipSet.has(name.toLowerCase());
-        const badge = getBadgeSummary({
-            pledge: pledgeText,
-            pledgeTopic: metadata.pledgeTopic || ''
-        });
+        // Every topic the visitor chose in the pledge form (several can be ticked), each its own badge. With more
+        // than one badge the leaf is "Multiple pledges" (MULTI_PLEDGE_KEY), brown unless the admin sets another
+        // colour (Owner: Role 2, Wei Jie); with one, that badge as before.
+        const pledgeTopics = Array.isArray(metadata.pledgeTopics) && metadata.pledgeTopics.length
+            ? metadata.pledgeTopics.map(String)
+            : (metadata.pledgeTopic ? String(metadata.pledgeTopic).split(',').map(topic => topic.trim()).filter(Boolean) : []);
+        const badgeKeys = determineBadgeKeys({ pledgeTopics });
+        const badge = badgeKeys.length > 1
+            ? {
+                badgeKey: MULTI_PLEDGE_KEY,
+                badgeName: `Multiple pledges: ${badgeKeys.map(key => BADGE_CONFIGS[key]?.name || key).join(', ')}`,
+                badgeColor: MULTI_PLEDGE_COLOUR
+            }
+            : getBadgeSummary({
+                pledge: pledgeText,
+                pledgeTopic: metadata.pledgeTopic || pledgeTopics[0] || ''
+            });
 
         return {
             id: r.feedback_id || r.user_id,
@@ -284,7 +298,9 @@ function mapRowsToVisitors(rows, vipSet) {
             badgeKey: badge.badgeKey,
             badgeName: badge.badgeName,
             badgeColor: badge.badgeColor,
+            badgeKeys, // every badge of the topics chosen (one for most visitors)
             pledgeTopic: metadata.pledgeTopic || '',
+            pledgeTopics,
             pledgeSnippet,
             hasPublicName: canShowName,
             privacyLabel: canShowName ? 'Name shown with long-term consent' : 'Name hidden for privacy'

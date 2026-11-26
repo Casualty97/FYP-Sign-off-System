@@ -105,6 +105,10 @@ function getDefaultBadgeLeafColors() {
     return { ...DEFAULT_BADGE_LEAF_COLORS };
 }
 
+// The leaf colours under Badge Leaf Styling: every badge (as the badge emails), and Multiple pledges, for a
+// visitor who chose several pledge topics (a leaf colour only, no email of its own; Owner: Role 2, Wei Jie).
+const BADGE_LEAF_STYLE_BADGES = [...DEFAULT_BADGE_EMAIL_BADGES, { key: 'multi-pledge', name: 'Multiple pledges' }];
+
 function normalizeHexColor(value, fallback = '#4a7c59') {
     const color = String(value || '').trim();
     return /^#[0-9a-fA-F]{6}$/.test(color) ? color : fallback;
@@ -150,7 +154,7 @@ function setSharedLeafScale(value) {
 
 function collectBadgeLeafStyleColors() {
     const defaults = getDefaultBadgeLeafColors();
-    return DEFAULT_BADGE_EMAIL_BADGES.reduce((colors, badge) => {
+    return BADGE_LEAF_STYLE_BADGES.reduce((colors, badge) => {
         colors[badge.key] = normalizeHexColor(getInputValue(getBadgeLeafColorInputId(badge.key)), defaults[badge.key]);
         return colors;
     }, {});
@@ -158,7 +162,7 @@ function collectBadgeLeafStyleColors() {
 
 function updateBadgeLeafPreviews() {
     const colors = collectBadgeLeafStyleColors();
-    DEFAULT_BADGE_EMAIL_BADGES.forEach((badge) => {
+    BADGE_LEAF_STYLE_BADGES.forEach((badge) => {
         const preview = document.querySelector(`[data-preview-badge-leaf="${badge.key}"]`);
         if (preview) {
             preview.style.setProperty('--badge-preview-color', colors[badge.key]);
@@ -207,7 +211,7 @@ function bindFeedbackAndLeafStyleControls() {
         }
     });
 
-    DEFAULT_BADGE_EMAIL_BADGES.forEach((badge) => {
+    BADGE_LEAF_STYLE_BADGES.forEach((badge) => {
         const input = document.getElementById(getBadgeLeafColorInputId(badge.key));
         if (input && !input.dataset.badgeLeafBound) {
             input.addEventListener('input', updateBadgeLeafPreviews);
@@ -446,7 +450,7 @@ function populateParameterForm(config) {
 
     const badgeLeafColors = getBadgeLeafStyleColors(badgeLeafStyles.colors);
     const defaultBadgeLeafColors = getDefaultBadgeLeafColors();
-    DEFAULT_BADGE_EMAIL_BADGES.forEach((badge) => {
+    BADGE_LEAF_STYLE_BADGES.forEach((badge) => {
         setInputValue(
             getBadgeLeafColorInputId(badge.key),
             normalizeHexColor(badgeLeafColors[badge.key], defaultBadgeLeafColors[badge.key])

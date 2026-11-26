@@ -165,7 +165,8 @@ const DEFAULT_CONFIG = {
       "sustainable-living-advocate": "#16a34a",
       "ocean-guardian": "#0284c7",
       "governance-guardian": "#7c3aed",
-      "social-champion": "#d97706"
+      "social-champion": "#d97706",
+      "multi-pledge": "#8b5a2b" // a visitor who chose several pledge topics (Owner: Role 2, Wei Jie)
     }
   },
   photoSettings: {

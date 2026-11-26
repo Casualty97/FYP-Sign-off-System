@@ -219,7 +219,8 @@ const DEFAULT_BADGE_LEAF_COLORS = {
     'sustainable-living-advocate': '#16a34a',
     'ocean-guardian': '#0284c7',
     'governance-guardian': '#7c3aed',
-    'social-champion': '#d97706'
+    'social-champion': '#d97706',
+    'multi-pledge': '#8b5a2b' // a leaf colour only (no badge email): several pledge topics chosen
 };
 
 function escapeBadgeTemplateHtml(value) {

@@ -245,6 +245,7 @@ const BADGE_LEAF_COLOURS = { // the 2D tree's default badge colours
   'feedback-completer': '#4a7c59', 'climate-champion': '#0f766e', 'renewable-innovator': '#f59e0b',
   'sustainable-living-advocate': '#16a34a', 'ocean-guardian': '#0284c7', 'governance-guardian': '#7c3aed',
   'social-champion': '#d97706',
+  'multi-pledge': '#8b5a2b', // a visitor who chose several pledge topics: brown, unless the admin sets another
 };
 // The feedback leaves take the admin's badge colours in both looks (badgeColour, tintLeaf). With "Colour
 // leaves by their badge" off, the glowing look's leaves glow in three colours, as the tree's own glowing

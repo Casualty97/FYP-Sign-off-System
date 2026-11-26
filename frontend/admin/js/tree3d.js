@@ -153,7 +153,8 @@ const TREE3D_BADGES = [
     ['sustainable-living-advocate', 'Sustainable Living Advocate', '#16a34a'],
     ['ocean-guardian', 'Ocean Guardian', '#0284c7'],
     ['governance-guardian', 'Governance Guardian', '#7c3aed'],
-    ['social-champion', 'Social Champion', '#d97706']
+    ['social-champion', 'Social Champion', '#d97706'],
+    ['multi-pledge', 'Multiple pledges (several topics chosen)', '#8b5a2b']
 ];
 
 // The rain areas the 3D page lists come from the same public Singapore feed.

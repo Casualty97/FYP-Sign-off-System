@@ -130,8 +130,12 @@ const LEAF_NAME_WEIGHTS = [400, 500, 600, 700, 800];
 const VIP_LEAF_COLOURS = ['#d4af37', '#ffd700', '#e6b422', '#f0c75e', '#b8860b'];
 const TITLE_POSITIONS = ['auto', 'top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
 // The badges a feedback leaf can carry (/api/tree badgeKey), with the 2D tree's default badge colours.
+// A visitor who chose several pledge topics in the pledge form (so several badges) has one leaf, "Multiple
+// pledges" (MULTI_PLEDGE_KEY: features/tree/routes.js), brown by default, a colour the admin can change.
+const MULTI_PLEDGE_KEY = 'multi-pledge';
+const MULTI_PLEDGE_COLOUR = '#8b5a2b';
 const BADGE_KEYS = ['feedback-completer', 'climate-champion', 'renewable-innovator', 'sustainable-living-advocate',
-  'ocean-guardian', 'governance-guardian', 'social-champion'];
+  'ocean-guardian', 'governance-guardian', 'social-champion', MULTI_PLEDGE_KEY];
 const DEFAULT_BADGE_LEAF_COLORS = Object.freeze({
   'feedback-completer': '#4a7c59',
   'climate-champion': '#0f766e',
@@ -139,7 +143,8 @@ const DEFAULT_BADGE_LEAF_COLORS = Object.freeze({
   'sustainable-living-advocate': '#16a34a',
   'ocean-guardian': '#0284c7',
   'governance-guardian': '#7c3aed',
-  'social-champion': '#d97706'
+  'social-champion': '#d97706',
+  [MULTI_PLEDGE_KEY]: MULTI_PLEDGE_COLOUR
 });
 
 const DEFAULT_TITLE_BOX = Object.freeze({
@@ -446,6 +451,8 @@ module.exports = {
   DEFAULT_TREE3D_PARAMETERS,
   DEFAULT_TITLE_BOX,
   WEATHER_AREA,
+  MULTI_PLEDGE_KEY,
+  MULTI_PLEDGE_COLOUR,
   MUSIC_TRACK_FOLDER,
   MUSIC_EXTENSIONS,
   MUSIC_MAX_MB,

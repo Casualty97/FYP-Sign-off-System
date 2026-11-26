@@ -146,7 +146,8 @@ const DEFAULT_BADGE_LEAF_COLORS = Object.freeze({
     'sustainable-living-advocate': '#16a34a',
     'ocean-guardian': '#0284c7',
     'governance-guardian': '#7c3aed',
-    'social-champion': '#d97706'
+    'social-champion': '#d97706',
+    'multi-pledge': '#8b5a2b' // a visitor who chose several pledge topics (Owner: Role 2, Wei Jie)
 });
 
 class TreeManager {
@@ -245,6 +246,13 @@ class TreeManager {
                 shortLabel: 'Social',
                 className: 'badge-social',
                 preferredSide: 'RightLeaf.png'
+            },
+            // Several pledge topics chosen in the pledge form: brown by default (Owner: Role 2, Wei Jie).
+            'multi-pledge': {
+                label: 'Multiple pledges',
+                shortLabel: 'Multiple',
+                className: 'badge-multi',
+                preferredSide: null
             }
         };
 
