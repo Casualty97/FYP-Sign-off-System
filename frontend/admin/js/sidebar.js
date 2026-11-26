@@ -96,9 +96,41 @@ function applySidebarRole(role) {
     navRefreshGroups();
     navMirrorBadges();
     if (typeof refreshAdminAiState === 'function') refreshAdminAiState(); // the AI Settings switches (aiSettings.js)
+    applyTreeSettingsViewOnly(!admin);
     const input = document.getElementById('nav-search');
     navFilter(input ? input.value : '');
 }
+
+// <Jun Kai start> Tree Settings is open to IT Admins and IT Staff, but every change on it needs a System Admin (the server
+// answers 403). For them the page is view only: a note says so, the fields are greyed out and the buttons that would
+// change something (save, upload, select, revert, reset) are hidden. Switching tabs and Refresh Data stay.
+const TREE_CHANGE_ACTION = /^(save|upload|select|revert|reset)[A-Z]/;
+
+function applyTreeSettingsViewOnly(viewOnly) {
+    const page = document.getElementById('tree-adjustment-page');
+    if (!page) return;
+    page.classList.toggle('is-view-only', viewOnly);
+    page.querySelectorAll('button[onclick]').forEach((button) => {
+        if (TREE_CHANGE_ACTION.test(button.getAttribute('onclick').trim())) button.setAttribute('data-tree-change', '');
+    });
+    // only the fields locked here are opened again, so a field the page itself keeps off stays off
+    page.querySelectorAll('input, select, textarea').forEach((field) => {
+        if (viewOnly && !field.disabled) { field.disabled = true; field.setAttribute('data-tree-locked', ''); }
+        if (!viewOnly && field.hasAttribute('data-tree-locked')) { field.disabled = false; field.removeAttribute('data-tree-locked'); }
+    });
+    let note = document.getElementById('tree-view-only-note');
+    if (viewOnly && !note) {
+        note = document.createElement('p');
+        note.id = 'tree-view-only-note';
+        note.className = 'ui-note tree-view-only-note';
+        note.setAttribute('role', 'note');
+        note.textContent = 'View only. A System Admin changes the tree settings; you can look at them here.';
+        const header = page.querySelector('.page-header');
+        if (header) header.after(note); else page.prepend(note);
+    }
+    if (note) note.hidden = !viewOnly;
+}
+// <Jun Kai end>
 
 function navPlain(text) {
     return String(text || '').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, ' ').trim();

@@ -34,6 +34,14 @@ Colour themes for the admin page itself, saved per admin user.
 - Links read --l3-link (falls back to the accent). In dark mode the kit's own link colour is #60a5fa: the button blue read only about 3:1 on the dark cards. Chosen chips use the button text colour instead of a fixed white.
 - Checked with build-check/check-theme-map.js (18 steps: Emerald and Navy cards themes, light and dark, all 23 rebuilt pages, a page with its own colours, old-style pages, a Light/Dark switch without a reload, sign out), theme-snapshot.js with theme-compare.js (untouched account and the old default theme against main), and theme-reach.js.
 
+**Starter themes** (26 Nov 2026, Jun Kai)
+
+- Style & Theme has a Starter themes row under the saved themes. For now it holds Emerald: a very light mint page (#ECFDF5), a white header and sidebar, dark green texts and emerald buttons (#047857, white text reads 5.5:1 on it). The user asked for a better looking green than the dark green header and strong light green of the mock-ups; Emerald was my pick of three (Sage, Emerald, Teal) and was built after two hours without an answer.
+- Use this theme saves it as one of the admin's own themes (POST /api/admin/saved-themes, one of the 6 places) and uses it at once. If the admin already has a theme called Emerald, the button says Apply and uses that one, so no second copy is made. With all 6 places used the button is off and the card says to delete a saved theme first.
+- It changes nothing for an admin who does not pick it. In dark mode only its accent shows, like every theme (option A above).
+- The list is THEME_STARTERS in themes.js; another starter is one more entry there.
+- Checked with build-check/check-starter.js (11 steps).
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |
