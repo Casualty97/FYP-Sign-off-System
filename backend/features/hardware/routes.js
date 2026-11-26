@@ -208,7 +208,7 @@ router.get('/settings', auth.requireAuth, (req, res) => {
     res.json({ success: true, settings: settings.read(), limits: settings.LIMITS, alerts: settings.readAlerts(), alertLimits: settings.ALERT_LIMITS, alertDefaults: settings.ALERT_DEFAULTS });
 });
 
-router.put('/settings', auth.requireAuth, (req, res) => {
+router.put('/settings', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     const result = settings.validate(req.body);
     if (result.error) return res.status(400).json({ success: false, error: result.error });
     try {

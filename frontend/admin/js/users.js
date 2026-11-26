@@ -255,9 +255,9 @@ function updateUserManagementTable(usersData) {
 // stays right when a page is added.
 const USERS_ROLES = [
     { value: 'system_admin', name: 'System Admin', lead: () => 'Everything, including users and settings',
-        points: () => ['Every page and every setting.', 'The only role that can add users, show visitors\' email addresses, and export or delete visitor data.'] },
+        points: () => ['Every page and every setting.', 'The only role that can add users, show visitors\' email addresses, export visitor data and delete archived records for good.'] },
     { value: 'IT_admin', name: 'IT Admin', lead: (pages) => `Daily work on ${pages.length} pages`,
-        points: (pages) => [`Opens ${pages.join(', ')}.`, 'Can approve or reject pledges, acknowledge and resolve incidents, and delete feedback.', 'Cannot change settings, apart from their own theme.'] },
+        points: (pages) => [`Opens ${pages.join(', ')}.`, 'Can approve or reject pledges, acknowledge and resolve incidents, send a test incident and delete feedback.', 'Cannot change settings, apart from their own theme and the names of the tablets.'] },
     { value: 'IT_staff', name: 'IT Staff', lead: () => 'Same as IT Admin, without deleting',
         points: () => ['The same pages and work as IT Admin.', 'Cannot delete feedback.'] }
 ];
