@@ -992,7 +992,7 @@ async function saveParameters() {
 
 // Run configured archive update from the admin panel (Done by Caeden)
 async function runConfiguredArchiveNow() {
-    if (!confirm('Run archive update now using the selected archive timing? Save changes first if you changed the timing.')) return;
+    if (!(await uiConfirm({ title: 'Run the archive update now?', message: 'It uses the archive timing saved on this page. Save your changes first if you changed the timing.', confirmText: 'Run now' }))) return; // <Jun Kai/> a kit window instead of the browser's box
 
     try {
         setParameterStatus('Running archive update...', 'info');
