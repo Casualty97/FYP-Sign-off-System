@@ -727,42 +727,101 @@
                 </div>
                 <!-- Digital Tree Page (DONE BY PRETI)-->
                 <div id="digital-tree-page" class="page">
-                    <div class="page-header">
-                        <h2>Tree Leaves</h2>
-                        <p>View visitor tree data and statistics</p>
+                    <!-- <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B): the numbers of this year's tree on the
+                         left, the visitor list with search and pages on the right. The ids of the year, the visitor count and
+                         the refresh are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Tree Leaves</h2>
+                            <p>Visitors on this year's digital tree. The tree shows visitors from <span id="current-year"></span> only.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('tree-adjustment')"><span data-fb-icon="sliders"></span>Tree Settings</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="refreshTreeData()"><span data-fb-icon="refresh"></span>Refresh</button>
+                        </div>
                     </div>
 
-
-
-                    <div class="tree-section">
-                        <div class="section-header">
-                            <h3>Tree Management</h3>
-                            <button class="btn-primary" onclick="refreshTreeData()">🔄 Refresh</button>
+                    <div class="dt-layout">
+                        <div class="dt-side">
+                            <section class="ui-card dt-preview-card" aria-labelledby="dt-preview-title">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3 id="dt-preview-title">How the tree looks now</h3>
+                                        <p id="dt-preview-mode">A small copy of the tree screen</p>
+                                    </div>
+                                    <a class="ui-btn ui-btn-secondary" id="dt-open-tree" href="/tree" target="_blank" rel="noopener"><span data-fb-icon="monitor"></span>Open the tree</a>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="dt-screen" id="dt-screen" data-state="idle">
+                                        <iframe id="dt-tree-frame" title="A small copy of the tree screen" tabindex="-1" aria-hidden="true" inert sandbox="allow-scripts allow-same-origin" referrerpolicy="same-origin"></iframe>
+                                        <span class="dt-screen-note" id="dt-screen-note">Loading the tree</span>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="dt-facts">
+                                        <div><span class="ui-fact-label">Leaves</span><span class="ui-fact-value" id="tree-count">0</span><span class="ui-fact-hint">one for each visit</span></div>
+                                        <div><span class="ui-fact-label">Golden</span><span class="ui-fact-value" id="dt-vip-leaves">0</span><span class="ui-fact-hint">leaves of VIPs</span></div>
+                                        <div><span class="ui-fact-label">Names hidden</span><span class="ui-fact-value" id="dt-hidden-names">0</span><span class="ui-fact-hint">no consent to show</span></div>
+                                    </div>
+                                </div>
+                            </section>
+                            <!-- VIPs (admin redesign, VIP B): a card on Tree Leaves instead of their own page, for a
+                                 System Admin only (the VIP routes refuse anyone else, and vips.js hides the card for them). The
+                                 ids vip-count and vip-list are the old ones; the VIPs link and showPage('vip') land here. -->
+                            <section class="ui-card dt-vip-card" id="dt-vip-card" aria-labelledby="dt-vip-title" hidden>
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3 id="dt-vip-title">VIPs<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: VIPs" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="VIPs"><ul><li>Every leaf whose name matches a VIP is golden on the tree. Capital letters do not matter.</li><li>A visitor who did not agree to show their name cannot be a VIP, so their row has no Make VIP.</li><li>The tree screen shows a change within 30 seconds.</li></ul></template></span></h3>
+                                        <p>Golden leaves on the tree</p>
+                                    </div>
+                                    <span class="ui-pill ui-pill-muted" id="vip-count">Loading</span>
+                                </div>
+                                <div class="ui-card-body">
+                                    <form class="dt-vip-add" onsubmit="event.preventDefault(); addVip();">
+                                        <label class="ui-sr-only" for="vip-name-input">VIP name</label>
+                                        <input type="text" id="vip-name-input" class="ui-input" placeholder="Type a name" maxlength="255" autocomplete="off">
+                                        <button type="submit" class="ui-btn ui-btn-primary" id="vip-add-btn"><span data-fb-icon="plus"></span>Add VIP</button>
+                                    </form>
+                                    <p class="ui-help dt-vip-help">Or press Make VIP on a visitor in the list, so the name is never typed wrong.</p>
+                                    <div class="ui-status-slot dt-vip-status" id="vip-status" role="status" aria-live="polite"></div>
+                                    <div class="dt-vip-list" id="vip-list"><div class="ui-empty">Loading VIPs</div></div>
+                                </div>
+                            </section>
                         </div>
 
-                        <div class="tree-info">
-                            <h4>Current Year Visitors: <span id="tree-count">0</span></h4>
-                            <p>The digital tree shows visitors from <span id="current-year"></span> only.</p>
-                        </div>
-
-                        <table class="simple-table">
-                            <thead> 
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Visit Count</th>
-                                    <th>Last Visit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                <tr>
-                                    <td colspan="3" style="text-align: center; padding: 40px; color: #64748b;">
-                                        Loading tree data...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <section class="ui-card dt-list-card" aria-label="Visitors on the tree">
+                            <div class="ui-filterbar" role="search" aria-label="Search the visitors on the tree">
+                                <label class="ui-search">
+                                    <span class="ui-sr-only">Search a visitor</span>
+                                    <span class="ui-search-icon" data-fb-icon="search"></span>
+                                    <input type="search" id="dt-search" placeholder="Search a visitor" autocomplete="off" maxlength="255" oninput="filterTreeVisitors()">
+                                </label>
+                            </div>
+                            <div class="ui-table-wrap">
+                                <table class="ui-table dt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th class="dt-num">Visits</th>
+                                            <th>Leaf added</th>
+                                            <th class="dt-tag-col"><span class="ui-sr-only">VIP</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="4" class="ui-empty">Loading the tree</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="ui-pager">
+                                <span><span id="dt-page-info" aria-live="polite">Loading</span><span class="ui-pager-status" id="dt-status" role="status"></span></span>
+                                <span class="ui-pager-buttons">
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="dt-prev" onclick="changeTreeVisitorPage(-1)" disabled>Previous</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="dt-next" onclick="changeTreeVisitorPage(1)" disabled>Next</button>
+                                </span>
+                            </div>
+                        </section>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Digital Tree Adjustment Page (DONE BY Yu Kang)-->
@@ -1415,24 +1474,46 @@
 
                 <!-- Question Management Page (DONE BY PRETI)-->
                 <div id="questions-page" class="page">
-                    <div class="page-header">
-                        <h2>Questions</h2>
-                        <p>Manage feedback questions and their options</p>
-                    </div>
-
-                    <div class="user-section">
-                        <div class="section-header">
-                            <h3>Feedback Questions</h3>
-                            <button class="btn-primary" onclick="showAddQuestionModal()">+ Add Question</button>
+                    <!-- <Jun Kai start> Questions in the new look (admin redesign, Questions B): slim rows in the order
+                         visitors see them, and Add and Edit open inside the list instead of a window over the page -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Questions</h2>
+                            <p>The questions on the feedback form, in the order visitors see them.</p>
                         </div>
+                        <button class="ui-btn ui-btn-primary" type="button" onclick="showAddQuestionModal()"><span data-fb-icon="plus"></span>Add question</button>
+                    </div>
+                    <div id="questions-status" class="ui-status-slot qs-status" aria-live="polite"></div>
 
-                        <div id="questions-container">
-                            <!-- Questions will be loaded here dynamically (DONE BY PRETI)-->
-                            <div style="text-align: center; padding: 40px; color: #64748b;">
-                                Loading questions...
+                    <div class="qs-grid">
+                        <div class="qs-list-col">
+                            <div id="questions-new-slot"></div>
+                            <div id="questions-container" class="qs-list">
+                                <div class="ui-card qs-empty">Loading questions...</div>
                             </div>
                         </div>
+
+                        <!-- the live preview (new feature): the feedback form as visitors see it, redrawn while Add or Edit is typed in -->
+                        <aside class="ui-card qs-preview-card" aria-labelledby="qs-preview-title">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3 id="qs-preview-title">How visitors see it<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What the preview shows" title="How this works"><span data-fb-icon="info"></span></button><template class="ui-info-body" data-title="What the preview shows"><ul><li>The feedback form as the kiosk tablet draws it, in English.</li><li>Only active questions are shown, in display order, with the number visitors see in front of each one. A star marks a required question.</li><li>What you type in the open Add or Edit card shows here straight away. Visitors only see it after you save.</li></ul></template></span></h3>
+                                    <p>Updates as you edit</p>
+                                </div>
+                            </div>
+                            <div class="qs-preview-body">
+                                <p id="questions-preview-note" class="qs-preview-note" hidden></p>
+                                <div class="qs-device">
+                                    <div class="qs-screen" id="questions-preview-screen">
+                                        <div class="qs-k-title">Share Your Feedback</div>
+                                        <div id="questions-preview" class="qs-k-list"></div>
+                                        <div class="qs-k-button">Continue to Pledge</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- User Management Page (DONE BY PRETI)-->
@@ -1529,44 +1610,11 @@
                 </div>
 
                 <!-- VIP Management (DONE BY ZAH) -->
-                <div id="vip-page" class="page">
-                    <div class="page-header">
-                        <h2>VIPs</h2>
-                        <p>VIPs will appear as a golden leaf on the tree.</p>
-                    </div>
+                <!-- <Jun Kai start> VIPs are a card on Tree Leaves since the admin redesign (VIP B). This empty page stays only so
+                     showPage('vip') keeps working: vips.js loadVipManagementData opens Tree Leaves with the card in view. -->
+                <div id="vip-page" class="page" aria-hidden="true"></div>
+                <!-- <Jun Kai end> -->
 
-                    <!-- VIP Card -->
-                    <div class="vip-card">
-                        <div class="vip-card-header">
-                            <div>
-                                <h3>VIP List</h3>
-                                <p class="vip-subtext">Add names exactly as they appear in the tree (case-insensitive).</p>
-                            </div>
-
-                            <button class="vip-add-btn" onclick="addVip()">
-                                + Add VIP
-                            </button>
-                        </div>
-
-                        <!-- Status / Info row -->
-                        <div class="vip-info-row">
-                            <div class="vip-info-pill">
-                                👑 Golden Leaf Enabled
-                            </div>
-                            <div class="vip-count" id="vip-count">
-                                Loading...
-                            </div>
-                        </div>
-
-                        <!-- VIP List -->
-                        <div class="vip-list" id="vip-list">
-                            <div class="vip-empty">
-                                Loading VIPs...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-              
                 <!-- Archive Page (DONE BY PRETI)-->
                 <div id="archive-page" class="page">
                     <!-- <Jun Kai start> Archived Feedback (admin redesign, list style A, like Feedback): the list first; ticking
@@ -2287,679 +2335,683 @@
                 </div>
                 
                 <!-- Parameter Adjustment Page -->
-                <div id="parameter-adjustment-page" class="page">
-                    <div class="page-header">
-                        <h2>Kiosk Settings</h2>
-                        <p>Configure system-wide parameters including feedback messages, tree visualization settings, and photo options</p>
-                    </div>
-
-                    <!-- Tabs Navigation -->
-                    <div class="parameter-tabs">
-                        <button class="param-tab active" onclick="switchParameterTab('feedback-tab')">
-                            <span class="tab-icon">💬</span> Feedback Messages
-                        </button>
-                        <button class="param-tab" onclick="switchParameterTab('landing-layout-tab')">
-                            <span class="tab-icon">Layout</span> Start Screen Layout
-                        </button>
-                        <button class="param-tab" onclick="switchParameterTab('content-tab')">
-                            <span class="tab-icon">Text</span> Consent & Pledge Text
-                        </button>
-                        <button class="param-tab" onclick="switchParameterTab('email-tab')">
-                            <span class="tab-icon">Mail</span> Email Content
-                        </button>
-                        <button class="param-tab" onclick="switchParameterTab('features-tab')">
-                            <span class="tab-icon">Flags</span> Feature Toggles
-                        </button>
-                        <button class="param-tab" onclick="switchParameterTab('validation-tab')">
-                            <span class="tab-icon">Rules</span> Validation Rules
-                        </button>
-                        
-                        <button class="param-tab" onclick="switchParameterTab('photo-tab')">
-                            <span class="tab-icon">📸</span> Photo Settings
-                        </button>
-                        <button class="param-tab" onclick="switchParameterTab('assets-tab')">
-                            <span class="tab-icon">Image</span> Backgrounds & Overlays
-                        </button>
-                        <button class="param-tab" onclick="switchParameterTab('archive-tab')">
-                            <span class="tab-icon">Rules</span> Auto Archive
-                        </button>
-                    </div>
-
-                    <!-- Feedback Messages Tab -->
-                    <div id="feedback-tab" class="parameter-section active">
-                        <div class="section-header">
-                            <h3>Feedback Messages Configuration</h3>
-                            <p class="section-description">Edit messages displayed throughout the feedback flow</p>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-thankYouTitle">Thank You Title</label>
-                            <input type="text" id="param-thankYouTitle" placeholder="e.g., Thank You! ☀️" maxlength="100">
-                            <small class="text-muted">Displayed on completion screen</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-thankYouSubtitle">Thank You Subtitle</label>
-                            <input type="text" id="param-thankYouSubtitle" placeholder="e.g., Your feedback makes a difference" maxlength="200">
-                            <small class="text-muted">Secondary message under thank you title</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-thankYouMessage">Thank You Message</label>
-                            <textarea id="param-thankYouMessage" placeholder="Main thank you message..." maxlength="500" rows="3"></textarea>
-                            <small class="text-muted">Main message shown on the completion screen</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-thankYouFooter">Thank You Footer</label>
-                            <textarea id="param-thankYouFooter" placeholder="Thank you message..." maxlength="500" rows="3"></textarea>
-                            <small class="text-muted">Final message shown at the bottom</small>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="form-group">
-                            <label for="param-consentPrompt">Consent Prompt</label>
-                            <textarea id="param-consentPrompt" placeholder="Consent message..." maxlength="500" rows="3"></textarea>
-                            <small class="text-muted">Message on consent page</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-detailsPrompt">Details Prompt</label>
-                            <textarea id="param-detailsPrompt" placeholder="Details prompt..." maxlength="500" rows="3"></textarea>
-                            <small class="text-muted">Message on details collection page</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-feedbackPrompt">Feedback Prompt</label>
-                            <textarea id="param-feedbackPrompt" placeholder="Feedback prompt..." maxlength="500" rows="3"></textarea>
-                            <small class="text-muted">Message on feedback form page</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-pledgePrompt">Pledge Prompt</label>
-                            <textarea id="param-pledgePrompt" placeholder="Pledge prompt..." maxlength="500" rows="3"></textarea>
-                            <small class="text-muted">Message on pledge selection page</small>
+                <div id="parameter-adjustment-page" class="page" data-pa-current="start">
+                    <!-- <Jun Kai start> Kiosk Settings page (admin redesign, Parameter Adjustment B, "follow the visitor's
+                         journey"): the settings are grouped by kiosk screen in the order a visitor sees them, and the
+                         settings that are not about one screen sit under "Behind the scenes". Every control keeps its id,
+                         name, onclick and limits, so parameters.js and the Tree page (which shares saveParameters and
+                         loadParameters) work as before. The nine old tab ids sit on the part that now holds most of that
+                         tab, and switchParameterTab opens it. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Kiosk Settings</h2>
+                            <p>Set up the feedback kiosk in the order a visitor goes through it.</p>
                         </div>
                     </div>
 
-                    <!-- Start Screen Layout Tab -->
-                    <div id="landing-layout-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Start Screen Layout</h3>
-                            <p class="section-description">Adjust the landing text size and position of the start screen elements, with a live demo preview</p>
-                        </div>
+                    <nav class="pa-steps" aria-label="Kiosk screens in the order a visitor sees them">
+                        <button type="button" class="pa-step is-active" data-pa-step="start" aria-controls="pa-group-start" aria-current="step" onclick="showParameterStep('start')"><span class="pa-step-num">1</span><span class="pa-step-text"><strong>Start screen</strong><small>layout, buttons</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="consent" aria-controls="pa-group-consent" onclick="showParameterStep('consent')"><span class="pa-step-num">2</span><span class="pa-step-text"><strong>Consent</strong><small>prompt, days kept</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="details" aria-controls="pa-group-details" onclick="showParameterStep('details')"><span class="pa-step-num">3</span><span class="pa-step-text"><strong>Details</strong><small>name, email rules</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="questions" aria-controls="pa-group-questions" onclick="showParameterStep('questions')"><span class="pa-step-num">4</span><span class="pa-step-text"><strong>Questions</strong><small>prompt</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="pledge" aria-controls="pa-group-pledge" onclick="showParameterStep('pledge')"><span class="pa-step-num">5</span><span class="pa-step-text"><strong>Pledge</strong><small>examples, rules</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="photo" aria-controls="pa-group-photo" onclick="showParameterStep('photo')"><span class="pa-step-num">6</span><span class="pa-step-text"><strong>Photo</strong><small>camera, overlays</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="thanks" aria-controls="pa-group-thanks" onclick="showParameterStep('thanks')"><span class="pa-step-num">7</span><span class="pa-step-text"><strong>Thank you</strong><small>messages</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="email" aria-controls="pa-group-email" onclick="showParameterStep('email')"><span class="pa-step-num">8</span><span class="pa-step-text"><strong>Email</strong><small>content</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                    </nav>
 
-                        <div class="landing-layout-editor">
-                            <div class="landing-layout-controls">
-                                <div class="form-group">
-                                    <label for="layout-landingTextScale">Text Size</label>
-                                    <div class="range-control">
-                                        <input type="range" id="layout-landingTextScale" min="0.75" max="1.4" step="0.05">
-                                        <output id="layout-landingTextScaleValue">1.00x</output>
-                                    </div>
-                                    <small class="text-muted">Scales the landing title, subtitle, brand, and main buttons</small>
-                                </div>
-
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="layout-landingPanelWidth">White Panel Width</label>
-                                        <input type="number" id="layout-landingPanelWidth" min="360" max="1000" step="10">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="layout-landingPanelMinHeight">White Panel Minimum Height</label>
-                                        <input type="number" id="layout-landingPanelMinHeight" min="0" max="900" step="10">
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="layout-landingPanelPadding">White Panel Inner Spacing</label>
-                                    <input type="number" id="layout-landingPanelPadding" min="20" max="120" step="4">
-                                    <small class="text-muted">Increase this to make the white landing area feel roomier</small>
-                                </div>
-
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="layout-landingPanelOffsetX">Form Position X</label>
-                                        <input type="number" id="layout-landingPanelOffsetX" min="-360" max="360" step="10">
-                                        <small class="text-muted">Negative moves left, positive moves right</small>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="layout-landingPanelOffsetY">Form Position Y</label>
-                                        <input type="number" id="layout-landingPanelOffsetY" min="-220" max="220" step="10">
-                                        <small class="text-muted">Negative moves up, positive moves down</small>
-                                    </div>
-                                </div>
-
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="layout-startButtonOffsetX">Start Button Position X</label>
-                                        <input type="number" id="layout-startButtonOffsetX" min="-220" max="220" step="10">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="layout-startButtonOffsetY">Start Button Position Y</label>
-                                        <input type="number" id="layout-startButtonOffsetY" min="-160" max="160" step="10">
-                                    </div>
-                                </div>
-
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="layout-startButtonWidth">Start Button Width</label>
-                                        <input type="number" id="layout-startButtonWidth" min="180" max="600" step="10">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="layout-startButtonHeight">Start Button Height</label>
-                                        <input type="number" id="layout-startButtonHeight" min="44" max="120" step="4">
-                                    </div>
-                                </div>
-
-                                <div class="parameter-field-heading compact-heading">
-                                    <h4>View Pledgeboards Button</h4>
-                                </div>
-
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="layout-pledgeboardButtonOffsetX">Pledgeboard Button Position X</label>
-                                        <input type="number" id="layout-pledgeboardButtonOffsetX" min="-220" max="220" step="10">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="layout-pledgeboardButtonOffsetY">Pledgeboard Button Position Y</label>
-                                        <input type="number" id="layout-pledgeboardButtonOffsetY" min="-160" max="160" step="10">
-                                    </div>
-                                </div>
-
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="layout-pledgeboardButtonWidth">Pledgeboard Button Width</label>
-                                        <input type="number" id="layout-pledgeboardButtonWidth" min="180" max="900" step="10">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="layout-pledgeboardButtonHeight">Pledgeboard Button Height</label>
-                                        <input type="number" id="layout-pledgeboardButtonHeight" min="44" max="140" step="4">
-                                    </div>
-                                </div>
-
-                                <button type="button" class="btn-secondary" onclick="resetLandingLayoutPreview()">
-                                    Reset Layout Values
-                                </button>
-                            </div>
-
-                            <div class="landing-layout-preview" aria-label="Start screen layout preview">
-                                <div class="landing-preview-stage">
-                                    <div class="landing-preview-card" id="landing-preview-card">
-                                        <div class="landing-preview-brand">
-                                            <span class="landing-preview-icon">+</span>
-                                            <span>Community Feedback Portal</span>
+                    <div class="pa-work has-preview">
+                        <div class="pa-editor">
+                            <!-- Step 1: Start screen (was the Start Screen Layout tab) -->
+                            <section class="ui-card pa-group" id="pa-group-start" data-pa-group="start" data-pa-name="Start screen">
+                                <div class="ui-card-header"><div><h3>Step 1 of 8: Start screen</h3><p>Text size and position of the start screen parts. The texts themselves are in <button type="button" class="ui-link" onclick="showPage('form-management')">Start Screen Text</button>.</p></div></div>
+                                <div class="ui-card-body" id="landing-layout-tab">
+                                    <div>
+                                        <div class="ui-form-grid pa-form">
+                                            <div class="ui-field ui-field-wide">
+                                                <label class="ui-label" for="layout-landingTextScale">Text size</label>
+                                                <div class="pa-range">
+                                                    <input type="range" id="layout-landingTextScale" min="0.75" max="1.4" step="0.05">
+                                                    <output id="layout-landingTextScaleValue" for="layout-landingTextScale">1.00x</output>
+                                                </div>
+                                                <span class="ui-help">Scales the title, subtitle, brand and main buttons</span>
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-landingPanelWidth">White panel width</label>
+                                                <input type="number" id="layout-landingPanelWidth" class="ui-input" min="360" max="1000" step="10">
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-landingPanelMinHeight">White panel minimum height</label>
+                                                <input type="number" id="layout-landingPanelMinHeight" class="ui-input" min="0" max="900" step="10">
+                                            </div>
+                                            <div class="ui-field ui-field-wide">
+                                                <label class="ui-label" for="layout-landingPanelPadding">White panel inner spacing</label>
+                                                <input type="number" id="layout-landingPanelPadding" class="ui-input" min="20" max="120" step="4">
+                                                <span class="ui-help">A higher number makes the white panel roomier</span>
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-landingPanelOffsetX">Form position X</label>
+                                                <input type="number" id="layout-landingPanelOffsetX" class="ui-input" min="-360" max="360" step="10">
+                                                <span class="ui-help">Below 0 moves left, above 0 moves right</span>
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-landingPanelOffsetY">Form position Y</label>
+                                                <input type="number" id="layout-landingPanelOffsetY" class="ui-input" min="-220" max="220" step="10">
+                                                <span class="ui-help">Below 0 moves up, above 0 moves down</span>
+                                            </div>
+                                            <h4 class="pa-subhead ui-field-wide">Start button</h4>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-startButtonOffsetX">Position X</label>
+                                                <input type="number" id="layout-startButtonOffsetX" class="ui-input" min="-220" max="220" step="10">
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-startButtonOffsetY">Position Y</label>
+                                                <input type="number" id="layout-startButtonOffsetY" class="ui-input" min="-160" max="160" step="10">
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-startButtonWidth">Width</label>
+                                                <input type="number" id="layout-startButtonWidth" class="ui-input" min="180" max="600" step="10">
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-startButtonHeight">Height</label>
+                                                <input type="number" id="layout-startButtonHeight" class="ui-input" min="44" max="120" step="4">
+                                            </div>
+                                            <h4 class="pa-subhead ui-field-wide">View Pledgeboards button</h4>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-pledgeboardButtonOffsetX">Position X</label>
+                                                <input type="number" id="layout-pledgeboardButtonOffsetX" class="ui-input" min="-220" max="220" step="10">
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-pledgeboardButtonOffsetY">Position Y</label>
+                                                <input type="number" id="layout-pledgeboardButtonOffsetY" class="ui-input" min="-160" max="160" step="10">
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-pledgeboardButtonWidth">Width</label>
+                                                <input type="number" id="layout-pledgeboardButtonWidth" class="ui-input" min="180" max="900" step="10">
+                                            </div>
+                                            <div class="ui-field">
+                                                <label class="ui-label" for="layout-pledgeboardButtonHeight">Height</label>
+                                                <input type="number" id="layout-pledgeboardButtonHeight" class="ui-input" min="44" max="140" step="4">
+                                            </div>
                                         </div>
-                                        <div class="landing-preview-languages">
-                                            <span>English</span>
-                                            <span>Bahasa Melayu</span>
-                                            <span>Chinese</span>
-                                        </div>
-                                        <h4>Let's turn your ideas into reality</h4>
-                                        <p>Share your thoughts and help us improve our services. Your feedback matters.</p>
-                                        <button type="button" id="landing-preview-start">Start Feedback Form</button>
-                                        <button type="button" class="landing-preview-pledge">View Pledgeboards</button>
+                                        <button type="button" class="ui-btn ui-btn-secondary pa-inline-btn" onclick="resetLandingLayoutPreview()"><span data-fb-icon="refresh"></span>Reset layout values</button>
                                     </div>
                                 </div>
-                            </div>
+                            </section>
+
+                            <!-- Step 2: Consent -->
+                            <section class="ui-card pa-group" id="pa-group-consent" data-pa-group="consent" data-pa-name="Consent" hidden>
+                                <div class="ui-card-header"><div><h3>Step 2 of 8: Consent</h3><p>The consent text and how long temporary records are kept.</p></div></div>
+                                <div class="ui-card-body">
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-consentPrompt">Consent prompt</label>
+                                            <textarea id="param-consentPrompt" class="ui-input pa-textarea" placeholder="Consent message..." maxlength="500" rows="3"></textarea>
+                                            <span class="ui-help">Text under the title of the consent screen</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-temporaryRetentionDays">Temporary retention (days)</label>
+                                            <input type="number" id="param-temporaryRetentionDays" class="ui-input" min="1" max="365" step="1" placeholder="7">
+                                            <span class="ui-help">Used by the consent text and the automatic clean up of temporary records</span>
+                                        </div>
+                                    </div>
+                                    <p class="ui-note">Visitors do not see a consent screen at the moment: the kiosk starts at Details and keeps new visits long term. The number of days still decides when older temporary records are cleaned up.</p>
+                                </div>
+                            </section>
+
+                            <!-- Step 3: Details (holds the old Validation Rules tab id: its name and email rules are here) -->
+                            <section class="ui-card pa-group" id="pa-group-details" data-pa-group="details" data-pa-name="Details" hidden>
+                                <div class="ui-card-header"><div><h3>Step 3 of 8: Details</h3><p>The screen where visitors type their name and email.</p></div></div>
+                                <div class="ui-card-body">
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-detailsPrompt">Details prompt</label>
+                                            <textarea id="param-detailsPrompt" class="ui-input pa-textarea" placeholder="Details prompt..." maxlength="500" rows="3"></textarea>
+                                            <span class="ui-help">Text under the title of the details screen</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Validation rules (DONE BY CAEDEN) -->
+                                <div class="ui-card-body" id="validation-tab">
+                                    <div class="pa-settings">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Name required</strong><small>A visitor cannot go on without a name</small></span><span class="ui-switch"><input type="checkbox" id="rule-nameRequired"><span class="ui-switch-track"></span></span></label>
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Email required</strong><small>A visitor cannot go on without an email</small></span><span class="ui-switch"><input type="checkbox" id="rule-emailRequired"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="rule-nameMinLength">Name minimum length</label>
+                                            <input type="number" id="rule-nameMinLength" class="ui-input" min="0" max="50" step="1">
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="rule-nameMaxLength">Name maximum length</label>
+                                            <input type="number" id="rule-nameMaxLength" class="ui-input" min="1" max="200" step="1">
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="rule-dailySubmissionLimitPerEmail">Daily feedback limit per email</label>
+                                            <input type="number" id="rule-dailySubmissionLimitPerEmail" class="ui-input pa-short" min="0" max="20" step="1">
+                                            <span class="ui-help">Most feedback forms one email can send in a Singapore day. 0 means no limit.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Step 4: Questions -->
+                            <section class="ui-card pa-group" id="pa-group-questions" data-pa-group="questions" data-pa-name="Questions" hidden>
+                                <div class="ui-card-header"><div><h3>Step 4 of 8: Questions</h3><p>The feedback questions screen. The questions themselves are in <button type="button" class="ui-link" onclick="showPage('questions')">Questions</button>.</p></div></div>
+                                <div class="ui-card-body">
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-feedbackPrompt">Feedback prompt</label>
+                                            <textarea id="param-feedbackPrompt" class="ui-input pa-textarea" placeholder="Feedback prompt..." maxlength="500" rows="3"></textarea>
+                                            <span class="ui-help">Text under the title of the questions screen</span>
+                                        </div>
+                                    </div>
+                                    <div class="pa-settings pa-settings-gap">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Required questions enforced</strong><small>A visitor must answer the questions marked as required</small></span><span class="ui-switch"><input type="checkbox" id="rule-requiredQuestionsEnabled"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Step 5: Pledge (holds the old Consent & Pledge Text tab id: its pledge examples are here) -->
+                            <section class="ui-card pa-group" id="pa-group-pledge" data-pa-group="pledge" data-pa-name="Pledge" hidden>
+                                <div class="ui-card-header"><div><h3>Step 5 of 8: Pledge</h3><p>The screen where visitors write a pledge.</p></div></div>
+                                <div class="ui-card-body">
+                                    <div class="pa-settings">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Pledge step</strong><small>Ask visitors to make a pledge before the photo</small></span><span class="ui-switch"><input type="checkbox" id="flag-pledgeEnabled"><span class="ui-switch-track"></span></span></label>
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Pledge required</strong><small>A visitor cannot go on without a pledge</small></span><span class="ui-switch"><input type="checkbox" id="rule-pledgeRequired"><span class="ui-switch-track"></span></span></label>
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Pledge topic required</strong><small>A visitor must pick a topic for the pledge</small></span><span class="ui-switch"><input type="checkbox" id="rule-pledgeTopicRequired"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-pledgePrompt">Pledge prompt</label>
+                                            <textarea id="param-pledgePrompt" class="ui-input pa-textarea" placeholder="Pledge prompt..." maxlength="500" rows="3"></textarea>
+                                            <span class="ui-help">Text under the title of the pledge screen</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="rule-pledgeMinLength">Pledge minimum length</label>
+                                            <input type="number" id="rule-pledgeMinLength" class="ui-input" min="0" max="200" step="1">
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="rule-pledgeMaxLength">Pledge maximum length</label>
+                                            <input type="number" id="rule-pledgeMaxLength" class="ui-input" min="1" max="2000" step="1">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body" id="content-tab">
+                                    <h4 class="pa-subhead">Pledge examples</h4>
+                                    <p class="ui-help pa-subhead-help">Three example pledge lines. The pledge screen shows the Smart Pledge Coach in their place at the moment. Campaign examples are in <button type="button" class="ui-link" onclick="showParameterStep('campaign', true)">Smart campaign mode</button>.</p>
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-pledgeExample1">Pledge example 1</label>
+                                            <input type="text" id="param-pledgeExample1" class="ui-input" maxlength="180" placeholder="Carry a reusable bottle and cutlery every day">
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-pledgeExample2">Pledge example 2</label>
+                                            <input type="text" id="param-pledgeExample2" class="ui-input" maxlength="180" placeholder="Sort waste properly and recycle whenever possible">
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-pledgeExample3">Pledge example 3</label>
+                                            <input type="text" id="param-pledgeExample3" class="ui-input" maxlength="180" placeholder="Reduce food waste by taking only what I can finish">
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Step 6: Photo (holds the old Feature Toggles and Photo Settings tab ids) -->
+                            <section class="ui-card pa-group" id="pa-group-photo" data-pa-group="photo" data-pa-name="Photo" hidden>
+                                <div class="ui-card-header"><div><h3>Step 6 of 8: Photo</h3><p>Taking or uploading the photo, the beauty filter, the Boomerang and the overlay.</p></div></div>
+                                <!-- Feature toggles (DONE BY CAEDEN) -->
+                                <div class="ui-card-body" id="features-tab">
+                                    <div class="pa-settings">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Desktop camera capture</strong><small>Use live video camera capture on desktop kiosks</small></span><span class="ui-switch"><input type="checkbox" id="flag-cameraCaptureEnabled"><span class="ui-switch-track"></span></span></label>
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Mobile photo upload</strong><small>Let mobile visitors upload or take a photo through the file picker</small></span><span class="ui-switch"><input type="checkbox" id="flag-photoUploadEnabled"><span class="ui-switch-track"></span></span></label>
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Photo required</strong><small>A visitor cannot finish without a photo</small></span><span class="ui-switch"><input type="checkbox" id="rule-photoRequired"><span class="ui-switch-track"></span></span></label>
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Beauty filter controls</strong><small>Show and apply the photo smoothing controls</small></span><span class="ui-switch"><input type="checkbox" id="flag-beautyFilterEnabled"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                </div>
+                                <!-- Photo settings -->
+                                <div class="ui-card-body" id="photo-tab">
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field">
+                                            <span class="ui-label" id="pa-beauty-label">Beauty filter</span>
+                                            <div class="pa-choice" role="radiogroup" aria-labelledby="pa-beauty-label">
+                                                <label class="ui-check"><input type="radio" name="beauty-filter" value="true" onchange="updateBeautyFilterOption()">Enabled</label>
+                                                <label class="ui-check"><input type="radio" name="beauty-filter" value="false" onchange="updateBeautyFilterOption()">Disabled</label>
+                                            </div>
+                                            <span class="ui-help">The filter shows only when this and Beauty filter controls are both on</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-beautyFilterStrength">Beauty filter strength</label>
+                                            <select id="param-beautyFilterStrength" class="ui-select">
+                                                <option value="light">Light</option>
+                                                <option value="medium" selected>Medium</option>
+                                                <option value="strong">Strong</option>
+                                            </select>
+                                        </div>
+                                        <!-- Boomerang animation speed control - changes made by nick -->
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-boomerangFrameDelayMs">Boomerang speed (ms per frame)</label>
+                                            <input type="number" id="param-boomerangFrameDelayMs" class="ui-input" min="40" max="300" step="10" placeholder="90">
+                                            <span class="ui-help">A lower number plays the Boomerang faster. Default is 90 ms.</span>
+                                        </div>
+                                        <!-- Boomerang GIF quality preset (DONE BY NICK) -->
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-boomerangQuality">Boomerang GIF quality</label>
+                                            <select id="param-boomerangQuality" class="ui-select">
+                                                <option value="compact">Compact</option>
+                                                <option value="medium" selected>Medium</option>
+                                                <option value="high">High</option>
+                                            </select>
+                                            <span class="ui-help">How many frames are kept in the final animated GIF</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="rule-maxPhotoFileSizeMb">Max photo file size (MB)</label>
+                                            <input type="number" id="rule-maxPhotoFileSizeMb" class="ui-input" min="1" max="100" step="1">
+                                            <span class="ui-help">Largest photo a visitor can upload</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="rule-allowedPhotoFormats">Allowed photo formats</label>
+                                            <input type="text" id="rule-allowedPhotoFormats" class="ui-input" placeholder="jpeg,jpg,png,webp">
+                                            <span class="ui-help">File endings the upload accepts, with a comma between them</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-defaultOverlayTheme">Default overlay theme id</label>
+                                            <input type="text" id="param-defaultOverlayTheme" class="ui-input" list="param-overlay-options" placeholder="Optional overlay theme id">
+                                            <datalist id="param-overlay-options"></datalist>
+                                            <span class="ui-help">When it exists, this overlay is picked first in the visitor photo flow</span>
+                                        </div>
+                                        <!-- GIF overlay speed control - changes made by nick -->
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-gifOverlaySpeed">GIF overlay speed</label>
+                                            <input type="number" id="param-gifOverlaySpeed" class="ui-input" min="0.25" max="4" step="0.25" placeholder="1">
+                                            <span class="ui-help">Playback speed of animated GIF overlays. 1 is normal, 2 is twice as fast.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Step 7: Thank you (holds the old Feedback Messages tab id: its four thank you messages are here) -->
+                            <section class="ui-card pa-group" id="pa-group-thanks" data-pa-group="thanks" data-pa-name="Thank you" hidden>
+                                <div class="ui-card-header"><div><h3>Step 7 of 8: Thank you</h3><p>The last screen, after the feedback is saved.</p></div></div>
+                                <div class="ui-card-body" id="feedback-tab">
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-thankYouTitle">Thank you title</label>
+                                            <input type="text" id="param-thankYouTitle" class="ui-input" placeholder="e.g., Thank You! ☀️" maxlength="100">
+                                            <span class="ui-help">Title of the thank you screen</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-thankYouSubtitle">Thank you subtitle</label>
+                                            <input type="text" id="param-thankYouSubtitle" class="ui-input" placeholder="e.g., Your feedback makes a difference" maxlength="200">
+                                            <span class="ui-help">Shown instead of the message when the message is empty</span>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-thankYouMessage">Thank you message</label>
+                                            <textarea id="param-thankYouMessage" class="ui-input pa-textarea" placeholder="Main thank you message..." maxlength="500" rows="3"></textarea>
+                                            <span class="ui-help">Main message under the title</span>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-thankYouFooter">Thank you footer</label>
+                                            <textarea id="param-thankYouFooter" class="ui-input pa-textarea" placeholder="Thank you message..." maxlength="500" rows="3"></textarea>
+                                            <span class="ui-help">Last message at the bottom of the screen</span>
+                                        </div>
+                                    </div>
+                                    <div class="pa-settings pa-settings-gap">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Social buttons</strong><small>Show social media buttons on the thank you screen</small></span><span class="ui-switch"><input type="checkbox" id="flag-socialSharingEnabled"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Step 8: Email (was the Email Content tab, with the two email switches) -->
+                            <section class="ui-card pa-group" id="pa-group-email" data-pa-group="email" data-pa-name="Email" hidden>
+                                <div class="ui-card-header"><div><h3>Step 8 of 8: Email</h3><p>The photo email a visitor gets after finishing.</p></div></div>
+                                <div class="ui-card-body" id="email-tab">
+                                    <div class="pa-settings">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Photo thank you email</strong><small>Send the visitor photo email after the feedback is saved</small></span><span class="ui-switch"><input type="checkbox" id="flag-thankYouEmailEnabled"><span class="ui-switch-track"></span></span></label>
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Badge details in the email</strong><small>Include the earned badge in the combined thank you email</small></span><span class="ui-switch"><input type="checkbox" id="flag-badgeEmailEnabled"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-thankYouSubject">Email subject</label>
+                                            <input type="text" id="param-thankYouSubject" class="ui-input" maxlength="180" placeholder="Thank you for visiting RP Xperience Centre, {name}!">
+                                            <span class="ui-help">{name} is replaced by the visitor's name</span>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-thankYouIntro">Email intro</label>
+                                            <textarea id="param-thankYouIntro" class="ui-input pa-textarea" maxlength="900" rows="4"></textarea>
+                                            <span class="ui-help">Opening paragraph before the attached photo</span>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-thankYouClosing">Email closing</label>
+                                            <textarea id="param-thankYouClosing" class="ui-input pa-textarea" maxlength="900" rows="4"></textarea>
+                                            <span class="ui-help">Closing paragraph after the photo</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-senderName">Sender name</label>
+                                            <input type="text" id="param-senderName" class="ui-input" maxlength="100" placeholder="RP Xperience Centre Team">
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-footerNote">Footer note</label>
+                                            <input type="text" id="param-footerNote" class="ui-input" maxlength="220">
+                                        </div>
+                                    </div>
+                                    <p class="ui-note">The badge message itself is in <button type="button" class="ui-link" onclick="showPage('badge-email-templates')">Badge Emails</button>.</p>
+                                </div>
+                            </section>
+
+                            <!-- Behind the scenes: backgrounds and the look of every feedback screen (was the Backgrounds & Overlays tab) -->
+                            <section class="ui-card pa-group" id="pa-group-look" data-pa-group="look" data-pa-name="Backgrounds &amp; look" hidden>
+                                <div class="ui-card-header"><div><h3>Behind the scenes: Backgrounds &amp; look</h3><p>The look of every feedback screen, and the picture behind the digital tree.</p></div></div>
+                                <div class="ui-card-body" id="assets-tab">
+                                    <div class="pa-settings">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Floating language bar</strong><small>Show the language switcher that stays at the top of the feedback screens</small></span><span class="ui-switch"><input type="checkbox" id="flag-floatingLanguageSelectorEnabled"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-feedbackBackground">Feedback background CSS</label>
+                                            <input type="text" id="param-feedbackBackground" class="ui-input" placeholder="url('/assets/static/rpPicture.jpg') center / cover no-repeat fixed">
+                                            <span class="ui-help">Leave it empty to use the background of the current feedback form theme</span>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-backgroundUpload">Upload a feedback background</label>
+                                            <div class="pa-upload-row">
+                                                <input type="file" id="param-backgroundUpload" class="pa-file" accept="image/png,image/jpeg,image/webp">
+                                                <button type="button" class="ui-btn ui-btn-secondary" onclick="uploadParameterBackground()"><span data-fb-icon="image"></span>Upload background</button>
+                                            </div>
+                                            <span class="ui-help">A PNG, JPG or WebP picture. It becomes the feedback background straight away.</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-feedbackCardOpacity">Feedback card opacity</label>
+                                            <div class="pa-range">
+                                                <input type="range" id="param-feedbackCardOpacity" min="0.55" max="1" step="0.05" value="0.9">
+                                                <output id="param-feedbackCardOpacityValue" for="param-feedbackCardOpacity">0.90</output>
+                                            </div>
+                                            <span class="ui-help">How much of the background shows through the feedback cards</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-feedbackAccentColor">Feedback accent colour</label>
+                                            <div class="pa-color-row">
+                                                <input type="color" id="param-feedbackAccentColor" value="#4a7c59">
+                                                <span class="feedback-style-preview" id="feedback-style-preview">Feedback preview</span>
+                                            </div>
+                                            <span class="ui-help">Used for focus rings, chosen answers and the main buttons</span>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="param-treeBackground">Digital tree background path</label>
+                                            <input type="text" id="param-treeBackground" class="ui-input" placeholder="/assets/Tree/BackGround.png">
+                                            <span class="ui-help">Picture behind the digital tree</span>
+                                        </div>
+                                    </div>
+                                    <p class="ui-note">
+                                        Upload new overlay pictures in <button type="button" class="ui-link" onclick="showPage('overlay')">Photo Overlays</button>.
+                                        Start screen background presets are in <button type="button" class="ui-link" onclick="showPage('form-management')">Start Screen Text</button>.
+                                    </p>
+                                </div>
+                            </section>
+
+                            <!-- Behind the scenes: size and type limits kept with the photo and overlay settings -->
+                            <section class="ui-card pa-group" id="pa-group-limits" data-pa-group="limits" data-pa-name="Upload limits" hidden>
+                                <div class="ui-card-header"><div><h3>Behind the scenes: Upload limits</h3><p>Size and type limits kept with the photo and overlay settings. The photo checks a visitor meets are in the Photo step.</p></div></div>
+                                <div class="ui-card-body">
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-maxPhotoFileSize">Max photo file size (MB)</label>
+                                            <input type="number" id="param-maxPhotoFileSize" class="ui-input" min="1" max="100" step="1" placeholder="5">
+                                            <span class="ui-help">Largest photo allowed, in megabytes</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <span class="ui-label" id="pa-photo-format-label">Supported photo formats</span>
+                                            <div class="pa-choice" role="group" aria-labelledby="pa-photo-format-label">
+                                                <label class="ui-check"><input type="checkbox" name="photo-format" value="jpeg" checked>JPEG</label>
+                                                <label class="ui-check"><input type="checkbox" name="photo-format" value="png" checked>PNG</label>
+                                                <label class="ui-check"><input type="checkbox" name="photo-format" value="webp">WebP</label>
+                                            </div>
+                                        </div>
+                                        <div class="ui-field">
+                                            <span class="ui-label" id="pa-overlay-upload-label">Overlay upload</span>
+                                            <div class="pa-choice" role="radiogroup" aria-labelledby="pa-overlay-upload-label">
+                                                <label class="ui-check"><input type="radio" name="overlay-upload" value="true" onchange="updateOverlayUploadOption()">Enabled</label>
+                                                <label class="ui-check"><input type="radio" name="overlay-upload" value="false" onchange="updateOverlayUploadOption()">Disabled</label>
+                                            </div>
+                                            <span class="ui-help">Allow custom overlay uploads</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="param-maxOverlayFileSize">Max overlay file size (MB)</label>
+                                            <input type="number" id="param-maxOverlayFileSize" class="ui-input" min="1" max="100" step="1" placeholder="10">
+                                            <span class="ui-help">Largest overlay allowed, in megabytes</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Behind the scenes: Smart campaign mode (was part of the Consent & Pledge Text tab) -->
+                            <section class="ui-card pa-group" id="pa-group-campaign" data-pa-group="campaign" data-pa-name="Smart campaign mode" hidden>
+                                <div class="ui-card-header"><div><h3>Behind the scenes: Smart campaign mode</h3><p>When it is on, the kiosk uses the campaign pledge examples, tree subtitle, pulse goal and campaign alerts on the dashboard.</p></div></div>
+                                <div class="ui-card-body">
+                                    <div class="pa-settings">
+                                        <label class="pa-setting">
+                                            <span class="pa-setting-text"><strong>Smart campaign</strong><small>Apply the campaign settings to the visitor and dashboard screens</small></span>
+                                            <span class="ui-switch"><input type="checkbox" id="campaign-enabled"><span class="ui-switch-track"></span></span>
+                                        </label>
+                                    </div>
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="campaign-title">Campaign title</label>
+                                            <input type="text" id="campaign-title" class="ui-input" maxlength="80" placeholder="Food Waste Week">
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="campaign-cadence">Campaign cycle</label>
+                                            <select id="campaign-cadence" class="ui-select">
+                                                <option value="weekly">Weekly</option>
+                                                <option value="monthly">Monthly</option>
+                                            </select>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="campaign-treeSubtitle">Tree subtitle</label>
+                                            <input type="text" id="campaign-treeSubtitle" class="ui-input" maxlength="180" placeholder="This week's focus: reduce food waste through mindful choices.">
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="campaign-pulseGoal">Pulse pledge goal</label>
+                                            <input type="number" id="campaign-pulseGoal" class="ui-input" min="1" max="10000" step="1" placeholder="100">
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="campaign-badgeEmphasis">Badge emphasis</label>
+                                            <select id="campaign-badgeEmphasis" class="ui-select">
+                                                <option value="sustainable-living">Sustainable Living Advocate</option>
+                                                <option value="climate-change">Climate Champion</option>
+                                                <option value="renewable-energy">Renewable Innovator</option>
+                                                <option value="ocean-conservation">Ocean Guardian</option>
+                                                <option value="ethical-governance">Governance Guardian</option>
+                                                <option value="community-impact">Social Champion</option>
+                                            </select>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="campaign-focusKeywords">Campaign alert keywords</label>
+                                            <input type="text" id="campaign-focusKeywords" class="ui-input" maxlength="240" placeholder="food waste,leftovers,canteen,meal">
+                                            <span class="ui-help">Words used by the intervention alerts, with a comma between them</span>
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="campaign-pledgeExample1">Campaign pledge example 1</label>
+                                            <input type="text" id="campaign-pledgeExample1" class="ui-input" maxlength="180" placeholder="Take only what I can finish during meals">
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="campaign-pledgeExample2">Campaign pledge example 2</label>
+                                            <input type="text" id="campaign-pledgeExample2" class="ui-input" maxlength="180" placeholder="Share food waste tips with one friend this week">
+                                        </div>
+                                        <div class="ui-field ui-field-wide">
+                                            <label class="ui-label" for="campaign-pledgeExample3">Campaign pledge example 3</label>
+                                            <input type="text" id="campaign-pledgeExample3" class="ui-input" maxlength="180" placeholder="Choose reusable containers for takeaway food">
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Behind the scenes: Auto archive (Done by Caeden) -->
+                            <section class="ui-card pa-group" id="pa-group-archive" data-pa-group="archive" data-pa-name="Auto archive" hidden>
+                                <div class="ui-card-header"><div><h3>Behind the scenes: Auto archive</h3><p>When feedback moves from Feedback into Archived Feedback, counted from each submission date.</p></div></div>
+                                <div class="ui-card-body" id="archive-tab">
+                                    <div class="pa-settings">
+                                        <label class="pa-setting"><span class="pa-setting-text"><strong>Auto archive</strong><small>Move feedback into Archived Feedback by itself after the chosen age</small></span><span class="ui-switch"><input type="checkbox" id="archive-autoArchiveEnabled"><span class="ui-switch-track"></span></span></label>
+                                    </div>
+                                    <div class="ui-form-grid pa-form">
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="archive-archiveAfterDays">Move feedback to Archived Feedback after</label>
+                                            <select id="archive-archiveAfterDays" class="ui-select">
+                                                <option value="15">1/2 month</option>
+                                                <option value="30">1 month</option>
+                                                <option value="60">2 months</option>
+                                                <option value="90">3 months</option>
+                                                <option value="180">6 months</option>
+                                                <option value="365">1 year</option>
+                                            </select>
+                                            <span class="ui-help">For example, 1 month archives feedback 1 month after its submission date</span>
+                                        </div>
+                                        <div class="ui-field">
+                                            <label class="ui-label" for="archive-keepRecentFeedbackCount">Keep the latest active feedback</label>
+                                            <input type="number" id="archive-keepRecentFeedbackCount" class="ui-input" min="0" max="100000" step="1" placeholder="0">
+                                            <span class="ui-help">0 turns this rule off. Otherwise older feedback is archived so only the newest number stays in Feedback.</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="ui-btn ui-btn-secondary pa-inline-btn" onclick="runConfiguredArchiveNow()"><span data-fb-icon="archive"></span>Run archive update now</button>
+                                </div>
+                            </section>
                         </div>
+                        <!-- Live preview: a sketch of the chosen kiosk screen with the values on the page, saved or not -->
+                        <aside class="ui-card pa-preview" id="pa-preview" aria-labelledby="pa-preview-title">
+                            <div class="ui-card-header"><div><h3 id="pa-preview-title">How visitors see it</h3><p>A sketch of this screen with your unsaved changes.</p></div></div>
+                            <div class="ui-card-body">
+                                <div class="pa-preview-block" data-pa-preview="start">
+                                    <div class="landing-layout-preview pa-landing-preview" aria-label="Start screen layout preview">
+                                        <div class="landing-preview-stage">
+                                            <div class="landing-preview-card" id="landing-preview-card">
+                                                <div class="landing-preview-brand">
+                                                    <span class="landing-preview-icon">+</span>
+                                                    <span>Community Feedback Portal</span>
+                                                </div>
+                                                <div class="landing-preview-languages">
+                                                    <span>English</span>
+                                                    <span>Bahasa Melayu</span>
+                                                    <span>Chinese</span>
+                                                </div>
+                                                <h4>Let's turn your ideas into reality</h4>
+                                                <p>Share your thoughts and help us improve our services. Your feedback matters.</p>
+                                                <button type="button" id="landing-preview-start" tabindex="-1">Start Feedback Form</button>
+                                                <button type="button" class="landing-preview-pledge" tabindex="-1">View Pledgeboards</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="pa-preview-note">Sizes and positions follow the numbers on the left. The texts are the sample ones.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="details" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Tell Us Who You Are</h4>
+                                        <p class="pa-screen-text" data-pa-text="details"></p>
+                                        <div class="pa-screen-field"><span>Name <em data-pa-text="name-need"></em></span><i data-pa-text="name-rule"></i></div>
+                                        <div class="pa-screen-field"><span>Email <em data-pa-text="email-need"></em></span><i>name@example.com</i></div>
+                                        <span class="pa-screen-btn">Next</span>
+                                    </div></div></div>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="questions" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Share Your Feedback</h4>
+                                        <p class="pa-screen-text" data-pa-text="questions"></p>
+                                        <div class="pa-screen-lines" aria-hidden="true"><span></span><span></span><span></span></div>
+                                        <p class="pa-screen-small" data-pa-show="questions-required">Questions marked as required must be answered</p>
+                                        <span class="pa-screen-btn">Next</span>
+                                    </div></div></div>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="pledge" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Make Your Pledge</h4>
+                                        <p class="pa-screen-text" data-pa-text="pledge"></p>
+                                        <div class="pa-screen-coach"><strong data-pa-text="coach"></strong><span>Make your pledge easier to act on</span></div>
+                                        <div class="pa-screen-field"><span>Your pledge <em data-pa-text="pledge-need"></em></span><i data-pa-text="pledge-rule"></i></div>
+                                        <p class="pa-screen-small" data-pa-show="pledge-topic">A topic must be picked</p>
+                                        <span class="pa-screen-btn">Next</span>
+                                    </div></div></div>
+                                    <p class="pa-preview-note" data-pa-show="pledge-off">The Pledge step is off, so visitors skip this screen.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="photo" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Capture Your Photo</h4>
+                                        <div class="pa-screen-camera"><span data-pa-text="overlay"></span></div>
+                                        <p class="pa-screen-small" data-pa-show="beauty" data-pa-text="beauty"></p>
+                                        <div class="pa-screen-row">
+                                            <span class="pa-screen-btn" data-pa-show="camera">Take photo</span>
+                                            <span class="pa-screen-btn pa-screen-btn-light" data-pa-show="upload">Upload a photo</span>
+                                        </div>
+                                        <p class="pa-screen-small" data-pa-show="photo-skip">Visitors may skip the photo</p>
+                                    </div></div></div>
+                                    <p class="pa-preview-note" data-pa-show="photo-none">Camera capture and photo upload are both off, so visitors cannot add a photo.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="thanks" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <span class="pa-screen-icon" data-fb-icon="tree"></span>
+                                        <h4 class="pa-screen-title pa-screen-green" data-pa-text="thanks-title"></h4>
+                                        <p class="pa-screen-text pa-screen-green" data-pa-text="thanks-message"></p>
+                                        <div class="pa-screen-social" data-pa-show="social" aria-hidden="true"><span></span><span></span><span></span></div>
+                                        <p class="pa-screen-small" data-pa-text="thanks-footer"></p>
+                                    </div></div></div>
+                                    <p class="pa-preview-note" data-pa-show="thanks-subtitle">The message is empty, so the subtitle is shown in its place.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="email" hidden>
+                                    <div class="pa-device pa-device-mail"><div class="pa-mail">
+                                        <p class="pa-mail-subject" data-pa-text="mail-subject"></p>
+                                        <p class="pa-mail-from">From <span data-pa-text="mail-from"></span></p>
+                                        <p data-pa-text="mail-greeting"></p>
+                                        <p data-pa-text="mail-intro"></p>
+                                        <div class="pa-mail-photo">Your photo</div>
+                                        <p class="pa-mail-badge" data-pa-show="mail-badge">Badge earned: Feedback Contributor</p>
+                                        <p data-pa-text="mail-closing"></p>
+                                        <p class="pa-mail-footer" data-pa-text="mail-footer"></p>
+                                    </div></div>
+                                    <p class="pa-preview-note" data-pa-show="mail-off">The photo thank you email is off, so visitors do not get this email.</p>
+                                    <p class="pa-preview-note" data-pa-show="mail-on">Shown for a sample visitor called Alex. Empty boxes use the kiosk's default text.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="look" hidden>
+                                    <div class="pa-device"><div class="pa-screen">
+                                        <div class="pa-screen-languages" data-pa-show="languages" aria-hidden="true"><span>English</span><span>&#20013;&#25991;</span><span>Bahasa Melayu</span><span>&#2980;&#2990;&#3007;&#2996;&#3021;</span></div>
+                                        <div class="pa-screen-card">
+                                            <h4 class="pa-screen-title">Share Your Feedback</h4>
+                                            <p class="pa-screen-text">A few quick taps. Honest answers are perfect.</p>
+                                            <div class="pa-screen-lines" aria-hidden="true"><span></span><span></span></div>
+                                            <span class="pa-screen-btn">Next</span>
+                                        </div>
+                                    </div></div>
+                                    <p class="pa-preview-note">The background, card opacity, accent colour and language bar shown on every feedback screen.</p>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
 
-                    <!-- Consent & Pledge Text Tab -->
-                    <div id="content-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Consent & Pledge Text</h3>
-                            <p class="section-description">Edit the temporary retention duration and pledge examples shown to visitors</p>
+                    <section class="ui-card pa-behind" aria-labelledby="pa-behind-title">
+                        <div class="ui-card-header"><div><h3 id="pa-behind-title">Behind the scenes</h3><p>Settings that are not about one screen.</p></div></div>
+                        <div class="ui-card-body pa-behind-list">
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="look" aria-controls="pa-group-look" onclick="showParameterStep('look', true)"><span data-fb-icon="droplet"></span>Backgrounds &amp; look<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="limits" aria-controls="pa-group-limits" onclick="showParameterStep('limits', true)"><span data-fb-icon="file"></span>Upload limits<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="campaign" aria-controls="pa-group-campaign" onclick="showParameterStep('campaign', true)"><span data-fb-icon="star"></span>Smart campaign mode<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="archive" aria-controls="pa-group-archive" onclick="showParameterStep('archive', true)"><span data-fb-icon="archive"></span>Auto archive<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
                         </div>
+                    </section>
 
-                        <div class="form-group">
-                            <label for="param-temporaryRetentionDays">Temporary Retention Duration (days)</label>
-                            <input type="number" id="param-temporaryRetentionDays" min="1" max="365" step="1" placeholder="7">
-                            <small class="text-muted">Visitor consent text and automatic cleanup will use this duration</small>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="parameter-field-heading">
-                            <h4>Pledge Examples</h4>
-                            <p>These three lines appear in the visitor pledge page as example pledge text.</p>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-pledgeExample1">Pledge Example 1</label>
-                            <input type="text" id="param-pledgeExample1" maxlength="180" placeholder="Carry a reusable bottle and cutlery every day">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-pledgeExample2">Pledge Example 2</label>
-                            <input type="text" id="param-pledgeExample2" maxlength="180" placeholder="Sort waste properly and recycle whenever possible">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-pledgeExample3">Pledge Example 3</label>
-                            <input type="text" id="param-pledgeExample3" maxlength="180" placeholder="Reduce food waste by taking only what I can finish">
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="parameter-field-heading">
-                            <h4>Smart Campaign Mode</h4>
-                            <p>When enabled, the kiosk uses campaign pledge examples, tree subtitle, pulse goal, and campaign-focused dashboard alerts.</p>
-                        </div>
-
-                        <label class="parameter-toggle-card">
-                            <input type="checkbox" id="campaign-enabled">
-                            <span><strong>Enable Smart Campaign</strong><small>Apply campaign settings to visitor and dashboard screens</small></span>
-                        </label>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="campaign-title">Campaign Title</label>
-                                <input type="text" id="campaign-title" maxlength="80" placeholder="Food Waste Week">
-                            </div>
-                            <div class="form-group">
-                                <label for="campaign-cadence">Campaign Cycle</label>
-                                <select id="campaign-cadence">
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="campaign-treeSubtitle">Tree Subtitle</label>
-                            <input type="text" id="campaign-treeSubtitle" maxlength="180" placeholder="This week's focus: reduce food waste through mindful choices.">
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="campaign-pulseGoal">Pulse Pledge Goal</label>
-                                <input type="number" id="campaign-pulseGoal" min="1" max="10000" step="1" placeholder="100">
-                            </div>
-                            <div class="form-group">
-                                <label for="campaign-badgeEmphasis">Badge Emphasis</label>
-                                <select id="campaign-badgeEmphasis">
-                                    <option value="sustainable-living">Sustainable Living Advocate</option>
-                                    <option value="climate-change">Climate Champion</option>
-                                    <option value="renewable-energy">Renewable Innovator</option>
-                                    <option value="ocean-conservation">Ocean Guardian</option>
-                                    <option value="ethical-governance">Governance Guardian</option>
-                                    <option value="community-impact">Social Champion</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="campaign-focusKeywords">Campaign Alert Keywords</label>
-                            <input type="text" id="campaign-focusKeywords" maxlength="240" placeholder="food waste,leftovers,canteen,meal">
-                            <small class="text-muted">Comma-separated words used by Intervention Alerts</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="campaign-pledgeExample1">Campaign Pledge Example 1</label>
-                            <input type="text" id="campaign-pledgeExample1" maxlength="180" placeholder="Take only what I can finish during meals">
-                        </div>
-                        <div class="form-group">
-                            <label for="campaign-pledgeExample2">Campaign Pledge Example 2</label>
-                            <input type="text" id="campaign-pledgeExample2" maxlength="180" placeholder="Share food waste tips with one friend this week">
-                        </div>
-                        <div class="form-group">
-                            <label for="campaign-pledgeExample3">Campaign Pledge Example 3</label>
-                            <input type="text" id="campaign-pledgeExample3" maxlength="180" placeholder="Choose reusable containers for takeaway food">
-                        </div>
-                    </div>
-
-                    <!-- Email Content Tab -->
-                    <div id="email-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Thank You Email Content</h3>
-                            <p class="section-description">Edit the photo email sent after a visitor completes the feedback flow</p>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-thankYouSubject">Email Subject</label>
-                            <input type="text" id="param-thankYouSubject" maxlength="180" placeholder="Thank you for visiting RP Xperience Centre, {name}!">
-                            <small class="text-muted">Use {name} to personalize the subject</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-thankYouIntro">Email Intro</label>
-                            <textarea id="param-thankYouIntro" maxlength="900" rows="4"></textarea>
-                            <small class="text-muted">Opening paragraph before the attached photo</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-thankYouClosing">Email Closing</label>
-                            <textarea id="param-thankYouClosing" maxlength="900" rows="4"></textarea>
-                            <small class="text-muted">Closing paragraph after the photo section</small>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="param-senderName">Sender Name</label>
-                                <input type="text" id="param-senderName" maxlength="100" placeholder="RP Xperience Centre Team">
-                            </div>
-                            <div class="form-group">
-                                <label for="param-footerNote">Footer Note</label>
-                                <input type="text" id="param-footerNote" maxlength="220">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Feature Toggles Tab (DONE BY CAEDEN) -->
-                    <div id="features-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Feature Toggles</h3>
-                            <p class="section-description">Enable or disable kiosk features without changing code</p>
-                        </div>
-
-                        <div class="parameter-toggle-grid">
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-cameraCaptureEnabled"><span><strong>Desktop Camera Capture</strong><small>Use live video camera capture on desktop kiosks</small></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-photoUploadEnabled"><span><strong>Mobile Photo Upload</strong><small>Allow mobile visitors to upload or take a photo through the file picker</small></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-beautyFilterEnabled"><span><strong>Beauty Filter</strong><small>Show and apply the photo smoothing controls</small></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-pledgeEnabled"><span><strong>Pledge Step</strong><small>Ask visitors to make a pledge before photo capture</small></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-badgeEmailEnabled"><span><strong>Badge Details in Thank You Email</strong><small>Include the earned badge in the combined thank-you email</small></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-thankYouEmailEnabled"><span><strong>Photo Thank You Email</strong><small>Send the visitor photo thank-you email after database save</small></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-socialSharingEnabled"><span><strong>Thank You Social Buttons</strong><small>Show social media buttons on the feedback Thank You page</small></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="flag-floatingLanguageSelectorEnabled"><span><strong>Floating Language Bar</strong><small>Show the always-visible language switcher at the top of the feedback page</small></span></label>
-                        </div>
-                    </div>
-
-                    <!-- Validation Rules Tab (DONE BY CAEDEN) -->
-                    <div id="validation-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Data Validation Rules</h3>
-                            <p class="section-description">Central rules used by the feedback form and backend submission checks</p>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="rule-nameMinLength">Name Minimum Length</label>
-                                <input type="number" id="rule-nameMinLength" min="0" max="50" step="1">
-                            </div>
-                            <div class="form-group">
-                                <label for="rule-nameMaxLength">Name Maximum Length</label>
-                                <input type="number" id="rule-nameMaxLength" min="1" max="200" step="1">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="rule-dailySubmissionLimitPerEmail">Daily Feedback Limit Per Email</label>
-                            <input type="number" id="rule-dailySubmissionLimitPerEmail" min="0" max="20" step="1">
-                            <small class="text-muted">Maximum feedback submissions per email per Singapore day. Use 0 for unlimited.</small>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="rule-pledgeMinLength">Pledge Minimum Length</label>
-                                <input type="number" id="rule-pledgeMinLength" min="0" max="200" step="1">
-                            </div>
-                            <div class="form-group">
-                                <label for="rule-pledgeMaxLength">Pledge Maximum Length</label>
-                                <input type="number" id="rule-pledgeMaxLength" min="1" max="2000" step="1">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="rule-maxPhotoFileSizeMb">Max Photo File Size (MB)</label>
-                                <input type="number" id="rule-maxPhotoFileSizeMb" min="1" max="100" step="1">
-                            </div>
-                            <div class="form-group">
-                                <label for="rule-allowedPhotoFormats">Allowed Photo Formats</label>
-                                <input type="text" id="rule-allowedPhotoFormats" placeholder="jpeg,jpg,png,webp">
-                                <small class="text-muted">Comma-separated extensions</small>
-                            </div>
-                        </div>
-
-                        <div class="parameter-toggle-grid compact">
-                            <label class="parameter-toggle-card"><input type="checkbox" id="rule-nameRequired"><span><strong>Name Required</strong></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="rule-emailRequired"><span><strong>Email Required</strong></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="rule-requiredQuestionsEnabled"><span><strong>Required Questions Enforced</strong></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="rule-pledgeRequired"><span><strong>Pledge Required</strong></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="rule-pledgeTopicRequired"><span><strong>Pledge Topic Required</strong></span></label>
-                            <label class="parameter-toggle-card"><input type="checkbox" id="rule-photoRequired"><span><strong>Photo Required</strong></span></label>
-                        </div>
-                    </div>
-
-                    
-
-                    <!-- Photo Settings Tab -->
-                    <div id="photo-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Photo & Overlay Settings</h3>
-                            <p class="section-description">Configure photo capture and beauty filter options</p>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Beauty Filter</label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" name="beauty-filter" value="true" onchange="updateBeautyFilterOption()">
-                                    <span>Enabled</span>
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="beauty-filter" value="false" onchange="updateBeautyFilterOption()">
-                                    <span>Disabled</span>
-                                </label>
-                            </div>
-                            <small class="text-muted">Apply beauty/smoothing effects to captured photos</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-beautyFilterStrength">Beauty Filter Strength</label>
-                            <select id="param-beautyFilterStrength">
-                                <option value="light">Light</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="strong">Strong</option>
-                            </select>
-                            <small class="text-muted">Intensity of beauty filter effects</small>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <!-- Boomerang animation speed control - changes made by nick -->
-                        <div class="form-group">
-                            <label for="param-boomerangFrameDelayMs">Boomerang Animation Speed (ms per frame)</label>
-                            <input type="number" id="param-boomerangFrameDelayMs" min="40" max="300" step="10" placeholder="90">
-                            <small class="text-muted">Lower values make the Boomerang animation faster. Default is 90ms.</small>
-                        </div>
-
-                        <!-- Boomerang GIF quality preset (DONE BY NICK) -->
-                        <div class="form-group">
-                            <label for="param-boomerangQuality">Boomerang GIF Quality</label>
-                            <select id="param-boomerangQuality">
-                                <option value="compact">Compact</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="high">High</option>
-                            </select>
-                            <small class="text-muted">Controls how many frames are kept when building the final animated GIF.</small>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="form-group">
-                            <label for="param-maxPhotoFileSize">Max Photo File Size (MB)</label>
-                            <input type="number" id="param-maxPhotoFileSize" min="1" max="100" step="1" placeholder="5">
-                            <small class="text-muted">Maximum allowed photo size in megabytes</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Supported Photo Formats</label>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="photo-format" value="jpeg" checked>
-                                    <span>JPEG</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="photo-format" value="png" checked>
-                                    <span>PNG</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="photo-format" value="webp">
-                                    <span>WebP</span>
-                                </label>
-                            </div>
-                            <small class="text-muted">Allowed image file formats</small>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="form-group">
-                            <label>Overlay Upload</label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" name="overlay-upload" value="true" onchange="updateOverlayUploadOption()">
-                                    <span>Enabled</span>
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="overlay-upload" value="false" onchange="updateOverlayUploadOption()">
-                                    <span>Disabled</span>
-                                </label>
-                            </div>
-                            <small class="text-muted">Allow custom overlay uploads</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-maxOverlayFileSize">Max Overlay File Size (MB)</label>
-                            <input type="number" id="param-maxOverlayFileSize" min="1" max="100" step="1" placeholder="10">
-                            <small class="text-muted">Maximum allowed overlay size in megabytes</small>
-                        </div>
-
-                        <!-- GIF overlay speed control - changes made by nick -->
-                        <div class="form-group">
-                            <label for="param-gifOverlaySpeed">GIF Overlay Speed</label>
-                            <input type="number" id="param-gifOverlaySpeed" min="0.25" max="4" step="0.25" placeholder="1">
-                            <small class="text-muted">Playback multiplier for animated GIF overlays. 1 is normal, 2 is twice as fast.</small>
-                        </div>
-                    </div>
-
-                    <!-- Backgrounds & Overlays Tab -->
-                    <div id="assets-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Backgrounds & Digital Overlays</h3>
-                            <p class="section-description">Select active image paths, feedback page styling, and default overlay behavior</p>
-                        </div>
-
-                        <div class="parameter-field-heading">
-                            <h4>Feedback Page Styling</h4>
-                            <p>Admins can adjust the visitor feedback page background and card appearance without editing CSS.</p>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-feedbackBackground">Feedback Background CSS</label>
-                            <input type="text" id="param-feedbackBackground" placeholder="url('/assets/static/rpPicture.jpg') center / cover no-repeat fixed">
-                            <small class="text-muted">Leave blank to use the current feedback form theme background</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-backgroundUpload">Upload Feedback Background</label>
-                            <input type="file" id="param-backgroundUpload" accept="image/png,image/jpeg,image/webp">
-                            <small class="text-muted">Uploads a PNG, JPG, or WebP and sets it as the active feedback background</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-feedbackCardOpacity">Feedback Card Opacity</label>
-                            <div class="range-control">
-                                <input type="range" id="param-feedbackCardOpacity" min="0.55" max="1" step="0.05" value="0.9">
-                                <output id="param-feedbackCardOpacityValue">0.90</output>
-                            </div>
-                            <small class="text-muted">Controls how much of the selected background image is visible through feedback cards</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-feedbackAccentColor">Feedback Accent Colour</label>
-                            <div class="feedback-style-control">
-                                <input type="color" id="param-feedbackAccentColor" value="#4a7c59">
-                                <span class="feedback-style-preview" id="feedback-style-preview">Feedback preview</span>
-                            </div>
-                            <small class="text-muted">Used for focus rings, selected states, and main feedback action buttons</small>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <div class="form-group">
-                            <label for="param-treeBackground">Digital Tree Background Path</label>
-                            <input type="text" id="param-treeBackground" placeholder="/assets/Tree/BackGround.png">
-                            <small class="text-muted">Image path used behind the digital tree</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="param-defaultOverlayTheme">Default Overlay Theme ID</label>
-                            <input type="text" id="param-defaultOverlayTheme" list="param-overlay-options" placeholder="Optional overlay theme id">
-                            <datalist id="param-overlay-options"></datalist>
-                            <small class="text-muted">When available, this overlay is pre-selected in the visitor photo flow</small>
-                        </div>
-
-                        <div class="parameter-upload-note">
-                            Upload new overlay image files from <button type="button" class="inline-link-btn" onclick="showPage('overlay')">Photo Overlays</button>.
-                            Use <button type="button" class="inline-link-btn" onclick="showPage('form-management')">Start Screen Text</button> for landing page background presets.
-                        </div>
-                    </div>
-
-                    <!-- Auto Archive Tab (Done by Caeden) -->
-                    <div id="archive-tab" class="parameter-section">
-                        <div class="section-header">
-                            <h3>Auto Archive Rules</h3>
-                            <!-- <Jun Kai start> -->
-                            <p class="section-description">Choose when submitted feedback should move from Feedback into Archived Feedback, counted from each feedback submission date</p>
-                            <!-- <Jun Kai end> -->
-                        </div>
-
-                        <div class="parameter-toggle-grid compact">
-                            <label class="parameter-toggle-card">
-                                <input type="checkbox" id="archive-autoArchiveEnabled">
-                                <!-- <Jun Kai start> -->
-                                <span><strong>Turn On Auto Archive</strong><small>Automatically move feedback into Archived Feedback after the selected age</small></span>
-                                <!-- <Jun Kai end> -->
-                            </label>
-                        </div>
-
-                        <div class="form-group">
-                            <!-- <Jun Kai start> -->
-                            <label for="archive-archiveAfterDays">Move feedback to Archived Feedback after</label>
-                            <!-- <Jun Kai end> -->
-                            <select id="archive-archiveAfterDays">
-                                <option value="15">1/2 month</option>
-                                <option value="30">1 month</option>
-                                <option value="60">2 months</option>
-                                <option value="90">3 months</option>
-                                <option value="180">6 months</option>
-                                <option value="365">1 year</option>
-                            </select>
-                            <small class="text-muted">Example: 1 month means feedback is archived 1 month after its submission date</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="archive-keepRecentFeedbackCount">Keep the latest active feedback entries</label>
-                            <input type="number" id="archive-keepRecentFeedbackCount" min="0" max="100000" step="1" placeholder="0">
-                            <small class="text-muted">Set to 0 to disable this rule. When enabled, older active feedback is archived so only the newest N remain in the main feedback list.</small>
-                        </div>
-
-                        <button type="button" class="btn-secondary" onclick="runConfiguredArchiveNow()">
-                            Run Archive Update Now
-                        </button>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="parameter-actions">
-                        <button class="btn-primary" onclick="saveParameters()">
-                            <span class="btn-icon">💾</span> Save All Changes
-                        </button>
-                        <button class="btn-secondary" onclick="uploadParameterBackground()">
-                            <span class="btn-icon">Image</span> Upload Background
-                        </button>
-                        <button class="btn-secondary" onclick="loadParameters()">
-                            <span class="btn-icon">🔄</span> Reload
-                        </button>
+                    <div class="pa-savebar">
+                        <span id="pa-changes" class="pa-changes" hidden></span>
+                        <div id="parameter-status" class="pa-status" role="status" aria-live="polite"></div>
+                        <span class="pa-savebar-spacer"></span>
                         <!--<button class="btn-tertiary" onclick="resetParametersToDefaults()">
                             <span class="btn-icon">⚠️</span> Reset to Defaults
                         </button>-->
+                        <button type="button" class="ui-btn ui-btn-secondary" onclick="loadParameters()"><span data-fb-icon="refresh"></span>Reload</button>
+                        <button type="button" class="ui-btn ui-btn-primary" onclick="saveParameters()">Save all changes</button>
                     </div>
-
-                    <!-- Status Message -->
-                    <div id="parameter-status" class="status-message" style="display: none;"></div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Timer Countdown Page (DONE BY BERNISSA) -->
