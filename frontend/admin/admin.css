@@ -8883,6 +8883,8 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 /* a page the search found by the name it had before the redesign shows that name on a second line */
 .nav-item.nav-hit-was { flex-wrap: wrap; row-gap: 2px; }
 .nav-item.nav-hit-was::after { content: "Was: " attr(data-was); flex-basis: 100%; padding-left: 29px; font-size: 11px; font-weight: 400; opacity: 0.8; }
+.nav-item.nav-hit-also { flex-wrap: wrap; row-gap: 2px; } /* <Jun Kai/> a search hit on something the page holds */
+.nav-item.nav-hit-also::after { content: "Has: " attr(data-also); flex-basis: 100%; padding-left: 29px; font-size: 11px; font-weight: 400; opacity: 0.8; }
 
 /* a group heading is a button that folds the group; folded, it shows how many pages it holds */
 .nav-group-toggle { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 12px; border: 0; border-radius: 10px; background: transparent; font: inherit; letter-spacing: inherit; color: inherit; text-align: left; cursor: pointer; transition: background-color 0.15s ease; }

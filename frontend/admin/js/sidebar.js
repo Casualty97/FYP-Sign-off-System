@@ -22,6 +22,11 @@ function navLinks(scope) {
 }
 
 // a link the signed-in role may see (core.js also hides two of them with style.display)
+// <Jun Kai/> the VIP card on Tree Leaves is for a System Admin only, so only they find it by searching
+function navIsSystemAdmin() {
+    try { return sessionStorage.getItem('userRole') === 'system_admin'; } catch { return false; }
+}
+
 function navAllowed(link) {
     return !link.hidden && link.style.display !== 'none';
 }
@@ -157,15 +162,19 @@ function navFilter(query) {
     sidebar.classList.toggle('is-searching', searching);
     let found = 0;
     for (const link of navLinks()) {
-        link.classList.remove('nav-miss', 'nav-hit-was', 'nav-cursor');
+        link.classList.remove('nav-miss', 'nav-hit-was', 'nav-hit-also', 'nav-cursor');
         if (!searching || !navAllowed(link)) continue;
         const label = navPlain(link.querySelector('.nav-label') ? link.querySelector('.nav-label').textContent : link.textContent);
         const groupName = link.closest('.nav-group') ? navPlain(link.closest('.nav-group').querySelector('.nav-group-name').textContent) : '';
         const now = `${label} ${groupName}`;
         const before = `${now} ${navPlain(link.dataset.was)}`;
         const byName = words.every((word) => now.includes(word));
-        const byEarlierName = !byName && Boolean(link.dataset.was) && words.every((word) => before.includes(word));
-        if (!byName && !byEarlierName) { link.classList.add('nav-miss'); continue; }
+        // <Jun Kai/> data-also names something that is on the page (Tree Leaves holds the VIP list), shown as "Has: VIPs"
+        const also = link.dataset.also && (!link.hasAttribute('data-also-admin-only') || navIsSystemAdmin()) ? navPlain(link.dataset.also) : '';
+        const byPart = !byName && Boolean(also) && words.every((word) => `${now} ${also}`.includes(word));
+        const byEarlierName = !byName && !byPart && Boolean(link.dataset.was) && words.every((word) => before.includes(word));
+        if (!byName && !byPart && !byEarlierName) { link.classList.add('nav-miss'); continue; }
+        if (byPart) link.classList.add('nav-hit-also');
         if (byEarlierName) link.classList.add('nav-hit-was');
         found++;
     }
