@@ -1898,8 +1898,23 @@ function updatePreview(sectionId) {
     set('--preview-header-text', frame['primary-header-text'], '#1E293B');
     set('--preview-nav-bg', frame['navbar-background'], '#FFFFFF');
     set('--preview-nav-text', frame['navbar-text'] || frame['nav-text-color'], '#334155');
+    // in dark mode the preview is a dark admin page with only the theme's accent, as the real pages show it (themeKitDark)
+    if (document.documentElement.dataset.theme === 'dark') {
+        const dark = { '--preview-bg': '#0B1120', '--preview-header-bg': '#0F172A', '--preview-header-text': '#F1F5F9', '--preview-nav-bg': '#0F172A',
+            '--preview-nav-text': '#CBD5E1', '--preview-card-bg': THEME_KIT.darkCard, '--preview-border': '#263244', '--preview-heading': '#E5E7EB',
+            '--preview-text': '#A7B4C4', '--preview-title': '#F1F5F9', '--preview-btn-bg': '#2563EB', '--preview-btn-text': '#FFFFFF' };
+        const button = themeChosen(colors, 'button-color');
+        const fill = button ? themeReadable(button, ['#FFFFFF'], 4.5, '#000000') : null;
+        if (fill && themeContrast(fill, THEME_KIT.darkCard) >= 3) dark['--preview-btn-bg'] = fill;
+        Object.entries(dark).forEach(([name, value]) => preview.style.setProperty(name, value));
+    }
     // <Jun Kai end>
 }
+
+// <Jun Kai/> the preview follows a Light / Dark switch right away (colorScheme.js sends admin-color-scheme)
+window.addEventListener('admin-color-scheme', () => {
+    if (document.getElementById('theme-preview') && typeof currentSection !== 'undefined') updatePreview(currentSection);
+});
 
 // Apply theme settings to the actual page using CSS selectors
 function applyThemeSettings() {

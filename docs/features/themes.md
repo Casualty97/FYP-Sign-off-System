@@ -77,7 +77,18 @@ Generated from the route snapshot plus hand-written notes on 2026-10-31. Update 
   and go back to their light values when light mode returns.
 - `admin.css` holds only the dark values of the theme variables (`--theme-*`, the greys, the login card) and the button.
 - The Style & Theme Settings colours are made for light mode: they rest while dark mode is on (the
-  `#dynamic-theme-styles` element gets `media="not all"`); the theme preview keeps showing the light theme.
+  `#dynamic-theme-styles` element gets `media="not all"`). The Style & Theme preview is a small admin page, so since
+  26 Nov 2026 it turns dark with the page (dark admin colours with only the theme accent, as themeKitDark) and follows a
+  switch at once (updatePreview listens to `admin-color-scheme`).
+- Previews of screens that have no dark mode keep their light look in dark mode, like the real screens (user, 26 Nov
+  2026: "if it does not have a dark mode like gmail, leave it"). None of the kiosk screens and no email has a dark mode.
+  `ADMIN_LIGHT_ONLY` in colorScheme.js lists their roots (the Kiosk Settings screens, Questions, Start Screen Text,
+  Photo Timer, Feedback QR Code, the Live Pulse card, Badge Emails, the Mail Account email, the Tree Leaves live tree);
+  every dark twin carries `:not(:where(those, those *))` (no extra specificity), the roots get the light values of the
+  theme variables back, and their inline colours are not darkened. A new preview of such a screen only needs the class
+  `ui-light-only`. The hand-written dark copies of the kiosk preview, the photo timer camera and the badge email are gone.
+  Checked with build-check/check-previews.js (21 steps: every preview photographed in light mode and again after a switch
+  to dark, the pictures must match; the theme preview must turn dark and back).
 - Chart.js graphs get light text and grid lines; the Hardware graphs redraw at once (the `admin-color-scheme` event)
   and the dark-slate Disk line turns light grey.
 - Checked with a script that opens all 27 admin pages in dark mode and lists text under 3:1 contrast: 87 spots before
