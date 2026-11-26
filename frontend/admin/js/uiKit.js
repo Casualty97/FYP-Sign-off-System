@@ -239,10 +239,11 @@ function uiDialog(options, input) {
         }
         const cancelled = input ? null : (cancel ? false : undefined);
         let done = false;
+        let answer;
         const finish = (value) => {
             if (done) return;
             done = true;
-            resolve(value);
+            answer = value; // given back once the dialog is closed and the focus is back, so a caller's own focus move wins
             const close = () => { if (dialog.open) dialog.close(); };
             if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) close();
             else { dialog.classList.add('is-closing'); setTimeout(close, 150); }
@@ -294,6 +295,7 @@ function uiDialog(options, input) {
         dialog.addEventListener('close', () => {
             dialog.remove();
             if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus();
+            resolve(answer);
         });
         document.body.appendChild(dialog);
         dialog.showModal();
