@@ -21,6 +21,19 @@ Colour themes for the admin page itself, saved per admin user.
 - Known gap: the colours of a page are not mapped onto the new card look of the redesigned pages yet (their own selectors still name the old classes), so a page with its own colours only changes where old elements remain. Mapping the theme onto the new look is a separate step. The three old class names that the new page reuses (.theme-settings-form, .theme-group-title, .theme-preview) were taken out of the lists, so a dark card colour never paints the editor behind its dark text.
 - Opening the page loads the stored colours again, so changes that were not saved are dropped and nothing says unsaved any more. "Use it now" on a new theme applies it at once, like Apply.
 
+**A theme on the new look (option A, "tinted glass", picked by the team 26 Nov 2026)**
+
+- A saved theme or a page's own colours reach the rebuilt pages through the kit's colour variables (themes.js: themeKitColours, themeKitLight, themeKitDark), not through old selector lists. Old-style pages (Tree Adjustment, Live Pulse) keep their selector lists.
+- A colour that is still the built-in default was not chosen and changes nothing, so an account that never opened Style & Theme looks exactly like the kit (a snapshot of every rebuilt page, light and dark, matches main).
+- The card colour tints the glass cards only when every text that will sit on them reads 4.5:1: the theme's card texts when they are readable there, otherwise the kit's, and the kit's red warnings. A dark card colour is therefore left out in light mode; the header and sidebar still take the theme.
+- The button colour becomes the accent: buttons, chips, links, focus rings and the open sidebar item. It is darkened only as far as needed for white text and for links on the card (4.5:1), and the button text is the theme's when it reads on that colour, otherwise white.
+- Dark mode takes only the accent, from its own small stylesheet (#dynamic-theme-dark-accent; the light theme sheet is switched off in dark mode): buttons keep the filled colour when white text reads on it and it stands out from the dark card (3:1), links and focus rings get a lighter shade that reads on the dark card (4.5:1). Signing out clears it.
+- A page with its own colours gets the same rules, limited to that page (#users-page .ui-card and so on).
+- Status tags, danger buttons, notices, table heads and charts keep their own colours. The retention badges keep their own theme option.
+- The Style & Theme preview uses the same rules, so it shows what the pages will really look like.
+- Links read --l3-link (falls back to the accent). In dark mode the kit's own link colour is #60a5fa: the button blue read only about 3:1 on the dark cards. Chosen chips use the button text colour instead of a fixed white.
+- Checked with build-check/check-theme-map.js (18 steps: Emerald and Navy cards themes, light and dark, all 23 rebuilt pages, a page with its own colours, old-style pages, a Light/Dark switch without a reload, sign out), theme-snapshot.js with theme-compare.js (untouched account and the old default theme against main), and theme-reach.js.
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |
