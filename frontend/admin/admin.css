@@ -3045,6 +3045,11 @@ html[data-theme="dark"] #asset-page .asset-status-pill.offline { background: rgb
     #asset-page .asset-hero-actions { width: 100%; }
 }
 /* <Jun Kai end> */
+/* <Jun Kai start> The asset window (navigation.js showAddAssetModal) as a kit window: two columns, one on a phone */
+.asset-dialog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.asset-dialog-grid textarea.ui-input { min-height: 88px; resize: vertical; }
+@media (max-width: 600px) { .asset-dialog-grid { grid-template-columns: minmax(0, 1fr); } }
+/* <Jun Kai end> */
 
 /* ==================== QUESTION MANAGEMENT PAGE STYLES ==================== */
 
@@ -5679,124 +5684,11 @@ input[type="color"]::-webkit-color-swatch {
     cursor: not-allowed;
 }
 
-/* Modal for deletion confirmation */
-.deletion-modal-content {
-    display: block; /* Override .modal display:none */
-    max-width: 550px;
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-}
-
-.deletion-modal-content .modal-header {
-    padding-bottom: 16px;
-    border-bottom: 2px solid #e2e8f0;
-    margin-bottom: 20px;
-}
-
-.deletion-modal-content .modal-header h2 {
-    margin: 0;
-    font-size: 1.4rem;
-    color: #1e293b;
-}
-
-.deletion-modal-content .modal-close {
-    background: none;
-    border: none;
-    font-size: 28px;
-    line-height: 1;
-    color: #64748b;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    font-weight: 300;
-}
-
-.deletion-modal-content .modal-close:hover {
-    background: #f1f5f9;
-    color: #1e293b;
-    transform: scale(1.1);
-}
-
-.deletion-modal-content .modal-body {
-    background: white;
-    padding: 0;
-}
-
-.deletion-modal-content .modal-footer {
-    padding-top: 20px;
-    border-top: 2px solid #e2e8f0;
-    margin-top: 20px;
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.deletion-modal-warning {
-    background: #fee2e2;
-    border: 2px solid #ef4444;
-    border-radius: 8px;
-    padding: 16px;
-    margin: 0 0 16px 0;
-}
-
-.deletion-modal-warning h3 {
-    color: #991b1b;
-    margin: 0 0 12px 0;
-    font-size: 1.1rem;
-}
-
-.deletion-modal-warning ul {
-    margin: 8px 0;
-    padding-left: 20px;
-    color: #7f1d1d;
-}
-
-.deletion-modal-warning li {
-    margin: 6px 0;
-}
-
-.backup-checkbox-container {
-    background: #fef3c7;
-    border: 2px solid #fbbf24;
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-}
-
-.backup-checkbox-container label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 600;
-    color: #92400e;
-    cursor: pointer;
-}
-
-.backup-checkbox-container input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: #f59e0b;
-}
-
-.confirm-delete-input {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #fbbf24;
-    border-radius: 6px;
-    font-size: 1rem;
-    margin-top: 12px;
-}
-
-.confirm-delete-input:focus {
-    outline: none;
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
+/* <Jun Kai start> The permanent deletion window (archiveDeletion.js) is a kit window (va-dialog) now; the old window styles are gone */
+.archive-delete-note { margin: 0 0 14px; }
+.archive-delete-note p { margin: 0 0 4px; }
+.archive-delete-note ul { margin: 0; padding-left: 18px; }
+/* <Jun Kai end> */
 /* Responsive design for deletion controls */
 @media (max-width: 768px) {
     .deletion-header {
