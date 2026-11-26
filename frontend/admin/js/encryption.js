@@ -87,9 +87,10 @@ async function requestDecryptedEmail(feedbackId, password) {
     return response.json().catch(() => ({ success: false }));
 }
 
-// ids: the encrypted ids on the page; map: where the clear emails go. Resolves with how many were decrypted
-// (0 when cancelled or nothing worked).
-async function decryptEmailsOnPage(ids, map) {
+// ids: the encrypted ids on the page; store(id, email): puts a clear email in the page's current list (a filter
+// change during the loop starts a new list). Resolves with how many were decrypted (0 when cancelled or nothing
+// worked). A Cancel while the first email is being checked drops that answer on purpose: nothing is shown.
+async function decryptEmailsOnPage(ids, store) {
     if (sessionStorage.getItem('userRole') !== 'system_admin') {
         showNotification('Only a System Admin can decrypt emails.', 'error');
         return 0;
@@ -104,6 +105,7 @@ async function decryptEmailsOnPage(ids, map) {
         label: 'System Admin password',
         confirmText: 'Decrypt',
         check: async (value) => {
+            if (first) return null; // a second Enter while the window closes asks nothing again
             const data = await requestDecryptedEmail(list[0], value);
             if (!data.success) return data.error || 'That password is not right. Try again.';
             first = data;
@@ -111,13 +113,13 @@ async function decryptEmailsOnPage(ids, map) {
         }
     });
     if (!password || !first) return 0;
-    map[list[0]] = first.decryptedEmail;
+    store(list[0], first.decryptedEmail);
     let decrypted = 1;
     try {
         for (const feedbackId of list.slice(1)) {
             const data = await requestDecryptedEmail(feedbackId, password);
             if (data.success) {
-                map[feedbackId] = data.decryptedEmail;
+                store(feedbackId, data.decryptedEmail);
                 decrypted++;
             } else {
                 console.warn(`⚠️ Failed to decrypt email for feedback ID: ${feedbackId}`);
@@ -138,7 +140,7 @@ async function decryptEmailsOnPage(ids, map) {
 
 //Decrypt all emails on current feedback page (MAX 25)
 async function decryptAllEmails() {
-    if (await decryptEmailsOnPage(encryptedFeedbackIds, decryptedEmailMap)) {
+    if (await decryptEmailsOnPage(encryptedFeedbackIds, (id, email) => { decryptedEmailMap[id] = email; })) {
         isAnyEmailDecrypted = true;
         renderFeedbackPage();
     }
@@ -146,7 +148,7 @@ async function decryptAllEmails() {
 
 //Decrypt all emails on current archive page (MAX 25)
 async function decryptAllArchiveEmails() {
-    if (await decryptEmailsOnPage(encryptedArchiveIds, decryptedArchiveEmailMap)) {
+    if (await decryptEmailsOnPage(encryptedArchiveIds, (id, email) => { decryptedArchiveEmailMap[id] = email; })) {
         isAnyArchiveEmailDecrypted = true;
         renderArchivePage();
     }

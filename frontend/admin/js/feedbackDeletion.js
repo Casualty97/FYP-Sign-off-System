@@ -20,25 +20,29 @@ async function deleteArchiveFeedback(feedbackId) {
 
 // <Jun Kai start> The delete check in the kit look (26 Nov 2026): one password field in a kit dialog. The password is
 // checked and the feedback deleted while the window stays open, so a wrong password or a failed delete shows under
-// the field for another try. The list moves on only after the window has closed, and also when Cancel was pressed
-// while the delete was already on its way.
+// the field for another try. The list moves on only after the window has closed, and it follows what the delete
+// itself did: a Cancel while it was already on its way still shows it as deleted once the server answered.
 function showDeletePasswordModal() {
     const feedbackId = currentDeleteFeedbackId;
     const source = currentDeleteSource;
     let deleted = false;
+    let running = Promise.resolve();
     const ask = showPasswordPrompt(`Delete feedback ${feedbackId}?\n\nIt is removed for good and cannot be undone. Enter your password to confirm.`, {
         label: 'Your password',
         confirmText: 'Delete feedback',
         danger: true,
         rootClass: 'delete-access-modal',
-        check: async (password) => {
-            const problem = await verifyDeleteAccess(password, feedbackId);
-            if (!problem) deleted = true;
-            return problem;
+        check: (password) => {
+            if (deleted) return null; // a second Enter while the window closes deletes nothing again
+            running = verifyDeleteAccess(password, feedbackId).then((problem) => {
+                if (!problem) deleted = true;
+                return problem;
+            });
+            return running;
         }
     });
     const dialog = document.querySelector('dialog.delete-access-modal[open]');
-    ask.then(() => dialogClosed(dialog)).then(() => {
+    ask.then(() => dialogClosed(dialog)).then(() => running.catch(() => null)).then(() => {
         if (currentDeleteFeedbackId === feedbackId) currentDeleteFeedbackId = null;
         if (!deleted) return;
         if (source === 'archive') archiveDeleted(feedbackId); else feedbackDeleted(feedbackId);
