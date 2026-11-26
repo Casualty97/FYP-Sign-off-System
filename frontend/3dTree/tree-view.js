@@ -13,8 +13,9 @@ const VIEW_MOVE_SECONDS = 1.6; // a newly chosen view is reached this smoothly
 // The standard framing, with the tree as the main focus: the canopy fills a laptop screen from side to side,
 // and on the 3.5:1 wall (7 m x 2 m) the tree fills the height with the river and hills either side (zoom 1).
 // The admin can choose another view for the screens (view-settings.js: a saved snapshot of a zoom, an angle
-// round the tree and a height); zooming with the mouse wheel, a pinch or the + and - keys works only in the
-// admin's view editor (the page with ?viewEditor=1), so viewers always see the chosen view.
+// round the tree and a height); moving the view (dragging round the tree with a mouse or a touch, the arrow
+// keys) and zooming (the mouse wheel, a pinch, the + and - keys) work only in the admin's view editor (the page
+// with ?viewEditor=1, the preview in the admin's 3D View & Zoom card), so viewers always see the chosen view.
 const frameHeight = 14.2;    // metres of the scene seen top to bottom (the trunk's roots to the canopy top)
 const frameWidth = 27;       // metres always seen side to side, so a narrower screen still shows the canopy
 
@@ -23,6 +24,9 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
   controls.target.copy(centre);
   controls.enablePan = false;
   controls.enableZoom = editor; // the wheel and a pinch zoom only in the admin's view editor
+  // Dragging round the tree (a mouse or a touch) and the arrow keys also only in the admin's view editor (Owner:
+  // Role 2, Wei Jie): the 3D screens keep the admin's chosen view, turning by itself, and nobody at a screen can
+  // move it. A click on a leaf still opens its details.
   controls.zoomSpeed = 0.6;
   controls.enableDamping = !reducedMotion;
   controls.minPolarAngle = T.MathUtils.degToRad(60);
@@ -51,13 +55,14 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
     controls.autoRotate = false;
   }
 
-  const keyMoves = new Map([
+  controls.enableRotate = editor;
+  const keyMoves = new Map(editor ? [
     ['ArrowLeft', () => controls.rotateLeft(-.065)],
     ['ArrowRight', () => controls.rotateLeft(.065)],
     ['ArrowUp', () => controls.rotateUp(.065)],
     ['ArrowDown', () => controls.rotateUp(-.065)],
-    ...(editor ? [['+', () => zoomBy(1.15)], ['=', () => zoomBy(1.15)], ['-', () => zoomBy(1 / 1.15)]] : []),
-  ]);
+    ['+', () => zoomBy(1.15)], ['=', () => zoomBy(1.15)], ['-', () => zoomBy(1 / 1.15)],
+  ] : []);
   canvas.addEventListener('keydown', event => {
     const move = keyMoves.get(event.key);
     if (!move || event.ctrlKey || event.metaKey) return;
@@ -75,7 +80,7 @@ export function createTreeView(camera, canvas, orbitButton, { autoOrbit, reduced
     pauseOrbit();
   });
   controls.connect(canvas);
-  controls.cursorStyle = 'grab';
+  controls.cursorStyle = editor ? 'grab' : 'auto'; // a hand to drag with only where the view can be moved
 
   function showOrbitState() {
     orbitButton.setAttribute('aria-pressed', String(autoOrbit));
