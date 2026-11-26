@@ -91,7 +91,9 @@ function showQuestionCardHint(errorId, fieldId, message) {
     const errorDiv = document.getElementById(errorId);
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
-    document.getElementById(fieldId).focus();
+    // the card can be far below the button that was pressed, so its message is brought into view
+    document.getElementById(fieldId).focus({ preventScroll: true });
+    errorDiv.scrollIntoView({ block: 'center' });
 }
 
 // true when an open card with changes has to be finished first; action is what the admin tried, like "editing another question"
