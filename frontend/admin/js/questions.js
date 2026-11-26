@@ -10,8 +10,12 @@ function prepareQuestionsPage() {
     if (questionsPageReady) return;
     questionsPageReady = true;
     document.querySelectorAll('#questions-page [data-fb-icon]').forEach((slot) => {
-        slot.innerHTML = uiIcon(slot.dataset.fbIcon, 16);
+        slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.closest('.ui-info-btn') ? 15 : 16);
     });
+    // the preview follows every key press and choice in the Add and Edit cards
+    const pageEl = document.getElementById('questions-page');
+    pageEl.addEventListener('input', renderQuestionPreview);
+    pageEl.addEventListener('change', renderQuestionPreview);
 }
 
 function setQuestionStatus(type, message) {
@@ -110,10 +114,12 @@ function updateQuestionManagementTable(questionsData) {
                 <p>Add the first question to start collecting feedback.</p>
                 <button class="ui-btn ui-btn-primary" type="button" onclick="showAddQuestionModal()">${uiIcon('plus', 16)}Add the first question</button>
             </div>`;
+        renderQuestionPreview();
         return;
     }
 
     container.innerHTML = questionsData.map(questionRowHtml).join('');
+    renderQuestionPreview();
     // <Jun Kai end>
 }
 
@@ -199,6 +205,7 @@ function showAddQuestionModal() {
             </form>
         </section>`;
     document.getElementById('question-text').focus();
+    renderQuestionPreview();
     // <Jun Kai end>
 }
 
@@ -206,6 +213,7 @@ function showAddQuestionModal() {
 function closeAddQuestionModal() {
     const slot = document.getElementById('questions-new-slot'); // <Jun Kai/> the new question card above the list
     if (slot) slot.innerHTML = ''; // <Jun Kai/>
+    renderQuestionPreview(); // <Jun Kai/>
     if (document.getElementById('questions-page').classList.contains('active')) {
         loadQuestionManagementData();
     }
@@ -249,6 +257,7 @@ function addOptionField() {
 function removeOptionField(button) {
     const optionGroup = button.parentElement;
     optionGroup.remove();
+    renderQuestionPreview(); // <Jun Kai/>
 }
 
 // Handle add question
@@ -429,6 +438,7 @@ function editQuestion(questionId, currentQuestionText, questionType, isRequired,
     const textBox = document.getElementById('edit-question-text');
     textBox.focus();
     textBox.setSelectionRange(textBox.value.length, textBox.value.length);
+    renderQuestionPreview();
     // <Jun Kai end>
 }
 
@@ -497,6 +507,7 @@ function closeEditQuestionModal() {
     const row = form.closest('.qs-row');
     if (row) row.classList.remove('is-editing');
     form.parentElement.innerHTML = '';
+    renderQuestionPreview();
     // <Jun Kai end>
 }
 
@@ -542,3 +553,107 @@ async function deleteQuestion(questionId) {
         }
     }
 }
+
+// <Jun Kai start> The live preview (new feature): the feedback form drawn the way the kiosk draws it
+// (frontend/feedback/js/questions.js), from the saved questions plus what is typed in the open Add or Edit card.
+// Like the kiosk: only active questions, in display order, the display order is the number in front, a star marks
+// a required question, and a choice question with no options shows no answers. All text is set with textContent.
+function readQuestionDraftOptions() {
+    const options = [];
+    document.querySelectorAll('#options-list .option-input-group').forEach((group, index) => {
+        const label = group.querySelector('input[type="text"]').value.trim();
+        if (label) options.push({ option_label: label, display_order: parseInt(group.querySelector('input[type="number"]').value) || index });
+    });
+    return options.sort((a, b) => a.display_order - b.display_order);
+}
+
+function collectPreviewQuestions() {
+    const list = [...window.questionsDataMap.values()].map((question) => ({ ...question, draft: false }));
+    const edit = document.getElementById('edit-question-form');
+    if (edit) {
+        const i = list.findIndex((question) => Number(question.id) === Number(edit.dataset.questionId));
+        if (i >= 0) {
+            list[i] = { ...list[i], draft: true,
+                question_text: document.getElementById('edit-question-text').value,
+                display_order: parseInt(document.getElementById('edit-display-order').value) || 0,
+                is_required: document.getElementById('edit-is-required').value === '1',
+                is_active: document.getElementById('edit-is-active').checked };
+        }
+    }
+    if (document.getElementById('add-question-form')) {
+        const type = document.getElementById('question-type').value;
+        list.push({ id: 'new', draft: true,
+            question_text: document.getElementById('question-text').value,
+            question_type: type,
+            display_order: parseInt(document.getElementById('display-order').value) || 0,
+            is_required: document.getElementById('is-required').value === '1',
+            is_active: document.getElementById('question-is-active').checked,
+            options: type === 'choice' ? readQuestionDraftOptions() : [] });
+    }
+    // the same order as the kiosk: display order first, then the order the questions were added
+    return list.map((question, index) => ({ question, index }))
+        .sort((a, b) => (Number(a.question.display_order) || 0) - (Number(b.question.display_order) || 0) || a.index - b.index)
+        .map((entry) => entry.question);
+}
+
+function previewEl(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined) el.textContent = text;
+    return el;
+}
+
+function previewChoices(labels, row) {
+    const box = previewEl('div', row ? 'qs-k-choices is-row' : 'qs-k-choices');
+    labels.forEach((label) => {
+        const choice = previewEl('div', 'qs-k-choice');
+        choice.append(previewEl('span', 'qs-k-radio'), previewEl('span', '', label));
+        box.appendChild(choice);
+    });
+    return box;
+}
+
+function previewQuestionEl(question) {
+    const group = previewEl('div', question.draft ? 'qs-k-q is-draft' : 'qs-k-q');
+    const text = String(question.question_text || '').trim();
+    const label = previewEl('div', 'qs-k-label', `${Number(question.display_order) || 0}. `);
+    label.appendChild(text ? document.createTextNode(text) : previewEl('span', 'qs-k-empty', 'Type the question'));
+    if (question.is_required) label.appendChild(document.createTextNode(' *'));
+    group.appendChild(label);
+    if (question.question_type === 'rating') {
+        const buttons = previewEl('div', 'qs-k-rating');
+        [1, 2, 3, 4, 5].forEach((n) => buttons.appendChild(previewEl('span', 'qs-k-rate', String(n))));
+        group.appendChild(buttons);
+    } else if (question.question_type === 'yesno') {
+        group.appendChild(previewChoices(['Yes', 'No'], true));
+    } else if (question.question_type === 'choice') {
+        if (question.options && question.options.length) group.appendChild(previewChoices(question.options.map((option) => option.option_label), false));
+    } else {
+        group.appendChild(previewEl('div', 'qs-k-text', 'Type your answer here...'));
+    }
+    return group;
+}
+
+function renderQuestionPreview() {
+    const box = document.getElementById('questions-preview');
+    if (!box) return;
+    const questions = collectPreviewQuestions();
+    const shown = questions.filter((question) => question.is_active);
+    box.replaceChildren(...(shown.length ? shown.map(previewQuestionEl) : [previewEl('div', 'qs-k-none', 'No questions are shown. Visitors see "No Questions Available".')]));
+
+    const note = document.getElementById('questions-preview-note');
+    const hiddenDraft = questions.find((question) => question.draft && !question.is_active);
+    note.hidden = !hiddenDraft;
+    note.textContent = hiddenDraft ? 'The question you are editing is turned off, so visitors do not see it.' : '';
+
+    // keeps the question being typed in visible inside the tablet screen
+    const screen = document.getElementById('questions-preview-screen');
+    const draftEl = box.querySelector('.qs-k-q.is-draft');
+    if (screen && draftEl) {
+        const top = draftEl.offsetTop; // the screen is the offset parent (position: relative)
+        if (top < screen.scrollTop || top + draftEl.offsetHeight > screen.scrollTop + screen.clientHeight) {
+            screen.scrollTop = Math.max(0, top - 16);
+        }
+    }
+}
+// <Jun Kai end>

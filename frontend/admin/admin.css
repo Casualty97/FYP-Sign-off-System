@@ -3276,6 +3276,40 @@ html[data-theme="dark"] .qs-error { color: #fca5a5; }
     .qs-form-grid { grid-template-columns: minmax(0, 1fr); }
     .qs-option-input .qs-option-order { flex-basis: 64px; }
 }
+/* the live preview: a tablet with the kiosk's own light colours. Its rules start with html[data-theme] (set in light and
+   dark), so colorScheme.js makes no dark twin of them and the tablet looks the same in both modes */
+.qs-preview-card { min-width: 0; }
+.qs-preview-body { padding: 20px 22px 24px; }
+.qs-preview-note { margin: 0 0 14px; font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+html[data-theme] .qs-device { max-width: 330px; margin: 0 auto; padding: 12px; border-radius: 28px; background: #1f2937; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18); }
+html[data-theme] .qs-screen { position: relative; display: flex; flex-direction: column; gap: 12px; height: 560px; padding: 22px 16px; overflow-y: auto; border-radius: 18px; background: #ffffff linear-gradient(180deg, #ffffff, #f6faf5); color: #18392b; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; }
+html[data-theme] .qs-k-title { flex-shrink: 0; font-size: 19px; font-weight: 900; text-align: center; color: #18392b; }
+html[data-theme] .qs-k-list { display: flex; flex-direction: column; gap: 10px; }
+html[data-theme] .qs-k-q { padding: 12px; border: 1px solid rgba(74, 124, 89, 0.2); border-radius: 8px; background: #ffffff; transition: box-shadow 0.15s ease, border-color 0.15s ease; }
+html[data-theme] .qs-k-q.is-draft { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16); }
+html[data-theme] .qs-k-label { font-size: 12px; font-weight: 800; line-height: 1.4; color: #18392b; overflow-wrap: anywhere; }
+html[data-theme] .qs-k-empty { font-weight: 600; font-style: italic; color: #7b8f84; }
+html[data-theme] .qs-k-rating { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+html[data-theme] .qs-k-rate { display: flex; align-items: center; justify-content: center; height: 30px; border: 1px solid rgba(74, 124, 89, 0.34); border-radius: 6px; background: #ffffff; font-size: 12px; font-weight: 900; color: #52685d; }
+html[data-theme] .qs-k-text { height: 52px; margin-top: 8px; padding: 8px 10px; border: 1px solid rgba(74, 124, 89, 0.34); border-radius: 6px; background: #ffffff; font-size: 11px; color: #8a9a91; }
+html[data-theme] .qs-k-choices { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
+html[data-theme] .qs-k-choices.is-row { flex-direction: row; gap: 14px; }
+html[data-theme] .qs-k-choice { display: flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1.35; color: #18392b; overflow-wrap: anywhere; }
+html[data-theme] .qs-k-radio { flex-shrink: 0; width: 11px; height: 11px; border: 1px solid #6b7c73; border-radius: 50%; background: #ffffff; }
+html[data-theme] .qs-k-none { padding: 18px 8px; text-align: center; font-size: 12px; color: #52685d; }
+html[data-theme] .qs-k-button { flex-shrink: 0; margin-top: auto; padding: 11px; border-radius: 8px; background: #3d7650 linear-gradient(135deg, #4a7c59, #2f6f45); color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; }
+/* the content column is a scroll container that never scrolls (the window does), which would stop the preview from
+   sticking; the same fix as the Visitor Data Archive save bar */
+.page-content:has(> #questions-page.active) { overflow: visible; }
+@media (min-width: 1200px) {
+    .qs-grid { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); }
+    .qs-list-col { max-width: none; }
+    .qs-preview-card { position: sticky; top: 20px; }
+}
+@media (max-width: 640px) {
+    .qs-preview-body { padding: 16px; }
+    html[data-theme] .qs-screen { height: 480px; }
+}
 /* <Jun Kai end> */
 
 /* ==================== USER MANAGEMENT PAGE STYLES ==================== */

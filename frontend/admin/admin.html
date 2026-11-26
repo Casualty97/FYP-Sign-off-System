@@ -1433,6 +1433,26 @@
                                 <div class="ui-card qs-empty">Loading questions...</div>
                             </div>
                         </div>
+
+                        <!-- the live preview (new feature): the feedback form as visitors see it, redrawn while Add or Edit is typed in -->
+                        <aside class="ui-card qs-preview-card" aria-labelledby="qs-preview-title">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3 id="qs-preview-title">How visitors see it<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What the preview shows" title="How this works"><span data-fb-icon="info"></span></button><template class="ui-info-body" data-title="What the preview shows"><ul><li>The feedback form as the kiosk tablet draws it, in English.</li><li>Only active questions are shown, in display order, with the number visitors see in front of each one. A star marks a required question.</li><li>What you type in the open Add or Edit card shows here straight away. Visitors only see it after you save.</li></ul></template></span></h3>
+                                    <p>Updates as you edit</p>
+                                </div>
+                            </div>
+                            <div class="qs-preview-body">
+                                <p id="questions-preview-note" class="qs-preview-note" hidden></p>
+                                <div class="qs-device">
+                                    <div class="qs-screen" id="questions-preview-screen">
+                                        <div class="qs-k-title">Share Your Feedback</div>
+                                        <div id="questions-preview" class="qs-k-list"></div>
+                                        <div class="qs-k-button">Continue to Pledge</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
                     <!-- <Jun Kai end> -->
                 </div>
