@@ -46,6 +46,7 @@ function showParameterStep(step, jump = false) {
         else button.removeAttribute('aria-current');
     });
     page.dataset.paCurrent = step;
+    updateParameterPreview();
     if (jump) target.scrollIntoView({ block: 'start' });
 }
 
@@ -114,6 +115,124 @@ function bindParameterChanges() {
     page.addEventListener('input', updateParameterChanges);
     page.addEventListener('change', updateParameterChanges);
     page.dataset.changesBound = 'true';
+}
+
+// Live preview: a sketch of the chosen kiosk screen, built from the values on the page, saved or not. It follows
+// the kiosk's own rules: the thank you screen shows the subtitle only when the message is empty, the pledge coach
+// title carries the campaign title while Smart campaign is on, the beauty filter needs both of its switches, and the
+// email uses the same default texts as backend/features/email/service.js when a box is empty.
+const PARAMETER_EMAIL_DEFAULTS = {
+    subject: 'Thank you for visiting RP Xperience Centre, {name}!',
+    intro: 'Thank you for taking the time to visit our RP Xperience Centre and sharing your feedback. Attached below is your commemorative photo from your visit.',
+    closing: 'We hope your experience has inspired you to take meaningful steps towards sustainability. Your feedback helps us improve and create better experiences for future visitors.',
+    sender: 'RP Xperience Centre Team',
+    footer: 'This is an automated email sent from the RP Xperience Centre kiosk system. Please do not reply to this message.'
+};
+
+function setPreviewText(preview, key, text) {
+    preview.querySelectorAll(`[data-pa-text="${key}"]`).forEach((el) => { el.textContent = text; });
+}
+
+function showPreviewPart(preview, key, on) {
+    preview.querySelectorAll(`[data-pa-show="${key}"]`).forEach((el) => { el.hidden = !on; });
+}
+
+function updateParameterPreview() {
+    const page = document.getElementById('parameter-adjustment-page');
+    const preview = document.getElementById('pa-preview');
+    if (!page || !preview) return;
+    const block = preview.querySelector(`[data-pa-preview="${page.dataset.paCurrent || 'start'}"]`);
+    preview.querySelectorAll('[data-pa-preview]').forEach((part) => { part.hidden = part !== block; });
+    preview.hidden = !block;
+    page.querySelector('.pa-work')?.classList.toggle('has-preview', Boolean(block));
+    if (!block) return;
+
+    // the look every feedback screen shares
+    preview.style.setProperty('--pa-accent', normalizeHexColor(getInputValue('param-feedbackAccentColor'), '#4a7c59'));
+    preview.style.setProperty('--pa-card-alpha', String(clampNumber(getInputValue('param-feedbackCardOpacity'), 0.55, 1, 0.9)));
+    const background = getInputValue('param-feedbackBackground');
+    preview.querySelectorAll('.pa-screen').forEach((screen) => {
+        screen.style.background = '';
+        if (!background) return;
+        screen.style.background = background;
+        screen.style.backgroundAttachment = 'scroll';
+    });
+    showPreviewPart(preview, 'languages', getCheckedValue('flag-floatingLanguageSelectorEnabled'));
+
+    const days = Math.min(365, Math.max(1, Math.round(Number(getInputValue('param-temporaryRetentionDays')) || 7)));
+    setPreviewText(preview, 'consent', getInputValue('param-consentPrompt'));
+    setPreviewText(preview, 'days-title', `${days} ${days === 1 ? 'Day' : 'Days'}`);
+    setPreviewText(preview, 'days-text', `Your feedback data will be deleted after ${days} ${days === 1 ? 'day' : 'days'}.`);
+
+    const nameMin = getInputValue('rule-nameMinLength') || '0';
+    const nameMax = getInputValue('rule-nameMaxLength') || '80';
+    setPreviewText(preview, 'details', getInputValue('param-detailsPrompt'));
+    setPreviewText(preview, 'name-need', getCheckedValue('rule-nameRequired') ? '(required)' : '(optional)');
+    setPreviewText(preview, 'name-rule', `${nameMin} to ${nameMax} letters`);
+    setPreviewText(preview, 'email-need', getCheckedValue('rule-emailRequired') ? '(required)' : '(optional)');
+
+    setPreviewText(preview, 'questions', getInputValue('param-feedbackPrompt'));
+    showPreviewPart(preview, 'questions-required', getCheckedValue('rule-requiredQuestionsEnabled'));
+
+    const campaignTitle = getInputValue('campaign-title');
+    const pledgeOn = getCheckedValue('flag-pledgeEnabled');
+    setPreviewText(preview, 'pledge', getInputValue('param-pledgePrompt'));
+    setPreviewText(preview, 'coach', getCheckedValue('campaign-enabled') && campaignTitle ? `${campaignTitle}: Smart Pledge Coach` : 'Smart Pledge Coach');
+    setPreviewText(preview, 'pledge-need', getCheckedValue('rule-pledgeRequired') ? '(required)' : '(optional)');
+    setPreviewText(preview, 'pledge-rule', `${getInputValue('rule-pledgeMinLength') || '0'} to ${getInputValue('rule-pledgeMaxLength') || '500'} characters`);
+    showPreviewPart(preview, 'pledge-topic', getCheckedValue('rule-pledgeTopicRequired'));
+    showPreviewPart(preview, 'pledge-off', !pledgeOn);
+    preview.querySelector('[data-pa-preview="pledge"] .pa-device')?.classList.toggle('is-off', !pledgeOn);
+
+    const camera = getCheckedValue('flag-cameraCaptureEnabled');
+    const upload = getCheckedValue('flag-photoUploadEnabled');
+    const beauty = getCheckedValue('flag-beautyFilterEnabled') && getRadioBoolean('beauty-filter');
+    const overlay = getInputValue('param-defaultOverlayTheme');
+    showPreviewPart(preview, 'camera', camera);
+    showPreviewPart(preview, 'upload', upload);
+    showPreviewPart(preview, 'photo-none', !camera && !upload);
+    showPreviewPart(preview, 'photo-skip', !getCheckedValue('rule-photoRequired'));
+    showPreviewPart(preview, 'beauty', beauty);
+    setPreviewText(preview, 'beauty', `Beauty filter: ${getInputValue('param-beautyFilterStrength') || 'medium'}`);
+    setPreviewText(preview, 'overlay', overlay ? `Overlay picked first: ${overlay}` : 'No overlay picked first');
+
+    const message = getInputValue('param-thankYouMessage');
+    const subtitle = getInputValue('param-thankYouSubtitle');
+    setPreviewText(preview, 'thanks-title', getInputValue('param-thankYouTitle'));
+    setPreviewText(preview, 'thanks-message', message || subtitle);
+    setPreviewText(preview, 'thanks-footer', getInputValue('param-thankYouFooter'));
+    showPreviewPart(preview, 'thanks-subtitle', !message && Boolean(subtitle));
+    showPreviewPart(preview, 'social', getCheckedValue('flag-socialSharingEnabled'));
+
+    const name = 'Alex';
+    const personal = (value, fallback) => (value || fallback).replace(/\{name\}/g, name);
+    const mailOn = getCheckedValue('flag-thankYouEmailEnabled');
+    setPreviewText(preview, 'mail-subject', personal(getInputValue('param-thankYouSubject'), PARAMETER_EMAIL_DEFAULTS.subject));
+    setPreviewText(preview, 'mail-from', personal(getInputValue('param-senderName'), PARAMETER_EMAIL_DEFAULTS.sender));
+    setPreviewText(preview, 'mail-greeting', `Dear ${name},`);
+    setPreviewText(preview, 'mail-intro', personal(getInputValue('param-thankYouIntro'), PARAMETER_EMAIL_DEFAULTS.intro));
+    setPreviewText(preview, 'mail-closing', personal(getInputValue('param-thankYouClosing'), PARAMETER_EMAIL_DEFAULTS.closing));
+    setPreviewText(preview, 'mail-footer', personal(getInputValue('param-footerNote'), PARAMETER_EMAIL_DEFAULTS.footer));
+    showPreviewPart(preview, 'mail-badge', getCheckedValue('flag-badgeEmailEnabled'));
+    showPreviewPart(preview, 'mail-off', !mailOn);
+    showPreviewPart(preview, 'mail-on', mailOn);
+    preview.querySelector('[data-pa-preview="email"] .pa-device')?.classList.toggle('is-off', !mailOn);
+}
+
+// The start screen preview is drawn 600 px wide (its sizes are the kiosk's at 0.45) and shrunk to fit the card
+function fitLandingPreview() {
+    const box = document.querySelector('#pa-preview .landing-layout-preview');
+    if (box && box.clientWidth) box.style.setProperty('--pa-landing-scale', String(Math.min(1, box.clientWidth / 600)));
+}
+
+function bindParameterPreview() {
+    const page = document.getElementById('parameter-adjustment-page');
+    if (!page || page.dataset.previewBound) return;
+    page.addEventListener('input', updateParameterPreview);
+    page.addEventListener('change', updateParameterPreview);
+    const box = document.querySelector('#pa-preview .landing-layout-preview');
+    if (box && 'ResizeObserver' in window) new ResizeObserver(fitLandingPreview).observe(box);
+    page.dataset.previewBound = 'true';
 }
 // <Jun Kai end>
 
@@ -391,6 +510,7 @@ function resetLandingLayoutPreview() {
     updateLandingLayoutPreview();
     // <Jun Kai start>
     updateParameterChanges();
+    updateParameterPreview();
     // <Jun Kai end>
 }
 
@@ -618,6 +738,7 @@ function populateParameterForm(config) {
     setInputValue('archive-keepRecentFeedbackCount', archive.keepRecentFeedbackCount || 0);
     // <Jun Kai start>
     takeParameterSnapshot();
+    updateParameterPreview();
     // <Jun Kai end>
 }
 
@@ -750,6 +871,7 @@ async function loadParameters() {
         // <Jun Kai start>
         fillParameterIcons();
         bindParameterChanges();
+        bindParameterPreview();
         // <Jun Kai end>
         setParameterStatus('Loading parameters...', 'info');
         loadParameterOverlayOptions();

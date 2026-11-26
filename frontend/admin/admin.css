@@ -6981,8 +6981,53 @@ input:checked + .slider:before {
 .pa-changes[hidden] { display: none; }
 .pa-behind-btn { position: relative; }
 .pa-step.has-changes .pa-step-num::after, .pa-behind-btn.has-changes::after { content: ""; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; box-sizing: border-box; border: 2px solid var(--theme-card-bg); border-radius: 50%; background: #d97706; }
+/* live preview beside the settings. The kiosk sketch keeps the kiosk's light colours in dark mode too: they are
+   custom properties, which the dark mode twin rules in colorScheme.js leave as they are. */
+.pa-work.has-preview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); gap: 20px; align-items: start; }
+#parameter-adjustment-page .pa-preview { position: sticky; top: 16px; margin-top: 0; }
+#parameter-adjustment-page .pa-preview[hidden], .pa-preview-block[hidden], .pa-preview [data-pa-show][hidden] { display: none; }
+.pa-preview-note { margin: 12px 0 0; font-size: 12px; line-height: 1.45; color: var(--color-dark-gray); }
+#pa-preview .landing-layout-preview { position: static; max-width: 600px; height: calc(520px * var(--pa-landing-scale, 0.55)); margin: 0 auto; padding: 0; border: 0; border-radius: 10px; background: none; overflow: hidden; }
+#pa-preview .landing-preview-stage { width: 600px; height: 520px; min-height: 0; transform: scale(var(--pa-landing-scale, 0.55)); transform-origin: top left; }
+.pa-device { --pa-frame: #1e293b; --pa-ink: #0f172a; --pa-soft: #475569; --pa-line: #cbd5e1; --pa-green: #047857; --pa-screen-bg: linear-gradient(135deg, #ecfdf5, #eff6ff); --pa-card-bg: rgb(255 255 255 / var(--pa-card-alpha, 0.9)); --pa-btn-text: #ffffff; padding: 9px; border-radius: 22px; background: var(--pa-frame); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18); transition: opacity 0.2s ease; }
+.pa-device.is-off { opacity: 0.45; }
+.pa-preview-block .pa-device { max-width: 440px; margin: 0 auto; }
+.pa-screen { display: grid; place-items: center; gap: 10px; min-height: 300px; padding: 20px 16px; border-radius: 14px; background: var(--pa-screen-bg); background-size: cover; background-position: center; overflow: hidden; }
+.pa-screen-card { width: 100%; padding: 18px 16px; border-radius: 12px; background: var(--pa-card-bg); color: var(--pa-ink); text-align: center; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12); }
+.pa-screen-title { margin: 0 0 6px; font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--pa-ink); overflow-wrap: anywhere; }
+.pa-screen-text { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--pa-soft); overflow-wrap: anywhere; }
+.pa-screen-small { margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--pa-soft); overflow-wrap: anywhere; }
+.pa-screen-green { color: var(--pa-green); }
+.pa-screen-icon { display: inline-flex; margin-bottom: 6px; color: var(--pa-green); }
+.pa-screen-icon svg { width: 34px; height: 34px; }
+.pa-screen-option, .pa-screen-coach { display: grid; gap: 2px; margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--pa-line); border-radius: 10px; text-align: left; font-size: 12px; color: var(--pa-soft); }
+.pa-screen-option strong, .pa-screen-coach strong { font-size: 13px; color: var(--pa-ink); }
+.pa-screen-field { display: grid; gap: 3px; margin: 0 0 8px; text-align: left; font-size: 12px; font-weight: 600; color: var(--pa-ink); }
+.pa-screen-field em { font-style: normal; font-weight: 400; color: var(--pa-soft); }
+.pa-screen-field i { display: block; padding: 8px 10px; border: 1px solid var(--pa-line); border-radius: 8px; font-style: normal; font-weight: 400; color: var(--pa-soft); }
+.pa-screen-lines { display: grid; gap: 8px; margin: 0 0 10px; }
+.pa-screen-lines span { height: 30px; border: 1px solid var(--pa-line); border-radius: 8px; }
+.pa-screen-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pa-screen-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; margin-top: 4px; padding: 0 16px; border-radius: 8px; background: var(--pa-accent, #4a7c59); color: var(--pa-btn-text); font-size: 12px; font-weight: 700; }
+.pa-screen-btn-light { border: 1px solid var(--pa-accent, #4a7c59); background: var(--pa-card-bg); color: var(--pa-accent, #4a7c59); }
+.pa-screen-camera { display: grid; place-items: end center; height: 130px; margin: 6px 0 8px; padding: 8px; border-radius: 10px; background: var(--pa-frame); }
+.pa-screen-camera span { padding: 3px 8px; border-radius: 999px; background: var(--pa-card-bg); color: var(--pa-ink); font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
+.pa-screen-social { display: flex; justify-content: center; gap: 8px; margin: 4px 0; }
+.pa-screen-social span { width: 22px; height: 22px; border-radius: 50%; background: var(--pa-accent, #4a7c59); }
+.pa-screen-languages { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.pa-screen-languages span { padding: 4px 9px; border-radius: 999px; background: var(--pa-card-bg); color: var(--pa-ink); font-size: 11px; font-weight: 600; }
+.pa-device-mail { --pa-mail-bg: #ffffff; --pa-mail-photo: #e2e8f0; }
+.pa-mail { padding: 16px; border-radius: 14px; background: var(--pa-mail-bg); color: var(--pa-ink); font-size: 12px; line-height: 1.55; }
+.pa-mail p { margin: 0 0 9px; overflow-wrap: anywhere; }
+.pa-mail-subject { font-size: 14px; font-weight: 700; line-height: 1.35; }
+.pa-mail-from { color: var(--pa-soft); }
+.pa-mail-photo { display: grid; place-items: center; height: 90px; margin: 0 0 9px; border-radius: 8px; background: var(--pa-mail-photo); color: var(--pa-soft); font-weight: 600; }
+.pa-mail-badge { padding: 8px 10px; border-left: 3px solid var(--pa-accent, #4a7c59); border-radius: 6px; background: var(--pa-mail-photo); font-weight: 600; }
+.pa-mail .pa-mail-footer { margin: 12px 0 0; padding-top: 9px; border-top: 1px solid var(--pa-line); font-size: 11px; color: var(--pa-soft); }
 #parameter-adjustment-page .pa-textarea { height: auto; min-height: 84px; padding: 9px 12px; line-height: 1.5; resize: vertical; font-family: inherit; }
 #parameter-adjustment-page .pa-short { max-width: 160px; }
+/* this page leans on its help lines, so they use the darker grey that stays readable on a white card */
+#parameter-adjustment-page .ui-help { color: var(--color-dark-gray); }
 .pa-subhead { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
 .pa-form > .pa-subhead { margin: 6px 0 -8px; }
 .pa-subhead-help { margin: 0 0 14px; }
@@ -7004,8 +7049,6 @@ input:checked + .slider:before {
 .pa-file { max-width: 100%; font-size: 13px; color: var(--color-dark-gray); }
 .pa-file::file-selector-button { height: 36px; margin-right: 10px; padding: 0 14px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-card-bg); color: var(--theme-text-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .pa-inline-btn { margin-top: 18px; }
-.pa-landing { display: grid; grid-template-columns: minmax(280px, 0.85fr) minmax(340px, 1.15fr); gap: 22px; align-items: start; }
-#parameter-adjustment-page .pa-landing-preview { padding: 12px; border-color: var(--theme-border-color); border-radius: 12px; background: var(--theme-bg-color); }
 .pa-savebar { position: sticky; bottom: 16px; z-index: 5; display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 10px 12px 10px 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; background: var(--theme-card-bg); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 1px 2px rgba(15, 23, 42, 0.06); }
 .pa-status { min-width: 0; }
 .pa-status .ui-pill { white-space: normal; }
@@ -7015,9 +7058,9 @@ input:checked + .slider:before {
     .pa-step:nth-child(4n + 1) { border-left: 0; }
     .pa-step:nth-child(n + 5) { border-top: 1px solid var(--theme-border-color); }
 }
-@media (max-width: 1100px) {
-    .pa-landing { grid-template-columns: 1fr; }
-    #parameter-adjustment-page .pa-landing-preview { position: static; }
+@media (max-width: 1180px) {
+    .pa-work.has-preview { grid-template-columns: minmax(0, 1fr); }
+    #parameter-adjustment-page .pa-preview { position: static; }
 }
 @media (max-width: 640px) {
     #parameter-adjustment-page { padding: 20px; }

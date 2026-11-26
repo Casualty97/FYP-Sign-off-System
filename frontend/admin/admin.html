@@ -2265,8 +2265,8 @@
                             <!-- Step 1: Start screen (was the Start Screen Layout tab) -->
                             <section class="ui-card pa-group" id="pa-group-start" data-pa-group="start" data-pa-name="Start screen">
                                 <div class="ui-card-header"><div><h3>Step 1 of 8: Start screen</h3><p>Text size and position of the start screen parts. The texts themselves are in <button type="button" class="ui-link" onclick="showPage('form-management')">Start Screen Text</button>.</p></div></div>
-                                <div class="ui-card-body pa-landing" id="landing-layout-tab">
-                                    <div class="pa-landing-controls">
+                                <div class="ui-card-body" id="landing-layout-tab">
+                                    <div>
                                         <div class="ui-form-grid pa-form">
                                             <div class="ui-field ui-field-wide">
                                                 <label class="ui-label" for="layout-landingTextScale">Text size</label>
@@ -2335,25 +2335,6 @@
                                             </div>
                                         </div>
                                         <button type="button" class="ui-btn ui-btn-secondary pa-inline-btn" onclick="resetLandingLayoutPreview()"><span data-fb-icon="refresh"></span>Reset layout values</button>
-                                    </div>
-                                    <div class="landing-layout-preview pa-landing-preview" aria-label="Start screen layout preview">
-                                        <div class="landing-preview-stage">
-                                            <div class="landing-preview-card" id="landing-preview-card">
-                                                <div class="landing-preview-brand">
-                                                    <span class="landing-preview-icon">+</span>
-                                                    <span>Community Feedback Portal</span>
-                                                </div>
-                                                <div class="landing-preview-languages">
-                                                    <span>English</span>
-                                                    <span>Bahasa Melayu</span>
-                                                    <span>Chinese</span>
-                                                </div>
-                                                <h4>Let's turn your ideas into reality</h4>
-                                                <p>Share your thoughts and help us improve our services. Your feedback matters.</p>
-                                                <button type="button" id="landing-preview-start" tabindex="-1">Start Feedback Form</button>
-                                                <button type="button" class="landing-preview-pledge" tabindex="-1">View Pledgeboards</button>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </section>
@@ -2795,6 +2776,128 @@
                                 </div>
                             </section>
                         </div>
+                        <!-- Live preview: a sketch of the chosen kiosk screen with the values on the page, saved or not -->
+                        <aside class="ui-card pa-preview" id="pa-preview" aria-labelledby="pa-preview-title">
+                            <div class="ui-card-header"><div><h3 id="pa-preview-title">How visitors see it</h3><p>A sketch of this screen with your unsaved changes.</p></div></div>
+                            <div class="ui-card-body">
+                                <div class="pa-preview-block" data-pa-preview="start">
+                                    <div class="landing-layout-preview pa-landing-preview" aria-label="Start screen layout preview">
+                                        <div class="landing-preview-stage">
+                                            <div class="landing-preview-card" id="landing-preview-card">
+                                                <div class="landing-preview-brand">
+                                                    <span class="landing-preview-icon">+</span>
+                                                    <span>Community Feedback Portal</span>
+                                                </div>
+                                                <div class="landing-preview-languages">
+                                                    <span>English</span>
+                                                    <span>Bahasa Melayu</span>
+                                                    <span>Chinese</span>
+                                                </div>
+                                                <h4>Let's turn your ideas into reality</h4>
+                                                <p>Share your thoughts and help us improve our services. Your feedback matters.</p>
+                                                <button type="button" id="landing-preview-start" tabindex="-1">Start Feedback Form</button>
+                                                <button type="button" class="landing-preview-pledge" tabindex="-1">View Pledgeboards</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="pa-preview-note">Sizes and positions follow the numbers on the left. The texts are the sample ones.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="consent" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Quick Consent</h4>
+                                        <p class="pa-screen-text" data-pa-text="consent"></p>
+                                        <div class="pa-screen-option"><strong data-pa-text="days-title"></strong><span data-pa-text="days-text"></span></div>
+                                    </div></div></div>
+                                    <p class="pa-preview-note">Not on the kiosk at the moment: visits start at Details.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="details" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Tell Us Who You Are</h4>
+                                        <p class="pa-screen-text" data-pa-text="details"></p>
+                                        <div class="pa-screen-field"><span>Name <em data-pa-text="name-need"></em></span><i data-pa-text="name-rule"></i></div>
+                                        <div class="pa-screen-field"><span>Email <em data-pa-text="email-need"></em></span><i>name@example.com</i></div>
+                                        <span class="pa-screen-btn">Next</span>
+                                    </div></div></div>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="questions" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Share Your Feedback</h4>
+                                        <p class="pa-screen-text" data-pa-text="questions"></p>
+                                        <div class="pa-screen-lines" aria-hidden="true"><span></span><span></span><span></span></div>
+                                        <p class="pa-screen-small" data-pa-show="questions-required">Questions marked as required must be answered</p>
+                                        <span class="pa-screen-btn">Next</span>
+                                    </div></div></div>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="pledge" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Make Your Pledge</h4>
+                                        <p class="pa-screen-text" data-pa-text="pledge"></p>
+                                        <div class="pa-screen-coach"><strong data-pa-text="coach"></strong><span>Make your pledge easier to act on</span></div>
+                                        <div class="pa-screen-field"><span>Your pledge <em data-pa-text="pledge-need"></em></span><i data-pa-text="pledge-rule"></i></div>
+                                        <p class="pa-screen-small" data-pa-show="pledge-topic">A topic must be picked</p>
+                                        <span class="pa-screen-btn">Next</span>
+                                    </div></div></div>
+                                    <p class="pa-preview-note" data-pa-show="pledge-off">The Pledge step is off, so visitors skip this screen.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="photo" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <h4 class="pa-screen-title">Capture Your Photo</h4>
+                                        <div class="pa-screen-camera"><span data-pa-text="overlay"></span></div>
+                                        <p class="pa-screen-small" data-pa-show="beauty" data-pa-text="beauty"></p>
+                                        <div class="pa-screen-row">
+                                            <span class="pa-screen-btn" data-pa-show="camera">Take photo</span>
+                                            <span class="pa-screen-btn pa-screen-btn-light" data-pa-show="upload">Upload a photo</span>
+                                        </div>
+                                        <p class="pa-screen-small" data-pa-show="photo-skip">Visitors may skip the photo</p>
+                                    </div></div></div>
+                                    <p class="pa-preview-note" data-pa-show="photo-none">Camera capture and photo upload are both off, so visitors cannot add a photo.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="thanks" hidden>
+                                    <div class="pa-device"><div class="pa-screen"><div class="pa-screen-card">
+                                        <span class="pa-screen-icon" data-fb-icon="tree"></span>
+                                        <h4 class="pa-screen-title pa-screen-green" data-pa-text="thanks-title"></h4>
+                                        <p class="pa-screen-text pa-screen-green" data-pa-text="thanks-message"></p>
+                                        <div class="pa-screen-social" data-pa-show="social" aria-hidden="true"><span></span><span></span><span></span></div>
+                                        <p class="pa-screen-small" data-pa-text="thanks-footer"></p>
+                                    </div></div></div>
+                                    <p class="pa-preview-note" data-pa-show="thanks-subtitle">The message is empty, so the subtitle is shown in its place.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="email" hidden>
+                                    <div class="pa-device pa-device-mail"><div class="pa-mail">
+                                        <p class="pa-mail-subject" data-pa-text="mail-subject"></p>
+                                        <p class="pa-mail-from">From <span data-pa-text="mail-from"></span></p>
+                                        <p data-pa-text="mail-greeting"></p>
+                                        <p data-pa-text="mail-intro"></p>
+                                        <div class="pa-mail-photo">Your photo</div>
+                                        <p class="pa-mail-badge" data-pa-show="mail-badge">Badge earned: Feedback Contributor</p>
+                                        <p data-pa-text="mail-closing"></p>
+                                        <p class="pa-mail-footer" data-pa-text="mail-footer"></p>
+                                    </div></div>
+                                    <p class="pa-preview-note" data-pa-show="mail-off">The photo thank you email is off, so visitors do not get this email.</p>
+                                    <p class="pa-preview-note" data-pa-show="mail-on">Shown for a sample visitor called Alex. Empty boxes use the kiosk's default text.</p>
+                                </div>
+
+                                <div class="pa-preview-block" data-pa-preview="look" hidden>
+                                    <div class="pa-device"><div class="pa-screen">
+                                        <div class="pa-screen-languages" data-pa-show="languages" aria-hidden="true"><span>English</span><span>&#20013;&#25991;</span><span>Bahasa Melayu</span><span>&#2980;&#2990;&#3007;&#2996;&#3021;</span></div>
+                                        <div class="pa-screen-card">
+                                            <h4 class="pa-screen-title">Share Your Feedback</h4>
+                                            <p class="pa-screen-text">A few quick taps. Honest answers are perfect.</p>
+                                            <div class="pa-screen-lines" aria-hidden="true"><span></span><span></span></div>
+                                            <span class="pa-screen-btn">Next</span>
+                                        </div>
+                                    </div></div>
+                                    <p class="pa-preview-note">The background, card opacity, accent colour and language bar shown on every feedback screen.</p>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
 
                     <section class="ui-card pa-behind" aria-labelledby="pa-behind-title">
