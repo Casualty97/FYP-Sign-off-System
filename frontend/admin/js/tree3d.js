@@ -11,7 +11,7 @@ const TREE3D_DEFAULTS = {
     weatherSource: 'live',
     manualSky: 'day',
     manualRain: false,
-    rainArea: 'all',
+    rainArea: 'Woodlands',    // the automatic weather's one place (no other is offered)
     riverLevelMode: 'auto',
     autoOrbit: true,
     orbitSeconds: 86400, // one full turn a day
@@ -157,7 +157,6 @@ const TREE3D_BADGES = [
 ];
 
 // The rain areas the 3D page lists come from the same public Singapore feed.
-const TREE3D_AREA_FEED = 'https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast';
 
 // Display 2D/3D Tree (top of Digital Tree Adjustment) picks which settings are shown below it:
 // the 2D tabs for 2D, the 3D Tree Settings for 3D. Choosing only switches the view; Save Display makes it live.
@@ -716,34 +715,18 @@ function updateTree3dWeatherFields() {
     tree3dField('manualRain').disabled = live;
 }
 
-function setTree3dRainArea(area) {
+// Weather location: the automatic weather is always at Woodlands, the one place listed (an older saved place,
+// such as All Singapore, is shown and saved as Woodlands).
+function setTree3dRainArea() {
     const select = tree3dField('rainArea');
     if (!select) return;
-    const value = area || 'all';
-    // Keep a saved area even when the area list could not be loaded.
-    if (![...select.options].some(option => option.value === value)) {
-        select.add(new Option(value, value));
-    }
-    select.value = value;
+    if (![...select.options].some(option => option.value === 'Woodlands')) select.replaceChildren(new Option('Woodlands', 'Woodlands'));
+    select.value = 'Woodlands';
 }
 
-async function loadTree3dRainAreas() {
-    const select = tree3dField('rainArea');
-    if (!select || select.dataset.loaded === 'true') return;
-    try {
-        const response = await fetch(TREE3D_AREA_FEED);
-        const data = await response.json();
-        const names = (data?.data?.area_metadata || [])
-            .map(area => area?.name)
-            .filter(name => typeof name === 'string' && name.trim())
-            .sort((a, b) => a.localeCompare(b));
-        const current = select.value;
-        select.replaceChildren(new Option('All Singapore', 'all'), ...names.map(name => new Option(name, name)));
-        select.dataset.loaded = 'true';
-        setTree3dRainArea(current);
-    } catch (error) {
-        console.warn('Rain areas could not be loaded; All Singapore and the saved area stay available.', error);
-    }
+// Only Woodlands is listed (the automatic weather is detected there); no list of other places is fetched.
+function loadTree3dRainAreas() {
+    setTree3dRainArea();
 }
 
 function fillTree3dForm(settings) {
@@ -879,7 +862,7 @@ function collectTree3dSettings() {
         weatherSource: tree3dField('weatherSource').value,
         manualSky: tree3dField('manualSky').value,
         manualRain: tree3dField('manualRain').checked,
-        rainArea: tree3dField('rainArea').value || 'all',
+        rainArea: 'Woodlands', // the automatic weather's one place
         riverLevelMode: tree3dField('riverLevelMode').value,
         autoOrbit: tree3dField('autoOrbit').checked,
         ...(tree3dField('orbitTime') ? {

@@ -18,11 +18,21 @@ test('a full save from the admin form is kept as sent', () => {
     });
     assert.equal(saved.weatherSource, 'manual');
     assert.equal(saved.manualSky, 'night');
-    assert.equal(saved.rainArea, 'Ang Mo Kio');
+    assert.equal(saved.rainArea, 'Woodlands'); // the automatic weather is only ever at Woodlands
     assert.equal(saved.soundVolume, 40);
     assert.equal(saved.showWeatherPanel, false);
     assert.deepEqual(saved.titleBox, { showTitleBox: true, titleText: 'ESG Tree', subtitleText: 'Our living tree',
         opacity: 0.3, blur: 10, radius: 12, position: 'top-left', paddingX: 20, paddingY: 10 });
+});
+
+test('the automatic weather: at Woodlands only, whatever place is sent or was saved before', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.weatherSource, 'live');
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.rainArea, 'Woodlands');
+    for (const place of ['all', 'Ang Mo Kio', 'Jurong West', 'woodlands', '', 'Johor Bahru']) {
+        assert.equal(normalizeTree3dParameters({ rainArea: place }).rainArea, 'Woodlands', place);
+    }
+    assert.equal(mergeTree3dParameters({ rainArea: 'all' }, {}).rainArea, 'Woodlands');
+    assert.equal(mergeTree3dParameters({ rainArea: 'Tampines' }, { manualSky: 'day' }).rainArea, 'Woodlands');
 });
 
 test('the glowing look is on by default and can be turned off', () => {

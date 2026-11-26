@@ -13,7 +13,9 @@
 //   weatherSource      'live' (Singapore weather feeds) or 'manual'
 //   manualSky          time of day in manual weather: sunrise, day, sunset or night
 //   manualRain         rain and thunder in manual weather
-//   rainArea           live weather area: 'all' for all of Singapore, or an area name from the feed
+//   weatherSource      'live' is Automatic: the weather detected at Woodlands (WEATHER_AREA) as it is now
+//   rainArea           always 'Woodlands' (WEATHER_AREA): the automatic weather is only ever Woodlands', so any
+//                      other place sent (or saved before) is kept as Woodlands; no place outside it is offered
 //   riverLevelMode     'auto' (follows the rain) or a fixed preview: normal, high or danger
 //   autoOrbit          the automatic turn round the tree
 //   orbitSeconds       how long one full turn takes, 30 seconds to 24 hours (86400, the default: 15 degrees an
@@ -103,6 +105,8 @@ const SKIES = ['sunrise', 'day', 'sunset', 'night'];
 // The background music's styles (frontend/3dTree/background-music.js MUSIC_STYLES) and the ambient sounds
 // (frontend/3dTree/ambience.js AMBIENT_SOUNDS), each with its name for messages.
 const MUSIC_STYLES = ['kalimba', 'piano', 'dreamy', 'musicbox', 'uploaded'];
+// The automatic (live) weather's one place: Woodlands (frontend/3dTree/singapore-weather.js WEATHER_AREA).
+const WEATHER_AREA = 'Woodlands';
 // The admin's own background music: audio files uploaded to assets/Tree/music, served at /assets/Tree/music.
 const MUSIC_TRACK_FOLDER = '/assets/Tree/music/';
 const MUSIC_EXTENSIONS = ['.mp3', '.ogg', '.oga', '.wav', '.m4a', '.aac', '.webm', '.flac'];
@@ -157,7 +161,7 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   weatherSource: 'live',
   manualSky: 'day',
   manualRain: false,
-  rainArea: 'all',
+  rainArea: WEATHER_AREA,
   riverLevelMode: 'auto',
   autoOrbit: true,
   orbitSeconds: 86400,
@@ -282,7 +286,7 @@ function normalizeTree3dParameters(updates) {
   if (has('weatherSource')) out.weatherSource = oneOf(updates.weatherSource, ['live', 'manual'], 'Weather source');
   if (has('manualSky')) out.manualSky = oneOf(updates.manualSky, SKIES, 'Time of day');
   if (has('manualRain')) out.manualRain = bool(updates.manualRain, 'Manual rain');
-  if (has('rainArea')) out.rainArea = text(updates.rainArea, 80) || 'all';
+  if (has('rainArea')) out.rainArea = WEATHER_AREA; // only Woodlands: no place outside it
   if (has('riverLevelMode')) out.riverLevelMode = oneOf(updates.riverLevelMode, RIVER_MODES, 'River level');
   if (has('autoOrbit')) out.autoOrbit = bool(updates.autoOrbit, 'Auto orbit');
   if (has('orbitSeconds')) out.orbitSeconds = Math.round(number(updates.orbitSeconds, 30, 86400, 'Time for one full turn'));
@@ -426,7 +430,8 @@ function mergeTree3dParameters(current, changes) {
     ...base,
     ...changes,
     badgeLeafColors: { ...DEFAULT_BADGE_LEAF_COLORS, ...(base.badgeLeafColors || {}), ...(changes.badgeLeafColors || {}) },
-    titleBox: { ...DEFAULT_TITLE_BOX, ...(base.titleBox || {}), ...(changes.titleBox || {}) }
+    titleBox: { ...DEFAULT_TITLE_BOX, ...(base.titleBox || {}), ...(changes.titleBox || {}) },
+    rainArea: WEATHER_AREA // an older saved place (All Singapore, another area) becomes Woodlands
   };
 }
 
@@ -440,6 +445,7 @@ module.exports = {
   DEFAULT_BADGE_LEAF_COLORS,
   DEFAULT_TREE3D_PARAMETERS,
   DEFAULT_TITLE_BOX,
+  WEATHER_AREA,
   MUSIC_TRACK_FOLDER,
   MUSIC_EXTENSIONS,
   MUSIC_MAX_MB,

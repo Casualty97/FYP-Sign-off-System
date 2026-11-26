@@ -1456,16 +1456,17 @@
                                     <div>
                                         <label for="tree3d-weatherSource" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Weather</label>
                                         <select id="tree3d-weatherSource" onchange="updateTree3dWeatherFields()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
-                                            <option value="live">Live Singapore weather</option>
+                                            <option value="live">Automatic (live weather at Woodlands)</option>
                                             <option value="manual">Manual</option>
                                         </select>
-                                        <p style="font-size:12px; color:#666; margin-top:6px;">Live follows the time of day and the rain in Singapore.</p>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">Automatic detects the weather at Woodlands by itself and follows it: the time of day there (sunrise, day, sunset, night) and rain and thunder from the Woodlands rain gauge, checked every minute. Only Woodlands is used; no other place is offered. Manual sets the sky yourself.</p>
                                     </div>
                                     <div>
-                                        <label for="tree3d-rainArea" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Rain area (live weather)</label>
-                                        <select id="tree3d-rainArea" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
-                                            <option value="all">All Singapore</option>
+                                        <label for="tree3d-rainArea" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Weather location (automatic weather)</label>
+                                        <select id="tree3d-rainArea" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;" title="The automatic weather is always detected at Woodlands">
+                                            <option value="Woodlands">Woodlands</option>
                                         </select>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">📍 Woodlands only.</p>
                                     </div>
                                     <div>
                                         <label for="tree3d-manualSky" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Time of day (manual weather)</label>
