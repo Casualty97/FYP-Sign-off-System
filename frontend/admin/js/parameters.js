@@ -159,11 +159,6 @@ function updateParameterPreview() {
     });
     showPreviewPart(preview, 'languages', getCheckedValue('flag-floatingLanguageSelectorEnabled'));
 
-    const days = Math.min(365, Math.max(1, Math.round(Number(getInputValue('param-temporaryRetentionDays')) || 7)));
-    setPreviewText(preview, 'consent', getInputValue('param-consentPrompt'));
-    setPreviewText(preview, 'days-title', `${days} ${days === 1 ? 'Day' : 'Days'}`);
-    setPreviewText(preview, 'days-text', `Your feedback data will be deleted after ${days} ${days === 1 ? 'day' : 'days'}.`);
-
     const nameMin = getInputValue('rule-nameMinLength') || '0';
     const nameMax = getInputValue('rule-nameMaxLength') || '80';
     setPreviewText(preview, 'details', getInputValue('param-detailsPrompt'));
