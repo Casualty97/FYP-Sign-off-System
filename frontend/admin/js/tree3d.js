@@ -21,6 +21,7 @@ const TREE3D_DEFAULTS = {
     musicEnabled: true,
     musicVolume: 45,
     musicStyle: 'kalimba',
+    musicTrack: '',           // the admin's uploaded music, for 'My uploaded music' (assets/Tree/music)
     // The ambient sounds: the river, birds and breeze on, a gentle rain and night insects off.
     ambientRiver: true, ambientRiverVolume: 100,
     ambientBirds: true, ambientBirdsVolume: 100,
@@ -207,12 +208,14 @@ function readTree3dSoundFields() {
         const value = Number(tree3dField(id)?.value);
         return Number.isFinite(value) ? Math.round(Math.max(0, Math.min(100, value))) : fallback;
     };
-    const style = tree3dField('musicStyle')?.value || TREE3D_DEFAULTS.musicStyle;
+    const { style, track } = tree3dMusicChoice();
     const fields = {
         soundVolume: percent('soundVolume', TREE3D_DEFAULTS.soundVolume),
         musicEnabled: style !== 'none',
         musicVolume: percent('musicVolume', TREE3D_DEFAULTS.musicVolume),
         ...(style !== 'none' ? { musicStyle: style } : {}), // None keeps the style chosen before, for next time
+        // My uploaded music: the file chosen (another style keeps it, for next time).
+        ...(style === 'uploaded' ? { musicTrack: track } : {}), // an uploaded file (a built-in choice keeps the file, for next time)
     };
     for (const key of TREE3D_AMBIENT_SOUNDS) {
         if (!tree3dField(key)) continue;
@@ -220,6 +223,230 @@ function readTree3dSoundFields() {
         fields[`${key}Volume`] = percent(`${key}Volume`, TREE3D_DEFAULTS[`${key}Volume`]);
     }
     return fields;
+}
+
+// Sound > Background music and My music (Owner: Role 2, Wei Jie). "Music to play" lists the built-in music
+// (composed by the 3D screen; Calm kalimba is the default) and the admin's uploaded music together: an uploaded
+// file's option is UPLOAD_PREFIX and its path (musicStyle 'uploaded' with musicTrack when saved). My music uploads
+// files to assets/Tree/music (backend/features/admin/routes.js /parameters/tree3d-music/...) and lists them,
+// each with Use (plays it on the 3D screen at once) and Delete. Uploading a file also plays it at once.
+const TREE3D_UPLOAD_PREFIX = 'upload:';
+let tree3dMusicTracks = [];     // the uploaded files, newest first
+let tree3dMusicSaved = null;    // the music the 3D screen plays now: { musicEnabled, musicStyle, musicTrack }
+
+// The choice in "Music to play" as settings: { style, track }.
+function tree3dMusicChoice() {
+    const value = tree3dField('musicStyle')?.value || TREE3D_DEFAULTS.musicStyle;
+    if (value.startsWith(TREE3D_UPLOAD_PREFIX)) return { style: 'uploaded', track: value.slice(TREE3D_UPLOAD_PREFIX.length) };
+    return { style: value, track: undefined };
+}
+
+function tree3dMusicName(track) {
+    const known = tree3dMusicTracks.find(item => item.path === track);
+    return known ? known.name : String(track || '').split('/').pop().replace(/-\d{10,}(\.[^.]+)$/, '$1');
+}
+
+// Shows settings' music in "Music to play" (an uploaded file not listed yet is added for now, so a Save
+// before the list has loaded keeps it).
+function setTree3dMusicChoice(settings) {
+    const select = tree3dField('musicStyle');
+    const group = tree3dField('musicUploadedGroup');
+    if (!select) return;
+    if (settings.musicEnabled === false) { select.value = 'none'; return; }
+    if (settings.musicStyle === 'uploaded' && settings.musicTrack) {
+        const value = TREE3D_UPLOAD_PREFIX + settings.musicTrack;
+        if (group && ![...select.options].some(option => option.value === value)) group.append(new Option(tree3dMusicName(settings.musicTrack), value));
+        select.value = value;
+        return;
+    }
+    const builtIn = [...select.options].some(option => option.value === settings.musicStyle && !option.value.startsWith(TREE3D_UPLOAD_PREFIX));
+    select.value = builtIn ? settings.musicStyle : TREE3D_DEFAULTS.musicStyle; // 'uploaded' with no file: the default
+}
+
+// My music: a note while "Sound on the 3D screen" is off, as then the screen plays no music at all.
+function updateTree3dSoundOffNote() {
+    const note = tree3dField('musicSoundOff');
+    if (note) note.hidden = tree3dField('soundEnabled')?.checked !== false;
+}
+
+// The note's "Turn on sound": the sound on the 3D screen, saved at once.
+async function turnOnTree3dSound() {
+    try {
+        await putTree3dSettings({ soundEnabled: true });
+        if (tree3dField('soundEnabled')) tree3dField('soundEnabled').checked = true;
+        updateTree3dSoundOffNote();
+        setTree3dMusicStatus('✅ Sound is on. The 3D screen plays its sound and music now (a screen that has not been touched yet shows "Tap anywhere to turn on the sound").');
+        showNotification('Sound turned on for the 3D screen.', 'success');
+    } catch (error) {
+        console.error('Error turning on the 3D tree sound:', error);
+        showNotification(error.message || 'Failed to turn on the sound.', 'error');
+    }
+}
+
+function setTree3dMusicStatus(message) {
+    const status = tree3dField('musicStatus');
+    if (status) status.textContent = message;
+}
+
+function tree3dMusicPlaying(track) {
+    const saved = tree3dMusicSaved;
+    return Boolean(saved && saved.musicEnabled !== false && saved.musicStyle === 'uploaded' && saved.musicTrack === track);
+}
+
+// The uploaded files: in "Music to play" (My uploaded music) and in My music, each with Use and Delete.
+function showTree3dMusicTracks(tracks) {
+    tree3dMusicTracks = tracks || [];
+    const select = tree3dField('musicStyle');
+    const group = tree3dField('musicUploadedGroup');
+    if (select && group) {
+        const chosen = select.value;
+        group.replaceChildren(...tree3dMusicTracks.map(track => new Option(track.name, TREE3D_UPLOAD_PREFIX + track.path)));
+        if (!tree3dMusicTracks.length) {
+            const empty = new Option('(none uploaded yet)', '');
+            empty.disabled = true;
+            group.append(empty);
+        }
+        // A chosen file that was deleted: back to the default built-in music.
+        select.value = [...select.options].some(option => option.value === chosen && !option.disabled) ? chosen : TREE3D_DEFAULTS.musicStyle;
+    }
+    const list = tree3dField('musicList');
+    if (!list) return;
+    list.replaceChildren();
+    if (!tree3dMusicTracks.length) {
+        const empty = document.createElement('p');
+        empty.style.cssText = 'margin:0; color:#64748b; font-size:13px;';
+        empty.textContent = 'No music uploaded yet. Choose a music file and press Upload Music; it plays on the 3D screen at once.';
+        list.append(empty);
+        return;
+    }
+    for (const track of tree3dMusicTracks) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:7px 10px; margin-top:6px; background:#fff; border:1px solid #e2e8f0; border-radius:6px;';
+        const name = document.createElement('span');
+        name.style.cssText = 'flex:1 1 240px; color:#1e293b; font-weight:500; overflow-wrap:anywhere;';
+        name.textContent = `🎵 ${track.name}`;
+        const details = document.createElement('span');
+        details.style.cssText = 'color:#64748b; font-size:12px;';
+        details.textContent = `${track.sizeMb} MB · uploaded ${new Date(track.uploadedAt).toLocaleDateString()}`;
+        const actions = document.createElement('span'); // the badge and buttons kept together, at the right
+        actions.style.cssText = 'display:flex; align-items:center; gap:8px; margin-left:auto;';
+        row.append(name, details, actions);
+        if (tree3dMusicPlaying(track.path)) {
+            const badge = document.createElement('span');
+            badge.style.cssText = 'font-size:12px; font-weight:600; color:#166534; background:#dcfce7; border-radius:999px; padding:2px 10px;';
+            badge.textContent = '▶ Playing on the 3D screen';
+            actions.append(badge);
+        } else {
+            const use = document.createElement('button');
+            use.type = 'button';
+            use.className = 'btn-secondary';
+            use.textContent = 'Use';
+            use.title = 'Play this music on the 3D screen now';
+            use.addEventListener('click', () => useTree3dMusic(track));
+            actions.append(use);
+        }
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn-secondary';
+        remove.textContent = 'Delete';
+        remove.addEventListener('click', () => deleteTree3dMusic(track));
+        actions.append(remove);
+        list.append(row);
+    }
+}
+
+function tree3dMusicChanged() {
+    applyTree3dSoundPreview();
+}
+
+async function loadTree3dMusicTracks() {
+    try {
+        const response = await fetch('/api/admin/parameters/tree3d-music/list', { credentials: 'include', cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Failed to list the uploaded music');
+        tree3dMusicSaved = data.current || tree3dMusicSaved;
+        showTree3dMusicTracks(data.tracks || []);
+        setTree3dMusicStatus('');
+        updateTree3dSoundOffNote();
+    } catch (error) {
+        console.error('Error listing the 3D tree music:', error);
+        setTree3dMusicStatus(`Error: ${error.message}`);
+    }
+}
+
+// The 3D screen's music as the server now has it (after an upload, Use or a delete), shown in the form.
+function useTree3dMusicNow(current, tracks) {
+    if (current) tree3dMusicSaved = current;
+    showTree3dMusicTracks(tracks || tree3dMusicTracks);
+    if (current) setTree3dMusicChoice(current);
+    updateTree3dSoundOffNote();
+    applyTree3dSoundPreview();
+}
+
+async function uploadTree3dMusic() {
+    const input = tree3dField('musicFile');
+    const file = input?.files?.[0];
+    if (!file) {
+        setTree3dMusicStatus('Choose a music file first.');
+        showNotification('Choose a music file first.', 'error');
+        return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+        setTree3dMusicStatus('That file is larger than 30 MB. Choose a smaller music file.');
+        showNotification('The music file is larger than 30 MB.', 'error');
+        return;
+    }
+    const button = tree3dField('musicUpload');
+    try {
+        if (button) button.disabled = true;
+        setTree3dMusicStatus(`Uploading ${file.name}…`);
+        const formData = new FormData();
+        formData.append('music', file);
+        const response = await fetch('/api/admin/parameters/tree3d-music/upload', { method: 'POST', credentials: 'include', body: formData });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Failed to upload the music');
+        if (input) input.value = '';
+        useTree3dMusicNow(data.current, data.tracks);
+        setTree3dMusicStatus(`✅ ${file.name} uploaded and playing on the 3D screen now.`);
+        showNotification('Music uploaded and playing on the 3D tree.', 'success');
+    } catch (error) {
+        console.error('Error uploading the 3D tree music:', error);
+        setTree3dMusicStatus(`Error: ${error.message}`);
+        showNotification(error.message || 'Failed to upload the music.', 'error');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+// Use: this uploaded file plays on the 3D screen now (saved at once, as an upload is).
+async function useTree3dMusic(track) {
+    try {
+        const saved = await putTree3dSettings({ musicEnabled: true, musicStyle: 'uploaded', musicTrack: track.path });
+        useTree3dMusicNow({ musicEnabled: saved?.musicEnabled, musicStyle: saved?.musicStyle, musicTrack: saved?.musicTrack });
+        setTree3dMusicStatus(`✅ Playing on the 3D screen now: ${track.name}.`);
+        showNotification(`Playing ${track.name} on the 3D tree.`, 'success');
+    } catch (error) {
+        console.error('Error choosing the 3D tree music:', error);
+        setTree3dMusicStatus(`Error: ${error.message}`);
+        showNotification(error.message || 'Failed to choose the music.', 'error');
+    }
+}
+
+async function deleteTree3dMusic(track) {
+    const playing = tree3dMusicPlaying(track.path);
+    if (!confirm(`Delete "${track.name}"?${playing ? ' The 3D screen plays it now, so it goes back to the built-in Calm kalimba music.' : ''}`)) return;
+    try {
+        const response = await fetch(`/api/admin/parameters/tree3d-music/${encodeURIComponent(track.filename)}`, { method: 'DELETE', credentials: 'include' });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Failed to delete the music');
+        useTree3dMusicNow(data.current, data.tracks);
+        setTree3dMusicStatus(`Deleted ${track.name}.`);
+        showNotification('Music deleted.', 'success');
+    } catch (error) {
+        console.error('Error deleting the 3D tree music:', error);
+        setTree3dMusicStatus(`Error: ${error.message}`);
+        showNotification(error.message || 'Failed to delete the music.', 'error');
+    }
 }
 
 // Sound > Listen here: the 3D screen's own sound (frontend/3dTree/ambience.js, with its background music,
@@ -233,7 +460,7 @@ function applyTree3dSoundPreview() {
     if (!preview) return;
     const fields = readTree3dSoundFields();
     preview.ambient.setLevel(fields.soundVolume / 100);
-    preview.ambient.setMusic(fields.musicEnabled, fields.musicVolume / 100, fields.musicStyle);
+    preview.ambient.setMusic(fields.musicEnabled, fields.musicVolume / 100, fields.musicStyle, fields.musicTrack);
     preview.ambient.setMix(preview.mixFromSettings(fields));
 }
 
@@ -550,11 +777,13 @@ function fillTree3dForm(settings) {
     tree3dField('showSoilPanel').checked = s.showSoilPanel === true;
     useTree3dViews(s);
     tree3dField('soundEnabled').checked = s.soundEnabled === true;
+    updateTree3dSoundOffNote();
     tree3dField('soundVolume').value = s.soundVolume;
     if (tree3dField('musicStyle')) {
-        const styles = [...tree3dField('musicStyle').options].map(option => option.value);
-        tree3dField('musicStyle').value = s.musicEnabled === false ? 'none' : (styles.includes(s.musicStyle) ? s.musicStyle : TREE3D_DEFAULTS.musicStyle);
+        tree3dMusicSaved = { musicEnabled: s.musicEnabled, musicStyle: s.musicStyle, musicTrack: s.musicTrack };
+        setTree3dMusicChoice(s);
         tree3dField('musicVolume').value = s.musicVolume;
+        loadTree3dMusicTracks(); // the uploaded music, in Music to play and in My music
     }
     for (const key of TREE3D_AMBIENT_SOUNDS) {
         if (!tree3dField(key)) continue;

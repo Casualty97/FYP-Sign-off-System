@@ -8,7 +8,8 @@ import { createMusic, MUSIC_STYLE_DEFAULT } from './background-music.js';
 //   rain     a gentle, steady rain whatever the weather (made here; off by default)
 //   insects  crickets and cicadas chirping, a little louder at night (made here; off by default)
 // with the weather's own sounds (rain as it rains, thunder, a leaf's splash), and the background music in the
-// admin's style (background-music.js; musicEnabled, musicStyle, at musicVolume), all under the one volume and
+// admin's style (background-music.js; musicEnabled, musicStyle, at musicVolume) or the admin's uploaded music
+// (musicStyle 'uploaded', musicTrack), all under the one volume and
 // switched on together.
 export const AMBIENT_SOUNDS = ['river', 'birds', 'wind', 'rain', 'insects'];
 // The admin's settings (tree3dParameters ambientRiver, ambientRiverVolume and so on) as a mix for setMix.
@@ -88,7 +89,7 @@ function waterDropBuffer(context) {
 export function createAmbience() {
   let context, master, riverGain, windGain, rainGain, birdGain, stereo, birds, preparation;
   let level=.78, audible=false, nextCall=Infinity, thunderBuffer, splashBuffer;
-  let musicBus, music, musicOn=true, musicLevel=.45, musicStyle=MUSIC_STYLE_DEFAULT;
+  let musicBus, music, musicOn=true, musicLevel=.45, musicStyle=MUSIC_STYLE_DEFAULT, musicTrack='';
   // The admin's ambient sounds: each its own gain (mixGains) after the scene's own changes (gusts, night, rain).
   let mix=structuredClone(MIX_DEFAULTS);
   const mixGains={};
@@ -117,7 +118,7 @@ export function createAmbience() {
     musicBus=context.createGain();
     musicBus.gain.value=musicLevel;
     musicBus.connect(master);
-    music=createMusic(context,musicBus,musicStyle);
+    music=createMusic(context,musicBus,musicStyle,musicTrack);
     for (const name of AMBIENT_SOUNDS) {
       mixGains[name]=context.createGain();
       mixGains[name].gain.value=mixLevel(name);
@@ -285,13 +286,15 @@ export function createAmbience() {
   }
 
   // The background music on or off, how loud against the ambient sounds (0 to 1) and its style
-  // (background-music.js MUSIC_STYLES); all may be set before the sound is first turned on.
-  function setMusic(on,value,style) {
+  // (background-music.js MUSIC_STYLES, or 'uploaded': the admin's own music, track, a file in assets/Tree/music);
+  // all may be set before the sound is first turned on.
+  function setMusic(on,value,style,track) {
     musicOn=Boolean(on);
     if (Number.isFinite(value)) musicLevel=Math.max(0,Math.min(1,value));
     if (style) musicStyle=style;
+    if (track!==undefined) musicTrack=track||'';
     if (musicBus) musicBus.gain.setTargetAtTime(musicLevel,context.currentTime,.15);
-    music?.setStyle(musicStyle);
+    music?.setStyle(musicStyle,musicTrack);
     music?.setActive(audible&&musicOn);
   }
 

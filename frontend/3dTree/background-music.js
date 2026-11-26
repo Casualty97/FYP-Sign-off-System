@@ -11,6 +11,10 @@
 // Each bar has its chord; the tune is chosen as it plays, moving by small steps through the chord's notes and
 // the style's scale, with rests, so it breathes like the river. All in a hall's echo. Turning it off (or
 // changing the style) fades it out; a new style fades in.
+// Or the admin's own music (UPLOADED_STYLE, 'My uploaded music': tree3dParameters.musicTrack, a file uploaded in
+// Admin > 3D Tree Settings > Sound to assets/Tree/music): it plays looped instead, through the same volume and
+// fades, with the river, birds and wind as before. If it cannot be played (deleted, or a format this browser
+// does not play), the Calm kalimba plays instead.
 
 const midiHz = note => 440 * 2 ** ((note - 69) / 12);
 
@@ -45,7 +49,10 @@ export const MUSIC_STYLES = {
     lead: 'musicbox', arpeggio: true, levels: { pad: 0.016, bass: 0, lead: 0.2 } },
 };
 export const MUSIC_STYLE_DEFAULT = 'kalimba';
+export const UPLOADED_STYLE = 'uploaded';
+const UPLOADED_LEVEL = 0.4; // a recording is mastered much louder than the music composed here: this evens them out
 const styleOf = name => MUSIC_STYLES[name] || MUSIC_STYLES[MUSIC_STYLE_DEFAULT];
+const knownStyle = name => (name === UPLOADED_STYLE || MUSIC_STYLES[name] ? name : MUSIC_STYLE_DEFAULT);
 
 function envelope(context, output, start, attack, peak, hold, release) {
   const gain = context.createGain();
@@ -134,13 +141,55 @@ function hallReverb(context, seconds = 3.4) {
 
 // The music player: setActive(true) plays the chosen style (bars are scheduled a moment ahead on the audio
 // clock), setActive(false) fades it out; setStyle changes the style, fading one into the other while playing.
-export function createMusic(context, output, styleName = MUSIC_STYLE_DEFAULT) {
+export function createMusic(context, output, styleName = MUSIC_STYLE_DEFAULT, trackUrl = '') {
   const reverb = hallReverb(context);
   reverb.connect(output);
-  let style = MUSIC_STYLES[styleName] ? styleName : MUSIC_STYLE_DEFAULT;
+  let style = knownStyle(styleName);
+  let track = trackUrl || '';
   let playing = null;
 
   function start(name) {
+    if (name !== UPLOADED_STYLE) return compose(name);
+    return track ? playTrack(track) : compose(MUSIC_STYLE_DEFAULT); // none uploaded yet: the page's own music
+  }
+
+  // The admin's uploaded music, looped, faded in and out like the composed music.
+  function playTrack(url) {
+    const audio = new Audio();
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.src = url;
+    const source = context.createMediaElementSource(audio);
+    const bus = context.createGain();
+    bus.gain.value = 0;
+    source.connect(bus).connect(output);
+    let stopped = false;
+    const handle = {
+      stop() {
+        stopped = true;
+        bus.gain.setTargetAtTime(0, context.currentTime, 0.6);
+        window.setTimeout(() => {
+          audio.pause();
+          audio.removeAttribute('src');
+          audio.load();
+          source.disconnect();
+          bus.disconnect();
+        }, 3000);
+      },
+    };
+    const instead = reason => {
+      if (stopped) return;
+      console.warn(`The uploaded music (${url}) cannot be played, so the Calm kalimba plays instead:`, reason);
+      handle.stop();
+      if (playing === handle) playing = compose(MUSIC_STYLE_DEFAULT);
+    };
+    audio.addEventListener('error', () => instead(audio.error?.message || `media error ${audio.error?.code ?? ''}`));
+    audio.play().catch(error => { if (error?.name !== 'AbortError') instead(error?.message || error); });
+    bus.gain.setTargetAtTime(UPLOADED_LEVEL, context.currentTime, 0.8);
+    return handle;
+  }
+
+  function compose(name) {
     const piece = styleOf(name);
     const beat = 60 / piece.bpm;
     const barLength = beat * 4;
@@ -214,12 +263,14 @@ export function createMusic(context, output, styleName = MUSIC_STYLE_DEFAULT) {
       if (on && !playing) playing = start(style);
       else if (!on && playing) { playing.stop(); playing = null; }
     },
-    // Another style: while playing, the old one fades out as the new one fades in.
-    setStyle(name) {
-      const next = MUSIC_STYLES[name] ? name : MUSIC_STYLE_DEFAULT;
-      if (next === style) return;
+    // Another style (or, for the uploaded music, another file): while playing, the old one fades out as the
+    // new one fades in.
+    setStyle(name, nextTrack = track) {
+      const next = knownStyle(name);
+      const changed = next !== style || (next === UPLOADED_STYLE && (nextTrack || '') !== track);
       style = next;
-      if (playing) { playing.stop(); playing = start(style); }
+      track = nextTrack || '';
+      if (changed && playing) { playing.stop(); playing = start(style); }
     },
     get style() { return style; },
     get active() { return Boolean(playing); },

@@ -269,7 +269,8 @@ const {
 const badgeEmailTemplateStore = require('../email/templateStore');
 const assetStore = require('../assets/store');
 const parametersConfigStore = require('../parameters/store');
-const { normalizeTree3dParameters, mergeTree3dParameters } = require('../parameters/tree3d');
+const { normalizeTree3dParameters, mergeTree3dParameters, MUSIC_TRACK_FOLDER: TREE3D_MUSIC_FOLDER,
+    MUSIC_EXTENSIONS: TREE3D_MUSIC_EXTENSIONS, MUSIC_MAX_MB: TREE3D_MUSIC_MAX_MB } = require('../parameters/tree3d');
 const { normalizeTreeStageMode, normalizeLeafThresholds } = require('../parameters/treeStage');
 const { TREE_STYLES, saveTreeCapture } = require('../parameters/tree2dStyle');
 const { normalizeScreenSize } = require('../parameters/screenSize');
@@ -892,6 +893,43 @@ const uploadTreeBackground = multer({
     },
     limits: {
         fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+});
+
+// Owner: Role 2, Wei Jie. The 3D tree's background music uploaded by the admin (3D Tree Settings > Sound >
+// "My uploaded music"): audio files in assets/Tree/music, played looped by the 3D page instead of its own
+// composed music, with the river, birds and wind still playing (frontend/3dTree/background-music.js).
+const TREE3D_MUSIC_DIR = path.join(paths.ASSETS, 'Tree', 'music');
+const tree3dMusicStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        try {
+            fs.mkdirSync(TREE3D_MUSIC_DIR, { recursive: true });
+        } catch (err) {
+            return cb(err);
+        }
+        cb(null, TREE3D_MUSIC_DIR);
+    },
+    filename: (req, file, cb) => {
+        // The admin's own name for it, kept readable (letters, numbers, - and _), and the time, so no file is replaced.
+        const ext = path.extname(file.originalname).toLowerCase();
+        const name = path.basename(file.originalname, path.extname(file.originalname))
+            .replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^[^A-Za-z0-9]+|[-_]+$/g, '').slice(0, 60) || 'music';
+        cb(null, `${name}-${Date.now()}${ext}`);
+    }
+});
+const uploadTree3dMusic = multer({
+    storage: tree3dMusicStorage,
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        const audioType = /^audio\//.test(file.mimetype) || ['video/mp4', 'video/webm', 'video/ogg', 'application/ogg', 'application/octet-stream'].includes(file.mimetype);
+        if (TREE3D_MUSIC_EXTENSIONS.includes(ext) && audioType) {
+            cb(null, true);
+        } else {
+            cb(new Error(`Only music files are allowed (${TREE3D_MUSIC_EXTENSIONS.join(', ')})`), false);
+        }
+    },
+    limits: {
+        fileSize: TREE3D_MUSIC_MAX_MB * 1024 * 1024
     }
 });
 
@@ -6736,6 +6774,107 @@ router.post('/parameters/tree-background/upload', auth.requireAdmin, uploadTreeB
     } catch (error) {
         console.error('❌ Error uploading tree background:', error.message, error.stack);
         res.status(500).json({ success: false, error: error.message || 'Failed to upload tree background' });
+    }
+});
+
+// ---------- The 3D tree's uploaded background music (Owner: Role 2, Wei Jie) ----------
+// The admin's music files (assets/Tree/music), newest first, with the music the 3D tree plays now.
+function listTree3dMusic() {
+    if (!fs.existsSync(TREE3D_MUSIC_DIR)) return [];
+    return fs.readdirSync(TREE3D_MUSIC_DIR)
+        .filter(file => TREE3D_MUSIC_EXTENSIONS.includes(path.extname(file).toLowerCase()))
+        .map(file => {
+            const stat = fs.statSync(path.join(TREE3D_MUSIC_DIR, file));
+            return {
+                filename: file,
+                path: TREE3D_MUSIC_FOLDER + file,
+                name: path.parse(file).name.replace(/-\d{10,}$/, ''), // without the upload time added to the file's name
+                sizeMb: Math.round(stat.size / 104857.6) / 10,
+                uploadedAt: stat.mtime.toISOString()
+            };
+        })
+        .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+}
+
+function tree3dMusicNow(config) {
+    const settings = mergeTree3dParameters(config?.tree3dParameters, {});
+    return { musicEnabled: settings.musicEnabled, musicStyle: settings.musicStyle, musicTrack: settings.musicTrack };
+}
+
+// Saves only the music settings (checked as any 3D settings save), keeping every other 3D setting.
+function saveTree3dMusic(changes) {
+    const config = parametersConfigStore.readParametersConfig();
+    const settings = mergeTree3dParameters(config.tree3dParameters, normalizeTree3dParameters(changes));
+    if (!parametersConfigStore.updateCategory('tree3dParameters', settings)) {
+        throw new Error('Failed to save the music setting');
+    }
+    return parametersConfigStore.readParametersConfig();
+}
+
+function handleTree3dMusicUploadErrors(err, req, res, next) {
+    if (!err) return next();
+    const message = err.code === 'LIMIT_FILE_SIZE'
+        ? `The music file is larger than ${TREE3D_MUSIC_MAX_MB} MB`
+        : (err.message || 'Upload failed');
+    console.error('❌ Music upload rejected:', message);
+    return res.status(400).json({ success: false, error: message });
+}
+
+// GET /api/admin/parameters/tree3d-music/list - The uploaded music files and the music the 3D tree plays now
+router.get('/parameters/tree3d-music/list', auth.requireAdmin, (req, res) => {
+    try {
+        const config = parametersConfigStore.readParametersConfig();
+        res.json({ success: true, tracks: listTree3dMusic(), current: tree3dMusicNow(config), maxMb: TREE3D_MUSIC_MAX_MB,
+            extensions: TREE3D_MUSIC_EXTENSIONS });
+    } catch (error) {
+        console.error('❌ Error listing the 3D tree music:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to list the uploaded music' });
+    }
+});
+
+// POST /api/admin/parameters/tree3d-music/upload - Upload a music file (field "music") and play it on the 3D tree
+router.post('/parameters/tree3d-music/upload', auth.requireAdmin, uploadTree3dMusic.single('music'), handleTree3dMusicUploadErrors, (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No music file uploaded' });
+        }
+        const track = TREE3D_MUSIC_FOLDER + req.file.filename;
+        const config = saveTree3dMusic({ musicEnabled: true, musicStyle: 'uploaded', musicTrack: track });
+        if (req.session?.user?.username) {
+            logAudit('PARAMETER_TREE3D_MUSIC_UPLOADED', req.session.user.username, 'config', `tree3dParameters.musicTrack:${req.file.filename}`, req);
+        }
+        res.json({ success: true, message: 'Music uploaded and playing on the 3D tree', track,
+            tracks: listTree3dMusic(), current: tree3dMusicNow(config) });
+    } catch (error) {
+        console.error('❌ Error uploading the 3D tree music:', error.message);
+        res.status(error.statusCode || 500).json({ success: false, error: error.message || 'Failed to upload the music' });
+    }
+});
+
+// DELETE /api/admin/parameters/tree3d-music/:filename - Delete an uploaded music file; if the 3D tree was playing
+// it, the tree goes back to its own Calm kalimba music
+router.delete('/parameters/tree3d-music/:filename', auth.requireAdmin, (req, res) => {
+    try {
+        const filename = path.basename(String(req.params.filename || ''));
+        const fullPath = path.join(TREE3D_MUSIC_DIR, filename);
+        if (!TREE3D_MUSIC_EXTENSIONS.includes(path.extname(filename).toLowerCase()) || path.dirname(fullPath) !== TREE3D_MUSIC_DIR) {
+            return res.status(400).json({ success: false, error: 'Invalid music file' });
+        }
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).json({ success: false, error: 'Music file not found' });
+        }
+        fs.unlinkSync(fullPath);
+        let config = parametersConfigStore.readParametersConfig();
+        if (tree3dMusicNow(config).musicTrack === TREE3D_MUSIC_FOLDER + filename) {
+            config = saveTree3dMusic({ musicTrack: '', ...(tree3dMusicNow(config).musicStyle === 'uploaded' ? { musicStyle: 'kalimba' } : {}) });
+        }
+        if (req.session?.user?.username) {
+            logAudit('PARAMETER_TREE3D_MUSIC_DELETED', req.session.user.username, 'config', `tree3dParameters.musicTrack:${filename}`, req);
+        }
+        res.json({ success: true, message: 'Music deleted', tracks: listTree3dMusic(), current: tree3dMusicNow(config) });
+    } catch (error) {
+        console.error('❌ Error deleting the 3D tree music:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to delete the music' });
     }
 });
 

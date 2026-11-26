@@ -26,7 +26,11 @@
 //                      by default; original music composed by the 3D page itself: frontend/3dTree/background-music.js)
 //   musicVolume        how loud that music is against the nature sounds, 0 to 100
 //   musicStyle         the music's style (MUSIC_STYLES): 'kalimba' (Calm kalimba, the default), 'piano' (Soft
-//                      piano), 'dreamy' (Dreamy pads) or 'musicbox' (Music box); all original, made by the page
+//                      piano), 'dreamy' (Dreamy pads) or 'musicbox' (Music box); all original, made by the page;
+//                      or 'uploaded': the admin's own music (musicTrack), looped, instead of the page's music
+//   musicTrack         the admin's uploaded music for 'uploaded' ('' for none yet): a file in
+//                      assets/Tree/music (MUSIC_TRACK_FOLDER), uploaded in Admin > 3D Tree Settings > Sound
+//                      (POST /api/admin/parameters/tree3d-music/upload); the ambient sounds still play with it
 //   ambientRiver, ambientBirds, ambientWind, ambientRain, ambientInsects
 //                      each ambient sound on or off (AMBIENT_SOUNDS): the flowing river, birds, the breeze, a
 //                      gentle rain and night insects; the river, birds and breeze on by default
@@ -98,7 +102,11 @@
 const SKIES = ['sunrise', 'day', 'sunset', 'night'];
 // The background music's styles (frontend/3dTree/background-music.js MUSIC_STYLES) and the ambient sounds
 // (frontend/3dTree/ambience.js AMBIENT_SOUNDS), each with its name for messages.
-const MUSIC_STYLES = ['kalimba', 'piano', 'dreamy', 'musicbox'];
+const MUSIC_STYLES = ['kalimba', 'piano', 'dreamy', 'musicbox', 'uploaded'];
+// The admin's own background music: audio files uploaded to assets/Tree/music, served at /assets/Tree/music.
+const MUSIC_TRACK_FOLDER = '/assets/Tree/music/';
+const MUSIC_EXTENSIONS = ['.mp3', '.ogg', '.oga', '.wav', '.m4a', '.aac', '.webm', '.flac'];
+const MUSIC_MAX_MB = 30;
 const AMBIENT_SOUNDS = [['ambientRiver', 'River water'], ['ambientBirds', 'Birds'], ['ambientWind', 'Forest wind'],
   ['ambientRain', 'Gentle rain'], ['ambientInsects', 'Night insects']];
 const { DEFAULT_SCREEN_SIZE, normalizeScreenSize } = require('./screenSize');
@@ -159,6 +167,7 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   musicEnabled: true,
   musicVolume: 45,
   musicStyle: 'kalimba',
+  musicTrack: '',
   ambientRiver: true,
   ambientRiverVolume: 100,
   ambientBirds: true,
@@ -283,6 +292,7 @@ function normalizeTree3dParameters(updates) {
   if (has('musicEnabled')) out.musicEnabled = bool(updates.musicEnabled, 'Background music');
   if (has('musicVolume')) out.musicVolume = Math.round(number(updates.musicVolume, 0, 100, 'Music volume'));
   if (has('musicStyle')) out.musicStyle = oneOf(updates.musicStyle, MUSIC_STYLES, 'Music style');
+  if (has('musicTrack')) out.musicTrack = musicTrackPath(updates.musicTrack);
   for (const [key, label] of AMBIENT_SOUNDS) {
     if (has(key)) out[key] = bool(updates[key], label);
     if (has(`${key}Volume`)) out[`${key}Volume`] = Math.round(number(updates[`${key}Volume`], 0, 100, `${label} volume`));
@@ -397,6 +407,19 @@ function normalizeTree3dParameters(updates) {
 }
 
 // Applies cleaned-up changes to the stored settings, keeping everything the save did not mention.
+// An uploaded music file's place, as saved in musicTrack: '' (none), or /assets/Tree/music/<file> with one of
+// MUSIC_EXTENSIONS; nothing outside that folder.
+function musicTrackPath(value) {
+  const saved = String(value ?? '').trim();
+  if (!saved) return '';
+  const file = saved.startsWith(MUSIC_TRACK_FOLDER) ? saved.slice(MUSIC_TRACK_FOLDER.length) : '';
+  const extension = (file.match(/\.[a-z0-9]+$/i)?.[0] || '').toLowerCase();
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,150}$/.test(file) || file.includes('..') || !MUSIC_EXTENSIONS.includes(extension)) {
+    throw badRequest(`Uploaded music must be a file in ${MUSIC_TRACK_FOLDER} (${MUSIC_EXTENSIONS.join(', ')})`);
+  }
+  return MUSIC_TRACK_FOLDER + file;
+}
+
 function mergeTree3dParameters(current, changes) {
   const base = { ...DEFAULT_TREE3D_PARAMETERS, ...(current || {}) };
   return {
@@ -417,6 +440,10 @@ module.exports = {
   DEFAULT_BADGE_LEAF_COLORS,
   DEFAULT_TREE3D_PARAMETERS,
   DEFAULT_TITLE_BOX,
+  MUSIC_TRACK_FOLDER,
+  MUSIC_EXTENSIONS,
+  MUSIC_MAX_MB,
+  musicTrackPath,
   normalizeTree3dParameters,
   mergeTree3dParameters
 };

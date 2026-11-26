@@ -1522,64 +1522,93 @@
                                             <input type="checkbox" id="tree3d-showSoilPanel"> Show the soil life cutaway
                                         </label>
                                     </div>
-                                    <div>
+                                    <!-- Sound: a whole row of its own (Owner: Role 2, Wei Jie). -->
+                                    <div style="grid-column: 1 / -1;">
                                         <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Sound</span>
-                                        <label style="display:flex; align-items:center; gap:8px; color:#334155;">
-                                            <input type="checkbox" id="tree3d-soundEnabled"> Sound on the 3D screen (ambient sounds, weather and music)
-                                        </label>
-                                        <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
-                                            <label for="tree3d-soundVolume" style="color:#334155;">Volume</label>
-                                            <input type="range" id="tree3d-soundVolume" min="0" max="100" step="1" value="78" oninput="updateTree3dRangeLabels()">
-                                            <span id="tree3d-soundVolumeValue">78</span>
-                                        </div>
-                                        <span style="display:block; font-weight:600; color:#334155; margin:12px 0 4px;">Ambient sounds</span>
-                                        <div class="tree3d-ambient-list">
-                                            <div class="tree3d-ambient-row">
-                                                <label title="the flowing river"><input type="checkbox" id="tree3d-ambientRiver" onchange="applyTree3dSoundPreview()"> River water</label>
-                                                <input type="range" id="tree3d-ambientRiverVolume" min="0" max="100" step="1" value="100" aria-label="River water volume" oninput="updateTree3dRangeLabels()">
-                                                <span id="tree3d-ambientRiverVolumeValue">100</span>
+                                        <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+                                            <label style="display:flex; align-items:center; gap:8px; color:#334155;">
+                                                <input type="checkbox" id="tree3d-soundEnabled" onchange="updateTree3dSoundOffNote()"> Sound on the 3D screen (ambient sounds, weather and music)
+                                            </label>
+                                            <div style="display:flex; align-items:center; gap:10px;">
+                                                <label for="tree3d-soundVolume" style="color:#334155;">Volume</label>
+                                                <input type="range" id="tree3d-soundVolume" min="0" max="100" step="1" value="78" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-soundVolumeValue">78</span>
                                             </div>
-                                            <div class="tree3d-ambient-row">
-                                                <label title="a magpie-robin calling now and then"><input type="checkbox" id="tree3d-ambientBirds" onchange="applyTree3dSoundPreview()"> Birds</label>
-                                                <input type="range" id="tree3d-ambientBirdsVolume" min="0" max="100" step="1" value="100" aria-label="Birds volume" oninput="updateTree3dRangeLabels()">
-                                                <span id="tree3d-ambientBirdsVolumeValue">100</span>
-                                            </div>
-                                            <div class="tree3d-ambient-row">
-                                                <label title="the breeze in the trees"><input type="checkbox" id="tree3d-ambientWind" onchange="applyTree3dSoundPreview()"> Forest wind</label>
-                                                <input type="range" id="tree3d-ambientWindVolume" min="0" max="100" step="1" value="100" aria-label="Forest wind volume" oninput="updateTree3dRangeLabels()">
-                                                <span id="tree3d-ambientWindVolumeValue">100</span>
-                                            </div>
-                                            <div class="tree3d-ambient-row">
-                                                <label title="a soft, steady rain"><input type="checkbox" id="tree3d-ambientRain" onchange="applyTree3dSoundPreview()"> Gentle rain</label>
-                                                <input type="range" id="tree3d-ambientRainVolume" min="0" max="100" step="1" value="60" aria-label="Gentle rain volume" oninput="updateTree3dRangeLabels()">
-                                                <span id="tree3d-ambientRainVolumeValue">60</span>
-                                            </div>
-                                            <div class="tree3d-ambient-row">
-                                                <label title="crickets and cicadas, louder at night"><input type="checkbox" id="tree3d-ambientInsects" onchange="applyTree3dSoundPreview()"> Night insects</label>
-                                                <input type="range" id="tree3d-ambientInsectsVolume" min="0" max="100" step="1" value="60" aria-label="Night insects volume" oninput="updateTree3dRangeLabels()">
-                                                <span id="tree3d-ambientInsectsVolumeValue">60</span>
-                                            </div>
-                                        </div>
-                                        <span style="display:block; font-weight:600; color:#334155; margin:12px 0 4px;">Background music</span>
-                                        <div style="display:flex; align-items:center; gap:10px;">
-                                            <label for="tree3d-musicStyle" style="color:#334155;">Style</label>
-                                            <select id="tree3d-musicStyle" class="form-control" style="max-width:220px;" onchange="applyTree3dSoundPreview()">
-                                                <option value="kalimba">Calm kalimba</option>
-                                                <option value="piano">Soft piano</option>
-                                                <option value="dreamy">Dreamy pads</option>
-                                                <option value="musicbox">Music box</option>
-                                                <option value="none">None (no music)</option>
-                                            </select>
-                                        </div>
-                                        <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
-                                            <label for="tree3d-musicVolume" style="color:#334155;">Music</label>
-                                            <input type="range" id="tree3d-musicVolume" min="0" max="100" step="1" value="45" oninput="updateTree3dRangeLabels()">
-                                            <span id="tree3d-musicVolumeValue">45</span>
-                                        </div>
-                                        <div style="margin-top:6px;">
                                             <button type="button" class="turn-preset" id="tree3d-soundPreview" onclick="toggleTree3dSoundPreview()">▶ Listen here</button>
                                         </div>
-                                        <p style="font-size:12px; color:#666; margin-top:6px;">Tick the ambient sounds to play, each at its own volume within the Volume above; the river water, birds and forest wind are on at first. The weather's own sounds (rain as it rains, thunder) play as well. The background music plays with them in the chosen style: Calm kalimba (kalimba notes over a soft pad), Soft piano, Dreamy pads (slow, swelling chords with far-off bells) or Music box; each is composed live by the 3D screen itself, never quite the same twice, so there is nothing to license; None plays no music. Listen here plays exactly what the 3D screen plays, in this browser, and follows your changes as you make them. Browsers play sound only after a first touch on the page: until then the 3D screen shows "Tap anywhere to turn on the sound", and any touch starts it. <strong>To have the sound start by itself every time the 3D page loads</strong>, double-click <code>scripts\browser\allow-3d-tree-autoplay.reg</code> on the 3D screen's PC once and answer Yes (it allows the 3D tree's address to play sound in Chrome and Edge; <code>undo-3d-tree-autoplay.reg</code> removes it).</p>
+                                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px 28px; margin-top:6px;">
+                                            <div>
+                                                <span style="display:block; font-weight:600; color:#334155; margin:8px 0 4px;">Ambient sounds</span>
+<div class="tree3d-ambient-list">
+                                            <div class="tree3d-ambient-row">
+                                                <label title="the flowing river"><input type="checkbox" id="tree3d-ambientRiver" onchange="applyTree3dSoundPreview()"> River water</label>
+                                                <input type="range" id="tree3d-ambientRiverVolume" min="0" max="100" step="1" value="100" aria-label="River water volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientRiverVolumeValue">100</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="a magpie-robin calling now and then"><input type="checkbox" id="tree3d-ambientBirds" onchange="applyTree3dSoundPreview()"> Birds</label>
+                                                <input type="range" id="tree3d-ambientBirdsVolume" min="0" max="100" step="1" value="100" aria-label="Birds volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientBirdsVolumeValue">100</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="the breeze in the trees"><input type="checkbox" id="tree3d-ambientWind" onchange="applyTree3dSoundPreview()"> Forest wind</label>
+                                                <input type="range" id="tree3d-ambientWindVolume" min="0" max="100" step="1" value="100" aria-label="Forest wind volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientWindVolumeValue">100</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="a soft, steady rain"><input type="checkbox" id="tree3d-ambientRain" onchange="applyTree3dSoundPreview()"> Gentle rain</label>
+                                                <input type="range" id="tree3d-ambientRainVolume" min="0" max="100" step="1" value="60" aria-label="Gentle rain volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientRainVolumeValue">60</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="crickets and cicadas, louder at night"><input type="checkbox" id="tree3d-ambientInsects" onchange="applyTree3dSoundPreview()"> Night insects</label>
+                                                <input type="range" id="tree3d-ambientInsectsVolume" min="0" max="100" step="1" value="60" aria-label="Night insects volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientInsectsVolumeValue">60</span>
+                                            </div>
+                                        </div>
+                                            </div>
+                                            <div>
+                                                <span style="display:block; font-weight:600; color:#334155; margin:8px 0 4px;">Background music</span>
+                                                <div style="display:flex; align-items:center; gap:10px;">
+                                                    <label for="tree3d-musicStyle" style="color:#334155; min-width:92px;">Music to play</label>
+                                                    <select id="tree3d-musicStyle" class="form-control" style="max-width:300px;" onchange="tree3dMusicChanged()">
+                                                        <optgroup label="Built-in music (default)">
+                                                            <option value="kalimba">Calm kalimba (default)</option>
+                                                            <option value="piano">Soft piano</option>
+                                                            <option value="dreamy">Dreamy pads</option>
+                                                            <option value="musicbox">Music box</option>
+                                                        </optgroup>
+                                                        <optgroup label="My uploaded music" id="tree3d-musicUploadedGroup"></optgroup>
+                                                        <option value="none">None (no music)</option>
+                                                    </select>
+                                                </div>
+                                                <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+                                                    <label for="tree3d-musicVolume" style="color:#334155; min-width:92px;">Music volume</label>
+                                                    <input type="range" id="tree3d-musicVolume" min="0" max="100" step="1" value="45" oninput="updateTree3dRangeLabels()">
+                                                    <span id="tree3d-musicVolumeValue">45</span>
+                                                </div>
+                                                <p style="font-size:12px; color:#666; margin-top:8px;">Built-in music is composed live by the 3D screen itself, never quite the same twice, so there is nothing to license: Calm kalimba (the default), Soft piano, Dreamy pads or Music box. Your uploaded music is listed under My uploaded music; it plays looped. The ambient sounds play with whichever music you choose.</p>
+                                            </div>
+                                        </div>
+                                        <!-- My music: the admin's own music files across the whole row (assets/Tree/music;
+                                             /api/admin/parameters/tree3d-music/upload, /list and DELETE; frontend/3dTree/background-music.js plays them). -->
+                                        <div id="tree3d-musicUploadBlock" style="margin-top:14px; padding:12px 14px; border:1px solid #dbe4ea; border-radius:8px; background:#f8fafc;">
+                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                                                <span style="font-weight:600; color:#334155;">🎵 My music</span>
+                                                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                                    <input type="file" id="tree3d-musicFile" accept="audio/*,.mp3,.ogg,.oga,.wav,.m4a,.aac,.webm,.flac">
+                                                    <button type="button" class="btn-primary" id="tree3d-musicUpload" onclick="uploadTree3dMusic()">Upload Music</button>
+                                                </div>
+                                            </div>
+                                            <div id="tree3d-musicSoundOff" hidden style="margin-top:10px; padding:8px 12px; border:1px solid #fcd34d; border-radius:6px; background:#fffbeb; color:#92400e; font-size:13px;">
+                                                ⚠️ <strong>Sound on the 3D screen is off</strong>, so the 3D screen plays no sound at all, not even your music. Turn it on to hear the music there.
+                                                <button type="button" class="btn-primary" style="margin-left:8px;" onclick="turnOnTree3dSound()">Turn on sound</button>
+                                            </div>
+                                            <div id="tree3d-musicList" style="margin-top:10px;"></div>
+                                            <small id="tree3d-musicStatus" style="display:block; margin-top:6px; color:#475569;"></small>
+                                            <small style="display:block; margin-top:4px; color:#666;">MP3, OGG, WAV, M4A, AAC, WebM or FLAC, up to 30 MB each. An uploaded file plays on the 3D screen at once; Use plays another of your files, and choosing Built-in music above (then Save) goes back to the 3D screen's own music. Your files stay here until you delete them. Use music you have the right to play in public.</small>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:8px;">Tick the ambient sounds to play, each at its own volume within the Volume above; the river water, birds and forest wind are on at first. The weather's own sounds (rain as it rains, thunder) play as well. Listen here plays exactly what the 3D screen plays, in this browser, and follows your changes as you make them. Browsers play sound only after a first touch on the page: until then the 3D screen shows "Tap anywhere to turn on the sound", and any touch starts it. <strong>To have the sound start by itself every time the 3D page loads</strong>, double-click <code>scripts\browser\allow-3d-tree-autoplay.reg</code> on the 3D screen's PC once and answer Yes (it allows the 3D tree's address to play sound in Chrome and Edge; <code>undo-3d-tree-autoplay.reg</code> removes it).</p>
                                     </div>
                                     <div>
                                         <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">On-screen panels</span>

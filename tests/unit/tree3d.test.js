@@ -214,6 +214,25 @@ test('the music style: Calm kalimba by default, one of the four built-in styles'
     assert.throws(() => normalizeTree3dParameters({ musicStyle: 'rock' }), { statusCode: 400, message: /Music style/ });
 });
 
+test('my uploaded music: its own style, played from a file in assets/Tree/music, none by default', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.musicTrack, '');
+    assert.deepEqual(normalizeTree3dParameters({ musicStyle: 'uploaded', musicTrack: '/assets/Tree/music/calm-forest-1764000000000.mp3' }),
+        { musicStyle: 'uploaded', musicTrack: '/assets/Tree/music/calm-forest-1764000000000.mp3' });
+    for (const extension of ['.mp3', '.ogg', '.wav', '.m4a', '.aac', '.webm', '.flac']) {
+        assert.equal(normalizeTree3dParameters({ musicTrack: `/assets/Tree/music/song${extension}` }).musicTrack, `/assets/Tree/music/song${extension}`);
+    }
+    assert.equal(normalizeTree3dParameters({ musicTrack: '' }).musicTrack, '');
+    // Only an audio file in that folder: no other folder, no going up, no other kind of file.
+    for (const bad of ['/assets/Tree/background/song.mp3', '/assets/Tree/music/../../../backend/server.js', '/assets/Tree/music/song.exe',
+        '/assets/Tree/music/sub/song.mp3', 'https://example.com/song.mp3', '/assets/Tree/music/.mp3']) {
+        assert.throws(() => normalizeTree3dParameters({ musicTrack: bad }), { statusCode: 400, message: /Uploaded music/ }, bad);
+    }
+    // Saving another style keeps the uploaded file chosen, for next time.
+    const merged = mergeTree3dParameters({ musicStyle: 'uploaded', musicTrack: '/assets/Tree/music/song.mp3' }, normalizeTree3dParameters({ musicStyle: 'piano' }));
+    assert.equal(merged.musicStyle, 'piano');
+    assert.equal(merged.musicTrack, '/assets/Tree/music/song.mp3');
+});
+
 test('the ambient sounds: the river, birds and wind on, rain and insects off, each with its own volume', () => {
     const on = { ambientRiver: true, ambientBirds: true, ambientWind: true, ambientRain: false, ambientInsects: false };
     for (const [key, value] of Object.entries(on)) assert.equal(DEFAULT_TREE3D_PARAMETERS[key], value, key);
