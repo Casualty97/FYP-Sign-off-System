@@ -216,7 +216,6 @@ const themeConfig = {
                 'page-background': {
                     auto: ['*-page'],
                     explicit: [
-                        '#theme-settings-page .theme-preview',
                         'body',
                         '.page-content'
                     ]
@@ -271,7 +270,6 @@ const themeConfig = {
                         '#data-export-page .password-panel-card',
                         '#data-export-page .export-card',
                         '#theme-settings-page .theme-section-list',
-                        '#theme-settings-page .theme-settings-form',
                         '#theme-settings-page .preview-card',
                         '.card',
                         '.stat-card',
@@ -769,15 +767,19 @@ const themeConfig = {
             }
         },
         
+        // <Jun Kai/> Style & Theme B: these keys still name the old classes, like the other redesigned pages, so they match
+        // nothing and the new cards keep the kit colours (and dark mode) until the theme is mapped onto the kit. The three
+        // old classes that the new page reuses (.theme-settings-form, .theme-group-title, .theme-preview) were taken out
+        // here and in the overall lists, so a dark card colour never paints the editor behind its dark text
         'theme-settings-page': {
             general: {
-                'page-background': ['#theme-settings-page', '#theme-settings-page .theme-preview'],
+                'page-background': ['#theme-settings-page'],
                 'primary-text': ['#theme-settings-page .page-header h2'],
                 'secondary-text': ['#theme-settings-page .page-header p']
             },
             card: {
                 'card-header-background': ['#theme-settings-page .theme-sidebar-header', '#theme-settings-page .theme-panel-header'],
-                'card-background': ['#theme-settings-page .theme-section-list', '#theme-settings-page .theme-settings-form', '#theme-settings-page .preview-card'],
+                'card-background': ['#theme-settings-page .theme-section-list', '#theme-settings-page .preview-card'],
                 'card-item-hover-bg': ['#theme-settings-page .theme-section-item:hover'],
                 'card-item-hover-text': ['#theme-settings-page .theme-section-item:hover'],
                 'card-item-active-bg': ['#theme-settings-page .theme-section-item.active'],
@@ -786,8 +788,7 @@ const themeConfig = {
                 'card-primary-text': ['#theme-settings-page .theme-sidebar-header h3', '#theme-settings-page .preview-card h5', '#theme-settings-page .theme-panel-header h3'],
                 'card-secondary-text': [
                     '#theme-settings-page .preview-card p',
-                    '#theme-settings-page .theme-section-item',     
-                    '#theme-settings-form .theme-group-title'        
+                    '#theme-settings-page .theme-section-item'
                 ],
             },
             buttons: {
@@ -926,6 +927,9 @@ let currentSection = 'global';
 // Initialize theme settings page
 function initThemeSettings() {
     loadThemeSettings();
+    // <Jun Kai/> the stored colours are loaded again, so changes that were not saved are gone and so is their mark
+    themeMarkUnsaved(false);
+    themeSay('');
     renderSectionList();
     selectSection('global');
     applyThemeSettings();
@@ -1227,8 +1231,12 @@ function saveThemeSettings() {
         saveIndividualPageSettings();
         
         applyThemeSettings();
-        showSaveMessage();
-        
+        // <Jun Kai start>
+        themeMarkUnsaved(false);
+        themeSay('Your colour changes are saved.', 'ok');
+        renderSectionList();
+        // <Jun Kai end>
+
         console.log(`✅ Saved theme settings for user ${currentUserId}`);
     } catch (e) {
         console.error('Failed to save theme settings:', e);
@@ -1252,134 +1260,138 @@ function showSaveMessage() {
     }, 3000);
 }
 
-// Render section list in sidebar
+// <Jun Kai start> Style & Theme B: every page's colours are a row that folds open. Only one row is open at a time;
+// the editor (override switch, colour groups) waits in .theme-editor-home and moves into the open row, so the
+// functions that fill it (renderThemeControls, updateSectionTitle) work as before.
+let themeRowOpen = true;
+let themeUnsaved = false;
+
+// a colour from storage or a saved theme goes into style="" and onclick="" text, so only plain colour values pass
+function themeSafeColor(value, fallback = '#E2E8F0') {
+    const text = String(value || '').trim();
+    return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(text) ? text : fallback;
+}
+
+function themeSay(text, kind = 'ok') {
+    const box = document.getElementById('theme-status');
+    if (!box) return;
+    box.textContent = text || '';
+    box.dataset.kind = kind;
+    box.hidden = !text;
+}
+
+function themeMarkUnsaved(on) {
+    themeUnsaved = !!on;
+    const button = document.getElementById('theme-save-btn');
+    if (button) button.classList.toggle('has-changes', themeUnsaved);
+    if (themeUnsaved) themeSay('You have colour changes that are not saved yet. Save colour changes keeps them.', 'warn');
+}
+
+// the colours a page really shows: its own, or the overall ones while it follows the overall theme
+function themeEffectiveColors(sectionId) {
+    const section = themeConfig.sections.find(s => s.id === sectionId);
+    const own = themeSettings[sectionId] || { useGlobal: true, colors: {} };
+    const global = (themeSettings.global && themeSettings.global.colors) || {};
+    if (!section || section.isGlobal) return { ...global };
+    return own.useGlobal ? { ...global } : { ...global, ...(own.colors || {}) };
+}
+
+const THEME_CHEVRON = '<svg class="theme-row-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
 function renderSectionList() {
     const container = document.getElementById('theme-section-list');
+    const editor = document.getElementById('theme-editor');
+    const home = document.querySelector('#theme-settings-page .theme-editor-home');
+    // the editor goes back to its holder first, so rebuilding the rows never removes it
+    if (editor && home && editor.parentElement !== home) home.appendChild(editor);
+    if (!container) return;
     container.innerHTML = '';
-    
-    // Get current user role
+
     const userRole = sessionStorage.getItem('userRole');
-    
-    // Filter sections based on role
-    const visibleSections = themeConfig.sections.filter(section => {
-        // If section has no requiredRole, it's visible to everyone
-        if (!section.requiredRole) return true;
-        
-        // If section requires system_admin, only show to system_admin
-        return userRole === 'system_admin';
-    });
-    
+    const visibleSections = themeConfig.sections.filter(section =>
+        !section.isSavedThemes && (!section.requiredRole || userRole === 'system_admin'));
+
     visibleSections.forEach(section => {
-        const item = document.createElement('div');
-        item.className = 'theme-section-item';
-        item.onclick = () => selectSection(section.id);
-        
-        item.innerHTML = `
-            <span class="section-icon">${section.icon}</span>
-            <span>${section.name}</span>
-            ${section.isGlobal ? '<span class="section-badge">GLOBAL</span>' : ''}
-        `;
-        
-        if (section.id === currentSection) {
-            item.classList.add('active');
-        }
-        
-        container.appendChild(item);
+        const open = themeRowOpen && section.id === currentSection;
+        const own = themeSettings[section.id];
+        const tag = section.isGlobal
+            ? '<span class="ui-tag is-purple">Global</span>'
+            : (own && own.useGlobal === false ? '<span class="ui-tag is-blue">Own colours</span>' : '<span class="ui-tag">Overall theme</span>');
+        const colors = themeEffectiveColors(section.id);
+        const dots = ['page-background', 'card-background', 'primary-text', 'button-color']
+            .map(key => `<span style="--theme-dot: ${themeSafeColor(colors[key])};"></span>`).join(''); // a custom property: dark mode leaves it as it is
+
+        const row = document.createElement('div');
+        row.className = 'ui-card theme-row' + (open ? ' open' : '');
+        row.dataset.section = section.id;
+        row.innerHTML = `
+            <button type="button" class="theme-row-head" id="theme-row-${section.id}" aria-expanded="${open}" aria-controls="theme-row-body-${section.id}">
+                <span class="theme-row-name"></span>
+                <span class="theme-row-dots" aria-hidden="true">${dots}</span>
+                ${tag}
+                ${THEME_CHEVRON}
+            </button>
+            <div class="theme-row-body" id="theme-row-body-${section.id}" role="region" aria-labelledby="theme-row-${section.id}"${open ? '' : ' hidden'}></div>`;
+        row.querySelector('.theme-row-name').textContent = section.name;
+        row.querySelector('.theme-row-head').addEventListener('click', () => themeToggleRow(section.id));
+        container.appendChild(row);
+        if (open && editor) row.querySelector('.theme-row-body').appendChild(editor);
     });
 }
 
-// Select a section
+// a click on a row: opens it, or closes it when it is the open one
+function themeToggleRow(sectionId) {
+    if (themeRowOpen && sectionId === currentSection) {
+        themeRowOpen = false;
+        renderSectionList();
+        return;
+    }
+    selectSection(sectionId);
+}
+
 function selectSection(sectionId) {
+    const section = themeConfig.sections.find(s => s.id === sectionId);
+    if (!section || section.isSavedThemes) {
+        // the saved themes are the strip on top now
+        document.getElementById('theme-saved-title')?.scrollIntoView({ block: 'start' });
+        return;
+    }
     currentSection = sectionId;
+    themeRowOpen = true;
     renderSectionList();
     renderThemeControls(sectionId);
     updateSectionTitle(sectionId);
-    
-    // Special handling for saved-themes UI elements
-    const overrideContainer = document.getElementById('override-toggle-container');
-    const resetGlobalBtn = document.getElementById('reset-to-global-btn');
-    const saveChangesBtn = document.querySelector('.btn-primary[onclick="saveThemeSettings()"]');
-    const resetAllBtn = document.querySelector('.btn-secondary[onclick="resetAllToDefaults()"]');
-    
-    if (sectionId === 'saved-themes') {
-        // Hide theme control buttons for saved-themes section
-        if (overrideContainer) overrideContainer.style.display = 'none';
-        if (resetGlobalBtn) resetGlobalBtn.style.display = 'none';
-        if (saveChangesBtn) saveChangesBtn.style.display = 'none';
-        if (resetAllBtn) resetAllBtn.style.display = 'none';
-    } else {
-        // Show theme control buttons for other sections
-        if (saveChangesBtn) saveChangesBtn.style.display = '';
-        if (resetAllBtn) resetAllBtn.style.display = '';
-        // Override toggle and reset button visibility handled elsewhere
-    }
 }
 
-// Update section title
 function updateSectionTitle(sectionId) {
     const section = themeConfig.sections.find(s => s.id === sectionId);
-    document.getElementById('current-section-title').textContent = section.name;
-    
+    if (!section) return;
+    const title = document.getElementById('current-section-title');
+    if (title) title.textContent = section.name;
+    const previewFor = document.getElementById('theme-preview-for');
+    if (previewFor) previewFor.textContent = `${section.name}. Changes show here before you save.`;
+
     const overrideContainer = document.getElementById('override-toggle-container');
     const resetBtn = document.getElementById('reset-to-global-btn');
-    
+    const toggle = document.getElementById('use-global-theme');
     if (section.isGlobal) {
-        overrideContainer.style.display = 'none';
-        resetBtn.style.display = 'none';
-    } else {
-        overrideContainer.style.display = 'flex';
-        resetBtn.style.display = 'inline-block';
-        
-        const useGlobal = themeSettings[sectionId]?.useGlobal ?? true;
-        document.getElementById('use-global-theme').checked = useGlobal;
+        if (overrideContainer) overrideContainer.style.display = 'none';
+        if (resetBtn) resetBtn.style.display = 'none';
+        return;
     }
+    const useGlobal = themeSettings[sectionId]?.useGlobal ?? true;
+    if (overrideContainer) overrideContainer.style.display = 'flex';
+    if (resetBtn) resetBtn.style.display = useGlobal ? 'none' : 'inline-block';
+    if (toggle) toggle.checked = useGlobal;
 }
+// <Jun Kai end>
 
 // Render theme controls for a section
 function renderThemeControls(sectionId) {
     const container = document.getElementById('theme-settings-form');
-    
-    // Get the saved-themes panel (it's inside the container)
-    const savedThemesPanel = document.getElementById('saved-themes-panel');
-    
-    // SPECIAL HANDLING FOR SAVED-THEMES
-    if (sectionId === 'saved-themes') {
-        // Hide all other content in container (color groups, etc.)
-        Array.from(container.children).forEach(child => {
-            if (child.id !== 'saved-themes-panel') {
-                child.style.display = 'none';
-            }
-        });
-        
-        // Show the saved-themes panel
-        if (savedThemesPanel) {
-            savedThemesPanel.style.display = 'block';
-            
-            // Initialize saved themes section
-            if (typeof initSavedThemesSection === 'function') {
-                initSavedThemesSection();
-            } else {
-                console.error('initSavedThemesSection function not found');
-            }
-        } else {
-            console.error('saved-themes-panel element not found in HTML');
-        }
-        
-        return; // Exit early don't render color controls
-    }
-    
-    // Hide saved-themes panel, show color controls
-    if (savedThemesPanel) {
-        savedThemesPanel.style.display = 'none';
-    }
-    
-    // Remove all children EXCEPT saved-themes-panel
-    Array.from(container.children).forEach(child => {
-        if (child.id !== 'saved-themes-panel') {
-            child.remove();
-        }
-    });
-    
+    if (!container) return; // <Jun Kai/> the saved themes have their own strip on top now
+    container.innerHTML = '';
+
     const section = themeConfig.sections.find(s => s.id === sectionId);
     const sectionSettings = themeSettings[sectionId] || { useGlobal: !section.isGlobal, colors: {} };
     const isDisabled = sectionSettings.useGlobal && !section.isGlobal;
@@ -1585,8 +1597,9 @@ function applyBackgroundCompanionColors(sectionId, backgroundColor) {
 function createColorControl(option, sectionId, isDisabled) {
     const control = document.createElement('div');
     control.className = 'theme-control' + (isDisabled ? ' disabled' : '');
-    
-    const currentColor = normalizeThemeColor(themeSettings[sectionId]?.colors[option.id] || option.default);
+    control.dataset.option = option.id; // <Jun Kai/> so the chosen swatch gets the focus back after a redraw
+
+    const currentColor = themeSafeColor(normalizeThemeColor(themeSettings[sectionId]?.colors[option.id] || option.default), normalizeThemeColor(option.default)); // <Jun Kai/>
     
     const selectors = getSelectorsForOption(sectionId, option.id);
     const selectorCount = selectors.length;
@@ -1643,6 +1656,11 @@ function updateColor(sectionId, colorId, value) {
     
     renderThemeControls(sectionId);
     updatePreview(sectionId);
+    // <Jun Kai start>
+    themeMarkUnsaved(true);
+    renderSectionList();
+    document.querySelector(`#theme-settings-form [data-option="${colorId}"] .theme-swatch-button.selected`)?.focus();
+    // <Jun Kai end>
 }
 
 // Update color from hex input
@@ -1661,6 +1679,7 @@ function updateColorFromHex(sectionId, colorId, value) {
         themeSettings[sectionId] = { useGlobal: false, colors: {} };
     }
     themeSettings[sectionId].colors[colorId] = value.toUpperCase();
+    themeMarkUnsaved(true); // <Jun Kai/>
     
     const colorPicker = document.getElementById(`color-${sectionId}-${colorId}`);
     if (colorPicker) {
@@ -1680,6 +1699,11 @@ function toggleGlobalThemeOverride() {
     
     themeSettings[currentSection].useGlobal = useGlobal;
     renderThemeControls(currentSection);
+    // <Jun Kai start>
+    updateSectionTitle(currentSection);
+    themeMarkUnsaved(true);
+    renderSectionList();
+    // <Jun Kai end>
 }
 
 // Reset section to global theme
@@ -1690,7 +1714,11 @@ function resetSectionToGlobal() {
         themeSettings[currentSection].useGlobal = true;
         themeSettings[currentSection].colors = { ...themeSettings.global.colors };
         renderThemeControls(currentSection);
-        document.getElementById('use-global-theme').checked = true;
+        // <Jun Kai start>
+        updateSectionTitle(currentSection);
+        themeMarkUnsaved(true);
+        renderSectionList();
+        // <Jun Kai end>
     }
 }
 
@@ -1741,8 +1769,12 @@ async function resetAllToDefaults() {
             await loadSavedThemes();
         }
         
-        showSaveMessage();
-        alert('✅ Reset to defaults complete! Your active theme has been deactivated.');
+        // <Jun Kai start>
+        renderSectionList();
+        updatePreview(currentSection);
+        themeMarkUnsaved(false);
+        themeSay('All colours are back to the defaults, and no saved theme is in use.', 'ok');
+        // <Jun Kai end>
         
     } catch (error) {
         console.error('❌ Error resetting to defaults:', error);
@@ -1752,19 +1784,24 @@ async function resetAllToDefaults() {
 
 // Update preview
 function updatePreview(sectionId) {
-    const settings = themeSettings[sectionId];
-    if (!settings) return;
-    
-    const colors = settings.colors;
+    // <Jun Kai start> a small page: header, sidebar and a card, in the colours this page shows
     const preview = document.getElementById('theme-preview');
-    
-    preview.style.setProperty('--preview-bg', colors['page-background'] || '#ffffff');
-    preview.style.setProperty('--preview-card-bg', colors['card-background'] || '#f8fafc');
-    preview.style.setProperty('--preview-border', colors['card-border-color'] || '#e2e8f0');
-    preview.style.setProperty('--preview-heading', colors['primary-text'] || '#1e293b');
-    preview.style.setProperty('--preview-text', colors['secondary-text'] || '#64748b');
-    preview.style.setProperty('--preview-btn-bg', colors['button-color'] || '#0a1e81');
-    preview.style.setProperty('--preview-btn-text', colors['button-text-color'] || '#ffffff');
+    if (!preview) return;
+    const colors = themeEffectiveColors(sectionId);
+    const frame = themeEffectiveColors('admin-dashboard');
+    const set = (name, value, fallback) => preview.style.setProperty(name, themeSafeColor(value, fallback));
+    set('--preview-bg', colors['page-background'], '#F3F6FA');
+    set('--preview-card-bg', colors['card-background'], '#FFFFFF');
+    set('--preview-border', colors['card-border-color'], '#E2E8F0');
+    set('--preview-heading', colors['primary-text'], '#1E293B');
+    set('--preview-text', colors['secondary-text'], '#64748B');
+    set('--preview-btn-bg', colors['button-color'], '#2563EB');
+    set('--preview-btn-text', colors['button-text-color'], '#FFFFFF');
+    set('--preview-header-bg', frame['admin-header-bg'], '#FFFFFF');
+    set('--preview-header-text', frame['primary-header-text'], '#1E293B');
+    set('--preview-nav-bg', frame['navbar-background'], '#FFFFFF');
+    set('--preview-nav-text', frame['navbar-text'] || frame['nav-text-color'], '#334155');
+    // <Jun Kai end>
 }
 
 // Apply theme settings to the actual page using CSS selectors
@@ -1821,7 +1858,7 @@ function applyThemeSettings() {
                 if ((optionId === 'primary-text' || optionId === 'secondary-text') && colors['page-background'] && themeContrast(cssValue, colors['page-background']) < 4.5) return;
                 if (optionId === 'page-background') {
                     if (section.isGlobal) {
-                        css += `:root { --l3-page-tint: ${cssValue}; }\n#theme-settings-page .theme-preview { background-color: ${cssValue} !important; }\n`;
+                        css += `:root { --l3-page-tint: ${cssValue}; }\n`; // <Jun Kai/> the preview takes its colours from updatePreview
                         return;
                     }
                     if (useGlobal) return;
@@ -1958,131 +1995,112 @@ async function loadSavedThemes() {
     }
 }
 
-// Update the saved themes UI
+// <Jun Kai start> Style & Theme B: the saved themes are picture cards on top, with Apply. The card that saves the
+// current colours sits next to them, outside #saved-themes-list, so a reload of the list keeps what was typed.
+const THEME_MAX_SAVED = 6;
+
 function updateSavedThemesUI() {
     const countElement = document.getElementById('saved-themes-count');
     const listElement = document.getElementById('saved-themes-list');
-    
-    if (!countElement || !listElement) {
-        console.warn('⚠️ Saved themes UI elements not found');
-        return;
-    }
-    
-    // Update count
+    if (!countElement || !listElement) return;
+
     countElement.textContent = savedThemesCache.length;
-    
-    // Clear list
     listElement.innerHTML = '';
-    
-    // Show no themes message if empty
-    if (savedThemesCache.length === 0) {
-        listElement.innerHTML = `
-            <div class="no-themes-message">
-                <p>No saved themes yet. Save your first theme above!</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Render each theme card
-    savedThemesCache.forEach(theme => {
-        const themeCard = createSavedThemeCard(theme);
-        listElement.appendChild(themeCard);
-    });
+    savedThemesCache.forEach(theme => listElement.appendChild(createSavedThemeCard(theme)));
+    themeUpdateSaveCard();
 }
 
-// Create a saved theme card element
+// the save card says when the six places are used
+function themeUpdateSaveCard() {
+    const full = savedThemesCache.length >= THEME_MAX_SAVED;
+    const open = document.getElementById('theme-save-open');
+    const text = document.getElementById('theme-save-open-text');
+    if (open) open.disabled = full;
+    if (text) {
+        text.textContent = full
+            ? 'All 6 places are used. Delete a theme to save another one.'
+            : (savedThemesCache.length ? 'Save the current colours as a theme' : 'No saved themes yet. Save the current colours as your first theme');
+    }
+    if (full) closeSaveThemeForm();
+}
+
+function openSaveThemeForm() {
+    const form = document.getElementById('theme-save-form');
+    const open = document.getElementById('theme-save-open');
+    if (!form || !open || open.disabled) return;
+    form.hidden = false;
+    open.hidden = true;
+    open.setAttribute('aria-expanded', 'true');
+    document.getElementById('new-theme-name')?.focus();
+}
+
+function closeSaveThemeForm() {
+    const form = document.getElementById('theme-save-form');
+    const open = document.getElementById('theme-save-open');
+    if (form) form.hidden = true;
+    if (open) {
+        open.hidden = false;
+        open.setAttribute('aria-expanded', 'false');
+    }
+    clearSaveThemeForm();
+}
+
 function createSavedThemeCard(theme) {
     const card = document.createElement('div');
-    card.className = `saved-theme-card ${theme.is_active ? 'active-theme' : ''}`;
+    card.className = 'ui-card theme-saved-card' + (theme.is_active ? ' active' : '');
     card.dataset.themeId = theme.id;
-    
-    // Extract some colors for preview (first 4 colors from theme data)
-    const previewColors = extractPreviewColors(theme.theme_data);
-    
-    // Format date
-    const createdDate = new Date(theme.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-    
+
+    const created = new Date(theme.created_at);
+    const createdText = isNaN(created) ? '' : created.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+    const strip = extractPreviewColors(theme.theme_data)
+        .map(color => `<span style="--theme-dot: ${themeSafeColor(color)};"></span>`).join('');
+
     card.innerHTML = `
-        <div class="saved-theme-header">
-            <h5 class="saved-theme-name">${escapeHtml(theme.theme_name)}</h5>
-            ${theme.is_active ? '<span class="active-badge">✓ Active</span>' : ''}
+        <div class="theme-saved-strip" aria-hidden="true">${strip}</div>
+        <div class="theme-saved-foot">
+            <div class="theme-saved-name"></div>
+            ${theme.is_active
+                ? '<span class="ui-tag is-green">In use</span>'
+                : '<button type="button" class="ui-btn ui-btn-secondary theme-saved-apply" data-theme-action="apply">Apply</button>'}
         </div>
-        
-        <div class="saved-theme-preview">
-            <div class="color-preview-row">
-                ${previewColors.map(color => `
-                    <div class="color-preview-box" style="background: ${color};" title="${color}"></div>
-                `).join('')}
-            </div>
-        </div>
-        
-        <div class="saved-theme-info">
-            <small>Created: ${createdDate}</small>
-        </div>
-        
-        <div class="saved-theme-actions">
-            ${!theme.is_active ? `
-                <button onclick="activateSavedTheme(${theme.id})" class="btn btn-primary" title="Set as active theme and apply immediately">
-                    ✓ Set Active
-                </button>
-            ` : `
-                <button class="btn btn-success" disabled title="Currently active">
-                    ✓ Active
-                </button>
-            `}
-            <button onclick="renameSavedTheme(${theme.id})" class="btn btn-sm btn-secondary" title="Rename this theme">
-                ✏️ Rename
-            </button>
-            <button onclick="deleteSavedTheme(${theme.id})" class="btn btn-sm btn-danger" title="Delete this theme">
-                🗑️ Delete
-            </button>
-        </div>
-    `;
-    
+        <div class="theme-saved-sub">
+            <span>${createdText ? 'Saved ' + escapeHtml(createdText) : ''}</span>
+            <span class="theme-saved-links">
+                <button type="button" class="ui-link" data-theme-action="rename">Rename</button>
+                <button type="button" class="ui-link theme-link-danger" data-theme-action="delete">Delete</button>
+            </span>
+        </div>`;
+    const name = card.querySelector('.theme-saved-name');
+    name.textContent = theme.theme_name;
+    name.title = theme.theme_name;
+    card.querySelectorAll('[data-theme-action]').forEach(button => {
+        const label = { apply: 'Apply', rename: 'Rename', delete: 'Delete' }[button.dataset.themeAction];
+        button.setAttribute('aria-label', `${label} the theme ${theme.theme_name}`);
+        button.addEventListener('click', () => {
+            if (button.dataset.themeAction === 'apply') activateSavedTheme(theme.id);
+            else if (button.dataset.themeAction === 'rename') renameSavedTheme(theme.id);
+            else deleteSavedTheme(theme.id);
+        });
+    });
     return card;
 }
 
-// Extract preview colors from theme data
+// up to five different colours of a saved theme, for its strip
 function extractPreviewColors(themeData) {
     const colors = [];
-    
     try {
-        // Try to extract some representative colors
-        if (themeData.global) {
-            const global = themeData.global;
-            
-            // Handle new format with colors object
-            const globalColors = global.colors || global;
-            
-            // <Jun Kai start> the colours a theme has today; the four names after them are from an older page, so a
-            // card was always grey
-            ['page-background', 'navbar-background', 'card-background', 'button-color'].forEach(key => {
-                if (globalColors[key]) colors.push(globalColors[key]);
-            });
-            // <Jun Kai end>
-            if (globalColors['primary-color']) colors.push(globalColors['primary-color']);
-            if (globalColors['secondary-color']) colors.push(globalColors['secondary-color']);
-            if (globalColors['accent-color']) colors.push(globalColors['accent-color']);
-            if (globalColors['page-background']) colors.push(globalColors['page-background']);
-        }
-        
-        // If we don't have enough colors, add some defaults
-        while (colors.length < 4) {
-            colors.push('#e2e8f0');
-        }
-        
-        return colors.slice(0, 4);
-        
+        const global = themeData && themeData.global ? (themeData.global.colors || themeData.global) : {};
+        ['page-background', 'card-background', 'primary-text', 'secondary-text', 'button-color', 'card-border-color'].forEach(key => {
+            const value = normalizeThemeColor(global[key]);
+            if (value && themeSafeColor(value, '') && !colors.includes(value)) colors.push(value);
+        });
     } catch (error) {
         console.error('Error extracting preview colors:', error);
-        return ['#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b'];
     }
+    while (colors.length < 4) colors.push(['#E2E8F0', '#CBD5E1', '#94A3B8', '#64748B'][colors.length]);
+    return colors.slice(0, 5);
 }
+// <Jun Kai end>
 
 // Capture current theme data from all sections
 function captureCurrentThemeData() {
@@ -2152,15 +2170,12 @@ async function saveCurrentTheme() {
         // Get theme name from input
         const themeNameInput = document.getElementById('new-theme-name');
         
-        if (!themeNameInput) {
-            alert('Theme name input not found. Please refresh the page.');
-            return;
-        }
+        if (!themeNameInput) return;
         
         const themeName = themeNameInput.value.trim();
         
         if (!themeName) {
-            alert('Please enter a theme name');
+            themeSay('Type a name for the theme first.', 'error'); // <Jun Kai/>
             themeNameInput.focus();
             return;
         }
@@ -2182,7 +2197,7 @@ async function saveCurrentTheme() {
         const themeData = captureCurrentThemeData();
         
         if (!themeData) {
-            alert('Failed to capture current theme data');
+            themeSay('The current colours could not be read. Reload the page and try again.', 'error'); // <Jun Kai/>
             return;
         }
         
@@ -2214,17 +2229,24 @@ async function saveCurrentTheme() {
         }
         
         console.log('✅ Theme saved successfully:', data);
-        alert(`✅ Theme "${themeName}" saved successfully!`);
-        
-        // Clear form
-        clearSaveThemeForm();
+        // <Jun Kai start>
+        if (isActive) {
+            applyThemeData(themeData); // stores and applies the colours the theme was made from
+            themeMarkUnsaved(false);
+            renderSectionList();
+            renderThemeControls(currentSection);
+            updatePreview(currentSection);
+        }
+        themeSay(`The theme "${themeName}" is saved${isActive ? ' and in use' : ''}.`, 'ok');
+        closeSaveThemeForm();
+        // <Jun Kai end>
         
         // Reload saved themes
         await loadSavedThemes();
         
     } catch (error) {
         console.error('❌ Error saving theme:', error);
-        alert('❌ Failed to save theme: ' + error.message);
+        themeSay('The theme was not saved: ' + error.message, 'error'); // <Jun Kai/>
     }
 }
 
@@ -2337,6 +2359,9 @@ async function activateSavedTheme(themeId) {
             return;
         }
         
+        // <Jun Kai start> Apply replaces the overall colours and saves them, so unsaved changes would be lost
+        if (themeUnsaved && !confirm(`You have colour changes that are not saved. Apply "${theme.theme_name}" anyway? The unsaved changes are lost.`)) return;
+        // <Jun Kai end>
         // Step 1: Show user what's about to happen
         console.log('🔄 Activating theme:', theme.theme_name);
         showNotification(`Applying "${theme.theme_name}"...`, 'info');
@@ -2364,6 +2389,13 @@ async function activateSavedTheme(themeId) {
         
         // Step 4: Reload saved themes UI to show new active state
         await loadSavedThemes();
+        // <Jun Kai start>
+        themeMarkUnsaved(false);
+        renderSectionList();
+        renderThemeControls(currentSection);
+        updatePreview(currentSection);
+        themeSay(`"${theme.theme_name}" is in use now.`, 'ok');
+        // <Jun Kai end>
         
         // Step 5: Success
         console.log('✅ Theme activation complete!');
@@ -2385,67 +2417,31 @@ async function renameSavedTheme(themeId) {
             return;
         }
         
-        // Create rename modal
-        const modal = createRenameModal(theme);
-        document.body.appendChild(modal);
-        
-        // Focus input
-        const input = modal.querySelector('#rename-theme-input');
+        // <Jun Kai start> the name on the card becomes a box with Save and Cancel
+        updateSavedThemesUI(); // closes another rename that was open
+        const card = document.querySelector(`#saved-themes-list .theme-saved-card[data-theme-id="${Number(themeId)}"]`);
+        const foot = card && card.querySelector('.theme-saved-foot');
+        if (!foot) return;
+        foot.innerHTML = `
+            <form class="theme-rename-form" novalidate>
+                <label class="ui-sr-only" for="rename-theme-input">New name for the theme</label>
+                <input type="text" id="rename-theme-input" class="ui-input" maxlength="100" autocomplete="off">
+                <button type="submit" class="ui-btn ui-btn-primary">Save</button>
+                <button type="button" class="ui-btn ui-btn-secondary" data-rename="cancel">Cancel</button>
+            </form>`;
+        const input = foot.querySelector('#rename-theme-input');
+        input.value = theme.theme_name;
+        foot.querySelector('form').addEventListener('submit', (event) => { event.preventDefault(); performRename(theme.id); });
+        foot.querySelector('[data-rename="cancel"]').addEventListener('click', () => updateSavedThemesUI());
+        input.addEventListener('keydown', (event) => { if (event.key === 'Escape') updateSavedThemesUI(); });
         input.focus();
         input.select();
-        
+        // <Jun Kai end>
+
     } catch (error) {
         console.error('❌ Error renaming theme:', error);
         showNotification('Failed to rename theme: ' + error.message, 'error');
     }
-}
-
-// Create rename modal
-function createRenameModal(theme) {
-    const modal = document.createElement('div');
-    modal.className = 'rename-theme-modal';
-    modal.innerHTML = `
-        <div class="rename-theme-content">
-            <h3>✏️ Rename Theme</h3>
-            <p>Enter a new name for "${escapeHtml(theme.theme_name)}"</p>
-            
-            <div class="form-group">
-                <label for="rename-theme-input">New Theme Name *</label>
-                <input 
-                    type="text" 
-                    id="rename-theme-input" 
-                    value="${escapeHtml(theme.theme_name)}"
-                    maxlength="100"
-                />
-            </div>
-            
-            <div class="rename-theme-actions">
-                <button class="btn btn-secondary" onclick="closeRenameModal()">
-                    Cancel
-                </button>
-                <button class="btn btn-primary" onclick="performRename(${theme.id})">
-                    ✏️ Rename
-                </button>
-            </div>
-        </div>
-    `;
-    
-    // Close on background click
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeRenameModal();
-        }
-    });
-    
-    // Handle Enter key
-    const input = modal.querySelector('#rename-theme-input');
-    input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            performRename(theme.id);
-        }
-    });
-    
-    return modal;
 }
 
 // Perform the rename operation

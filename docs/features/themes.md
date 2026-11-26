@@ -11,6 +11,16 @@
 
 Colour themes for the admin page itself, saved per admin user.
 
+**The Style & Theme page** (26 Nov 2026, Jun Kai, redesign option B)
+
+- Saved themes are picture cards on top (at most 6 per account): a strip of the theme's colours, Apply (asks first when there are colour changes that are not saved, because Apply replaces the overall colours and saves them), Rename on the card itself, and Delete. The card next to them saves the current colours as a new theme.
+- Every page is a row that folds open, one at a time; the first is the overall theme (tagged Global). A row says whether its page follows the overall theme or has its own colours. The editor (the switch "Use the overall theme on this page", the colour groups) waits in a hidden holder and moves into the open row, so a rebuild of the rows never removes it.
+- The preview is a small admin page (header, sidebar, card, buttons) in the colours of the open row.
+- "Save colour changes" keeps the colours for this account (browser storage). The page says when there are changes that are not saved yet, and every message is a line on the page instead of a popup, except the questions before Apply, Delete, Reset all and copying the overall colours.
+- Colours from storage or a saved theme only reach the page as plain #hex values (themeSafeColor), and theme names are shown as text.
+- Known gap: the colours of a page are not mapped onto the new card look of the redesigned pages yet (their own selectors still name the old classes), so a page with its own colours only changes where old elements remain. Mapping the theme onto the new look is a separate step. The three old class names that the new page reuses (.theme-settings-form, .theme-group-title, .theme-preview) were taken out of the lists, so a dark card colour never paints the editor behind its dark text.
+- Opening the page loads the stored colours again, so changes that were not saved are dropped and nothing says unsaved any more. "Use it now" on a new theme applies it at once, like Apply.
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |
@@ -26,7 +36,8 @@ Colour themes for the admin page itself, saved per admin user.
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
 - Fixed 19 Nov 2026: Save Theme always failed, because it read colour inputs that no longer exist (js/themes.js). The colours now come from themeSettings, where the swatches put them; a colour that was never changed is saved with its default. The swatches on a saved theme card use colour names a theme has today, so a card is no longer grey.
-- Theme card swatches are always grey.
+- Fixed 26 Nov 2026: saving a new theme as the one in use sometimes left no theme in use, because the switch off of the other themes and the insert of the new one ran at the same time; the insert now waits for the switch off (POST /api/admin/saved-themes).
+- Fixed 26 Nov 2026: theme card swatches were always grey. The strip now shows up to five colours of the theme.
 
 ---
 Generated from the route snapshot plus hand-written notes on 2026-10-31. Update this page when you change the feature.

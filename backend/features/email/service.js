@@ -1260,7 +1260,7 @@ ${footerNote}
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px; border-collapse:collapse; background-color:#ffffff; border:1px solid #e5e5e5; text-align:left;">
                         <tr>
                             <td style="padding:32px 36px 0 36px;">
-                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                                <p style="margin:0 0 16px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; RP Xperience Centre</p>
                                 <h1 style="margin:0; font-size:22px; line-height:1.35; font-weight:bold; color:#111111;">Thank you for visiting the RP Xperience Centre, ${escapeHtml(name)}!</h1>
                             </td>
                         </tr>
@@ -1430,7 +1430,7 @@ async function testEmailService(testEmail = 'test@example.com') {
             // <Jun Kai start> the same clean, colour-free look as the thank-you email (12 Nov 2026)
             html: `
                 <div style="font-family:Arial, Helvetica, sans-serif; max-width:600px; margin:0 auto; padding:28px 32px; border:1px solid #e5e5e5; color:#333333; font-size:15px; line-height:1.6;">
-                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; Xperience Centre</p>
+                    <p style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#666666;">Republic Polytechnic &middot; RP Xperience Centre</p>
                     <h1 style="margin:0 0 16px 0; font-size:20px; line-height:1.35; color:#111111;">Test Email from RP Xperience Centre</h1>
                     <p style="margin:0 0 10px 0;">This is a test email from the RP Xperience Centre system.</p>
                     <p style="margin:0 0 10px 0;">If you receive this, email service is working correctly.</p>
@@ -1548,6 +1548,29 @@ async function sendLostFoundAlertEmail(report = {}) { // Staff Lost & Found aler
     }
 }
 
+// <Jun Kai start> two small helpers for the emails of a forgotten admin password (backend/features/passwordReset):
+// whether email is set up on this PC (without a network check, so the answer is quick), and one plain send
+async function emailReady() {
+    try {
+        if (!emailTransporter) await reloadEmailService();
+    } catch (error) {
+        return false;
+    }
+    return !!(emailTransporter && SENDER_EMAIL);
+}
+
+async function sendAdminMail({ to, subject, text, html }) {
+    try {
+        if (!(await emailReady())) return { success: false, error: 'Email service not initialized' };
+        const info = await emailTransporter.sendMail({ from: '"RP Xperience Centre" <' + SENDER_EMAIL + '>', to, subject, text, html });
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('Error sending an admin account email:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+// <Jun Kai end>
+
 // ==================== BADGE EMAIL SENDING FUNCTION ====================
 // Done by XY - Sends customized badge congratulation emails
 // Features:
@@ -1629,5 +1652,7 @@ module.exports = {
     BADGE_CONFIGS: ACTIVE_BADGE_CONFIGS,
     ACTIVE_BADGE_KEYS,
     testEmailService,
-    checkEmailService
+    checkEmailService,
+    emailReady, // <Jun Kai/>
+    sendAdminMail // <Jun Kai/>
 };

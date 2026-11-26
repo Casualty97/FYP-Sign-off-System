@@ -146,9 +146,48 @@
             </div>
             <!-- a wrong password shows here, under the field; a notice moves to the top of the card (admin.css) -->
             <p class="login-note" id="login-note" role="status" hidden></p>
+            <button type="button" class="login-forgot" id="login-forgot" onclick="openPasswordReset()">Forgot password?</button><!-- <Jun Kai/> passwordReset.js -->
             <label class="login-keep"><input type="checkbox" id="remember-me"><span>Keep me signed in on this computer for 1 day</span></label>
             <p class="login-hint">Press Enter or the arrow to sign in</p>
         </form>
+        <!-- <Jun Kai start> a forgotten password, in the same glass card: the username or email, then the 6 digit code from
+             the email (or the link in it), then the new password twice. Filled and moved along by passwordReset.js -->
+        <form id="reset-form" class="login-glass reset-glass" novalidate hidden>
+            <div class="login-crest"><img src="../../../assets/static/rp-logo.png" width="58" height="58" alt=""></div>
+            <h1 id="reset-title" tabindex="-1">Reset your password</h1>
+            <p class="login-lead" id="reset-lead">Enter your username or the email of your account. A 6 digit code and a link are sent to that email.</p>
+            <p class="login-note" id="reset-note" role="status" hidden></p>
+            <div class="reset-step" data-reset-step="ask">
+                <div class="win-field">
+                    <label class="login-sr" for="reset-identifier">Username or email</label>
+                    <input type="text" id="reset-identifier" autocomplete="username" placeholder="Username or email" maxlength="254" spellcheck="false">
+                </div>
+                <button type="submit" class="reset-btn" id="reset-send">Send code</button>
+            </div>
+            <div class="reset-step" data-reset-step="code" hidden>
+                <div class="win-field">
+                    <label class="login-sr" for="reset-code">6 digit code</label>
+                    <input type="text" id="reset-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6 digit code" maxlength="7" spellcheck="false">
+                </div>
+                <button type="submit" class="reset-btn" id="reset-check">Check code</button>
+                <button type="button" class="reset-link" id="reset-resend" onclick="resendPasswordResetCode()" disabled>Send a new code</button>
+            </div>
+            <div class="reset-step" data-reset-step="password" hidden>
+                <div class="win-field">
+                    <label class="login-sr" for="reset-password">New password</label>
+                    <input type="password" id="reset-password" autocomplete="new-password" placeholder="New password" maxlength="72">
+                </div>
+                <div class="win-field">
+                    <label class="login-sr" for="reset-confirm">The new password again</label>
+                    <input type="password" id="reset-confirm" autocomplete="new-password" placeholder="The new password again" maxlength="72">
+                </div>
+                <p class="reset-rule" id="reset-rule">At least 8 characters, and not the same as your username.</p>
+                <label class="login-keep reset-show"><input type="checkbox" id="reset-show" onchange="togglePasswordResetShow()"><span>Show the passwords</span></label>
+                <button type="submit" class="reset-btn" id="reset-save">Save new password</button>
+            </div>
+            <button type="button" class="reset-link reset-back" id="reset-back" onclick="closePasswordReset()">Back to sign in</button>
+        </form>
+        <!-- <Jun Kai end> -->
         <p class="login-foot">RP Xperience Centre Sign-Off · Republic Polytechnic</p>
     </div>
     <!-- <Jun Kai end> -->
@@ -1383,6 +1422,8 @@
                                 <button type="button" role="tab" class="ui-tab" id="users-tab-deleted" data-tab="deleted" aria-selected="false" aria-controls="deleted-users-section" tabindex="-1" onclick="switchUserTab('deleted')">Deleted <b class="ui-tab-count" id="users-count-deleted">0</b></button>
                             </div>
 
+                            <!-- <Jun Kai/> accounts without an email cannot reset a forgotten password: filled by usersShowEmailNote() -->
+                            <p class="users-email-note" id="users-email-note" role="status" hidden></p>
                             <div id="active-users-section" role="tabpanel" aria-labelledby="users-tab-active">
                                 <div class="ui-table-wrap">
                                     <table class="ui-table users-table">
@@ -1906,145 +1947,90 @@
 
                 <!-- Theme Settings Page (DONE BY PRETI)-->
                 <div id="theme-settings-page" class="page">
-                    <div class="page-header">
-                        <h2>Style &amp; Theme</h2>
-                        <p>Customize colors and themes for the admin panel and all pages</p>
+                    <!-- <Jun Kai start> Style & Theme B: saved themes as cards on top, the colours of each page as rows that
+                         fold open, and a small page as the preview. Filled by themes.js (updateSavedThemesUI, renderSectionList,
+                         selectSection). The editor lives in .theme-editor-home and moves into the open row. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Style &amp; Theme</h2>
+                            <p>Colours for the admin page and every screen. They are kept for your account only.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="resetAllToDefaults()">Reset all to defaults</button>
+                            <button type="button" class="ui-btn ui-btn-primary" id="theme-save-btn" onclick="saveThemeSettings()">Save colour changes</button>
+                        </div>
                     </div>
+                    <div class="theme-status" id="theme-status" role="status" aria-live="polite" hidden></div>
 
-                    <div class="theme-settings-container">
-                        <!-- Left Sidebar: Section List (DONE BY PRETI)-->
-                        <div class="theme-sidebar">
-                            <div class="theme-sidebar-header">
-                                <h3>Sections</h3>
-                            </div>
-                            <div class="theme-section-list" id="theme-section-list">
-                                <!-- Dynamically populated (DONE BY PRETI)-->
+                    <section class="theme-saved" aria-labelledby="theme-saved-title">
+                        <div class="ui-section-title" id="theme-saved-title">Saved themes <span class="theme-saved-count"><span id="saved-themes-count">0</span> of 6</span></div>
+                        <div class="theme-saved-grid">
+                            <div id="saved-themes-list" class="theme-saved-cards"></div>
+                            <div class="ui-card theme-save-card" id="theme-save-card">
+                                <button type="button" class="theme-save-open" id="theme-save-open" onclick="openSaveThemeForm()" aria-expanded="false" aria-controls="theme-save-form">
+                                    <span class="theme-save-plus" aria-hidden="true">+</span>
+                                    <span id="theme-save-open-text">Save the current colours as a theme</span>
+                                </button>
+                                <form class="theme-save-form" id="theme-save-form" hidden onsubmit="event.preventDefault(); saveCurrentTheme();">
+                                    <label class="ui-label" for="new-theme-name">Theme name</label>
+                                    <input type="text" id="new-theme-name" class="ui-input" maxlength="100" placeholder="For example RP green" autocomplete="off">
+                                    <label class="theme-save-check"><input type="checkbox" id="set-active-on-save" checked> Use it now</label>
+                                    <div class="theme-save-buttons">
+                                        <button type="button" class="ui-btn ui-btn-secondary" onclick="closeSaveThemeForm()">Cancel</button>
+                                        <button type="submit" class="ui-btn ui-btn-primary">Save theme</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
+                    </section>
 
-                        <!-- Right Panel: Theme Controls (DONE BY PRETI)-->
-                        <div class="theme-panel">
-                            <div class="theme-panel-header">
-                                <h3 id="current-section-title">Admin Overall Theme</h3>
-                                <div class="theme-actions">
-                                    <button class="btn-secondary" onclick="resetSectionToGlobal()" id="reset-to-global-btn" style="display: none;">
-                                        Reset to Global Theme
-                                    </button>
-                                    <button class="btn-secondary" onclick="resetAllToDefaults()">
-                                        Reset All to Defaults
-                                    </button>
-                                    <button class="btn-primary" onclick="saveThemeSettings()">
-                                        Save Changes
-                                    </button>
+                    <div class="theme-layout">
+                        <div>
+                            <div class="ui-section-title">Colours of each page</div>
+                            <div class="theme-rows" id="theme-section-list"></div>
+                        </div>
+                        <div class="ui-card theme-preview-card">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3>Preview</h3>
+                                    <p id="theme-preview-for">Admin overall theme. Changes show here before you save.</p>
                                 </div>
-                            </div> 
-                            <!-- Override Toggle (for non-global sections) (DONE BY PRETI)-->
-                            <div class="theme-override-toggle" id="override-toggle-container" style="display: none;">
-                                <label class="toggle-switch" for="use-global-theme" title="Toggle to use Admin Overall Theme">
-                                    <input type="checkbox" id="use-global-theme" onchange="toggleGlobalThemeOverride()" aria-label="Use Admin Overall Theme for this section">
-                                    <span class="toggle-slider"></span>
+                            </div>
+                            <div class="ui-card-body">
+                                <div class="theme-preview" id="theme-preview" aria-hidden="true">
+                                    <div class="theme-preview-header"><span>ESG Centre Sign-Off</span><i></i></div>
+                                    <div class="theme-preview-main">
+                                        <div class="theme-preview-nav"><b>Dashboard</b><span>Feedback</span><span>Tree</span><span>Pledges</span></div>
+                                        <div class="theme-preview-page">
+                                            <div class="theme-preview-title">Sample page</div>
+                                            <div class="theme-preview-text">Secondary text looks like this.</div>
+                                            <div class="theme-preview-card">
+                                                <div class="theme-preview-card-title">Sample card title</div>
+                                                <div class="theme-preview-text">This is sample text to preview the theme colours.</div>
+                                                <div class="theme-preview-buttons"><span class="theme-preview-btn">Primary button</span><span class="theme-preview-btn is-second">Secondary</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="theme-editor-home" hidden>
+                        <div class="theme-editor" id="theme-editor">
+                            <h3 class="ui-sr-only" id="current-section-title">Admin Overall Theme</h3>
+                            <div class="theme-override" id="override-toggle-container" style="display: none;">
+                                <label class="theme-override-label" for="use-global-theme">
+                                    <input type="checkbox" id="use-global-theme" onchange="toggleGlobalThemeOverride()">
+                                    <span>Use the overall theme on this page</span>
                                 </label>
-                                <label for="use-global-theme" class="toggle-label">Use Admin Overall Theme for this section</label>
+                                <button type="button" class="ui-link" id="reset-to-global-btn" onclick="resetSectionToGlobal()" style="display: none;">Copy the overall colours</button>
                             </div>
-
-                            <!-- Theme Settings Form (DONE BY PRETI)-->
-                            <div class="theme-settings-form" id="theme-settings-form">
-                                <div id="saved-themes-panel" class="theme-panel" style="display: none;">
-                                    <div class="theme-panel-header">
-                                        <h3>💾 Saved Themes</h3>
-                                        <p>Save and manage your custom theme presets (Maximum 6 themes)</p>
-                                    </div>
-
-                                    <!-- Save Current Theme Section (DONE BY PRETI)-->
-                                    <div class="saved-themes-save-section">
-                                        <div class="save-theme-header">
-                                            <h4>💾 Save Current Theme</h4>
-                                            <p>Save your current design settings as a new theme preset</p>
-                                        </div>
-                                        
-                                        <div class="save-theme-form">
-                                            <div class="form-group">
-                                                <label for="new-theme-name">Theme Name *</label>
-                                                <input 
-                                                    type="text" 
-                                                    id="new-theme-name" 
-                                                    class="form-control" 
-                                                    placeholder="e.g., Dark Blue Professional, Sunset Orange, etc."
-                                                    maxlength="100"
-                                                />
-                                                <small class="form-text">Give your theme a descriptive name (max 100 characters)</small>
-                                            </div>
-                                            
-                                            <div class="form-group">
-                                                <label class="checkbox-label">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="set-active-on-save"
-                                                        checked
-                                                    />
-                                                    <span>Set as active theme after saving</span>
-                                                </label>
-                                            </div>
-                                            
-                                            <div class="save-theme-actions">
-                                                <button 
-                                                    type="button" 
-                                                    class="btn btn-primary" 
-                                                    onclick="saveCurrentTheme()"
-                                                >
-                                                    💾 Save Theme
-                                                </button>
-                                                <button 
-                                                    type="button" 
-                                                    class="btn btn-secondary" 
-                                                    onclick="clearSaveThemeForm()"
-                                                >
-                                                    Clear
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Saved Themes List (DONE BY PRETI)-->
-                                    <div class="saved-themes-list-section">
-                                        <div class="saved-themes-header">
-                                            <h4>📚 Your Saved Themes (<span id="saved-themes-count">0</span>/6)</h4>
-                                            <button 
-                                                type="button" 
-                                                class="btn btn-sm btn-secondary" 
-                                                onclick="refreshSavedThemes()"
-                                            >
-                                                🔄 Refresh
-                                            </button>
-                                        </div>
-                                        
-                                        <div id="saved-themes-list" class="saved-themes-grid">
-                                            <!-- Saved themes will be dynamically loaded here (DONE BY PRETI)-->
-                                            <div class="no-themes-message">
-                                                <p>No saved themes yet. Save your first theme above!</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Dynamically populated based on selected section (DONE BY PRETI)-->
-                            </div>
-
-                            <!-- Preview Area (optional) (DONE BY PRETI)-->
-                            <div class="theme-preview" id="theme-preview">
-                                <h4>Preview</h4>
-                                <div class="preview-content">
-                                    <div class="preview-card">
-                                        <h5>Sample Card Title</h5>
-                                        <p>This is sample text to preview the theme colors.</p>
-                                        <button class="preview-btn-primary">Primary Button</button>
-                                        <button class="preview-btn-secondary">Secondary Button</button>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="theme-settings-form" id="theme-settings-form"></div>
                         </div>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
-                
 
                 <!-- Email Management Page (DONE BY NADHIRAH)-->
                 <!-- <Jun Kai start> -->
@@ -4543,6 +4529,7 @@
     <script src="/admin/js/sidebar.js"></script>
     <!-- <Jun Kai end> -->
     <script src="/admin/js/tree.js"></script>
+    <script src="/admin/js/passwordReset.js"></script><!-- <Jun Kai/> a forgotten password (the login card); before init.js -->
     <script src="/admin/js/init.js"></script>
     <script src="/admin/js/themes.js"></script>
     <script src="/admin/js/archiveDeletion.js"></script>

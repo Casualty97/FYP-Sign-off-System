@@ -408,6 +408,22 @@ async function archiveStep(cookie) {
     await expect('GET /api/admin/feedback without a session is refused', `${BASE}/api/admin/feedback`, (r) => r.status === 401);
     await expect('GET /api/admin/users without a session is refused', `${BASE}/api/admin/users`, (r) => r.status === 401);
     await expect('GET /api/admin/audit-logs without a session is refused', `${BASE}/api/admin/audit-logs`, (r) => r.status === 401);
+    // <Jun Kai start> a forgotten password (open without a session): the answer to a request is the same for a real
+    // account and a made-up name, and a wrong code or link is refused without saying more
+    {
+      const ask = (identifier) => get(`${BASE}/api/admin/password-reset/request`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier }) });
+      // the made-up name first; the real account only when email is not set up here, so a PC with email never mails it
+      const madeUp = await ask(`smoke_nobody_${Date.now()}`);
+      const real = madeUp.status === 503 ? await ask(ADMIN_USER) : madeUp;
+      const sameAnswer = [200, 503].includes(real.status) && real.status === madeUp.status && real.text === madeUp.text;
+      if (sameAnswer) pass(`POST /api/admin/password-reset/request answers a real account and a made-up name the same (${real.status})`);
+      else fail(`POST /api/admin/password-reset/request answers differently: ${real.status} ${real.text.slice(0, 120)} / ${madeUp.status} ${madeUp.text.slice(0, 120)}`);
+      const post = (path, body) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      await expect('POST /api/admin/password-reset/verify-code refuses a code that was never sent', `${BASE}/api/admin/password-reset/verify-code`, (r) => r.status === 400 || `${r.status}`, post('verify-code', { identifier: ADMIN_USER, code: '000000' }));
+      await expect('POST /api/admin/password-reset/check-link refuses a link that was never sent', `${BASE}/api/admin/password-reset/check-link`, (r) => (r.status === 400 && /expired or was already used/.test(r.text)) || `${r.status}`, post('check-link', { token: 'A'.repeat(43) }));
+      await expect('POST /api/admin/password-reset/complete refuses a link that was never sent', `${BASE}/api/admin/password-reset/complete`, (r) => r.status === 400 || `${r.status}`, post('complete', { token: 'B'.repeat(43), password: 'Smoke-Never-Used-1', confirm: 'Smoke-Never-Used-1' }));
+    }
+    // <Jun Kai end>
     // <Jun Kai start> the Lost & Found contact and the CSV export with the contacts need a session and the password
     await expect('POST /api/admin/lost-found-reports/:id/contact without a session is refused', `${BASE}/api/admin/lost-found-reports/1/contact`, (r) => r.status === 401,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'x' }) });
