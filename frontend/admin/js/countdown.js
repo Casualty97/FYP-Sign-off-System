@@ -24,6 +24,24 @@ function setTimerButtonText(btn, text) {
     const label = btn.querySelector('.pt-btn-text');
     if (label) label.textContent = text;
 }
+
+// a quick pick fills the field; Save still stores it
+function pickTimerCountdown(seconds) {
+    const { input } = getTimerCountdownEls();
+    if (!input) return;
+    input.value = String(seconds);
+    validateTimerCountdown();
+}
+
+// the quick pick that matches the field is marked
+function markTimerQuickPick() {
+    const input = document.getElementById('timer-countdown-seconds');
+    document.querySelectorAll('#timer-quick button').forEach((btn) => {
+        const on = Boolean(input && input.value !== '' && Number(btn.dataset.seconds) === Number(input.value));
+        btn.classList.toggle('is-set', on);
+        btn.setAttribute('aria-pressed', String(on));
+    });
+}
 // <Jun Kai end>
 
 // Load timer countdown setting from server
@@ -173,6 +191,7 @@ function validateTimerCountdown() {
     if (!input || !saveBtn) return;
 
     input.value = input.value.replace(/[^0-9]/g, '');
+    markTimerQuickPick(); // <Jun Kai/>
 
     const value = Number(input.value);
     const originalValue = Number(input.dataset.originalValue || 0);
