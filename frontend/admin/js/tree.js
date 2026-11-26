@@ -6,6 +6,9 @@
 async function loadDigitalTreeData() {
     try {
         console.log('🌳 Loading digital tree data...');
+        setTreeLeavesStatus('', ''); // <Jun Kai/> an old answer (Make VIP, a failed load) goes on every load
+        loadTreePreview(); // <Jun Kai/> the small copy of the tree screen on Tree Leaves
+        showTreeVipCard(); // <Jun Kai/> the VIP card, for a System Admin only
         await loadTreeStageSelection();
         await loadAvailableTreeBackgrounds();
         const response = await fetch('/api/tree');
@@ -22,7 +25,13 @@ async function loadDigitalTreeData() {
     } catch (error) {
         console.error('Error loading tree data:', error);
         updateDigitalTreeTable([]);
-        alert('Error loading tree data: ' + error.message);
+        // <Jun Kai start> no alert box: a status line on Tree Leaves, and a notice when the load came from another page
+        // (Refresh Data on Tree Settings), where that status line cannot be seen
+        setTreeLeavesStatus('down', 'The tree could not be loaded: ' + error.message);
+        if (!document.getElementById('digital-tree-page')?.classList.contains('active') && typeof showNotification === 'function') {
+            showNotification('The tree could not be loaded: ' + error.message, 'error');
+        }
+        // <Jun Kai end>
     }
 }
 
@@ -558,59 +567,210 @@ async function uploadTreeBackground() {
     }
 }
 
-// Update the digital tree table
-function updateDigitalTreeTable(treeData) {
-    const tbody = document.querySelector('#digital-tree-page table tbody');
-    if (!tbody) {
-        console.error('Digital tree table tbody not found');
-        return;
-    }
-    
-    tbody.innerHTML = '';
-    
-    // Update current year display
-    const currentYear = new Date().getFullYear();
-    const currentYearSpan = document.getElementById('current-year');
-    const treeCountSpan = document.getElementById('tree-count');
-    
-    if (currentYearSpan) {
-        currentYearSpan.textContent = currentYear;
-    }
-    
-    if (!treeData || treeData.length === 0) {
-        if (treeCountSpan) {
-            treeCountSpan.textContent = '0';
-        }
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="3" style="text-align: center; padding: 40px; color: #64748b;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🌳</div>
-                    <h3 style="color: #64748b; margin-bottom: 10px;">No Tree Data Found</h3>
-                    <p>No visitors have been recorded for ${currentYear} yet.</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    // Update tree count
-    if (treeCountSpan) {
-        treeCountSpan.textContent = treeData.length;
-    }
-    
-    // Add each visitor to the table
-    treeData.forEach(visitor => {
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-            <td>${visitor.name || 'Anonymous'}</td>
-            <td>${visitor.visit_count || 1}</td>
-            <td>${visitor.last_visit ? new Date(visitor.last_visit).toLocaleDateString() : 'N/A'}</td>
-        `;
-        
-        tbody.appendChild(row);
+// <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B). /api/tree answers one row per leaf, so a visitor who came
+// twice has two rows. The search and the pages work on that answer in the browser; the numbers on the left come
+// from it too. Newest leaves first.
+let treeVisitorRows = [];
+let treeVisitorPage = 1;
+let treeLeavesReady = false;
+let treeScrollToVips = false;
+const TREE_VISITORS_PER_PAGE = 10;
+const TREE_AVATAR_HUES = [262, 172, 330, 28, 245, 152, 18, 218];
+
+function prepareTreeLeavesPage() {
+    if (treeLeavesReady) return;
+    treeLeavesReady = true;
+    document.querySelectorAll('#digital-tree-page [data-fb-icon]').forEach((slot) => {
+        slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.closest('button, a') ? 15 : 16);
     });
+    const tbody = document.querySelector('#digital-tree-page table tbody');
+    if (tbody) tbody.addEventListener('click', treeListClick);
 }
+
+// Make VIP on a row: the name exactly as the tree has it (vips.js makeVip)
+function treeListClick(event) {
+    const button = event.target.closest('[data-make-vip]');
+    const row = button && treeVisitorRows[Number(button.dataset.makeVip)];
+    if (row && typeof makeVip === 'function') makeVip(String(row.name || '').trim(), button);
+}
+
+function showTreeVipCard() {
+    const card = document.getElementById('dt-vip-card');
+    if (!card) return;
+    const admin = typeof canManageVips === 'function' && canManageVips();
+    card.hidden = !admin;
+    if (admin) loadVipData();
+}
+
+// the VIPs link and old showPage('vip') calls: once the list has its rows the card is scrolled into view again,
+// because on a narrow screen the list above it grows
+function scrollTreeLeavesToVips() {
+    const card = document.getElementById('dt-vip-card');
+    if (!card || card.hidden) return;
+    treeScrollToVips = true;
+    card.scrollIntoView({ block: 'start' });
+}
+
+// a VIP was added or removed: the rows with that name change at once, without loading the tree again
+function markTreeVip(name, isVip) {
+    const target = String(name || '').trim().toLowerCase();
+    treeVisitorRows.forEach((row) => {
+        if (row.hasPublicName && !row.archived && String(row.name || '').trim().toLowerCase() === target) row.isVip = isVip;
+    });
+    const golden = document.getElementById('dt-vip-leaves');
+    if (golden) golden.textContent = treeVisitorRows.filter((row) => row.isVip).length;
+    if (!isVip) setTreeLeavesStatus('', ''); // a "now a VIP" line would be wrong after a removal
+    renderTreeVisitors();
+}
+
+function setTreeLeavesStatus(tone, message) {
+    const el = document.getElementById('dt-status');
+    if (el) el.innerHTML = message ? uiPill(tone, message) : '';
+}
+
+function treeInitials(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+function treeLeafDate(value) {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function treeVisitorRowHtml(row, index) {
+    const name = String(row.name || 'Anonymous visitor');
+    const named = Boolean(row.hasPublicName) && !row.archived;
+    const hue = TREE_AVATAR_HUES[Math.abs(Number(row.id) || 0) % TREE_AVATAR_HUES.length];
+    let tag = '';
+    if (row.isVip) tag = '<span class="ui-tag is-amber">VIP</span>';
+    else if (row.archived) tag = '<span class="ui-tag">Archived</span>';
+    else if (!named) tag = '<span class="ui-tag">Name hidden</span>';
+    else if (typeof canManageVips === 'function' && canManageVips()) tag = `<button type="button" class="ui-link" data-make-vip="${index}">Make VIP</button>`;
+    const avatar = named
+        ? `<span class="ui-avatar" style="--ui-hue: ${hue}" aria-hidden="true">${escapeHtmlSafe(treeInitials(name))}</span>`
+        : '<span class="ui-avatar dt-avatar-none" aria-hidden="true">?</span>';
+    return `<tr><td><span class="ui-who">${avatar}<span class="ui-who-text"><b title="${escapeHtmlSafe(name)}">${escapeHtmlSafe(name)}</b></span></span></td>`
+        + `<td class="dt-num">${Number(row.visit_count) || 1}</td><td>${escapeHtmlSafe(treeLeafDate(row.created_at))}</td><td class="dt-tag-col">${tag}</td></tr>`;
+}
+
+function renderTreeVisitors() {
+    const tbody = document.querySelector('#digital-tree-page table tbody');
+    if (!tbody) return;
+    const query = (document.getElementById('dt-search')?.value || '').trim().toLowerCase();
+    const list = treeVisitorRows.map((row, index) => ({ row, index })).filter(({ row }) => !query || String(row.name || '').toLowerCase().includes(query));
+    const pages = Math.max(1, Math.ceil(list.length / TREE_VISITORS_PER_PAGE));
+    treeVisitorPage = Math.min(Math.max(1, treeVisitorPage), pages);
+    const first = (treeVisitorPage - 1) * TREE_VISITORS_PER_PAGE;
+    const shown = list.slice(first, first + TREE_VISITORS_PER_PAGE);
+
+    if (shown.length) {
+        tbody.innerHTML = shown.map(({ row, index }) => treeVisitorRowHtml(row, index)).join('');
+    } else {
+        const year = new Date().getFullYear();
+        const text = treeVisitorRows.length ? 'No visitor matches the search.' : `No visitors on the ${year} tree yet.`;
+        tbody.innerHTML = `<tr><td colspan="4" class="ui-empty dt-empty">${text}</td></tr>`;
+    }
+    const info = document.getElementById('dt-page-info');
+    if (info) info.textContent = list.length ? `Showing ${first + 1} to ${first + shown.length} of ${list.length}` : 'No visitors';
+    const prev = document.getElementById('dt-prev');
+    const next = document.getElementById('dt-next');
+    if (prev) prev.disabled = treeVisitorPage <= 1;
+    if (next) next.disabled = treeVisitorPage >= pages;
+}
+
+function filterTreeVisitors() {
+    treeVisitorPage = 1;
+    renderTreeVisitors();
+}
+
+function changeTreeVisitorPage(step) {
+    treeVisitorPage += step;
+    renderTreeVisitors();
+}
+
+// Update the digital tree table (the list and the numbers beside it)
+function updateDigitalTreeTable(treeData) {
+    prepareTreeLeavesPage();
+    const rows = Array.isArray(treeData) ? treeData : [];
+    const yearSpan = document.getElementById('current-year');
+    if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    const setCount = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+    setCount('tree-count', rows.length);
+    setCount('dt-vip-leaves', rows.filter((row) => row.isVip).length);
+    setCount('dt-hidden-names', rows.filter((row) => !row.hasPublicName && !row.archived).length);
+
+    treeVisitorRows = rows.slice().sort((a, b) => (new Date(b.created_at).getTime() || 0) - (new Date(a.created_at).getTime() || 0));
+    treeVisitorPage = 1;
+    renderTreeVisitors();
+    if (treeScrollToVips) {
+        treeScrollToVips = false;
+        const card = document.getElementById('dt-vip-card');
+        if (card && !card.hidden) card.scrollIntoView({ block: 'start' });
+    }
+}
+
+// The small copy of the tree screen: the real /tree (or /3dtree in 3D mode) page in a frame, drawn at 1600 x 900 and
+// scaled down to the card. It can only be looked at (no clicks), and it is emptied when another page opens, so a
+// 3D tree does not keep running in the background.
+const TREE_FRAME_WIDTH = 1600;
+let treeFrameWatch = null;
+
+function fitTreeFrame() {
+    const screen = document.getElementById('dt-screen');
+    const frame = document.getElementById('dt-tree-frame');
+    if (screen && frame) frame.style.transform = `scale(${screen.clientWidth / TREE_FRAME_WIDTH})`;
+}
+
+function watchTreeFrame() {
+    if (treeFrameWatch) return;
+    const page = document.getElementById('digital-tree-page');
+    const screen = document.getElementById('dt-screen');
+    if (!page || !screen) return;
+    treeFrameWatch = new MutationObserver(() => {
+        if (page.classList.contains('active')) return;
+        const frame = document.getElementById('dt-tree-frame');
+        if (frame && frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
+        screen.dataset.state = 'idle';
+    });
+    treeFrameWatch.observe(page, { attributes: true, attributeFilter: ['class'] });
+    if (typeof ResizeObserver === 'function') new ResizeObserver(fitTreeFrame).observe(screen);
+    window.addEventListener('resize', fitTreeFrame);
+}
+
+async function loadTreePreview() {
+    const frame = document.getElementById('dt-tree-frame');
+    const screen = document.getElementById('dt-screen');
+    const note = document.getElementById('dt-screen-note');
+    if (!frame || !screen) return;
+    watchTreeFrame();
+    let mode = '2d';
+    try {
+        const response = await fetch('/api/admin/parameters/treeParameters', { credentials: 'include' });
+        const data = await response.json();
+        if (response.ok && data.success && String(data.parameters?.treeDisplayMode || '').toLowerCase() === '3d') mode = '3d';
+    } catch (error) {
+        console.warn('Tree display mode not read, showing the 2D tree:', error);
+    }
+    const address = mode === '3d' ? '/3dtree' : '/tree';
+    const open = document.getElementById('dt-open-tree');
+    if (open) open.setAttribute('href', address);
+    const label = document.getElementById('dt-preview-mode');
+    if (label) label.textContent = mode === '3d' ? 'A small copy of the 3D tree screen' : 'A small copy of the tree screen';
+    if (!document.getElementById('digital-tree-page')?.classList.contains('active')) return;
+    screen.dataset.state = 'loading';
+    if (note) note.textContent = 'Loading the tree';
+    frame.onload = () => {
+        if (frame.getAttribute('src') === 'about:blank') return;
+        screen.dataset.state = 'ready';
+        fitTreeFrame();
+    };
+    frame.setAttribute('src', address);
+    fitTreeFrame();
+}
+// <Jun Kai end>
 
 // Leaf image management for digital tree parameters
 async function uploadParameterLeaf() {
@@ -962,7 +1122,7 @@ async function refreshTreeData() {
 // Default values for tree title box settings
 const TITLE_DEFAULTS = {
     showTitleBox: true,
-    titleText: '🌳 ESG Digital Tree',
+    titleText: '🌳 RP Xperience Centre Digital Tree',
     subtitleText: 'Growing with every visitor\'s contribution this year',
     opacity: 0.25,
     blur: 6,
@@ -1029,7 +1189,7 @@ async function loadTreeTitleSettings() {
     if (displayModeSelect) displayModeSelect.value = (tree.treeDisplayMode || settings?.treeDisplayMode) === '3d' ? '3d' : '2d';
     if (settings) {
         document.getElementById('param-showTitleBox').checked = settings.showTitleBox ?? true;
-        document.getElementById('param-titleText').value = settings.titleText || '🌳 ESG Digital Tree';
+        document.getElementById('param-titleText').value = settings.titleText || '🌳 RP Xperience Centre Digital Tree';
         document.getElementById('param-subtitleText').value = settings.subtitleText || 'Growing with every visitor\'s contribution this year';
         document.getElementById('param-titleOpacity').value = settings.opacity ?? 0.25;
         document.getElementById('param-titleOpacityValue').textContent = settings.opacity ?? 0.25;

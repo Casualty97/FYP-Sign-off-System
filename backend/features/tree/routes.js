@@ -29,8 +29,33 @@ const express = require('express');
 const router = express.Router();
 const { getBadgeSummary } = require('../email/service');
 const { isFeedbackFlagged } = require('../analysis/flagged');
+// <Jun Kai start>
+const deletedCounts = require('../archive/deletedCounts');
+const archivedLeaves = require('../archive/archivedLeaves');
+// <Jun Kai end>
 
 let db;
+
+// <Jun Kai start>
+// The tree page asks for its leaves every second, so nothing is printed when it works. A problem is printed as one
+// short line, and at most 3 lines in 10 minutes: a fault that lasts (or comes and goes) cannot fill the terminal.
+const TREE_LOG_MAX = 3;
+const TREE_LOG_WINDOW_MS = 10 * 60 * 1000;
+let treeLogCount = 0;
+let treeLogSince = 0;
+function treeProblem(text, err, now = Date.now()) {
+    if (now - treeLogSince >= TREE_LOG_WINDOW_MS) {
+        treeLogCount = 0;
+        treeLogSince = now;
+    }
+    if (treeLogCount >= TREE_LOG_MAX) return false;
+    treeLogCount++;
+    const detail = err ? `: ${[err.code, err.message || String(err)].filter(Boolean).join(' ')}`.replace(/\s+/g, ' ') : '';
+    const last = treeLogCount === TREE_LOG_MAX ? ' (further tree problems are not shown for 10 minutes)' : '';
+    console.error(`Tree: ${text}${detail}${last}`);
+    return true;
+}
+// <Jun Kai end>
 
 function setDatabase(database) {
     db = database;
@@ -62,11 +87,9 @@ function parseTreeYear(value) {
  */
 router.get('/', (req, res) => {
     if (!db) {
-        console.error('❌ TreeRoutes: DB not initialized');
+        treeProblem('the database is not ready (GET /api/tree)'); // <Jun Kai/>
         return res.status(500).json({ error: 'Database not initialized' });
     }
-
-    console.log('🌳 TreeRoutes: /api/tree GET request received');
 
     // 1) Get ALL VIP names (no is_deleted column anymore)
     const vipQuery = `
@@ -76,11 +99,9 @@ router.get('/', (req, res) => {
 
     db.all(vipQuery, [], (vipErr, vipRows) => {
         if (vipErr) {
-            console.error('❌ VIP fetch error:', vipErr);
+            treeProblem('the VIP names could not be read', vipErr); // <Jun Kai/>
             return res.status(500).json({ error: 'VIP fetch error: ' + vipErr.message });
         }
-        
-        console.log('✅ VIP rows fetched:', vipRows ? vipRows.length : 0);
 
         const vipSet = new Set(
             (vipRows || []).map(v => String(v.name || '').trim().toLowerCase()).filter(Boolean)
@@ -117,7 +138,7 @@ router.get('/', (req, res) => {
 
         db.all(leafQuery, [treeYear], (userErr, rows) => {
             if (userErr) {
-                console.error('❌ Tree route DB error:', userErr);
+                treeProblem('the leaves could not be read', userErr); // <Jun Kai/>
                 return res.status(500).json({ error: 'Leaf query error: ' + userErr.message });
             }
 
@@ -125,10 +146,11 @@ router.get('/', (req, res) => {
                 row.comment,
                 row.answer_values
             ]));
-            const hiddenCount = (rows || []).length - visibleRows.length;
-
-            console.log('✅ Tree leaves fetched:', visibleRows.length, hiddenCount ? `(${hiddenCount} flagged hidden)` : '');
-            return res.json(mapRowsToVisitors(visibleRows, vipSet));
+            // <Jun Kai start>
+            // leaves the Visitor Data Archive kept for this year (no name, no pledge, archived: true) are drawn with the
+            // live ones, in the same order: created_at, then id
+            return archivedLeaves.withKept(mapRowsToVisitors(visibleRows, vipSet), treeYear).then((leaves) => { res.json(leaves); });
+            // <Jun Kai end>
         });
     });
 });
@@ -139,7 +161,7 @@ router.get('/', (req, res) => {
  */
 router.get('/years', (req, res) => {
     if (!db) {
-        console.error('❌ TreeRoutes: DB not initialized');
+        treeProblem('the database is not ready (GET /api/tree/years)'); // <Jun Kai/>
         return res.status(500).json({ success: false, currentYear: getCurrentTreeYear(), years: [] });
     }
 
@@ -162,9 +184,11 @@ router.get('/years', (req, res) => {
         ORDER BY f.created_at DESC
     `;
 
-    db.all(sql, [], (err, rows) => {
+    // <Jun Kai start>
+    db.all(sql, [], async (err, rows) => {
+    // <Jun Kai end>
         if (err) {
-            console.error('❌ Tree years DB error:', err);
+            treeProblem('the tree years could not be read', err); // <Jun Kai/>
             return res.status(500).json({ success: false, currentYear, years: [] });
         }
 
@@ -197,6 +221,12 @@ router.get('/years', (req, res) => {
                 }
             });
 
+        // <Jun Kai start>
+        // leaves deleted by the Visitor Data Archive still count in their year (archivedLeafCount says how many)
+        await deletedCounts.addToYearBook(yearMap, currentYear);
+        // leaves the archive kept on the tree are still drawn, so they count as leaves of their year (not as archived)
+        await archivedLeaves.addToYearBook(yearMap, currentYear);
+        // <Jun Kai end>
         const years = Array.from(yearMap.values()).sort((a, b) => b.year - a.year);
 
         if (!years.some(item => item.year === currentYear)) {
@@ -252,7 +282,7 @@ function mapRowsToVisitors(rows, vipSet) {
  */
 router.get('/vip-names', (req, res) => {
     if (!db) {
-        console.error('❌ TreeRoutes: DB not initialized');
+        treeProblem('the database is not ready (GET /api/tree/vip-names)'); // <Jun Kai/>
         return res.status(500).json({ success: false, vipNames: [] });
     }
 
@@ -265,7 +295,7 @@ router.get('/vip-names', (req, res) => {
     // IMPORTANT: db.query needs (sql, params, callback)
     db.query(sql, [], (err, rows) => {
         if (err) {
-            console.error('❌ VIP names DB error:', err);
+            treeProblem('the VIP name list could not be read', err); // <Jun Kai/>
             return res.status(500).json({ success: false, vipNames: [] });
         }
 
@@ -279,5 +309,6 @@ router.get('/vip-names', (req, res) => {
 
 module.exports = {
     router,
-    setDatabase
+    setDatabase,
+    treeProblem // <Jun Kai/> for the unit test of the 3 line limit
 };
