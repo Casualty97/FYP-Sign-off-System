@@ -342,6 +342,9 @@ const PASSPORT_STAMP_LABELS = {
     topicExplorer: 'Topic Explorer'
 };
 
+// <Jun Kai/> six milestones and one badge per pledge topic
+const PASSPORT_MAX_STAMPS = Object.keys(PASSPORT_STAMP_LABELS).length + Object.keys(PASSPORT_TOPIC_LABELS).length;
+
 function parsePassportMetadata(metadata) {
     if (!metadata || typeof metadata !== 'string') return {};
     try {
@@ -396,8 +399,9 @@ function buildJourneyPassport(rows) {
         }
     });
 
+    // <Jun Kai/> the key goes with each stamp, so the dashboard can say what earns it
     const stampBreakdown = Object.fromEntries(
-        Object.keys(PASSPORT_STAMP_LABELS).map(key => [key, { label: PASSPORT_STAMP_LABELS[key], count: 0 }])
+        Object.keys(PASSPORT_STAMP_LABELS).map(key => [key, { key, label: PASSPORT_STAMP_LABELS[key], count: 0 }])
     );
 
     const passports = Array.from(visitorsById.values()).map(visitor => {
@@ -424,10 +428,6 @@ function buildJourneyPassport(rows) {
             .map(topic => ({ topic, label: PASSPORT_TOPIC_LABELS[topic] }))
             .sort((a, b) => a.label.localeCompare(b.label));
 
-        visitor.stamps.forEach(stamp => {
-            if (stampBreakdown[stamp.key]) stampBreakdown[stamp.key].count += 1;
-        });
-
         const stampCount = visitor.stamps.length + topicBadges.length;
 
         return {
@@ -441,7 +441,7 @@ function buildJourneyPassport(rows) {
             firstSeen: visitor.firstSeen,
             lastSeen: visitor.lastSeen,
             stampCount,
-            progressPercent: Math.min(100, Math.round((stampCount / 12) * 100)),
+            progressPercent: Math.min(100, Math.round((stampCount / PASSPORT_MAX_STAMPS) * 100)), // <Jun Kai/>
             stamps: visitor.stamps,
             topicBadges
         };
@@ -449,16 +449,17 @@ function buildJourneyPassport(rows) {
         .filter(visitor => visitor.feedbackCount > 0)
         .sort((a, b) => b.stampCount - a.stampCount || b.feedbackCount - a.feedbackCount || new Date(b.lastSeen) - new Date(a.lastSeen));
 
+    // <Jun Kai start> the stamp totals count the same visitors as the summary (a visitor without feedback was counted for
+    // Repeat Visitor before, so that stamp said 35 next to 31 repeat visitors), and every pledge topic is listed, 0 too
+    passports.forEach(visitor => visitor.stamps.forEach(stamp => {
+        if (stampBreakdown[stamp.key]) stampBreakdown[stamp.key].count += 1;
+    }));
     const totalStamps = passports.reduce((sum, visitor) => sum + visitor.stampCount, 0);
     const repeatVisitors = passports.filter(visitor => visitor.visitCount >= 2 || visitor.feedbackCount >= 2).length;
-    const topicBreakdown = Object.entries(passports.reduce((counts, visitor) => {
-        (visitor.topicBadges || []).forEach(badge => {
-            counts[badge.label] = (counts[badge.label] || 0) + 1;
-        });
-        return counts;
-    }, {}))
-        .map(([label, count]) => ({ label, count }))
+    const topicBreakdown = Object.entries(PASSPORT_TOPIC_LABELS)
+        .map(([topic, label]) => ({ topic, label, count: passports.filter(visitor => visitor.topicBadges.some(badge => badge.topic === topic)).length }))
         .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+    // <Jun Kai end>
 
     return {
         summary: {
@@ -466,11 +467,12 @@ function buildJourneyPassport(rows) {
             repeatVisitors,
             totalStamps,
             averageStamps: passports.length ? Number((totalStamps / passports.length).toFixed(1)) : 0,
-            repeatRate: passports.length ? Math.round((repeatVisitors / passports.length) * 100) : 0
+            repeatRate: passports.length ? Math.round((repeatVisitors / passports.length) * 100) : 0,
+            maxStamps: PASSPORT_MAX_STAMPS // <Jun Kai/>
         },
         stampBreakdown: Object.values(stampBreakdown),
         topicBreakdown,
-        topPassports: passports.slice(0, 6)
+        topPassports: passports.slice(0, 10) // <Jun Kai/> the Visitors tab lists the top 10
     };
 }
 
@@ -548,7 +550,7 @@ router.get('/journey-passport', auth.requireAuth, (req, res) => {
             f.created_at AS feedback_created_at,
             COALESCE(pl.like_count, 0) AS like_count
         FROM users u
-        LEFT JOIN feedback f
+        JOIN feedback f
             ON f.user_id = u.id
            AND f.is_active = 1
            AND f.archive_status = 'not_archived'
@@ -558,8 +560,9 @@ router.get('/journey-passport', auth.requireAuth, (req, res) => {
             GROUP BY feedback_id
         ) pl ON pl.feedback_id = f.id
         ORDER BY u.last_visit DESC, f.created_at DESC
-        LIMIT 1200
     `;
+    // <Jun Kai/> only visitors with feedback, and all of them: a visitor without feedback has no passport, and the old LIMIT
+    // of 1200 rows cut the counts on a busy kiosk, so they no longer matched the feedback numbers shown next to them
 
     db.all(query, [], (err, rows) => {
         if (err) {
