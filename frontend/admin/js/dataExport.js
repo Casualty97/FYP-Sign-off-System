@@ -66,7 +66,7 @@ function initDataExportPage() {
 
     // Check if user is system admin
     if (userRole !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
+        showNotification('Access denied. System Administrator privileges required.', 'error'); // <Jun Kai/> a kit message instead of a browser box
         showPage('dashboard');
         return false;
     }
