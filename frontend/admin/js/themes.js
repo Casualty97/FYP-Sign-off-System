@@ -337,16 +337,12 @@ const themeConfig = {
                     explicit: [
                         '#admin-dashboard .logout-btn',
                         '#dashboard-page .refresh-btn',
-                        '#feedback-data-page #decrypt-emails-btn',
-                        '#feedback-data-page #re-encrypt-btn',
                         '#feedback-data-page .btn-warning',
                         '#feedback-data-page .btn-view',
                         '#overlay-page .btn-view-overlay',
                         '#questions-page .btn-edit',
                         '#users-page .btn-edit',
                         '#archive-page .btn-warning',
-                        '#archive-page #decrypt-archive-emails-btn',
-                        '#archive-page #re-encrypt-archive-btn',
                         '#archive-page .btn-view',
                         '#data-export-page .export-btn',
                         '#theme-settings-page .preview-btn-primary',
@@ -369,16 +365,12 @@ const themeConfig = {
                     explicit: [
                         '#admin-dashboard .logout-btn',
                         '#dashboard-page .refresh-btn',
-                        '#feedback-data-page #decrypt-emails-btn',
-                        '#feedback-data-page #re-encrypt-btn',
                         '#feedback-data-page .btn-warning',
                         '#feedback-data-page .btn-view',
                         '#overlay-page .btn-view-overlay',
                         '#questions-page .btn-edit',
                         '#users-page .btn-edit',
                         '#archive-page .btn-warning',
-                        '#archive-page #decrypt-archive-emails-btn',
-                        '#archive-page #re-encrypt-archive-btn',
                         '#archive-page .btn-view',
                         '#data-export-page .export-btn',
                         '#theme-settings-page .preview-btn-primary',
@@ -501,16 +493,12 @@ const themeConfig = {
                 'button-color': [
                     '#feedback-data-page .btn-primary',
                     '#feedback-data-page .btn-secondary',
-                    '#feedback-data-page #decrypt-emails-btn',
-                    '#feedback-data-page #re-encrypt-btn',
                     '#feedback-data-page .btn-warning',
                     '#feedback-data-page .btn-view'
                 ],
                 'button-text-color': [
                     '#feedback-data-page .btn-primary',
                     '#feedback-data-page .btn-secondary',
-                    '#feedback-data-page #decrypt-emails-btn',
-                    '#feedback-data-page #re-encrypt-btn',
                     '#feedback-data-page .btn-warning',
                     '#feedback-data-page .btn-view'
                 ]
@@ -606,20 +594,21 @@ const themeConfig = {
         
         // <Jun Kai start>  (the page now uses the admin UI kit classes)
         'email-management-page': {
+            // <Jun Kai/> the card keys are empty like the other rebuilt pages: the kit colours stay until the theme is mapped onto the new look
             general: {
                 'page-background': ['#email-management-page'],
                 'primary-text': ['#email-management-page .ui-page-header h2'],
                 'secondary-text': ['#email-management-page .ui-page-header p']
             },
             card: {
-                'card-background': ['#email-management-page .ui-card'],
-                'card-primary-text': ['#email-management-page .ui-card-header h3'],
-                'card-secondary-text': ['#email-management-page .ui-label']
+                'card-background': [],
+                'card-primary-text': [],
+                'card-secondary-text': []
             },
             buttons: {
                 // the page's own button colour is for the outlined buttons: Save keeps the primary colour of the whole admin
-                'button-color': ['#email-management-page .ui-btn-secondary'],
-                'button-text-color': ['#email-management-page .ui-btn-secondary']
+                'button-color': [],
+                'button-text-color': []
             }
         },
         // <Jun Kai end>
@@ -633,7 +622,7 @@ const themeConfig = {
             card: {
                 'card-background': ['#form-management-page .overlay-section', '#form-management-page .user-section'],
                 'card-primary-text': ['#form-management-page .section-header h3'],
-                'card-secondary-text': ['#form-management-page label']
+                'card-secondary-text': []
             },
             buttons: {
                 'button-color': ['#form-management-page .btn-primary', '#form-management-page .btn-secondary'],
@@ -656,16 +645,12 @@ const themeConfig = {
                     '#archive-page .btn-secondary',
                     '#archive-page .btn-primary',
                     '#archive-page .btn-warning',
-                    '#archive-page #decrypt-archive-emails-btn',
-                    '#archive-page #re-encrypt-archive-btn',
                     '#archive-page .btn-view'
                 ],
                 'button-text-color': [
                     '#archive-page .btn-secondary',
                     '#archive-page .btn-primary',
                     '#archive-page .btn-warning',
-                    '#archive-page #decrypt-archive-emails-btn',
-                    '#archive-page #re-encrypt-archive-btn',
                     '#archive-page .btn-view'
                 ]
             },
@@ -745,8 +730,8 @@ const themeConfig = {
                 'card-secondary-text': ['#timer-countdown-page .filter-label', '#timer-countdown-page .text-muted']
             },
             buttons: {
-                'button-color': ['#timer-countdown-page .btn-primary', '#timer-countdown-page #refresh-timer-btn', '#timer-countdown-page #save-timer-countdown-btn'],
-                'button-text-color': ['#timer-countdown-page .btn-primary', '#timer-countdown-page #refresh-timer-btn', '#timer-countdown-page #save-timer-countdown-btn']
+                'button-color': ['#timer-countdown-page .btn-primary'],
+                'button-text-color': ['#timer-countdown-page .btn-primary']
             }
         },
         
@@ -759,7 +744,7 @@ const themeConfig = {
             card: {
                 'card-background': ['#server-schedule-page .schedule-section'],
                 'card-primary-text': ['#server-schedule-page .section-header h3'],
-                'card-secondary-text': ['#server-schedule-page label']
+                'card-secondary-text': []
             },
             buttons: {
                 'button-color': ['#server-schedule-page .btn-primary', '#server-schedule-page .btn-secondary'],
@@ -856,7 +841,7 @@ const themeConfig = {
         badges: [
             { id: 'badge-7days-background', label: '7-Day Retention Badge BG', default: '#9E0000', description: 'Background for 7-day retention badges' },
             { id: 'badge-7days-text', label: '7-Day Retention Badge Text', default: '#ffffffff', description: 'Text color for 7-day retention badges' },
-            { id: 'badge-longterm-background', label: 'Long-Term Retention Badge BG', default: '#2EAD00', description: 'Background for long-term retention badges' },
+            { id: 'badge-longterm-background', label: 'Long-Term Retention Badge BG', default: '#15803D', /* <Jun Kai/> was #2EAD00: white text on it read only 3:1 */ description: 'Background for long-term retention badges' },
             { id: 'badge-longterm-text', label: 'Long-Term Retention Badge Text', default: '#ffffffff', description: 'Text color for long-term retention badges' }
         ],
         // slider: [
@@ -1103,7 +1088,7 @@ function getCustomDefaultColors() {
         // ==================== BADGE COLORS ====================
         'badge-7days-background': '#9E0000',       // Red badge background (7-day retention)
         'badge-7days-text': '#ffffffff',           // White badge text (7-day retention)
-        'badge-longterm-background': '#2EAD00',  // Green badge background (long-term)
+        'badge-longterm-background': '#15803D',  // Green badge background (long-term); <Jun Kai/> darker than #2EAD00 so its white text reads (5:1)
         'badge-longterm-text': '#ffffffff',      // White badge text (long-term)
         
         // ==================== LOGIN PAGE COLORS ====================
