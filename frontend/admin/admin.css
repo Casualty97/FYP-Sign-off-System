@@ -6975,6 +6975,12 @@ input:checked + .slider:before {
 .pa-behind-btn [data-fb-icon] { display: inline-flex; }
 .pa-behind-btn.is-active { border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14); }
 .pa-settings-gap { margin-top: 18px; }
+/* unsaved changes: the line in the save bar and a dot on each step that has some */
+.pa-changes { display: inline-flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.pa-changes::before { content: ""; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: #d97706; }
+.pa-changes[hidden] { display: none; }
+.pa-behind-btn { position: relative; }
+.pa-step.has-changes .pa-step-num::after, .pa-behind-btn.has-changes::after { content: ""; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; box-sizing: border-box; border: 2px solid var(--theme-card-bg); border-radius: 50%; background: #d97706; }
 #parameter-adjustment-page .pa-textarea { height: auto; min-height: 84px; padding: 9px 12px; line-height: 1.5; resize: vertical; font-family: inherit; }
 #parameter-adjustment-page .pa-short { max-width: 160px; }
 .pa-subhead { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }

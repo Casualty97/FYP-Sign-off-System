@@ -2250,14 +2250,14 @@
                     </div>
 
                     <nav class="pa-steps" aria-label="Kiosk screens in the order a visitor sees them">
-                        <button type="button" class="pa-step is-active" data-pa-step="start" aria-controls="pa-group-start" aria-current="step" onclick="showParameterStep('start')"><span class="pa-step-num">1</span><span class="pa-step-text"><strong>Start screen</strong><small>layout, buttons</small></span></button>
-                        <button type="button" class="pa-step" data-pa-step="consent" aria-controls="pa-group-consent" onclick="showParameterStep('consent')"><span class="pa-step-num">2</span><span class="pa-step-text"><strong>Consent</strong><small>prompt, days kept</small></span></button>
-                        <button type="button" class="pa-step" data-pa-step="details" aria-controls="pa-group-details" onclick="showParameterStep('details')"><span class="pa-step-num">3</span><span class="pa-step-text"><strong>Details</strong><small>name, email rules</small></span></button>
-                        <button type="button" class="pa-step" data-pa-step="questions" aria-controls="pa-group-questions" onclick="showParameterStep('questions')"><span class="pa-step-num">4</span><span class="pa-step-text"><strong>Questions</strong><small>prompt</small></span></button>
-                        <button type="button" class="pa-step" data-pa-step="pledge" aria-controls="pa-group-pledge" onclick="showParameterStep('pledge')"><span class="pa-step-num">5</span><span class="pa-step-text"><strong>Pledge</strong><small>examples, rules</small></span></button>
-                        <button type="button" class="pa-step" data-pa-step="photo" aria-controls="pa-group-photo" onclick="showParameterStep('photo')"><span class="pa-step-num">6</span><span class="pa-step-text"><strong>Photo</strong><small>camera, overlays</small></span></button>
-                        <button type="button" class="pa-step" data-pa-step="thanks" aria-controls="pa-group-thanks" onclick="showParameterStep('thanks')"><span class="pa-step-num">7</span><span class="pa-step-text"><strong>Thank you</strong><small>messages</small></span></button>
-                        <button type="button" class="pa-step" data-pa-step="email" aria-controls="pa-group-email" onclick="showParameterStep('email')"><span class="pa-step-num">8</span><span class="pa-step-text"><strong>Email</strong><small>content</small></span></button>
+                        <button type="button" class="pa-step is-active" data-pa-step="start" aria-controls="pa-group-start" aria-current="step" onclick="showParameterStep('start')"><span class="pa-step-num">1</span><span class="pa-step-text"><strong>Start screen</strong><small>layout, buttons</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="consent" aria-controls="pa-group-consent" onclick="showParameterStep('consent')"><span class="pa-step-num">2</span><span class="pa-step-text"><strong>Consent</strong><small>prompt, days kept</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="details" aria-controls="pa-group-details" onclick="showParameterStep('details')"><span class="pa-step-num">3</span><span class="pa-step-text"><strong>Details</strong><small>name, email rules</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="questions" aria-controls="pa-group-questions" onclick="showParameterStep('questions')"><span class="pa-step-num">4</span><span class="pa-step-text"><strong>Questions</strong><small>prompt</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="pledge" aria-controls="pa-group-pledge" onclick="showParameterStep('pledge')"><span class="pa-step-num">5</span><span class="pa-step-text"><strong>Pledge</strong><small>examples, rules</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="photo" aria-controls="pa-group-photo" onclick="showParameterStep('photo')"><span class="pa-step-num">6</span><span class="pa-step-text"><strong>Photo</strong><small>camera, overlays</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="thanks" aria-controls="pa-group-thanks" onclick="showParameterStep('thanks')"><span class="pa-step-num">7</span><span class="pa-step-text"><strong>Thank you</strong><small>messages</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                        <button type="button" class="pa-step" data-pa-step="email" aria-controls="pa-group-email" onclick="showParameterStep('email')"><span class="pa-step-num">8</span><span class="pa-step-text"><strong>Email</strong><small>content</small></span><span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
                     </nav>
 
                     <div class="pa-work">
@@ -2800,14 +2800,15 @@
                     <section class="ui-card pa-behind" aria-labelledby="pa-behind-title">
                         <div class="ui-card-header"><div><h3 id="pa-behind-title">Behind the scenes</h3><p>Settings that are not about one screen.</p></div></div>
                         <div class="ui-card-body pa-behind-list">
-                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="look" aria-controls="pa-group-look" onclick="showParameterStep('look', true)"><span data-fb-icon="droplet"></span>Backgrounds &amp; look</button>
-                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="limits" aria-controls="pa-group-limits" onclick="showParameterStep('limits', true)"><span data-fb-icon="file"></span>Upload limits</button>
-                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="campaign" aria-controls="pa-group-campaign" onclick="showParameterStep('campaign', true)"><span data-fb-icon="star"></span>Smart campaign mode</button>
-                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="archive" aria-controls="pa-group-archive" onclick="showParameterStep('archive', true)"><span data-fb-icon="archive"></span>Auto archive</button>
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="look" aria-controls="pa-group-look" onclick="showParameterStep('look', true)"><span data-fb-icon="droplet"></span>Backgrounds &amp; look<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="limits" aria-controls="pa-group-limits" onclick="showParameterStep('limits', true)"><span data-fb-icon="file"></span>Upload limits<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="campaign" aria-controls="pa-group-campaign" onclick="showParameterStep('campaign', true)"><span data-fb-icon="star"></span>Smart campaign mode<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
+                            <button type="button" class="ui-btn ui-btn-secondary pa-behind-btn" data-pa-step="archive" aria-controls="pa-group-archive" onclick="showParameterStep('archive', true)"><span data-fb-icon="archive"></span>Auto archive<span class="ui-sr-only pa-step-flag" hidden>, not saved yet</span></button>
                         </div>
                     </section>
 
                     <div class="pa-savebar">
+                        <span id="pa-changes" class="pa-changes" hidden></span>
                         <div id="parameter-status" class="pa-status" role="status" aria-live="polite"></div>
                         <span class="pa-savebar-spacer"></span>
                         <!--<button class="btn-tertiary" onclick="resetParametersToDefaults()">

@@ -52,6 +52,69 @@ function showParameterStep(step, jump = false) {
 function switchParameterTab(tabId) {
     showParameterStep(PARAMETER_TAB_STEPS[tabId] || 'start');
 }
+
+// Unsaved changes: the values right after a load or a save are kept, and every edit is compared with them, so the
+// save bar can say how many settings changed and in which steps, and those steps get a small dot.
+let parameterSnapshot = new Map();
+
+function parameterControls() {
+    return [...document.querySelectorAll('#parameter-adjustment-page [data-pa-group] :is(input, select, textarea)')]
+        .filter((control) => control.type !== 'file');
+}
+
+function parameterControlKey(control) {
+    return control.id || `${control.name}:${control.value}`;
+}
+
+function parameterControlValue(control) {
+    return control.type === 'checkbox' || control.type === 'radio' ? control.checked : control.value;
+}
+
+function takeParameterSnapshot() {
+    parameterSnapshot = new Map(parameterControls().map((control) => [parameterControlKey(control), parameterControlValue(control)]));
+    updateParameterChanges();
+}
+
+function updateParameterChanges() {
+    const page = document.getElementById('parameter-adjustment-page');
+    const text = document.getElementById('pa-changes');
+    if (!page || !text) return;
+    const changed = new Map();
+    parameterControls().forEach((control) => {
+        const key = parameterControlKey(control);
+        if (!parameterSnapshot.has(key) || parameterSnapshot.get(key) === parameterControlValue(control)) return;
+        if (control.type === 'radio' && !control.checked) return; // a radio pair counts once
+        const group = control.closest('[data-pa-group]');
+        changed.set(group, (changed.get(group) || 0) + 1);
+    });
+    page.querySelectorAll('button[data-pa-step]').forEach((button) => {
+        const has = [...changed.keys()].some((group) => group.dataset.paGroup === button.dataset.paStep);
+        button.classList.toggle('has-changes', has);
+        const flag = button.querySelector('.pa-step-flag');
+        if (flag) flag.hidden = !has;
+    });
+    const count = [...changed.values()].reduce((sum, n) => sum + n, 0);
+    const wasEmpty = text.hidden;
+    text.hidden = count === 0;
+    if (!count) return;
+    // groups in page order, so the steps read the way a visitor meets them
+    const names = [...page.querySelectorAll('[data-pa-group]')].filter((group) => changed.has(group)).map((group) => group.dataset.paName);
+    const where = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+    text.textContent = `${count} ${count === 1 ? 'change' : 'changes'} not saved yet, in ${where}`;
+    // the first edit after a load or save makes the old "loaded" or "saved" message out of date
+    if (wasEmpty) {
+        const status = document.getElementById('parameter-status');
+        if (status) status.innerHTML = '';
+    }
+}
+
+function bindParameterChanges() {
+    const page = document.getElementById('parameter-adjustment-page');
+    if (!page || page.dataset.changesBound) return;
+    page.addEventListener('input', updateParameterChanges);
+    page.addEventListener('change', updateParameterChanges);
+    page.dataset.changesBound = 'true';
+}
 // <Jun Kai end>
 
 // <Jun Kai start>
@@ -326,6 +389,9 @@ function resetLandingLayoutPreview() {
     setInputValue('layout-pledgeboardButtonWidth', 600);
     setInputValue('layout-pledgeboardButtonHeight', 64);
     updateLandingLayoutPreview();
+    // <Jun Kai start>
+    updateParameterChanges();
+    // <Jun Kai end>
 }
 
 function bindLandingLayoutPreview() {
@@ -550,6 +616,9 @@ function populateParameterForm(config) {
     setCheckedValue('archive-autoArchiveEnabled', archive.autoArchiveEnabled);
     setInputValue('archive-archiveAfterDays', archive.archiveAfterDays || 90);
     setInputValue('archive-keepRecentFeedbackCount', archive.keepRecentFeedbackCount || 0);
+    // <Jun Kai start>
+    takeParameterSnapshot();
+    // <Jun Kai end>
 }
 
 function collectParameterForm() {
@@ -680,6 +749,7 @@ async function loadParameters() {
     try {
         // <Jun Kai start>
         fillParameterIcons();
+        bindParameterChanges();
         // <Jun Kai end>
         setParameterStatus('Loading parameters...', 'info');
         loadParameterOverlayOptions();
