@@ -727,42 +727,101 @@
                 </div>
                 <!-- Digital Tree Page (DONE BY PRETI)-->
                 <div id="digital-tree-page" class="page">
-                    <div class="page-header">
-                        <h2>Tree Leaves</h2>
-                        <p>View visitor tree data and statistics</p>
+                    <!-- <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B): the numbers of this year's tree on the
+                         left, the visitor list with search and pages on the right. The ids of the year, the visitor count and
+                         the refresh are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Tree Leaves</h2>
+                            <p>Visitors on this year's digital tree. The tree shows visitors from <span id="current-year"></span> only.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('tree-adjustment')"><span data-fb-icon="sliders"></span>Tree Settings</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="refreshTreeData()"><span data-fb-icon="refresh"></span>Refresh</button>
+                        </div>
                     </div>
 
-
-
-                    <div class="tree-section">
-                        <div class="section-header">
-                            <h3>Tree Management</h3>
-                            <button class="btn-primary" onclick="refreshTreeData()">🔄 Refresh</button>
+                    <div class="dt-layout">
+                        <div class="dt-side">
+                            <section class="ui-card dt-preview-card" aria-labelledby="dt-preview-title">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3 id="dt-preview-title">How the tree looks now</h3>
+                                        <p id="dt-preview-mode">A small copy of the tree screen</p>
+                                    </div>
+                                    <a class="ui-btn ui-btn-secondary" id="dt-open-tree" href="/tree" target="_blank" rel="noopener"><span data-fb-icon="monitor"></span>Open the tree</a>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="dt-screen" id="dt-screen" data-state="idle">
+                                        <iframe id="dt-tree-frame" title="A small copy of the tree screen" tabindex="-1" aria-hidden="true" inert sandbox="allow-scripts allow-same-origin" referrerpolicy="same-origin"></iframe>
+                                        <span class="dt-screen-note" id="dt-screen-note">Loading the tree</span>
+                                    </div>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="dt-facts">
+                                        <div><span class="ui-fact-label">Leaves</span><span class="ui-fact-value" id="tree-count">0</span><span class="ui-fact-hint">one for each visit</span></div>
+                                        <div><span class="ui-fact-label">Golden</span><span class="ui-fact-value" id="dt-vip-leaves">0</span><span class="ui-fact-hint">leaves of VIPs</span></div>
+                                        <div><span class="ui-fact-label">Names hidden</span><span class="ui-fact-value" id="dt-hidden-names">0</span><span class="ui-fact-hint">no consent to show</span></div>
+                                    </div>
+                                </div>
+                            </section>
+                            <!-- VIPs (admin redesign, VIP B): a card on Tree Leaves instead of their own page, for a
+                                 System Admin only (the VIP routes refuse anyone else, and vips.js hides the card for them). The
+                                 ids vip-count and vip-list are the old ones; the VIPs link and showPage('vip') land here. -->
+                            <section class="ui-card dt-vip-card" id="dt-vip-card" aria-labelledby="dt-vip-title" hidden>
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3 id="dt-vip-title">VIPs<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: VIPs" title="How this works"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button><template class="ui-info-body" data-title="VIPs"><ul><li>Every leaf whose name matches a VIP is golden on the tree. Capital letters do not matter.</li><li>A visitor who did not agree to show their name cannot be a VIP, so their row has no Make VIP.</li><li>The tree screen shows a change within 30 seconds.</li></ul></template></span></h3>
+                                        <p>Golden leaves on the tree</p>
+                                    </div>
+                                    <span class="ui-pill ui-pill-muted" id="vip-count">Loading</span>
+                                </div>
+                                <div class="ui-card-body">
+                                    <form class="dt-vip-add" onsubmit="event.preventDefault(); addVip();">
+                                        <label class="ui-sr-only" for="vip-name-input">VIP name</label>
+                                        <input type="text" id="vip-name-input" class="ui-input" placeholder="Type a name" maxlength="255" autocomplete="off">
+                                        <button type="submit" class="ui-btn ui-btn-primary" id="vip-add-btn"><span data-fb-icon="plus"></span>Add VIP</button>
+                                    </form>
+                                    <p class="ui-help dt-vip-help">Or press Make VIP on a visitor in the list, so the name is never typed wrong.</p>
+                                    <div class="ui-status-slot dt-vip-status" id="vip-status" role="status" aria-live="polite"></div>
+                                    <div class="dt-vip-list" id="vip-list"><div class="ui-empty">Loading VIPs</div></div>
+                                </div>
+                            </section>
                         </div>
 
-                        <div class="tree-info">
-                            <h4>Current Year Visitors: <span id="tree-count">0</span></h4>
-                            <p>The digital tree shows visitors from <span id="current-year"></span> only.</p>
-                        </div>
-
-                        <table class="simple-table">
-                            <thead> 
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Visit Count</th>
-                                    <th>Last Visit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                <tr>
-                                    <td colspan="3" style="text-align: center; padding: 40px; color: #64748b;">
-                                        Loading tree data...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <section class="ui-card dt-list-card" aria-label="Visitors on the tree">
+                            <div class="ui-filterbar" role="search" aria-label="Search the visitors on the tree">
+                                <label class="ui-search">
+                                    <span class="ui-sr-only">Search a visitor</span>
+                                    <span class="ui-search-icon" data-fb-icon="search"></span>
+                                    <input type="search" id="dt-search" placeholder="Search a visitor" autocomplete="off" maxlength="255" oninput="filterTreeVisitors()">
+                                </label>
+                            </div>
+                            <div class="ui-table-wrap">
+                                <table class="ui-table dt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th class="dt-num">Visits</th>
+                                            <th>Leaf added</th>
+                                            <th class="dt-tag-col"><span class="ui-sr-only">VIP</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="4" class="ui-empty">Loading the tree</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="ui-pager">
+                                <span><span id="dt-page-info" aria-live="polite">Loading</span><span class="ui-pager-status" id="dt-status" role="status"></span></span>
+                                <span class="ui-pager-buttons">
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="dt-prev" onclick="changeTreeVisitorPage(-1)" disabled>Previous</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="dt-next" onclick="changeTreeVisitorPage(1)" disabled>Next</button>
+                                </span>
+                            </div>
+                        </section>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Digital Tree Adjustment Page (DONE BY Yu Kang)-->
@@ -1551,44 +1610,11 @@
                 </div>
 
                 <!-- VIP Management (DONE BY ZAH) -->
-                <div id="vip-page" class="page">
-                    <div class="page-header">
-                        <h2>VIPs</h2>
-                        <p>VIPs will appear as a golden leaf on the tree.</p>
-                    </div>
+                <!-- <Jun Kai start> VIPs are a card on Tree Leaves since the admin redesign (VIP B). This empty page stays only so
+                     showPage('vip') keeps working: vips.js loadVipManagementData opens Tree Leaves with the card in view. -->
+                <div id="vip-page" class="page" aria-hidden="true"></div>
+                <!-- <Jun Kai end> -->
 
-                    <!-- VIP Card -->
-                    <div class="vip-card">
-                        <div class="vip-card-header">
-                            <div>
-                                <h3>VIP List</h3>
-                                <p class="vip-subtext">Add names exactly as they appear in the tree (case-insensitive).</p>
-                            </div>
-
-                            <button class="vip-add-btn" onclick="addVip()">
-                                + Add VIP
-                            </button>
-                        </div>
-
-                        <!-- Status / Info row -->
-                        <div class="vip-info-row">
-                            <div class="vip-info-pill">
-                                👑 Golden Leaf Enabled
-                            </div>
-                            <div class="vip-count" id="vip-count">
-                                Loading...
-                            </div>
-                        </div>
-
-                        <!-- VIP List -->
-                        <div class="vip-list" id="vip-list">
-                            <div class="vip-empty">
-                                Loading VIPs...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-              
                 <!-- Archive Page (DONE BY PRETI)-->
                 <div id="archive-page" class="page">
                     <!-- <Jun Kai start> Archived Feedback (admin redesign, list style A, like Feedback): the list first; ticking

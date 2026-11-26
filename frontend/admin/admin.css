@@ -2251,31 +2251,65 @@ html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
     margin-top: 0;
 }
 
-/* Tree section and info display */
-.tree-section {
-    background: var(--theme-card-bg);
-    border-radius: 16px;
-    padding: 25px;
-    border: 2px solid var(--theme-border-color);
+/* <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B): the tree's numbers on the left, the visitor list on the
+   right; on a narrow screen the list comes first */
+#digital-tree-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #digital-tree-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.dt-layout { display: grid; grid-template-columns: minmax(min(280px, 100%), 380px) minmax(0, 1fr); grid-template-areas: "side list"; gap: 20px; align-items: start; }
+.dt-side { grid-area: side; display: grid; gap: 20px; min-width: 0; }
+.dt-side .ui-card + .ui-card { margin-top: 0; }
+.dt-list-card { grid-area: list; min-width: 0; overflow: hidden; }
+.dt-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dt-facts .ui-fact-value { font-size: 20px; }
+.dt-table td { padding-top: 11px; padding-bottom: 11px; }
+.dt-table .dt-num { text-align: right; width: 70px; font-variant-numeric: tabular-nums; }
+.dt-table .dt-tag-col { width: 1%; white-space: nowrap; text-align: right; }
+.dt-table .ui-who-text b { max-width: 260px; }
+.ui-avatar.dt-avatar-none { background: #94a3b8; }
+.dt-empty { text-align: center; padding: 36px 16px; }
+#digital-tree-page .ui-pager { flex-wrap: wrap; }
+#digital-tree-page .ui-pill { white-space: normal; overflow-wrap: anywhere; }
+.dt-screen { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; border: 6px solid #1e293b; background: #e2e8f0; }
+.dt-screen iframe { position: absolute; top: 0; left: 0; width: 1600px; height: 900px; border: 0; transform-origin: 0 0; pointer-events: none; }
+.dt-screen-note { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #475569; background: #e2e8f0; }
+.dt-screen[data-state="ready"] .dt-screen-note { display: none; }
+html[data-theme="dark"] .dt-screen { border-color: #0b1220; background: #1e293b; }
+html[data-theme="dark"] .dt-screen-note { background: #1e293b; color: #cbd5e1; }
+.dt-preview-card .ui-card-header { align-items: flex-start; }
+.dt-vip-card .ui-card-header h3 { display: flex; align-items: center; gap: 6px; }
+.dt-vip-add { display: flex; gap: 8px; }
+.dt-vip-add .ui-input { flex: 1 1 auto; min-width: 0; }
+.dt-vip-add .ui-btn { flex-shrink: 0; }
+.dt-vip-help { margin: 8px 0 0; }
+.ui-status-slot.dt-vip-status { margin-top: 10px; min-height: 0; }
+.ui-status-slot.dt-vip-status:empty { display: none; }
+.dt-vip-list { margin-top: 8px; }
+.dt-vip-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.dt-vip-row + .dt-vip-row { border-top: 1px solid var(--theme-border-color); }
+.dt-vip-star { display: inline-flex; color: #d97706; flex-shrink: 0; }
+.dt-vip-name { display: grid; flex: 1 1 auto; min-width: 0; }
+.dt-vip-name b { font-size: 14px; font-weight: 600; color: var(--theme-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-vip-name small { font-size: 12px; color: var(--color-muted); }
+.dt-vip-row.is-asking { flex-wrap: wrap; }
+.dt-vip-row.is-asking .ui-btn { height: 32px; }
+html[data-theme="dark"] .dt-vip-star { color: #fbbf24; }
+.dt-preview-card .ui-card-header .ui-btn { flex-shrink: 0; text-decoration: none; }
+@media (max-width: 1180px) {
+    .dt-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "list" "side"; }
+    .dt-side { grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); align-items: start; }
 }
-
-.tree-info {
-    margin: 20px 0;
-    padding: 20px;
-    background: #f8fafc;
-    border-radius: 8px;
+@media (max-width: 600px) {
+    #digital-tree-page .ui-page-header { flex-direction: column; align-items: flex-start; }
+    .dt-table th:nth-child(2), .dt-table td:nth-child(2), .dt-table th:nth-child(3), .dt-table td:nth-child(3) { display: none; }
+    .dt-table .ui-who-text b { max-width: 150px; }
 }
-
-.tree-info h4 {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 8px;
+@media (max-width: 420px) {
+    .dt-table th, .dt-table td { padding-left: 10px; padding-right: 10px; }
+    .dt-table .ui-who { min-width: 0; }
+    .dt-table .ui-who-text b { max-width: 110px; }
+    .dt-preview-card .ui-card-header { flex-direction: column; }
 }
-
-.tree-info p {
-    font-size: 14px;
-    color: #64748b;
-}
+/* <Jun Kai end> */
 
 /* ==================== DIGITAL TREE ADJUSTMENT PAGE STYLES ==================== */
 /* (Done by Yu Kang) */
@@ -3386,169 +3420,7 @@ html[data-theme] .qs-k-button { flex-shrink: 0; margin-top: auto; padding: 11px;
     box-sizing: border-box;
 }
 
-#vip-page .vip-card {
-    background: #ffffff;
-    border-radius: 18px;
-    border: 1px solid #e5e7eb;
-    padding: 22px;
-
-    width: 100%;         
-    max-width: none;      
-    box-sizing: border-box;
-}
-
-/* Header */
-#vip-page .vip-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid #eef2f7;
-}
-
-#vip-page .vip-card-header h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-}
-
-#vip-page .vip-subtext {
-    margin-top: 6px;
-    color: #64748b;
-    font-size: 14px;
-}
-
-/* Add VIP Button (unique) */
-#vip-page .vip-add-btn {
-    border: none;
-    background: #111827;
-    color: #ffffff;
-    padding: 10px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-#vip-page .vip-add-btn:hover {
-    opacity: 0.92;
-}
-
-/* Info row */
-#vip-page .vip-info-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 16px;
-}
-
-#vip-page .vip-info-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    color: #9a3412;
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-#vip-page .vip-count {
-    color: #334155;
-    font-size: 13px;
-}
-
-/* VIP list layout */
-#vip-page .vip-list {
-    margin-top: 18px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-@media (max-width: 700px) {
-    #vip-page .vip-list {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* VIP item */
-#vip-page .vip-item {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-#vip-page .vip-item-left {
-    min-width: 0;
-}
-
-#vip-page .vip-item-actions {
-    flex-shrink: 0;
-    margin-left: auto;
-}
-
-#vip-page .vip-name {
-    font-weight: 700;
-    color: #0f172a;
-}
-
-#vip-page .vip-date {
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
-}
-
-#vip-page .vip-badge {
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
-    color: #92400e;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-#vip-page .vip-delete-btn {
-    background: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-}
-
-#vip-page .vip-delete-btn:hover {
-    background: #fecaca;
-    border-color: #fca5a5;
-    transform: translateY(-1px);
-}
-
-#vip-page .vip-delete-btn:active {
-    transform: translateY(0);
-}
-
-/* Empty state */
-#vip-page .vip-empty {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 26px;
-    color: #64748b;
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    border-radius: 14px;
-}
+/* <Jun Kai/> the VIP list is a card on Tree Leaves since the admin redesign; its rules are in the Tree Leaves block */
 
 
 /* ==================== AUDIT LOGS PAGE STYLES ==================== */
