@@ -51,10 +51,12 @@ import { isGrown } from './tree-growth.js';
 import { GLOW_LAYER } from './glow-look.js';
 import { orbitCentre } from './tree-view.js';
 import { onLiveUpdate, liveConnected, LIVE_FALLBACK_MS } from './live-updates.js';
+import { measureSurface, canopyReachAt, onSurface, keepOnSurface } from './canopy-surface.js';
 
 const LEAF_MODEL = '/assets/Tree/3dTreeLeaves/RainTree_Leaf_Final12.glb';
 const MODEL_SIZE = 0.1;          // the leaf model is 10 cm across
 const BASE_SIZE = 1.8;           // metres across at scale 1, so a leaf and the name on it read from across the room
+const LEAF_INSET = 0.4;          // a leaf sits this many of its sizes in from the canopy's outside (canopy-surface.js)
 const POLL_MS = 5000;            // as the 2D tree's live refresh
 const RECENT_LANDING_MS = 2 * 60 * 1000; // on opening, leaves this recent fly in (2D: recentLandingWindowMs)
 const GLOW_MS = 60 * 1000;       // a new visitor's leaf glows for a minute (2D: leafGlowDurationMs)
@@ -507,8 +509,10 @@ function sparkleTexture() {
 
 // While the tree is growing (tree-growth.js), only the foliage grown in so far (or as far as `shown` says):
 // the outer shell of that (all of the foliage if hardly any has grown in yet). Each spot also in the tree's
-// own terms (local), so it keeps to the tree as the tree grows in size (followTree).
-function canopyAnchors(tree, grownOnly = true, shown = tree.userData.foliageShown ?? 1) {
+// own terms (local), so it keeps to the tree as the tree grows in size (followTree). With the canopy's outside
+// as measured from that foliage (surface, canopy-surface.js), and every spot moved in onto it, `inset` metres
+// in from its outside, top and bottom, so a leaf there has the tree's leaves all round it.
+function canopyAnchors(tree, grownOnly = true, shown = tree.userData.foliageShown ?? 1, inset = LEAF_INSET * BASE_SIZE) {
   tree.updateMatrixWorld(true);
   const points = [];
   const point = new T.Vector3();
@@ -522,8 +526,9 @@ function canopyAnchors(tree, grownOnly = true, shown = tree.userData.foliageShow
       points.push(point.fromBufferAttribute(positions, i).applyMatrix4(object.matrixWorld).clone());
     }
   });
-  if (grownOnly && points.length < 60) return canopyAnchors(tree, false, shown);
-  if (!points.length) return { anchors: [], centre: new T.Vector3() };
+  if (grownOnly && points.length < 60) return canopyAnchors(tree, false, shown, inset);
+  if (!points.length) return { anchors: [], centre: new T.Vector3(), surface: null };
+  const surface = measureSurface(tree, points, orbitCentre);
 
   const box = new T.Box3().setFromPoints(points);
   const centre = box.getCenter(new T.Vector3());
@@ -536,9 +541,10 @@ function canopyAnchors(tree, grownOnly = true, shown = tree.userData.foliageShow
     const outward = new T.Vector3(n.x / radii.x, n.y / radii.y, n.z / radii.z).normalize();
     // On the surface of the foliage, a little out from it (the leaf is drawn on top of the foliage anyway).
     const position = p.clone().addScaledVector(outward, 0.45);
+    if (surface) keepOnSurface(surface, position, inset);
     anchors.push({ position, outward, local: tree.worldToLocal(position.clone()) });
   }
-  return { anchors, centre };
+  return { anchors, centre, surface };
 }
 
 // glow: the admin's "Glowing look" (glowing leaves with handwritten names) or false for natural leaves.
@@ -561,6 +567,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   let model = null;                // { geometry, texture }
   let anchors = [];
   let canopyBox = null;            // the canopy's extent, for the admin's leaf area
+  let surface = null;              // the canopy's outside, measured from its foliage (canopy-surface.js)
   let mode = { live: true, year: null };
   let requestId = 0;
   let vipNames = new Set();         // names on the admin's VIP Management list
@@ -584,7 +591,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       if (map && renderer) map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     }
     model = { geometry: mesh.geometry, texture, normalMap };
-    anchors = canopyAnchors(tree).anchors;
+    ({ anchors, surface } = canopyAnchors(tree, true, undefined, spotInset()));
     canopyBox = anchors.length ? new T.Box3().setFromPoints(anchors.map(anchor => anchor.position)) : null;
     refresh();
     // A new feedback shows at once: the server tells the page the moment the tree's data changes, and on
@@ -800,7 +807,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
           const shown = shownSpot(existing, existing.shown);
           existing.spot = { ...existing.spot, position: shown.position.clone(), quaternion: shown.quaternion.clone(), outward: shown.outward.clone(),
             local: tree.worldToLocal(shown.position.clone()), // and it keeps to the tree from here (followTree)
-            around: undefined, reach: undefined, view: undefined }; // its glide starts again from here (shownSpot)
+            around: undefined, reach: undefined, depth: undefined, view: undefined }; // its glide starts again from here (shownSpot)
           placed.set(key, existing.spot);
         }
         existing.isVip = isVip;
@@ -991,8 +998,16 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   const GLIDE_FADE = (5 * Math.PI) / 180;     // over how much of that, at its very end, it fades out (and in, on the other side)
   const glideTurn = new T.Quaternion();
   const turnedTo = (angle, around) => Math.atan2(Math.sin(angle - around), Math.cos(angle - around)); // -pi to pi
+  // How far in from the canopy's outside a leaf keeps (canopy-surface.js): LEAF_INSET of its size; for spots
+  // on the canopy, of the size the leaves are now.
+  function spotInset() {
+    return LEAF_INSET * BASE_SIZE * Math.max(1, Number(settings.leafScale) || 1, Number(settings.vipLeafScale) || 1) * fitScale;
+  }
+  function leafInset(leaf) {
+    return leaf?.scale ? LEAF_INSET * leaf.scale * MODEL_SIZE : spotInset();
+  }
   // The canopy's distance from the trunk in a direction round it (its oval from above), for the leaves to keep
-  // to its surface; 1 without a measured canopy.
+  // to its surface, when its outside could not be measured (surface); 1 without a measured canopy.
   function canopyReach(angle) {
     if (!canopyBox) return 1;
     const size = canopyBox.getSize(new T.Vector3());
@@ -1010,7 +1025,13 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const fromView = ((turnedTo(spot.around, view) + GLIDE_REACH) % span + span) % span - GLIDE_REACH;
     const angle = view + fromView;
     const moved = turnedTo(angle, spot.around); // 0 while at its own spot; a jump of 2 x GLIDE_REACH on wrapping
-    if (Math.abs(moved) < 1e-6) out.position.copy(spot.position);
+    if (surface) {
+      // On the canopy's outside as measured from its foliage (canopy-surface.js), as far in as on its own spot,
+      // and inside the canopy's outline by at least LEAF_INSET of the leaf: where the canopy is narrower or
+      // lower (towards its top, at its two long ends) the leaf keeps in among its leaves, never out in the air.
+      spot.depth ??= spot.reach / Math.max(1e-3, canopyReachAt(surface, spot.around, spot.position.y));
+      onSurface(surface, angle, spot.position.y, spot.depth, leafInset(leaf), out.position);
+    } else if (Math.abs(moved) < 1e-6) out.position.copy(spot.position);
     else {
       const reach = spot.reach * canopyReach(angle) / canopyReach(spot.around);
       out.position.set(orbitCentre.x + Math.sin(angle) * reach, spot.position.y, orbitCentre.z + Math.cos(angle) * reach);
@@ -1548,6 +1569,12 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         }
         spreadPush.copy(spreadRight).multiplyScalar(du * depth).addScaledVector(spreadUp, dv * depth);
         leaf.spreadTarget.add(spreadPush).clampLength(0, SPREAD_MAX * leaf.scale * MODEL_SIZE);
+        if (surface) {
+          // Moved aside only within the canopy as it really is (canopy-surface.js), not off it into the air.
+          spreadAt.copy(leaf.shown.position).add(leaf.spreadTarget);
+          keepOnSurface(surface, spreadAt, leafInset(leaf));
+          leaf.spreadTarget.subVectors(spreadAt, leaf.shown.position);
+        }
       }
     }
     const ease = 1 - Math.exp(-dt * SPREAD_EASE);
@@ -1766,6 +1793,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       leaf.spot.position.copy(leaf.spot.local).applyMatrix4(tree.matrixWorld);
       leaf.spot.around = undefined; // its angle and distance round the trunk again (shownSpot)
       leaf.spot.reach = undefined;
+      leaf.spot.depth = undefined;
     }
   }
 
@@ -1866,7 +1894,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   // the tree stay where they are (the canopy has grown out round them).
   function canopyGrew() {
     if (!model) return;
-    anchors = canopyAnchors(tree).anchors;
+    ({ anchors, surface } = canopyAnchors(tree, true, undefined, spotInset()));
     canopyBox = anchors.length ? new T.Box3().setFromPoints(anchors.map(anchor => anchor.position)) : null;
   }
 
@@ -1887,10 +1915,12 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     // The new canopy as it grows to (its growth spurt), not just the foliage it starts with, so the leaves
     // sit on its outside once it has grown, as they did on the tree before.
     const growingTo = next.userData.foliageTarget ?? next.userData.foliageShown ?? 1;
-    const fresh = model ? canopyAnchors(next, true, growingTo).anchors : [];
+    const measured = model ? canopyAnchors(next, true, growingTo, spotInset()) : { anchors: [], surface: null };
+    const fresh = measured.anchors;
     tree = next;
     treeKey = '';
     anchors = fresh;
+    surface = measured.surface;
     canopyBox = fresh.length ? new T.Box3().setFromPoints(fresh.map(anchor => anchor.position)) : null;
     // Spots kept for leaves not on the tree now (fallen, or off it on a bare trunk) belonged to the old tree:
     // such a leaf gets a new spot on this one if it comes back.
@@ -1938,6 +1968,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         local: next.worldToLocal(anchor.position.clone()),
         around: undefined,
         reach: undefined,
+        depth: undefined,
       };
       // It glides from where it is (on the tree), or from where it would have rested (floating in).
       const from = leaf.state === 'resting' ? leaf.mesh : shownSpot(leaf, { position: new T.Vector3(), quaternion: new T.Quaternion(), outward: new T.Vector3() });
