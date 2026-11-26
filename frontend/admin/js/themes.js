@@ -1204,7 +1204,7 @@ function saveThemeSettings() {
         
         if (!currentUserId) {
             console.error('Cannot save theme: No user logged in');
-            alert('Please log in to save theme settings');
+            themeSay('Sign in again to save your colours.', 'error'); // <Jun Kai/> the page's status line, no browser box
             return;
         }
         
@@ -1225,7 +1225,7 @@ function saveThemeSettings() {
         console.log(`✅ Saved theme settings for user ${currentUserId}`);
     } catch (e) {
         console.error('Failed to save theme settings:', e);
-        alert('Failed to save theme settings. Please try again.');
+        themeSay('Your colours could not be saved. Try again.', 'error'); // <Jun Kai/>
     }
 }
 
@@ -1796,10 +1796,10 @@ function toggleGlobalThemeOverride() {
 }
 
 // Reset section to global theme
-function resetSectionToGlobal() {
+async function resetSectionToGlobal() { // <Jun Kai/> async: it waits for the kit dialog
     if (currentSection === 'global') return;
-    
-    if (confirm(`Reset ${themeConfig.sections.find(s => s.id === currentSection).name} to use the Admin Overall Theme?`)) {
+    const pageName = themeConfig.sections.find(s => s.id === currentSection).name;
+    if (await uiConfirm({ title: `Use the overall colours on ${pageName}?`, message: 'Its own colours are replaced by the Admin Overall Theme. Save colour changes keeps it.', confirmText: 'Use the overall colours' })) {
         themeSettings[currentSection].useGlobal = true;
         themeSettings[currentSection].colors = { ...themeSettings.global.colors };
         renderThemeControls(currentSection);
@@ -1813,7 +1813,8 @@ function resetSectionToGlobal() {
 
 // Reset all to defaults
 async function resetAllToDefaults() {
-    if (!confirm('Reset all theme settings to default values? This will also deactivate your active theme. This cannot be undone.')) {
+    // <Jun Kai/> the kit dialog instead of the browser box
+    if (!(await uiConfirm({ title: 'Reset all colours to the defaults?', message: 'Every page goes back to the default colours and no saved theme is in use. Your saved themes stay in the list.', confirmText: 'Reset all', danger: true }))) {
         return;
     }
     
@@ -1867,7 +1868,7 @@ async function resetAllToDefaults() {
         
     } catch (error) {
         console.error('❌ Error resetting to defaults:', error);
-        alert('Failed to reset settings. Please try again.');
+        themeSay('The colours could not be reset. Try again.', 'error'); // <Jun Kai/>
     }
 }
 
@@ -2328,7 +2329,7 @@ function captureCurrentThemeData() {
         // Check if themeConfig exists
         if (typeof themeConfig === 'undefined' || !themeConfig.selectorMapping) {
             console.error('themeConfig or selectorMapping not defined');
-            alert('Theme configuration not loaded. Please refresh the page.');
+            themeSay('The colour settings did not load. Reload the page and try again.', 'error'); // <Jun Kai/>
             return null;
         }
         
@@ -2375,7 +2376,7 @@ function captureCurrentThemeData() {
         
     } catch (error) {
         console.error('❌ Error capturing theme data:', error);
-        alert('Failed to capture theme data: ' + error.message);
+        themeSay('The current colours could not be read: ' + error.message, 'error'); // <Jun Kai/>
         return null;
     }
 }
@@ -2402,11 +2403,9 @@ async function saveCurrentTheme() {
         );
         
         if (nameExists) {
-            const confirm = window.confirm(
-                `A theme named "${themeName}" already exists. Do you want to save anyway?`
-            );
-            
-            if (!confirm) return;
+            // <Jun Kai/> the kit dialog instead of the browser box
+            const saveAnyway = await uiConfirm({ title: `There is already a theme called ${themeName}`, message: 'Save this one with the same name as well?', confirmText: 'Save anyway' });
+            if (!saveAnyway) return;
         }
         
         // Capture current theme data
@@ -2576,7 +2575,7 @@ async function activateSavedTheme(themeId) {
         }
         
         // <Jun Kai start> Apply replaces the overall colours and saves them, so unsaved changes would be lost
-        if (themeUnsaved && !confirm(`You have colour changes that are not saved. Apply "${theme.theme_name}" anyway? The unsaved changes are lost.`)) return;
+        if (themeUnsaved && !(await uiConfirm({ title: `Apply ${theme.theme_name}?`, message: 'You have colour changes that are not saved. They are lost when another theme is applied.', confirmText: 'Apply anyway', danger: true }))) return;
         // <Jun Kai end>
         // Step 1: Show user what's about to happen
         console.log('🔄 Activating theme:', theme.theme_name);
@@ -2733,14 +2732,15 @@ async function deleteSavedTheme(themeId) {
             return;
         }
         
-        const confirm = await showConfirmDialog(
-            'Delete Theme',
-            `Are you sure you want to delete "${theme.theme_name}"? This action cannot be undone.`,
+        // <Jun Kai/> a clearer question; showConfirmDialog is the kit dialog now
+        const sure = await showConfirmDialog(
+            `Delete ${theme.theme_name}?`,
+            'The theme leaves your saved themes. It cannot be undone.',
             'Delete',
             'danger'
         );
-        
-        if (!confirm) return;
+
+        if (!sure) return;
         
         console.log('🗑️ Deleting theme:', theme.theme_name);
         
@@ -2874,9 +2874,7 @@ function initSavedThemesSection() {
 }
 
 // Show confirmation dialog
+// <Jun Kai/> the kit dialog (uiKit.js) instead of the browser box; same answer: a Promise of true or false
 function showConfirmDialog(title, message, confirmText = 'Confirm', type = 'primary') {
-    return new Promise((resolve) => {
-        const confirmed = confirm(`${title}\n\n${message}`);
-        resolve(confirmed);
-    });
+    return uiConfirm({ title, message, confirmText, danger: type === 'danger' });
 }
