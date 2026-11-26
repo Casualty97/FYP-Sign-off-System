@@ -2173,17 +2173,20 @@ html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback
 .ks-title { font-size: 19px; font-weight: 800; line-height: 1.15; color: #1d4a32; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .ks-subtitle { font-size: 10px; line-height: 1.5; color: #4b5a52; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .ks-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: 2px; }
-.ks-btn { display: inline-flex; align-items: center; justify-content: center; width: 50%; height: 22px; border-radius: 5px; background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.ks-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 50%; max-width: 100%; height: 22px; padding: 0 8px; border-radius: 5px; background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; font-size: 8px; font-weight: 700; white-space: nowrap; box-sizing: border-box; }
 .ks-btn-wide { width: 100%; }
 /* with the QR code on, the text goes left and the QR panel right, as in feedback.html #land-page-qrcode */
 .ks-qr { display: none; flex-direction: column; align-items: center; gap: 6px; width: 30%; padding: 12px 10px; border-radius: 8px; background: rgba(248, 250, 244, 0.95); box-shadow: 0 8px 20px rgba(24, 57, 43, 0.16); text-align: center; box-sizing: border-box; }
 .ks-screen.has-qr .ks-card { width: 56%; }
+.ks-screen.has-qr .ks-btn { width: 100%; }
 .ks-screen.has-qr .ks-qr { display: flex; }
 .ks-qr-head { font-size: 9px; font-weight: 700; color: #2f6f45; }
 .ks-qr-image { display: block; width: 100%; max-width: 110px; height: auto; border-radius: 4px; }
 .ks-qr-text { font-size: 8px; line-height: 1.4; color: #4b5a52; }
 .qr-preview-caption { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
-@media (max-width: 640px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } .ks-screen.has-qr .ks-card { width: 60%; } .ks-screen.has-qr .ks-title { font-size: 12px; } .ks-screen.has-qr .ks-btn { width: 100%; } .ks-qr { width: 36%; padding: 8px 6px; } .ks-qr-text { display: none; } }
+/* a narrow preview (a phone, or a narrow column at about 1000 to 1200 px) gets the compact look, by the preview's own width */
+.ks-holder { container: ks-preview / inline-size; }
+@container ks-preview (max-width: 460px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } .ks-screen.has-qr .ks-card { width: 60%; } .ks-screen.has-qr .ks-title { font-size: 12px; } .ks-qr { width: 36%; padding: 8px 6px; } .ks-qr-text { display: none; } }
 /* the dark twins colorScheme.js makes would darken the kiosk copy, so these stronger rules keep its own colours */
 html[data-theme="dark"] .ui-card-body .ks-screen { background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; border-color: #1e293b; }
 html[data-theme="dark"] .ks-screen .ks-card { background: rgba(248, 250, 244, 0.95); border-top-color: #8bc58f; }
