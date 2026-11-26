@@ -301,7 +301,7 @@ async function loadInterventionAlerts() {
 const DB_STAMP_HINTS = {
     firstFeedback: 'sent feedback',
     firstPledge: 'made a pledge',
-    photoKeepsake: 'got a photo keepsake',
+    photoKeepsake: 'took a photo or got the keepsake email',
     likedPledge: 'got a like on a pledge',
     repeatVisitor: 'came back again',
     topicExplorer: 'pledged on 2 or more topics'

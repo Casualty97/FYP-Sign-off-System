@@ -559,10 +559,10 @@ router.get('/journey-passport', auth.requireAuth, (req, res) => {
             FROM pledge_likes
             GROUP BY feedback_id
         ) pl ON pl.feedback_id = f.id
-        ORDER BY u.last_visit DESC, f.created_at DESC
     `;
     // <Jun Kai/> only visitors with feedback, and all of them: a visitor without feedback has no passport, and the old LIMIT
-    // of 1200 rows cut the counts on a busy kiosk, so they no longer matched the feedback numbers shown next to them
+    // of 1200 rows cut the counts on a busy kiosk, so they no longer matched the feedback numbers shown next to them (no
+    // ORDER BY either: buildJourneyPassport takes the latest visit itself and sorts the list)
 
     db.all(query, [], (err, rows) => {
         if (err) {
