@@ -9464,3 +9464,30 @@ html[data-theme="dark"] .pb-heart { color: #fb7185; }
    --l3-link itself (themes.js, themeKitLight and themeKitDark). */
 html[data-theme="dark"] { --l3-link: #60a5fa; }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> Users: the Add user and Edit user dialogs (va-dialog) with the three role cards */
+.users-dialog { width: min(640px, calc(100vw - 32px)); }
+.users-dialog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+.users-dialog .ui-field { min-width: 0; margin: 0 0 14px; }
+.users-dialog .ui-input:disabled { background: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
+.users-roles { min-width: 0; margin: 4px 0 0; padding: 0; border: 0; }
+.users-roles legend { margin: 0 0 8px; padding: 0; }
+.users-role { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 12px; cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease; }
+.users-role + .users-role { margin-top: 8px; }
+.users-role:hover { border-color: color-mix(in srgb, var(--theme-btn-primary-bg) 45%, var(--theme-border-color)); }
+.users-role:has(input:checked) { border-color: var(--theme-btn-primary-bg); background: color-mix(in srgb, var(--theme-btn-primary-bg) 7%, transparent); box-shadow: inset 0 0 0 1px var(--theme-btn-primary-bg); }
+.users-role input { flex-shrink: 0; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--theme-btn-primary-bg); cursor: pointer; }
+.users-role input:focus-visible { outline: 2px solid var(--l3-focus, var(--theme-btn-primary-bg)); outline-offset: 2px; }
+.users-role-text { min-width: 0; }
+.users-role-name { display: block; font-size: 14px; font-weight: 700; line-height: 1.35; color: var(--theme-text-color); }
+.users-role-lead { display: block; font-size: 13px; line-height: 1.4; color: var(--color-dark-gray); }
+.users-role ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
+.users-role li + li { margin-top: 2px; }
+.users-root-role { padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 12px; }
+.users-root-role p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.users-root-role strong { color: var(--theme-text-color); }
+.users-dialog-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: #fef2f2; font-size: 13px; line-height: 1.5; color: #b91c1c; }
+html[data-theme="dark"] .users-dialog-error { background: rgba(185, 28, 28, 0.16); color: #fca5a5; }
+@media (max-width: 560px) { .users-dialog-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .users-role { transition: none; } }
+/* <Jun Kai end> */
