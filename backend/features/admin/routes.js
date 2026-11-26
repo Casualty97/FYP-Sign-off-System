@@ -342,6 +342,9 @@ const PASSPORT_STAMP_LABELS = {
     topicExplorer: 'Topic Explorer'
 };
 
+// <Jun Kai/> six milestones and one badge per pledge topic
+const PASSPORT_MAX_STAMPS = Object.keys(PASSPORT_STAMP_LABELS).length + Object.keys(PASSPORT_TOPIC_LABELS).length;
+
 function parsePassportMetadata(metadata) {
     if (!metadata || typeof metadata !== 'string') return {};
     try {
@@ -396,8 +399,9 @@ function buildJourneyPassport(rows) {
         }
     });
 
+    // <Jun Kai/> the key goes with each stamp, so the dashboard can say what earns it
     const stampBreakdown = Object.fromEntries(
-        Object.keys(PASSPORT_STAMP_LABELS).map(key => [key, { label: PASSPORT_STAMP_LABELS[key], count: 0 }])
+        Object.keys(PASSPORT_STAMP_LABELS).map(key => [key, { key, label: PASSPORT_STAMP_LABELS[key], count: 0 }])
     );
 
     const passports = Array.from(visitorsById.values()).map(visitor => {
@@ -424,10 +428,6 @@ function buildJourneyPassport(rows) {
             .map(topic => ({ topic, label: PASSPORT_TOPIC_LABELS[topic] }))
             .sort((a, b) => a.label.localeCompare(b.label));
 
-        visitor.stamps.forEach(stamp => {
-            if (stampBreakdown[stamp.key]) stampBreakdown[stamp.key].count += 1;
-        });
-
         const stampCount = visitor.stamps.length + topicBadges.length;
 
         return {
@@ -441,7 +441,7 @@ function buildJourneyPassport(rows) {
             firstSeen: visitor.firstSeen,
             lastSeen: visitor.lastSeen,
             stampCount,
-            progressPercent: Math.min(100, Math.round((stampCount / 12) * 100)),
+            progressPercent: Math.min(100, Math.round((stampCount / PASSPORT_MAX_STAMPS) * 100)), // <Jun Kai/>
             stamps: visitor.stamps,
             topicBadges
         };
@@ -449,16 +449,17 @@ function buildJourneyPassport(rows) {
         .filter(visitor => visitor.feedbackCount > 0)
         .sort((a, b) => b.stampCount - a.stampCount || b.feedbackCount - a.feedbackCount || new Date(b.lastSeen) - new Date(a.lastSeen));
 
+    // <Jun Kai start> the stamp totals count the same visitors as the summary (a visitor without feedback was counted for
+    // Repeat Visitor before, so that stamp said 35 next to 31 repeat visitors), and every pledge topic is listed, 0 too
+    passports.forEach(visitor => visitor.stamps.forEach(stamp => {
+        if (stampBreakdown[stamp.key]) stampBreakdown[stamp.key].count += 1;
+    }));
     const totalStamps = passports.reduce((sum, visitor) => sum + visitor.stampCount, 0);
     const repeatVisitors = passports.filter(visitor => visitor.visitCount >= 2 || visitor.feedbackCount >= 2).length;
-    const topicBreakdown = Object.entries(passports.reduce((counts, visitor) => {
-        (visitor.topicBadges || []).forEach(badge => {
-            counts[badge.label] = (counts[badge.label] || 0) + 1;
-        });
-        return counts;
-    }, {}))
-        .map(([label, count]) => ({ label, count }))
+    const topicBreakdown = Object.entries(PASSPORT_TOPIC_LABELS)
+        .map(([topic, label]) => ({ topic, label, count: passports.filter(visitor => visitor.topicBadges.some(badge => badge.topic === topic)).length }))
         .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+    // <Jun Kai end>
 
     return {
         summary: {
@@ -466,11 +467,12 @@ function buildJourneyPassport(rows) {
             repeatVisitors,
             totalStamps,
             averageStamps: passports.length ? Number((totalStamps / passports.length).toFixed(1)) : 0,
-            repeatRate: passports.length ? Math.round((repeatVisitors / passports.length) * 100) : 0
+            repeatRate: passports.length ? Math.round((repeatVisitors / passports.length) * 100) : 0,
+            maxStamps: PASSPORT_MAX_STAMPS // <Jun Kai/>
         },
         stampBreakdown: Object.values(stampBreakdown),
         topicBreakdown,
-        topPassports: passports.slice(0, 6)
+        topPassports: passports.slice(0, 10) // <Jun Kai/> the Visitors tab lists the top 10
     };
 }
 
@@ -548,7 +550,7 @@ router.get('/journey-passport', auth.requireAuth, (req, res) => {
             f.created_at AS feedback_created_at,
             COALESCE(pl.like_count, 0) AS like_count
         FROM users u
-        LEFT JOIN feedback f
+        JOIN feedback f
             ON f.user_id = u.id
            AND f.is_active = 1
            AND f.archive_status = 'not_archived'
@@ -557,9 +559,10 @@ router.get('/journey-passport', auth.requireAuth, (req, res) => {
             FROM pledge_likes
             GROUP BY feedback_id
         ) pl ON pl.feedback_id = f.id
-        ORDER BY u.last_visit DESC, f.created_at DESC
-        LIMIT 1200
     `;
+    // <Jun Kai/> only visitors with feedback, and all of them: a visitor without feedback has no passport, and the old LIMIT
+    // of 1200 rows cut the counts on a busy kiosk, so they no longer matched the feedback numbers shown next to them (no
+    // ORDER BY either: buildJourneyPassport takes the latest visit itself and sorts the list)
 
     db.all(query, [], (err, rows) => {
         if (err) {
@@ -6085,7 +6088,7 @@ router.get('/form-ui', auth.requireAuth, (req, res) => {
 
 // PUT /api/admin/form-ui
 // Save/update form UI configuration
-router.put('/form-ui', auth.requireAuth, (req, res) => {
+router.put('/form-ui', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const { background, landingTitle, landingSubtitle, showLandingPageQRCode } = req.body;
 
@@ -7317,7 +7320,7 @@ router.get('/email-config', auth.requireAuth, (req, res) => {
   }
 });
 
-router.put('/email-config', auth.requireAuth, async (req, res) => {
+router.put('/email-config', auth.requireAdmin, async (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const incoming = req.body || {};
 
@@ -7370,7 +7373,7 @@ router.put('/email-config', auth.requireAuth, async (req, res) => {
   }
 });
 
-router.post('/email-config/test', auth.requireAuth, async (req, res) => {
+router.post('/email-config/test', auth.requireAdmin, async (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const to = req.body?.to;
     if (!to) return res.status(400).json({ success: false, error: 'Missing "to" email.' });
@@ -7468,7 +7471,7 @@ router.get('/countdown-management', auth.requireAuth, (req, res) => {
 
 // PUT /api/admin/countdown-management
 
-router.put('/countdown-management', auth.requireAuth, (req, res) => {
+router.put('/countdown-management', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     console.debug('🔄 PUT /countdown-management - Updating countdown');
     
     // Get username from session
@@ -7567,7 +7570,7 @@ router.get('/server-schedules', auth.requireAuth, (req, res) => {
 });
 
 // POST /api/admin/server-schedules  new policy, placed just above the first policy it outranks
-router.post('/server-schedules', auth.requireAuth, (req, res) => {
+router.post('/server-schedules', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const checked = schedulePolicies.normalize(req.body || {});
   if (checked.error) return res.status(400).json({ success: false, error: checked.error });
   try {
@@ -7592,7 +7595,7 @@ router.post('/server-schedules', auth.requireAuth, (req, res) => {
 });
 
 // PUT /api/admin/server-schedules/:id  edit; the policy only moves when its kind (repeat type or Active/Stop) changes
-router.put('/server-schedules/:id', auth.requireAuth, (req, res) => {
+router.put('/server-schedules/:id', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const scheduleId = parseInt(req.params.id, 10);
   try {
     const config = readSchedulesConfig();
@@ -7624,7 +7627,7 @@ router.put('/server-schedules/:id', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server-schedules/reorder  { ids: [...] } after a drag, or { order: 'default' } to re-sort.
 // (POST, because PUT /server-schedules/:id would take "reorder" for an id.)
-router.post('/server-schedules/reorder', auth.requireAuth, (req, res) => {
+router.post('/server-schedules/reorder', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const config = readSchedulesConfig();
     const body = req.body || {};
@@ -7674,7 +7677,7 @@ router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
 
 // DELETE /api/admin/server-schedules/:id
 // Delete schedule
-router.delete('/server-schedules/:id', auth.requireAuth, (req, res) => {
+router.delete('/server-schedules/:id', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const scheduleId = parseInt(req.params.id);
   
   console.debug(`🗑️  Deleting schedule ID ${scheduleId}`);
@@ -7714,7 +7717,7 @@ router.delete('/server-schedules/:id', auth.requireAuth, (req, res) => {
 
 // PUT /api/admin/server-schedules/:id/toggle
 // Toggle schedule active status
-router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
+router.put('/server-schedules/:id/toggle', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const scheduleId = parseInt(req.params.id);
   const { is_active } = req.body;
   
@@ -7758,7 +7761,7 @@ router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server-schedules/enable-all
 // Enable all schedules
-router.post('/server-schedules/enable-all', auth.requireAuth, (req, res) => {
+router.post('/server-schedules/enable-all', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   console.debug('✅ Enabling all schedules');
   
   try {
@@ -7789,7 +7792,7 @@ router.post('/server-schedules/enable-all', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server-schedules/disable-all
 // Disable all schedules
-router.post('/server-schedules/disable-all', auth.requireAuth, (req, res) => {
+router.post('/server-schedules/disable-all', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   console.debug('⏸️  Disabling all schedules');
   
   try {
@@ -8175,7 +8178,7 @@ router.delete('/assets/:bluetoothId', auth.requireAdmin, (req, res) => {
 
 // POST /api/admin/server/start
 // Manually start the kiosk service
-router.post('/server/start', auth.requireAuth, (req, res) => {
+router.post('/server/start', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     console.log('▶️  Manual server start requested');
     // <Jun Kai start> a start by hand goes into the History list too, with who pressed it
     const username = (req.session.user && req.session.user.username) || 'unknown';
@@ -8190,7 +8193,7 @@ router.post('/server/start', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server/restart
 // Restart the kiosk application stack from the admin panel
-router.post('/server/restart', auth.requireAuth, (req, res) => {
+router.post('/server/restart', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     const { spawn } = require('child_process');
     const rootDir = paths.ROOT;
     const logsDir = path.join(rootDir, 'logs');
@@ -8240,7 +8243,7 @@ router.post('/server/restart', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server/stop (Done by Yu Kang)
 // Manually stop the kiosk service
-router.post('/server/stop', auth.requireAuth, (req, res) => {
+router.post('/server/stop', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     const username = (req.session.user && req.session.user.username) || 'unknown';
     console.log('⏹️  Manual stop requested by', username);
     res.json({ success: true, message: 'Computer entering hibernate mode. Please wait...' });
@@ -8267,7 +8270,7 @@ router.get('/server/mode', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server/mode
 // Set server control mode (auto or manual)
-router.post('/server/mode', auth.requireAuth, (req, res) => {
+router.post('/server/mode', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const { mode } = req.body;
   
   console.debug(`🔄 Changing server control mode to: ${forLog(mode)}`); // <Jun Kai/>

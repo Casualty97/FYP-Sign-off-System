@@ -249,162 +249,114 @@ function updateUserManagementTable(usersData) {
 }
 
 // Add new user
+// <Jun Kai start> Add user and Edit user are kit dialogs. The role is picked from three cards that say what each role
+// may open and do. The texts come from the real checks: the sidebar links marked data-admin-only, the routes behind
+// auth.requireAdmin and the IT Staff check on deleting feedback. The page list of IT Admin is read from the sidebar, so it
+// stays right when a page is added.
+const USERS_ROLES = [
+    { value: 'system_admin', name: 'System Admin', lead: () => 'Everything, including users and settings',
+        points: () => ['Every page and every setting.', 'The only role that can add users, show visitors\' email addresses, export visitor data and delete archived records for good.'] },
+    { value: 'IT_admin', name: 'IT Admin', lead: (pages) => `Daily work on ${pages.length} pages`,
+        points: (pages) => [`Opens ${pages.join(', ')}.`, 'Can approve or reject pledges, acknowledge and resolve incidents, send a test incident and delete feedback.', 'Cannot change settings, apart from their own theme and the names of the tablets.'] },
+    { value: 'IT_staff', name: 'IT Staff', lead: () => 'Same as IT Admin, without deleting',
+        points: () => ['The same pages and work as IT Admin.', 'Cannot delete feedback.'] }
+];
+
+// the pages an IT Admin or IT Staff sees: the sidebar links that are not System Admin only (the tree demo opens a new tab)
+function usersOpenPages() {
+    return [...document.querySelectorAll('.sidebar .nav-item:not([data-admin-only]):not([target="_blank"]) .nav-label')]
+        .map((label) => label.textContent.trim()).filter(Boolean);
+}
+
+function usersRoleCards(name, current) {
+    const pages = usersOpenPages();
+    return `<fieldset class="users-roles">
+        <legend class="ui-label">Role</legend>
+        ${USERS_ROLES.map((role) => `
+        <label class="users-role">
+            <input type="radio" name="${name}" value="${role.value}"${role.value === current ? ' checked' : ''}>
+            <span class="users-role-text">
+                <span class="users-role-name">${role.name}</span>
+                <span class="users-role-lead">${role.lead(pages)}</span>
+                <ul>${role.points(pages).map((point) => `<li>${escapeHtml(point)}</li>`).join('')}</ul>
+            </span>
+        </label>`).join('')}
+    </fieldset>`;
+}
+
+// the role picked in a window: the ticked card, or the fixed role of the root account
+function usersPickedRole(name) {
+    const picked = document.querySelector(`input[name="${name}"]:checked`) || document.querySelector(`input[type="hidden"][name="${name}"]`);
+    return picked ? picked.value : '';
+}
+
+function usersField(id, label, input, help) {
+    return `<div class="ui-field">
+        <label class="ui-label" for="${id}">${label}</label>
+        ${input}
+        ${help ? `<p class="ui-help" id="${id}-help">${help}</p>` : ''}
+    </div>`;
+}
+
+const usersDialogOpeners = {};
+
+// a native dialog: the browser keeps the focus inside and Escape closes it; it is removed again once closed
+function usersOpenDialog(id, title, sub, body, submitLabel, onsubmit) {
+    document.getElementById(id)?.remove();
+    const dialog = document.createElement('dialog');
+    dialog.className = 'va-dialog users-dialog';
+    dialog.id = id;
+    dialog.setAttribute('aria-labelledby', id + '-title');
+    dialog.innerHTML = `<form class="va-dialog-inner" novalidate onsubmit="${onsubmit}">
+        <div class="va-dialog-head">
+            <div>
+                <h3 id="${id}-title">${title}</h3>
+                <div class="va-dialog-sub">${sub}</div>
+            </div>
+            <button type="button" class="ui-btn ui-btn-icon va-dialog-close" onclick="usersCloseDialog('${id}')" aria-label="Close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        </div>
+        <div class="va-dialog-body">${body}</div>
+        <div class="va-dialog-foot">
+            <button type="button" class="ui-btn ui-btn-secondary" onclick="usersCloseDialog('${id}')">Cancel</button>
+            <button type="submit" class="ui-btn ui-btn-primary">${submitLabel}</button>
+        </div>
+    </form>`;
+    dialog.addEventListener('cancel', (event) => { event.preventDefault(); usersCloseDialog(id); });
+    dialog.addEventListener('close', () => {
+        dialog.remove();
+        const opener = usersDialogOpeners[id];
+        delete usersDialogOpeners[id];
+        if (opener && document.contains(opener)) opener.focus();
+    });
+    usersDialogOpeners[id] = document.activeElement;
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    dialog.querySelector('input:not([disabled]):not([type="hidden"])')?.focus();
+}
+
+function usersCloseDialog(id) {
+    const dialog = document.getElementById(id);
+    if (!dialog || !dialog.open) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { dialog.close(); return; }
+    if (dialog.classList.contains('is-closing')) return;
+    dialog.classList.add('is-closing');
+    setTimeout(() => dialog.close(), 150);
+}
+
 function addUser() {
-    const currentUserRole = sessionStorage.getItem('userRole');
-    if (currentUserRole !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
+    if (sessionStorage.getItem('userRole') !== 'system_admin') {
+        showNotification('Only a System Admin can add users.', 'error');
         return;
     }
-    
-    const modal = document.createElement('div');
-    modal.className = 'add-user-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    `;
-    
-    modal.innerHTML = `
-        <div class="add-user-form" style="
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            width: 90%;
-            max-width: 500px;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h3 style="margin: 0; color: #1e293b; font-size: 20px;">Add New User</h3>
-                <button onclick="closeAddUserModal()" style="
-                    background: none;
-                    border: none;
-                    font-size: 24px;
-                    cursor: pointer;
-                    color: #64748b;
-                    padding: 5px 10px;
-                ">×</button>
-            </div>
-            
-            <form id="add-user-form" onsubmit="handleAddUser(event)">
-                <div class="form-group" class="mb-20">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                        Username *
-                    </label>
-                    <input type="text" id="add-username" 
-                        placeholder="Enter username"
-                        style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                        required>
-                    <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                        Must be unique (lowercase letters, numbers, underscore)
-                    </div>
-                </div>
-                
-                <div class="form-group" class="mb-20">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                        Full Name *
-                    </label>
-                    <input type="text" id="add-full-name" 
-                        placeholder="Enter full name"
-                        style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                        required>
-                    <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                        This name will be displayed in the admin panel
-                    </div>
-                </div>
-
-                    <!-- <Jun Kai start> the account's email: a forgotten password is reset with a code or link sent here -->
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="add-user-email" style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Email *
-                        </label>
-                        <input type="email" id="add-user-email" 
-                            placeholder="name@example.com" autocomplete="off" maxlength="254"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            required>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            A code and a link to reset a forgotten password are sent here. Each email belongs to one account.
-                        </div>
-                    </div>
-                    <!-- <Jun Kai end> -->
-
-                <div class="form-group" class="mb-20">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                        Role *
-                    </label>
-                    <select id="add-user-role" style="
-                        width: 100%;
-                        padding: 12px 16px;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 8px;
-                        font-size: 15px;
-                        background: white;
-                    " required>
-                        <option value="">Select a role</option>
-                        <option value="system_admin">System Admin</option>
-                        <option value="IT_admin">IT Admin</option>
-                        <option value="IT_staff">IT Staff</option>
-                    </select>
-                    <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                        Select the user role and permissions
-                    </div>
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 25px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                        Password *
-                    </label>
-                    <input type="password" id="add-user-password" 
-                        placeholder="Enter secure password"
-                        style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                        required>
-                    <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                        Minimum 8 characters recommended
-                    </div>
-                </div>
-                
-                <div id="add-user-error" style="
-                    color: #dc2626;
-                    font-size: 13px;
-                    margin-bottom: 15px;
-                    display: none;
-                "></div>
-                
-                <div style="display: flex; gap: 12px;">
-                    <button type="button" onclick="closeAddUserModal()" style="
-                        flex: 1;
-                        padding: 12px;
-                        background: #64748b;
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        font-size: 14px;
-                        font-weight: 600;
-                        cursor: pointer;
-                    ">Cancel</button>
-                    <button type="submit" style="
-                        flex: 1;
-                        padding: 12px;
-                        background: linear-gradient(135deg, #10b981, #059669);
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        font-size: 14px;
-                        font-weight: 600;
-                        cursor: pointer;
-                    ">Add User</button>
-                </div>
-            </form>
+    const body = `<div class="users-dialog-grid">
+            ${usersField('add-full-name', 'Full name', '<input class="ui-input" type="text" id="add-full-name" autocomplete="off" maxlength="100" aria-describedby="add-full-name-help">', 'Shown in the admin page.')}
+            ${usersField('add-username', 'Username', '<input class="ui-input" type="text" id="add-username" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="50" aria-describedby="add-username-help">', 'Lowercase letters, numbers and _ only.')}
+            ${usersField('add-user-email', 'Email', '<input class="ui-input" type="email" id="add-user-email" autocomplete="off" maxlength="254" placeholder="name@example.com" aria-describedby="add-user-email-help">', 'Where a forgotten password is reset.')}
+            ${usersField('add-user-password', 'Password', '<input class="ui-input" type="password" id="add-user-password" autocomplete="new-password" aria-describedby="add-user-password-help">', 'At least 8 characters.')}
         </div>
-    `;
-    
-    document.body.appendChild(modal);
+        ${usersRoleCards('add-user-role', 'IT_staff')}
+        <p class="users-dialog-error" id="add-user-error" role="alert" style="display: none;"></p>`;
+    usersOpenDialog('add-user-dialog', 'Add user', 'The new admin signs in with this username and password.', body, 'Add user', 'handleAddUser(event)');
 }
 
 // Handle add user form submission
@@ -414,7 +366,7 @@ async function handleAddUser(event) {
     const username = document.getElementById('add-username').value.trim();
     const fullName = document.getElementById('add-full-name').value.trim();
     const email = (document.getElementById('add-user-email')?.value || '').trim().toLowerCase(); // <Jun Kai/>
-    const role = document.getElementById('add-user-role').value;
+    const role = usersPickedRole('add-user-role'); // <Jun Kai/> the ticked role card
     const password = document.getElementById('add-user-password').value;
     const errorDiv = document.getElementById('add-user-error');
     
@@ -464,7 +416,7 @@ async function handleAddUser(event) {
         const data = await response.json();
         
         if (data.success) {
-            alert('✅ User added successfully!');
+            showNotification(`User ${username} added.`, 'success'); // <Jun Kai/>
             closeAddUserModal();
             loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
@@ -480,10 +432,7 @@ async function handleAddUser(event) {
 
 // Close add user modal
 function closeAddUserModal() {
-    const modal = document.querySelector('.add-user-modal');
-    if (modal) {
-        modal.remove();
-    }
+    usersCloseDialog('add-user-dialog'); // <Jun Kai/>
 }
 
 // This is the MODIFIED VERSION that allows systemadmin to edit their own password
@@ -509,316 +458,29 @@ function editUser(userId, username, currentRole, fullName, email = '') { // <Jun
     const usernameHtml = escapeHtml(username);
     const fullNameHtml = escapeHtml(fullName || '');
     const emailHtml = escapeHtml(email || ''); // <Jun Kai/>
-    const modal = document.createElement('div');
-    modal.className = 'edit-user-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    `;
-    
-    // MODIFIED: Different modal for systemadmin self-edit
+    // <Jun Kai start> the same kit dialog as Add user; the root account keeps its username and role
+    const fields = (usernameInput, passwordHelp) => `<div class="users-dialog-grid">
+            ${usersField('edit-full-name', 'Full name', `<input class="ui-input" type="text" id="edit-full-name" value="${fullNameHtml || (isSystemAdminSelf ? 'System Administrator' : '')}" autocomplete="off" maxlength="100">`, 'Shown in the admin page.')}
+            ${usersField('edit-username', 'Username', usernameInput.input, usernameInput.help)}
+            ${usersField('edit-email', 'Email', `<input class="ui-input" type="email" id="edit-email" value="${emailHtml}" autocomplete="off" maxlength="254" placeholder="name@example.com">`, isSystemAdminSelf ? 'Where your forgotten password is reset. Only you can change it.' : 'Where a forgotten password is reset.')}
+            ${usersField('edit-user-password', 'New password', '<input class="ui-input" type="password" id="edit-user-password" autocomplete="new-password">', passwordHelp)}
+        </div>`;
     if (isSystemAdminSelf) {
-        modal.innerHTML = `
-            <div class="edit-user-form" style="
-                background: white;
-                padding: 30px;
-                border-radius: 16px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                width: 90%;
-                max-width: 500px;
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <h3 style="margin: 0; color: #1e293b; font-size: 20px;">🔐 Edit Root Account</h3>
-                    <button onclick="closeEditUserModal()" style="
-                        background: none;
-                        border: none;
-                        font-size: 24px;
-                        cursor: pointer;
-                        color: #64748b;
-                        padding: 5px 10px;
-                    ">×</button>
-                </div>
-                
-                <div style="
-                    background: #fef3c7;
-                    border-left: 4px solid #f59e0b;
-                    padding: 12px 16px;
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                ">
-                    <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">
-                        🛡️ Protected Root Account
-                    </div>
-                    <div style="font-size: 13px; color: #78350f;">
-                        Username and role cannot be changed for security reasons.<br>
-                        You can only update your password and display name.
-                    </div>
-                </div>
-                
-                <form id="edit-user-form" onsubmit="handleEditUser(event, ${userId})">
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Username (locked)
-                        </label>
-                        <input type="text" id="edit-username" 
-                            value="${usernameHtml}"
-                            disabled
-                            style="
-                                width: 100%; 
-                                padding: 12px 16px; 
-                                border: 2px solid #e2e8f0; 
-                                border-radius: 8px; 
-                                font-size: 15px;
-                                background: #f1f5f9;
-                                color: #64748b;
-                                cursor: not-allowed;
-                            ">
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            🔒 Root username cannot be changed
-                        </div>
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Full Name
-                        </label>
-                        <input type="text" id="edit-full-name" 
-                            value="${fullNameHtml || 'System Administrator'}"
-                            placeholder="Enter full name"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            required>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            This name will be displayed in the admin panel
-                        </div>
-                    </div>
-
-                    <!-- <Jun Kai start> the account's email: a forgotten password is reset with a code or link sent here -->
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="edit-email" style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Email *
-                        </label>
-                        <input type="email" id="edit-email" value="${emailHtml}"
-                            placeholder="name@example.com" autocomplete="off" maxlength="254"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            ${emailHtml ? 'required' : ''}>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            Where a code and a link to reset your forgotten password are sent. Only you can change the email of this account.
-                        </div>
-                    </div>
-                    <!-- <Jun Kai end> -->
-
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Role (locked)
-                        </label>
-                        <select id="edit-user-role" disabled style="
-                            width: 100%;
-                            padding: 12px 16px;
-                            border: 2px solid #e2e8f0;
-                            border-radius: 8px;
-                            font-size: 15px;
-                            background: #f1f5f9;
-                            color: #64748b;
-                            cursor: not-allowed;
-                        ">
-                            <option value="system_admin" selected>System Admin</option>
-                        </select>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            🔒 Root role cannot be changed
-                        </div>
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 25px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            New Password
-                        </label>
-                        <input type="password" id="edit-user-password" 
-                            placeholder="Enter new password (leave blank to keep current)"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;">
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            ✅ You can update your password here (minimum 8 characters)
-                        </div>
-                    </div>
-                    
-                    <div id="edit-user-error" style="
-                        color: #dc2626;
-                        font-size: 13px;
-                        margin-bottom: 15px;
-                        display: none;
-                    "></div>
-                    
-                    <div style="display: flex; gap: 12px;">
-                        <button type="button" onclick="closeEditUserModal()" style="
-                            flex: 1;
-                            padding: 12px;
-                            background: #64748b;
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
-                            font-size: 14px;
-                            font-weight: 600;
-                            cursor: pointer;
-                        ">Cancel</button>
-                        <button type="submit" style="
-                            flex: 1;
-                            padding: 12px;
-                            background: linear-gradient(135deg, #0A1E81, #764ba2);
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
-                            font-size: 14px;
-                            font-weight: 600;
-                            cursor: pointer;
-                        ">💾 Save Changes</button>
-                    </div>
-                </form>
+        const body = `${fields({ input: `<input class="ui-input" type="text" id="edit-username" value="${usernameHtml}" disabled>`, help: 'The root username cannot change.' }, 'Leave empty to keep your password. At least 8 characters.')}
+            <div class="users-root-role">
+                <input type="hidden" name="edit-user-role" value="system_admin">
+                <span class="ui-label">Role</span>
+                <p><strong>System Admin</strong> (root account). The root account always keeps every right, so its role cannot change.</p>
             </div>
-        `;
+            <p class="users-dialog-error" id="edit-user-error" role="alert" style="display: none;"></p>`;
+        usersOpenDialog('edit-user-dialog', 'Edit my account', 'Your name, email and password. The username and role of the root account stay as they are.', body, 'Save changes', `handleEditUser(event, ${Number(userId)})`);
     } else {
-        // STANDARD EDIT MODAL (for non-systemadmin users)
-        modal.innerHTML = `
-            <div class="edit-user-form" style="
-                background: white;
-                padding: 30px;
-                border-radius: 16px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                width: 90%;
-                max-width: 500px;
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <h3 style="margin: 0; color: #1e293b; font-size: 20px;">Edit User: ${usernameHtml}</h3>
-                    <button onclick="closeEditUserModal()" style="
-                        background: none;
-                        border: none;
-                        font-size: 24px;
-                        cursor: pointer;
-                        color: #64748b;
-                        padding: 5px 10px;
-                    ">×</button>
-                </div>
-                
-                <form id="edit-user-form" onsubmit="handleEditUser(event, ${userId})">
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Username
-                        </label>
-                        <input type="text" id="edit-username" 
-                            value="${usernameHtml}"
-                            placeholder="Enter username"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            required>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            Username can be changed (must be unique)
-                        </div>
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Full Name
-                        </label>
-                        <input type="text" id="edit-full-name" 
-                            value="${fullNameHtml}"
-                            placeholder="Enter full name"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            required>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            This name will be displayed in the admin panel
-                        </div>
-                    </div>
-
-                    <!-- <Jun Kai start> the account's email: a forgotten password is reset with a code or link sent here -->
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="edit-email" style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Email *
-                        </label>
-                        <input type="email" id="edit-email" value="${emailHtml}"
-                            placeholder="name@example.com" autocomplete="off" maxlength="254"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;"
-                            ${emailHtml ? 'required' : ''}>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            A code and a link to reset a forgotten password are sent here. Each email belongs to one account.
-                        </div>
-                    </div>
-                    <!-- <Jun Kai end> -->
-
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            Role
-                        </label>
-                        <select id="edit-user-role" style="
-                            width: 100%;
-                            padding: 12px 16px;
-                            border: 2px solid #e2e8f0;
-                            border-radius: 8px;
-                            font-size: 15px;
-                            background: white;
-                        ">
-                            <option value="system_admin" ${currentRole === 'system_admin' ? 'selected' : ''}>System Admin</option>
-                            <option value="IT_admin" ${currentRole === 'IT_admin' ? 'selected' : ''}>IT Admin</option>
-                            <option value="IT_staff" ${currentRole === 'IT_staff' ? 'selected' : ''}>IT Staff</option>
-                        </select>
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            Select the user role and permissions
-                        </div>
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 25px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b;">
-                            New Password (optional)
-                        </label>
-                        <input type="password" id="edit-user-password" 
-                            placeholder="Leave blank to keep current password"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px;">
-                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
-                            Only enter if you want to change the password
-                        </div>
-                    </div>
-                    
-                    <div id="edit-user-error" style="
-                        color: #dc2626;
-                        font-size: 13px;
-                        margin-bottom: 15px;
-                        display: none;
-                    "></div>
-                    
-                    <div style="display: flex; gap: 12px;">
-                        <button type="button" onclick="closeEditUserModal()" style="
-                            flex: 1;
-                            padding: 12px;
-                            background: #64748b;
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
-                            font-size: 14px;
-                            font-weight: 600;
-                            cursor: pointer;
-                        ">Cancel</button>
-                        <button type="submit" style="
-                            flex: 1;
-                            padding: 12px;
-                            background: linear-gradient(135deg, #0A1E81, #764ba2);
-                            color: white;
-                            border: none;
-                            border-radius: 8px;
-                            font-size: 14px;
-                            font-weight: 600;
-                            cursor: pointer;
-                        ">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        `;
+        const body = `${fields({ input: `<input class="ui-input" type="text" id="edit-username" value="${usernameHtml}" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="50">`, help: 'Lowercase letters, numbers and _ only.' }, 'Leave empty to keep the current password.')}
+            ${usersRoleCards('edit-user-role', currentRole)}
+            <p class="users-dialog-error" id="edit-user-error" role="alert" style="display: none;"></p>`;
+        usersOpenDialog('edit-user-dialog', `Edit ${usernameHtml}`, 'Change the details, the role or the password of this account.', body, 'Save changes', `handleEditUser(event, ${Number(userId)})`);
     }
-    
-    document.body.appendChild(modal);
+    // <Jun Kai end>
 }
 
 // Handle edit user form submission
@@ -828,7 +490,7 @@ async function handleEditUser(event, userId) {
     const username = document.getElementById('edit-username').value.trim();
     const fullName = document.getElementById('edit-full-name').value.trim();
     const editEmail = (document.getElementById('edit-email')?.value || '').trim().toLowerCase(); // <Jun Kai/>
-    const role = document.getElementById('edit-user-role').value;
+    const role = usersPickedRole('edit-user-role'); // <Jun Kai/> the ticked role card (the root keeps its own)
     const password = document.getElementById('edit-user-password').value;
     const errorDiv = document.getElementById('edit-user-error');
     
@@ -885,7 +547,7 @@ async function handleEditUser(event, userId) {
         const data = await response.json();
         
         if (data.success) {
-            alert('✅ User updated successfully!');
+            showNotification(`Account ${username} saved.`, 'success'); // <Jun Kai/>
             closeEditUserModal();
             loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
@@ -901,10 +563,7 @@ async function handleEditUser(event, userId) {
 
 // Close edit user modal
 function closeEditUserModal() {
-    const modal = document.querySelector('.edit-user-modal');
-    if (modal) {
-        modal.remove();
-    }
+    usersCloseDialog('edit-user-dialog'); // <Jun Kai/>
 }
 
 // Delete user (soft delete)
