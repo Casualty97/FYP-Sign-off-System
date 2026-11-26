@@ -4144,62 +4144,41 @@ td {
 
 /* ==================== MODAL & POPUP STYLES ==================== */
 
-/* Photo, pledge, and QA popups */
-.photo-popup, .pledge-popup, .qa-popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1001;
-    padding: 20px;
-    box-sizing: border-box;
-    animation: fadeIn 0.3s ease-out;
+/* <Jun Kai start> the photo, pledge, answer and insight viewers: kit windows (dialog.va-dialog.kit-viewer, see pledgeViewer.js) */
+.kit-viewer-wide { width: min(920px, calc(100vw - 32px)); }
+.kit-viewer .va-dialog-head > div { min-width: 0; }
+.kit-viewer-status { margin-right: auto; font-size: 12px; color: var(--color-muted); }
+.kit-viewer-status.is-error { color: #b91c1c; }
+html[data-theme="dark"] .kit-viewer-status.is-error { color: #fca5a5; }
+.kit-viewer-meta { margin: 14px 0 0; font-size: 12px; color: var(--color-muted); }
+.kit-viewer-empty { margin: 0; padding: 28px 0; text-align: center; color: var(--color-muted); }
+.kit-viewer-text { padding: 16px; border-radius: 10px; background: var(--theme-bg-color); color: var(--theme-text-color); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.kit-viewer-text.is-empty { color: var(--color-muted); font-style: italic; }
+.kit-viewer-translate { margin-top: 10px; }
+.kit-photo { display: flex; justify-content: center; align-items: center; margin: 0; }
+.kit-photo img { display: block; max-width: 100%; max-height: min(62vh, 640px); border-radius: 10px; object-fit: contain; background: var(--theme-bg-color); }
+.kit-photo-missing { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 200px; padding: 24px; border: 1px dashed var(--theme-border-color); border-radius: 12px; color: var(--color-muted); text-align: center; }
+.kit-photo-missing strong { color: var(--theme-text-color); }
+.kit-qa { margin: 0; padding: 0; list-style: none; }
+.kit-qa li + li { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--theme-border-color); }
+.kit-qa-q { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
+.kit-qa-a { padding-left: 10px; border-left: 3px solid var(--theme-border-color); color: var(--theme-text-color); white-space: pre-wrap; overflow-wrap: anywhere; }
+.kit-qa-a.is-empty { color: var(--color-muted); font-style: italic; }
+.kit-insight-count { margin-top: 6px; }
+.kit-insight-filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; margin-bottom: 4px; padding-bottom: 16px; border-bottom: 1px solid var(--theme-border-color); }
+.kit-insight-filter .ui-field { flex: 1 1 140px; max-width: 200px; }
+.kit-insight { padding: 14px 0; }
+.kit-insight + .kit-insight { border-top: 1px solid var(--theme-border-color); }
+.kit-insight-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 6px; color: var(--theme-text-color); }
+.kit-insight-date { font-size: 12px; color: var(--color-muted); }
+.kit-insight-q { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--l3-focus); }
+.kit-insight-text { margin: 0; color: var(--theme-text-color); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+    .kit-viewer .va-dialog-foot { flex-wrap: wrap; }
+    .kit-viewer-status { flex-basis: 100%; }
+    .kit-insight-filter .ui-field { max-width: none; }
 }
-
-.photo-container, .pledge-container, .qa-container {
-    background: var(--theme-card-bg);
-    border-radius: 12px;
-    text-align: center;
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: scaleIn 0.3s ease-out;
-}
-
-.photo-container.processed {
-    max-width: 500px;
-    max-height: 700px;
-    width: 90vw;
-}
-
-.photo-container.raw {
-    max-width: 90vw;
-    max-height: 90vh;
-}
-
-.photo-container img {
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    object-fit: contain;
-}
-
-.qa-container {
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-}
-
-.qa-item {
-    background: #f8fafc;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    border-left: 4px solid #667eea;
-}
+/* <Jun Kai end> */
 
 /* <Jun Kai/> the email, password and delete windows are kit dialogs now (dialog.ui-dialog), styled with the va-dialog rules */
 
@@ -4478,13 +4457,6 @@ td {
     .overlay-value {
         text-align: left;
         margin-left: 0;
-    }
-    
-    .photo-container.processed,
-    .photo-container.raw {
-        max-width: 95vw;
-        max-height: 80vh;
-        padding: 10px;
     }
     
     .theme-grid {
