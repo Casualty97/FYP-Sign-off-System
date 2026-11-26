@@ -63,6 +63,45 @@ function questionRowHtml(question) {
             <div class="qs-edit-slot"></div>
         </article>`;
 }
+
+// One card is open at a time: Add or one Edit. A card with typed changes stays open and says why, so a list reload
+// or another card never wipes what was typed.
+function questionEditIsDirty() {
+    const form = document.getElementById('edit-question-form');
+    const saved = form && window.questionsDataMap.get(Number(form.dataset.questionId));
+    if (!saved) return false;
+    return document.getElementById('edit-question-text').value !== String(saved.question_text ?? '')
+        || (parseInt(document.getElementById('edit-display-order').value) || 0) !== (Number(saved.display_order) || 0)
+        || (document.getElementById('edit-is-required').value === '1') !== Boolean(saved.is_required)
+        || document.getElementById('edit-is-active').checked !== Boolean(saved.is_active);
+}
+
+function questionAddIsDirty() {
+    if (!document.getElementById('add-question-form')) return false;
+    return document.getElementById('question-text').value.trim() !== ''
+        || document.getElementById('question-type').value !== ''
+        || [...document.querySelectorAll('#options-list input[type="text"]')].some((input) => input.value.trim() !== '');
+}
+
+function showQuestionCardHint(errorId, fieldId, message) {
+    const errorDiv = document.getElementById(errorId);
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    document.getElementById(fieldId).focus();
+}
+
+// true when an open card with changes has to be finished first; action is what the admin tried, like "editing another question"
+function questionCardBlocks(action) {
+    if (questionEditIsDirty()) {
+        showQuestionCardHint('edit-question-error', 'edit-question-text', `Save or cancel the question you are editing before ${action}.`);
+        return true;
+    }
+    if (questionAddIsDirty()) {
+        showQuestionCardHint('question-error', 'question-text', `Add or cancel the new question before ${action}.`);
+        return true;
+    }
+    return false;
+}
 // <Jun Kai end>
 
 // Load question management data
@@ -149,6 +188,8 @@ function showAddQuestionModal() {
         document.getElementById('question-text').focus();
         return;
     }
+    if (questionCardBlocks('adding a new question')) return;
+    closeEditQuestionModal();
     const orders = [...window.questionsDataMap.values()].map((question) => Number(question.display_order) || 0);
     const nextOrder = orders.length ? Math.max(...orders) + 1 : 1;
     slot.innerHTML = `
@@ -384,8 +425,16 @@ function editQuestion(questionId, currentQuestionText, questionType, isRequired,
 
     // <Jun Kai start> the edit card opens under the question's own row; one question is edited at a time.
     // The type and the options stay fixed, so old answers keep their meaning.
-    closeEditQuestionModal();
     const id = Number(questionId);
+    const open = document.getElementById('edit-question-form');
+    if (open && Number(open.dataset.questionId) === id) {
+        document.getElementById('edit-question-text').focus();
+        return;
+    }
+    if (questionCardBlocks('editing another question')) return;
+    closeEditQuestionModal();
+    const newSlot = document.getElementById('questions-new-slot');
+    if (newSlot) newSlot.innerHTML = '';
     const row = document.querySelector(`#questions-container .qs-row[data-question-id="${id}"]`);
     const slot = row && row.querySelector('.qs-edit-slot');
     if (!slot) return;
@@ -518,6 +567,13 @@ async function deleteQuestion(questionId) {
         setQuestionStatus('error', 'Only a system admin can delete questions.'); // <Jun Kai/>
         return;
     }
+    // <Jun Kai start> the list is drawn again after a delete, so changes typed into another question come first
+    const editing = document.getElementById('edit-question-form');
+    if (editing && Number(editing.dataset.questionId) !== Number(questionId) && questionEditIsDirty()) {
+        showQuestionCardHint('edit-question-error', 'edit-question-text', 'Save or cancel the question you are editing before deleting another question.');
+        return;
+    }
+    // <Jun Kai end>
 
     if (confirm('Delete this question? If visitors already answered it, it is turned off instead, so their answers are kept.')) { // <Jun Kai/>
         try {
