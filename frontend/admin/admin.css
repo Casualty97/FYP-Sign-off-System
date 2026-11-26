@@ -1658,8 +1658,8 @@ body {
     }
 }
 
-/* <Jun Kai start> Dashboard C: one screen with tabs. Overview = five tiles, two graphs, three small cards; Visitors,
-   Journey Passport and System are their own tabs */
+/* <Jun Kai start> Dashboard C: one screen with tabs. Overview = five tiles, two graphs, three small cards; Visitors
+   (the visitor numbers, the Journey Passport and the days) and System are their own tabs */
 #dashboard-page { --color-dark-gray: #475569; --color-muted: #64748b; }
 html[data-theme="dark"] #dashboard-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
 .db-refresh svg { margin-right: 6px; transition: transform 0.9s ease; }
@@ -1709,32 +1709,55 @@ html[data-theme="dark"] .db-kiosk[data-state="off"] .ui-stat-value { color: #fca
 html[data-theme="dark"] .db-key-grey { background: rgb(100, 116, 139); }
 .db-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 16px 20px 18px; }
 .db-actions .ui-btn { justify-content: flex-start; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.db-facts { margin: 0; padding: 6px 20px 12px; }
-.db-facts div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--l3-card-edge); font-size: 14px; }
-.db-facts div:last-child { border-bottom: 0; }
-.db-facts dt { color: var(--color-dark-gray); }
-.db-facts dd { margin: 0; font-weight: 700; color: var(--theme-card-text); font-variant-numeric: tabular-nums; }
-.db-day-list { display: flex; flex-direction: column; padding: 6px 20px 12px; }
-.db-day-list .daily-leaf-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--l3-card-edge); border-radius: 0; background: transparent; box-shadow: none; }
-.db-day-list .daily-leaf-item:last-child { border-bottom: 0; }
-.db-day-list .daily-leaf-date { font-size: 14px; font-weight: 600; color: var(--theme-card-text); }
-.db-day-list .daily-leaf-counts { display: flex; gap: 16px; font-size: 13px; color: var(--color-dark-gray); }
-.db-day-list .daily-leaf-counts strong { margin-left: 5px; color: var(--theme-card-text); }
-.db-passport-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 16px 20px 6px; }
-.db-passport-stats div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--theme-bg-color); }
-.db-passport-stats span { font-size: 12px; font-weight: 600; color: var(--color-dark-gray); }
-.db-passport-stats strong { font-size: 22px; font-weight: 750; color: var(--theme-card-text); font-variant-numeric: tabular-nums; }
-#db-panel-passport .journey-passport-breakdown, #db-panel-passport .journey-passport-list { padding: 10px 20px; }
+/* Visitors tab: four tiles, the Journey Passport bars next to the last 6 days, then the visitors with the most stamps */
+.db-tiles-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.db-visitors-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
+.db-visitors-row > .ui-card + .ui-card, .db-top { margin-top: 0; }
+.db-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 28px; padding: 14px 20px 18px; }
+.db-bars > .db-empty { grid-column: 1 / -1; margin: 0; }
+.db-bars-group h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-dark-gray); }
+.db-bar { padding: 7px 0; }
+.db-bar-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13.5px; }
+.db-bar-label { min-width: 0; font-weight: 600; color: var(--theme-card-text); overflow-wrap: anywhere; }
+.db-bar-hint { margin-left: 4px; font-weight: 400; color: var(--color-dark-gray); }
+.db-bar-count { flex-shrink: 0; color: var(--color-dark-gray); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.db-bar-count strong { color: var(--theme-card-text); }
+.db-bar-track { height: 6px; margin-top: 6px; border-radius: 999px; background: var(--theme-bg-color); overflow: hidden; }
+.db-bar-track span { display: block; height: 100%; min-width: 0; border-radius: inherit; background: var(--theme-btn-primary-bg); }
+.db-days .db-empty, .db-top .db-empty { padding: 0 20px; }
+.db-days-table th, .db-days-table td, .db-top-table th, .db-top-table td { padding: 10px 20px; }
+.db-days-table tfoot th, .db-days-table tfoot td { border-bottom: 0; font-weight: 700; color: var(--theme-card-text); background: transparent; text-transform: none; letter-spacing: 0; font-size: 14px; }
+.db-num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.db-top-name { min-width: 160px; font-weight: 600; overflow-wrap: anywhere; }
+.db-top-stamps { white-space: nowrap; color: var(--color-dark-gray); }
+.db-top-stamps strong { color: var(--theme-card-text); }
+.db-top-names { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.45; color: var(--color-dark-gray); }
+.db-top-date { white-space: nowrap; color: var(--color-dark-gray); }
+.db-empty.is-error { color: #b91c1c; }
 #db-panel-system .intervention-alerts-list { padding: 10px 20px 16px; }
 .db-status-rows { display: flex; flex-direction: column; padding: 6px 20px 14px; }
 .db-status-row { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--l3-card-edge); font-size: 14px; color: var(--theme-card-text); }
 .db-status-row:last-child { border-bottom: 0; }
 .db-status-row > span:first-child { display: inline-flex; color: var(--color-dark-gray); }
-@media (max-width: 1280px) { .db-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1100px) { .db-charts, .db-two { grid-template-columns: 1fr; } .db-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1280px) { .db-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .db-tiles-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .db-charts, .db-two, .db-visitors-row { grid-template-columns: 1fr; } .db-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+    .db-bars { grid-template-columns: 1fr; }
+    .db-bar-hint { display: block; margin: 1px 0 0; }
+    /* each visitor of Most stamps becomes a small block: the name, the stamps, then the numbers with their names */
+    #journey-passport-list .db-top-table thead { display: none; }
+    #journey-passport-list .db-top-table, #journey-passport-list .db-top-table tbody, #journey-passport-list .db-top-table tr { display: block; }
+    #journey-passport-list .db-top-table tr { padding: 12px 20px; border-bottom: 1px solid var(--theme-border-color); }
+    #journey-passport-list .db-top-table tr:last-child { border-bottom: 0; }
+    #journey-passport-list .db-top-table td { display: block; padding: 0; border: 0; }
+    #journey-passport-list .db-top-table td + td { margin-top: 3px; }
+    #journey-passport-list .db-top-table td[data-label] { display: inline-block; margin: 6px 14px 0 0; font-size: 12.5px; color: var(--color-dark-gray); text-align: left !important; }
+    #journey-passport-list .db-top-table td[data-label]::before { content: attr(data-label) " "; }
+    #journey-passport-list .db-top-table tbody tr:hover { background: var(--theme-bg-color); }
+    #journey-passport-list .db-top-table tbody tr:hover td { background: transparent; }
+}
 @media (max-width: 760px) {
     .db-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .db-cards, .db-passport-stats { grid-template-columns: 1fr 1fr; }
     .db-cards { grid-template-columns: 1fr; }
     .db-tabs { overflow-x: auto; }
     .db-tabs .ui-tab { flex-shrink: 0; }
@@ -7578,7 +7601,7 @@ input:checked + .slider:before {
 
 /* Role 3 pages share the schedule page's content padding (the other pages pad themselves) */
 /* <Jun Kai start> */
-#health-page, #incidents-page, #hardware-page, #visitor-archive-page { min-height: 100%; padding: 30px; }
+#health-page, #incidents-page, #hardware-page, #visitor-archive-page, #ai-settings-page { min-height: 100%; padding: 30px; }
 /* <Jun Kai end> */
 #server-schedule-page .ui-table td { font-weight: 400; }
 
@@ -9463,4 +9486,30 @@ html[data-theme="dark"] .pb-heart { color: #fb7185; }
    mode the kit's own link colour is a lighter blue: the button blue read only about 3:1 on the dark cards. A theme sets
    --l3-link itself (themes.js, themeKitLight and themeKitDark). */
 html[data-theme="dark"] { --l3-link: #60a5fa; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Users: the Add user and Edit user dialogs (va-dialog) with the three role cards */
+.users-dialog { width: min(640px, calc(100vw - 32px)); }
+.users-dialog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+.users-dialog .ui-field { min-width: 0; margin: 0 0 14px; }
+.users-dialog .ui-input:disabled { background: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
+.users-roles { min-width: 0; margin: 4px 0 0; padding: 0; border: 0; }
+.users-roles legend { margin: 0 0 8px; padding: 0; }
+.users-role { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 12px; cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease; }
+.users-role + .users-role { margin-top: 8px; }
+.users-role:hover { border-color: color-mix(in srgb, var(--theme-btn-primary-bg) 45%, var(--theme-border-color)); }
+.users-role:has(input:checked) { border-color: var(--theme-btn-primary-bg); background: color-mix(in srgb, var(--theme-btn-primary-bg) 7%, transparent); box-shadow: inset 0 0 0 1px var(--theme-btn-primary-bg); }
+.users-role input { flex-shrink: 0; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--theme-btn-primary-bg); cursor: pointer; }
+.users-role input:focus-visible { outline: 2px solid var(--l3-focus, var(--theme-btn-primary-bg)); outline-offset: 2px; }
+.users-role-text { min-width: 0; }
+.users-role-name { display: block; font-size: 14px; font-weight: 700; line-height: 1.35; color: var(--theme-text-color); }
+.users-role-lead { display: block; font-size: 13px; line-height: 1.4; color: var(--color-dark-gray); }
+.users-role ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
+.users-role li + li { margin-top: 2px; }
+.users-root-role { padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 12px; }
+.users-root-role p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+.users-root-role strong { color: var(--theme-text-color); }
+.users-dialog-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: #fef2f2; font-size: 13px; line-height: 1.5; color: #b91c1c; }
+@media (max-width: 560px) { .users-dialog-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .users-role { transition: none; } }
 /* <Jun Kai end> */

@@ -296,111 +296,103 @@ async function loadInterventionAlerts() {
     }
 }
 
-function setPassportStatus(text, className = '') {
-    const status = document.getElementById('journey-passport-status');
-    if (!status) return;
-    status.textContent = text;
-    status.className = `journey-passport-status ${className}`.trim();
+// <Jun Kai start> Visitors tab (26 Nov 2026): the Journey Passport as bars (how many visitors earned each stamp) and a
+// table of the visitors with the most stamps. The stamp keys and topic keys come from buildJourneyPassport (admin routes).
+const DB_STAMP_HINTS = {
+    firstFeedback: 'sent feedback',
+    firstPledge: 'made a pledge',
+    photoKeepsake: 'took a photo or got the keepsake email',
+    likedPledge: 'got a like on a pledge',
+    repeatVisitor: 'came back again',
+    topicExplorer: 'pledged on 2 or more topics'
+};
+
+function dbSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
 }
 
-function updatePassportMetric(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
+function dbBar(label, hint, count, total) {
+    const share = total > 0 ? Math.round((count / total) * 100) : 0;
+    return `<div class="db-bar">
+        <div class="db-bar-top">
+            <span class="db-bar-label">${escapeHtmlSafe(label)} <span class="db-bar-hint">${escapeHtmlSafe(hint)}</span></span>
+            <span class="db-bar-count"><strong>${count.toLocaleString()}</strong> of ${total.toLocaleString()}</span>
+        </div>
+        <div class="db-bar-track" aria-hidden="true"><span style="width: ${share}%"></span></div>
+    </div>`;
+}
+
+function dbTopicName(topic) {
+    const words = String(topic || '').replace(/-/g, ' ');
+    return words; // the group title already says these are pledge topics
+}
+
+function dbShortDate(value) {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No date';
 }
 
 function renderJourneyPassport(passport) {
+    const bars = document.getElementById('journey-passport-breakdown');
     const list = document.getElementById('journey-passport-list');
-    const breakdown = document.getElementById('journey-passport-breakdown');
-    if (!list) return;
-
+    if (!bars || !list) return;
     const summary = passport?.summary || {};
-    const topPassports = Array.isArray(passport?.topPassports) ? passport.topPassports : [];
-    const stampBreakdown = Array.isArray(passport?.stampBreakdown) ? passport.stampBreakdown : [];
-    const topicBreakdown = Array.isArray(passport?.topicBreakdown) ? passport.topicBreakdown : [];
+    const holders = Number(summary.passportHolders || 0);
+    const max = Number(summary.maxStamps || 12);
+    const stamps = Array.isArray(passport?.stampBreakdown) ? passport.stampBreakdown : [];
+    const topics = Array.isArray(passport?.topicBreakdown) ? passport.topicBreakdown : [];
+    const top = Array.isArray(passport?.topPassports) ? passport.topPassports : [];
 
-    updatePassportMetric('passport-holder-count', summary.passportHolders || 0);
-    updatePassportMetric('passport-repeat-count', summary.repeatVisitors || 0);
-    updatePassportMetric('passport-stamp-count', summary.totalStamps || 0);
-    updatePassportMetric('passport-average-count', summary.averageStamps || 0);
-    updatePassportMetric('db-passport-count', summary.passportHolders || 0); // <Jun Kai/> the count on the tab
+    dbSetText('db-visitor-count', holders.toLocaleString());
+    dbSetText('db-passport-sub', holders
+        ? `Visitors collect a stamp for each thing they do at the kiosk, up to ${max}. A visitor has ${Number(summary.averageStamps || 0).toLocaleString()} on average.`
+        : `Visitors collect a stamp for each thing they do at the kiosk, up to ${max}.`);
 
-    setPassportStatus(topPassports.length > 0 ? `${topPassports.length} shown` : 'No passports yet', topPassports.length > 0 ? 'is-ready' : '');
-
-    if (breakdown) {
-        const activeStamps = stampBreakdown.filter(stamp => Number(stamp.count || 0) > 0);
-        const activeTopics = topicBreakdown.filter(topic => Number(topic.count || 0) > 0);
-        if (activeStamps.length === 0 && activeTopics.length === 0) {
-            breakdown.innerHTML = '<p class="journey-passport-empty">Passport stamp breakdown will appear after visitor milestones are earned.</p>';
-        } else {
-            const stampHtml = activeStamps.map(stamp => `
-                <span class="journey-breakdown-chip">
-                    ${escapeHtmlSafe(stamp.label || 'Stamp')}
-                    <strong>${escapeHtmlSafe(String(stamp.count || 0))}</strong>
-                </span>
-            `).join('');
-            const topicHtml = activeTopics.map(topic => `
-                <span class="journey-breakdown-chip journey-breakdown-topic">
-                    ${escapeHtmlSafe(topic.label || 'Topic')}
-                    <strong>${escapeHtmlSafe(String(topic.count || 0))}</strong>
-                </span>
-            `).join('');
-            breakdown.innerHTML = `
-                <div class="journey-breakdown-group" aria-label="Milestone stamp totals">${stampHtml}</div>
-                ${topicHtml ? `<div class="journey-breakdown-group" aria-label="Topic badge totals">${topicHtml}</div>` : ''}
-            `;
-        }
-    }
-
-    if (topPassports.length === 0) {
-        list.innerHTML = '<p class="journey-passport-empty">No visitor passport milestones available yet.</p>';
+    if (!holders) {
+        bars.innerHTML = '<p class="db-empty">No visitor has a stamp yet. The first stamp comes with a visitor\'s first feedback.</p>';
+        list.innerHTML = '<p class="db-empty">No visitors yet.</p>';
         return;
     }
 
-    list.innerHTML = topPassports.map(visitor => {
-        const stamps = Array.isArray(visitor.stamps) ? visitor.stamps : [];
-        const topicBadges = Array.isArray(visitor.topicBadges) ? visitor.topicBadges : [];
-        const lastSeen = visitor.lastSeen ? new Date(visitor.lastSeen).toLocaleDateString() : 'No date';
-        const stampHtml = stamps.map(stamp => `
-            <span class="journey-stamp" title="${escapeHtmlSafe(stamp.detail || '')}">
-                ${escapeHtmlSafe(stamp.label || 'Stamp')}
-            </span>
-        `).join('');
-        const topicHtml = topicBadges.map(badge => `
-            <span class="journey-stamp journey-stamp-topic">
-                ${escapeHtmlSafe(badge.label || 'Topic Badge')}
-            </span>
-        `).join('');
+    bars.innerHTML = `<div class="db-bars-group">
+            <h4>Milestones</h4>
+            ${stamps.map((stamp) => dbBar(stamp.label || 'Stamp', DB_STAMP_HINTS[stamp.key] || '', Number(stamp.count || 0), holders)).join('')}
+        </div>
+        <div class="db-bars-group">
+            <h4>Pledge topics</h4>
+            ${topics.map((topic) => dbBar(topic.label || 'Topic', dbTopicName(topic.topic), Number(topic.count || 0), holders)).join('')}
+        </div>`;
 
-        return `
-            <article class="journey-passport-item">
-                <div class="journey-passport-avatar" aria-hidden="true">${escapeHtmlSafe(String(visitor.name || 'V').trim().charAt(0).toUpperCase() || 'V')}</div>
-                <div class="journey-passport-body">
-                    <div class="journey-passport-topline">
-                        <h4>${escapeHtmlSafe(visitor.name || 'Anonymous Visitor')}</h4>
-                        <span>${escapeHtmlSafe(String(visitor.stampCount || 0))} stamp${Number(visitor.stampCount || 0) === 1 ? '' : 's'}</span>
-                    </div>
-                    <div class="journey-passport-meta">
-                        ${escapeHtmlSafe(String(visitor.feedbackCount || 0))} feedback &bull;
-                        ${escapeHtmlSafe(String(visitor.pledgeCount || 0))} pledge${Number(visitor.pledgeCount || 0) === 1 ? '' : 's'} &bull;
-                        ${escapeHtmlSafe(String(visitor.likedPledgeCount || 0))} like${Number(visitor.likedPledgeCount || 0) === 1 ? '' : 's'} &bull;
-                        Last seen ${escapeHtmlSafe(lastSeen)}
-                    </div>
-                    <div class="journey-passport-progress" aria-label="Passport completion">
-                        <span style="width:${Math.max(0, Math.min(100, Number(visitor.progressPercent || 0)))}%"></span>
-                    </div>
-                    <div class="journey-passport-stamps">
-                        ${stampHtml || '<span class="journey-stamp journey-stamp-muted">First milestone pending</span>'}
-                        ${topicHtml}
-                    </div>
-                </div>
-            </article>
-        `;
-    }).join('');
+    list.innerHTML = `<table class="ui-table db-top-table">
+        <thead><tr><th scope="col">Visitor</th><th scope="col">Stamps</th><th scope="col" class="db-num">Feedback</th><th scope="col" class="db-num">Pledges</th><th scope="col" class="db-num">Likes</th><th scope="col">Last seen</th></tr></thead>
+        <tbody>${top.map((visitor) => {
+        const names = [...(visitor.stamps || []), ...(visitor.topicBadges || [])].map((stamp) => stamp.label).filter(Boolean);
+        return `<tr>
+            <td class="db-top-name">${escapeHtmlSafe(visitor.name || 'Anonymous visitor')}</td>
+            <td><span class="db-top-stamps"><strong>${Number(visitor.stampCount || 0)}</strong> of ${max}</span><span class="db-top-names">${escapeHtmlSafe(names.join(', '))}</span></td>
+            <td class="db-num" data-label="Feedback">${Number(visitor.feedbackCount || 0).toLocaleString()}</td>
+            <td class="db-num" data-label="Pledges">${Number(visitor.pledgeCount || 0).toLocaleString()}</td>
+            <td class="db-num" data-label="Likes">${Number(visitor.likedPledgeCount || 0).toLocaleString()}</td>
+            <td class="db-top-date" data-label="Last seen">${escapeHtmlSafe(dbShortDate(visitor.lastSeen))}</td>
+        </tr>`;
+    }).join('')}</tbody>
+    </table>`;
 }
+
+function renderJourneyPassportError(message) {
+    const text = `Could not load the Journey Passport: ${escapeHtmlSafe(message)}.`;
+    const retry = '<button type="button" class="ui-link" onclick="loadJourneyPassport()">Try again</button>';
+    const bars = document.getElementById('journey-passport-breakdown');
+    const list = document.getElementById('journey-passport-list');
+    if (bars) bars.innerHTML = `<p class="db-empty is-error">${text} ${retry}</p>`;
+    if (list) list.innerHTML = `<p class="db-empty is-error">${text}</p>`;
+    dbSetText('db-visitor-count', '-');
+}
+// <Jun Kai end>
 
 async function loadJourneyPassport() {
     try {
-        setPassportStatus('Loading...');
         const response = await fetch('/api/admin/journey-passport', {
             credentials: 'include',
             cache: 'no-store'
@@ -408,24 +400,16 @@ async function loadJourneyPassport() {
         const contentType = response.headers.get('content-type') || '';
         const data = contentType.includes('application/json')
             ? await response.json()
-            : { success: false, error: 'Journey passport endpoint is not available. Restart the backend server to load the new route.' };
+            : { success: false, error: 'the server did not answer with data' };
 
         if (!response.ok || !data.success) {
-            throw new Error(data.error || 'Failed to load journey passport');
+            throw new Error(data.error || `HTTP ${response.status}`);
         }
 
         renderJourneyPassport(data.passport || {});
     } catch (error) {
         console.error('Error loading journey passport:', error);
-        setPassportStatus('Unavailable', 'is-error');
-        const list = document.getElementById('journey-passport-list');
-        const breakdown = document.getElementById('journey-passport-breakdown');
-        if (list) {
-            list.innerHTML = `<p class="journey-passport-empty journey-passport-error">${escapeHtmlSafe(error.message || 'Unable to load journey passport data.')}</p>`;
-        }
-        if (breakdown) {
-            breakdown.innerHTML = '';
-        }
+        renderJourneyPassportError(error.message || 'unknown error'); // <Jun Kai/>
     }
 }
 
@@ -791,13 +775,12 @@ function createFeedbackDistributionChart(stats) {
         legend.innerHTML = `<span><i class="db-key db-key-green"></i>With email ${withEmail.toLocaleString()}</span>
             <span><i class="db-key db-key-grey"></i>Without email ${withoutEmail.toLocaleString()}</span>`;
     }
-    const facts = document.getElementById('db-breakdown-list');
-    if (facts) {
-        facts.innerHTML = [
-            ['With an email', withEmail], ['Without an email', withoutEmail],
-            ['With a photo', Number(stats.withPhoto || 0)], ['Kept long term', Number(stats.longterm || 0)]
-        ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value.toLocaleString()}</dd></div>`).join('');
-    }
+    // the Visitors tab: how much of all the feedback left an email, a photo or a long term yes
+    const allFeedback = withEmail + withoutEmail;
+    [['db-email', withEmail], ['db-photo', Number(stats.withPhoto || 0)], ['db-longterm', Number(stats.longterm || 0)]].forEach(([id, value]) => {
+        dbSetText(`${id}-count`, value.toLocaleString());
+        dbSetText(`${id}-note`, `of ${allFeedback.toLocaleString()} feedback`);
+    });
     const dark = document.documentElement.dataset.theme === 'dark';
     // <Jun Kai end>
 
@@ -1000,24 +983,18 @@ function updateDailyLeafPledgeSummary(data) {
     const pledgeData = data.pledgeData || [];
 
     if (!labels.length) {
-        listEl.innerHTML = '<p class="daily-leaf-empty">No daily leaf or pledge data available yet.</p>';
+        listEl.innerHTML = '<p class="db-empty">No leaves or pledges in the last 6 days.</p>'; // <Jun Kai/>
         return;
     }
 
-    listEl.innerHTML = labels.map((label, index) => {
-        const displayDate = escapeHtmlSafe(String(label).replace(/\n/g, ' '));
-        const leaves = Number(leafData[index] || 0);
-        const pledges = Number(pledgeData[index] || 0);
-        return `
-            <div class="daily-leaf-item">
-                <div class="daily-leaf-date">${displayDate}</div>
-                <div class="daily-leaf-counts">
-                    <span>Leaves <strong>${leaves.toLocaleString()}</strong></span>
-                    <span>Pledges <strong>${pledges.toLocaleString()}</strong></span>
-                </div>
-            </div>
-        `;
-    }).join('');
+    // <Jun Kai/> a small table with a total row (the Visitors tab)
+    const rows = labels.map((label, index) => ({ day: String(label).replace(/\n/g, ' '), leaves: Number(leafData[index] || 0), pledges: Number(pledgeData[index] || 0) }));
+    const total = rows.reduce((sum, row) => ({ leaves: sum.leaves + row.leaves, pledges: sum.pledges + row.pledges }), { leaves: 0, pledges: 0 });
+    listEl.innerHTML = `<table class="ui-table db-days-table">
+        <thead><tr><th scope="col">Day</th><th scope="col" class="db-num">Leaves</th><th scope="col" class="db-num">Pledges</th></tr></thead>
+        <tbody>${rows.map((row) => `<tr><td>${escapeHtmlSafe(row.day)}</td><td class="db-num">${row.leaves.toLocaleString()}</td><td class="db-num">${row.pledges.toLocaleString()}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><th scope="row">Total</th><td class="db-num">${total.leaves.toLocaleString()}</td><td class="db-num">${total.pledges.toLocaleString()}</td></tr></tfoot>
+    </table>`;
 }
 
 // Fallback for empty feedback distribution

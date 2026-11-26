@@ -46,6 +46,16 @@ Login, session timeout, navigation between the admin pages, the dashboard with i
 - Hardware usage graphs with statistical forecasting (no AI).
 - Policy-based hibernation, archive workflow, install and uninstall scripts, hide the email-pattern setting, set the sender address (see the archive, serverControl, email and parameters pages).
 
+**Dashboard, Visitors tab** (26 Nov 2026, Jun Kai; it replaces the old Visitors and Journey Passport tabs, so the Dashboard has three tabs: Overview, Visitors, System)
+
+- Four tiles: visitors who left feedback (from GET /api/admin/journey-passport), and of all feedback how much left an email, took a photo and was kept long term (from GET /api/admin/feedback-stats). The note under each says what it is counted against, for example "of 52 feedback".
+- Journey Passport: a bar for each of the six milestones (First Feedback, First Pledge, Photo Keepsake, Community Liked, Repeat Visitor, Topic Explorer) and each of the six pledge topic badges, as "N of all visitors", with a few words on what earns each one. The text above says the most stamps there are (12) and the average.
+- Last 6 days: leaves and pledges per day as a small table with a total row (GET /api/admin/leaf-pledge-trends).
+- Most stamps: the 10 visitors with the most stamps, with the stamp names, their feedback, pledges and likes and the last visit. On a phone each visitor becomes a small block.
+- No visitors yet, or a failed load, shows a sentence (and Try again) instead of empty bars.
+- Fixed in buildJourneyPassport (backend/features/admin/routes.js, code by Nick): the stamp totals counted visitors without feedback, so Repeat Visitor said 35 next to 31 repeat visitors; the totals now count the same visitors as the summary. The query only takes visitors with active feedback and has no row limit any more (LIMIT 1200 cut the counts on a busy kiosk). Every pledge topic is listed, 0 too, the stamp and topic keys are sent, `summary.maxStamps` says 12, and the list holds 10 visitors instead of 6.
+- Checked with build-check/check-visitors.js (22 steps, throwaway visitors with 12, 7 and 1 stamps, a very long name, no name and one without feedback).
+
 **Known issues (from the October 2026 review, line numbers refer to the layout before the restructure where noted)**
 
 - Fixed 19 Nov 2026: 36 routes of `backend/features/admin/routes.js` answered without a sign-in ("only 39 of about 108 admin routes use auth.requireAuth"). Now every route of that file starts with `auth.requireAuth` (any signed-in admin role: the dashboard numbers, the feedback list, the overlay and question lists, the email decrypt) or `auth.requireAuth, auth.requireAdmin` (system admin: users, VIPs, archive, audit log, every change to overlays and questions, the old download routes). Only `/login` and `/logout-audit` have none. The handlers used to take "who is asking" from an `x-username` header that fell back to `systemadmin`; they now use the admin of the session. The contract check "sign-in" in `tests/contracts/run.js` fails when a route of that file has no check as its first argument. The same check covers the `/admin` routes of `backend/features/pledgeboard/routes.js`, which got their sign-in check the same day (see pledgeboard.md). Routes in other files are not covered by it.

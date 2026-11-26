@@ -12,6 +12,15 @@
 
 System admin, IT admin and IT staff accounts with soft delete and restore. The seeded account is systemadmin.
 
+**What each role may do** (26 Nov 2026, Jun Kai; Add user and Edit user show it as three role cards)
+
+- System Admin: every page and every setting. The only role that can add users, show visitors' email addresses (decrypt), export visitor data and delete archived records for good. Routes behind `auth.requireAdmin` need this role.
+- IT Admin: the sidebar links without `data-admin-only` (10 now: Dashboard, Feedback, Pledgeboard, Feedback Reports, Tree Leaves, Tree Settings, System Health, Incidents, Hardware, Style & Theme). Can approve or reject pledges, acknowledge and resolve incidents (and give a verdict), send a test incident, rename a tablet, and delete one feedback entry. Cannot change settings, apart from their own theme and their own System Health layout. Starting an incident fix, saving Tree Settings, the Hardware alert lines and the VIP list are refused (403).
+- The change routes of System Admin pages need System Admin too (26 Nov 2026), not only a sign-in: Mail Account (PUT /email-config and its test), Operating Hours (every /server-schedules change, POST /server/start, /restart, /stop and /mode) and the Hardware settings (PUT /api/admin/hardware/settings). Photo Timer (PUT /countdown-management) and Start Screen Text (PUT /form-ui) follow in their own commit. Reading them stays open to every signed-in admin. Checked with build-check/check-admin-gates.js: IT Staff gets 403 on each, a System Admin gets through.
+- IT Staff: the same as IT Admin, but deleting feedback is refused (the check in DELETE /feedback/:id).
+- The page list on the IT Admin card is read from the sidebar, so it stays right when a page is added. The texts were checked on a test copy with throwaway IT Staff and IT Admin accounts: every page they can open loads without a refused request, and each action above gave the answer written here.
+- Add user starts with IT Staff (the least access) ticked. The windows are native dialogs (va-dialog): Escape closes them, the focus starts in the first field and goes back to the button that opened them, and a saved account shows a short note instead of an alert box.
+
 **Account emails** (26 Nov 2026, Jun Kai)
 
 - Every account has an email (migration 011, `admin_users.email`, unique). It is stored trimmed and in lower case; an account without one keeps NULL. The server adds the column by itself when the migration has not run yet.

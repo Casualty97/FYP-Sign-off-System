@@ -402,7 +402,6 @@
                     <div class="ui-tabs db-tabs" role="tablist" aria-label="Dashboard views">
                         <button type="button" role="tab" class="ui-tab" id="db-tab-overview" data-db-tab="overview" aria-selected="true" aria-controls="db-panel-overview">Overview</button>
                         <button type="button" role="tab" class="ui-tab" id="db-tab-visitors" data-db-tab="visitors" aria-selected="false" aria-controls="db-panel-visitors" tabindex="-1">Visitors</button>
-                        <button type="button" role="tab" class="ui-tab" id="db-tab-passport" data-db-tab="passport" aria-selected="false" aria-controls="db-panel-passport" tabindex="-1">Journey Passport <span class="ui-tab-count" id="db-passport-count">0</span></button>
                         <button type="button" role="tab" class="ui-tab" id="db-tab-system" data-db-tab="system" aria-selected="false" aria-controls="db-panel-system" tabindex="-1">System <span class="ui-tab-count db-count-alert" id="db-system-count" hidden>0</span></button>
                     </div>
 
@@ -469,38 +468,47 @@
                         </div>
                     </div>
 
+                    <!-- <Jun Kai start> Visitors (26 Nov 2026): the visitor numbers, the Journey Passport and the days in one tab.
+                         Visitors and stamps come from /journey-passport, the email, photo and long term numbers from
+                         /feedback-stats, the days from /leaf-pledge-trends. -->
                     <div id="db-panel-visitors" class="db-panel" role="tabpanel" aria-labelledby="db-tab-visitors" hidden>
-                        <div class="db-two">
-                            <section class="ui-card db-card" aria-labelledby="db-facts-title">
-                                <div class="db-card-head"><h3 id="db-facts-title">Feedback breakdown</h3></div>
-                                <dl class="db-facts" id="db-breakdown-list"></dl>
+                        <div class="db-tiles db-tiles-4">
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">Visitors</span><span class="ui-stat-value" id="db-visitor-count">0</span><span class="ui-stat-note">who left feedback</span></div>
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">Left an email</span><span class="ui-stat-value" id="db-email-count">0</span><span class="ui-stat-note" id="db-email-note">feedback</span></div>
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">Took a photo</span><span class="ui-stat-value" id="db-photo-count">0</span><span class="ui-stat-note" id="db-photo-note">feedback</span></div>
+                            <div class="ui-card ui-stat db-tile"><span class="ui-stat-label">Kept long term</span><span class="ui-stat-value" id="db-longterm-count">0</span><span class="ui-stat-note" id="db-longterm-note">feedback</span></div>
+                        </div>
+                        <div class="db-visitors-row">
+                            <section class="ui-card db-card" aria-labelledby="journey-passport-title">
+                                <div class="db-card-head">
+                                    <div>
+                                        <h3 id="journey-passport-title">Journey Passport</h3>
+                                        <p class="db-card-sub" id="db-passport-sub">Visitors collect a stamp for each thing they do at the kiosk.</p>
+                                    </div>
+                                </div>
+                                <div id="journey-passport-breakdown" class="db-bars"><p class="db-empty">Loading...</p></div>
                             </section>
                             <section class="ui-card db-card" aria-labelledby="db-days-title">
-                                <div class="db-card-head"><h3 id="db-days-title">Leaves and pledges per day</h3></div>
-                                <div id="daily-leaf-list" class="db-day-list"><p class="db-empty">Loading...</p></div>
+                                <div class="db-card-head">
+                                    <div>
+                                        <h3 id="db-days-title">Last 6 days</h3>
+                                        <p class="db-card-sub">Leaves and pledges each day</p>
+                                    </div>
+                                </div>
+                                <div id="daily-leaf-list" class="db-days"><p class="db-empty">Loading...</p></div>
                             </section>
                         </div>
-                    </div>
-
-                    <div id="db-panel-passport" class="db-panel" role="tabpanel" aria-labelledby="db-tab-passport" hidden>
-                        <section class="ui-card db-card" aria-labelledby="journey-passport-title">
+                        <section class="ui-card db-card db-top" aria-labelledby="db-top-title">
                             <div class="db-card-head">
                                 <div>
-                                    <h3 id="journey-passport-title">Journey Passport</h3>
-                                    <p class="db-card-sub">Visitor milestones across feedback, pledges, keepsakes and repeat visits</p>
+                                    <h3 id="db-top-title">Most stamps</h3>
+                                    <p class="db-card-sub">The visitors with the most stamps</p>
                                 </div>
-                                <span id="journey-passport-status" class="journey-passport-status">Loading...</span>
                             </div>
-                            <div class="db-passport-stats">
-                                <div><span>Passport holders</span><strong id="passport-holder-count">0</strong></div>
-                                <div><span>Repeat visitors</span><strong id="passport-repeat-count">0</strong></div>
-                                <div><span>Total stamps</span><strong id="passport-stamp-count">0</strong></div>
-                                <div><span>Average stamps</span><strong id="passport-average-count">0</strong></div>
-                            </div>
-                            <div id="journey-passport-breakdown" class="journey-passport-breakdown"><p class="journey-passport-empty">Loading...</p></div>
-                            <div id="journey-passport-list" class="journey-passport-list"><p class="journey-passport-empty">Loading...</p></div>
+                            <div id="journey-passport-list" class="ui-table-wrap"><p class="db-empty">Loading...</p></div>
                         </section>
                     </div>
+                    <!-- <Jun Kai end> -->
 
                     <div id="db-panel-system" class="db-panel" role="tabpanel" aria-labelledby="db-tab-system" hidden>
                         <div class="db-two">
