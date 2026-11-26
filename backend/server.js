@@ -486,6 +486,13 @@ app.use('/api/admin/email', emailAdminRoutes);
 app.use('/api/admin/visitor-archive', visitorArchiveRoutes);
 app.use('/api/admin/aiops', aiopsRoutes);
 // <Jun Kai end>
+// <Jun Kai start> a forgotten admin password: a code and a link by email (backend/features/passwordReset). Open without a
+// sign-in, on this admin server only. The link starts with the PC's own address, never with the Host header.
+const { router: passwordResetRouter, configure: configurePasswordReset } = require('./features/passwordReset/routes');
+configurePasswordReset({ linkBase: () => `${sslOptions ? 'https' : 'http'}://${addressNow()}:${PORT}` });
+app.use('/api/admin/password-reset', passwordResetRouter);
+if (process.env.PASSWORD_RESET_TEST_OUTBOX) console.warn('⚠️  PASSWORD_RESET_TEST_OUTBOX is set: reset emails are written to that file instead of being sent (tests only)');
+// <Jun Kai end>
 app.use('/api/admin', assetRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/data-export', dataExportRoutes);

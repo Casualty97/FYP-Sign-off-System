@@ -9,6 +9,8 @@
 
 **What it does**
 
+The login card has "Forgot password?": a code or a link by email resets the password (docs/features/users.md).
+
 Login, session timeout, navigation between the admin pages, the dashboard with its charts and alerts, and the feedback data table. The router file still holds every admin route group; each owner extracts theirs into backend/features/<feature>/routes.js when they first work on it (see "Extracting a route group" below).
 
 **Routes** (from tests/contracts/routes.snapshot.txt)

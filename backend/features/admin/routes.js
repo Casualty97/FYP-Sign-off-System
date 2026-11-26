@@ -257,6 +257,21 @@ const adminSessions = require('../../core/adminSessions'); // <Jun Kai/> ends th
 const { forLog } = require('../../core/log'); // <Jun Kai/> request values are printed without line breaks
 const requestLimit = require('../../core/requestLimit'); // <Jun Kai/> request limits per address
 const lostFoundContact = require('../lostFound/contact'); // <Jun Kai/> the encrypted Lost & Found contact
+const accountEmail = require('../../core/accountEmail'); // <Jun Kai/> account emails and the password rule
+const passwordReset = require('../passwordReset/routes'); // <Jun Kai/> an edit or delete ends an open password reset
+// <Jun Kai/> after an edit: a new email or a password set by an admin ends the open reset; the old address hears of a new email
+function afterAccountEdit(target, { emailChanged, newEmail, passwordChanged, by }) {
+    if (emailChanged || passwordChanged) passwordReset.endResetsOf(target.id).catch((err) => console.error('Ending a password reset failed:', err.message));
+    if (emailChanged && target.email && newEmail) {
+        const when = new Date().toLocaleString('en-SG', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+        passwordReset.mailer.sendEmailChanged(target.email, { username: target.username, newEmail, by, when }).catch(() => {});
+    }
+}
+// <Jun Kai/> the email column (migration 011) exists before a user route reads or writes it
+const ensureEmailColumn = (req, res, next) => accountEmail.ensureColumn(db).then(() => next(), (err) => {
+    console.error('Could not add the admin_users.email column:', err.message);
+    res.status(500).json({ success: false, error: 'The database could not be updated for account emails. Run npm run db:migrate.' });
+});
 const loginLimit = require('../../core/loginLimit'); // a limit on wrong passwords at the sign-in
 const { csvCell } = require('../../core/csv'); // one CSV cell: 0 is kept, dates in Singapore time, no formulas
 // <Jun Kai end>
@@ -3539,7 +3554,7 @@ router.post('/decrypt-email', auth.requireAuth, requestLimit.passwordChecks, (re
 // ==================== 11. ADMIN USER MANAGEMENT ROUTES  ====================
 
 // Get all ACTIVE admin users (excludes soft-deleted users)
-router.get('/users', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
+router.get('/users', auth.requireAuth, auth.requireAdmin, ensureEmailColumn, (req, res) => { // <Jun Kai/> system admins only
     console.debug('👥 Fetching active admin users...');
     
     // First check if admin_users table exists
@@ -3568,11 +3583,12 @@ router.get('/users', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Ju
                 id,
                 username,
                 full_name,
+                email,
                 role,
                 is_active,
                 created_at,
                 last_login
-            FROM admin_users 
+            FROM admin_users
             WHERE is_deleted = 0
             ORDER BY created_at DESC
         `;
@@ -3593,6 +3609,7 @@ router.get('/users', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Ju
                 id: user.id,
                 username: user.username || 'Unknown',
                 full_name: user.full_name || user.username || 'Unknown',
+                email: user.email || null, // <Jun Kai/>
                 role: user.role || 'IT_staff',
                 department: 'IT',
                 is_active: user.is_active !== undefined ? user.is_active : 1,
@@ -3610,7 +3627,7 @@ router.get('/users', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Ju
 });
 
 // Get all DELETED admin users (soft-deleted only)
-router.get('/users/deleted', auth.requireAuth, auth.requireAdmin, (req, res) => { // <Jun Kai/> system admins only
+router.get('/users/deleted', auth.requireAuth, auth.requireAdmin, ensureEmailColumn, (req, res) => { // <Jun Kai/> system admins only
     console.debug('🗑️ Fetching deleted admin users...');
     
     // SOFT DELETE: Only get users where is_deleted = 1 (deleted users)
@@ -3619,6 +3636,7 @@ router.get('/users/deleted', auth.requireAuth, auth.requireAdmin, (req, res) => 
             id,
             username,
             full_name,
+            email,
             role,
             is_active,
             created_at,
@@ -3646,6 +3664,7 @@ router.get('/users/deleted', auth.requireAuth, auth.requireAdmin, (req, res) => 
             id: user.id,
             username: user.username || 'Unknown',
             full_name: user.full_name || user.username || 'Unknown',
+            email: user.email || null, // <Jun Kai/>
             role: user.role || 'IT_staff',
             department: 'IT',
             is_active: user.is_active !== undefined ? user.is_active : 1,
@@ -3665,7 +3684,7 @@ router.get('/users/deleted', auth.requireAuth, auth.requireAdmin, (req, res) => 
 });
 
 // Add new admin user to save full_name
-router.post('/users', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
+router.post('/users', auth.requireAuth, auth.requireAdmin, ensureEmailColumn, async (req, res) => { // <Jun Kai/> system admins only
     const { username, full_name, role, password } = req.body;
     const currentUsername = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
     
@@ -3690,6 +3709,11 @@ router.post('/users', auth.requireAuth, auth.requireAdmin, async (req, res) => {
         if (!username || !full_name || !password || !role) {
             return res.status(400).json({ error: 'Username, full name, password and role are required' });
         }
+        // <Jun Kai start> the email (to reset a forgotten password) and the password rule, checked on the server too
+        const email = accountEmail.normalizeEmail(req.body.email);
+        const problem = accountEmail.emailProblem(email, { required: true }) || accountEmail.passwordProblem(password, username);
+        if (problem) return res.status(400).json({ error: problem });
+        // <Jun Kai end>
         
         const validRoles = ['system_admin', 'IT_admin', 'IT_staff'];
         if (!validRoles.includes(role)) {
@@ -3700,6 +3724,7 @@ router.post('/users', auth.requireAuth, auth.requireAdmin, async (req, res) => {
         const checkUsernameQuery = 'SELECT id, is_deleted FROM admin_users WHERE username = ?';
         
         db.get(checkUsernameQuery, [username], async (err, existingUser) => {
+            const emailTaken = await new Promise((resolve) => db.get('SELECT id FROM admin_users WHERE email = ?', [email], (e, row) => resolve(!e && !!row))); // <Jun Kai/>
             if (err) {
                 console.error('❌ Error checking username:', err);
                 return res.status(500).json({ error: 'Database error: ' + err.message });
@@ -3712,6 +3737,7 @@ router.post('/users', auth.requireAuth, auth.requireAdmin, async (req, res) => {
                     return res.status(400).json({ error: 'Username already exists' });
                 }
             }
+            if (emailTaken) return res.status(400).json({ error: 'That email is already used by another account.' }); // <Jun Kai/>
             
             // Hash the password
             try {
@@ -3719,11 +3745,12 @@ router.post('/users', auth.requireAuth, auth.requireAdmin, async (req, res) => {
                 
                 // Insert new user WITH full_name
                 const insertQuery = `
-                    INSERT INTO admin_users (username, full_name, password_hash, role, created_at, is_active, is_deleted)
-                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 1, 0)
+                    INSERT INTO admin_users (username, full_name, email, password_hash, role, created_at, is_active, is_deleted)
+                    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1, 0)
                 `;
                 
-                db.run(insertQuery, [username, full_name, hashedPassword, role], function(err) {
+                db.run(insertQuery, [username, full_name, email, hashedPassword, role], function(err) { // <Jun Kai/> email
+                    if (accountEmail.isDuplicateEmail(err)) return res.status(400).json({ error: 'That email is already used by another account.' }); // <Jun Kai/>
                     if (err) {
                         console.error('❌ Error inserting user:', err);
                         return res.status(500).json({ error: 'Database error: ' + err.message });
@@ -3830,6 +3857,7 @@ router.delete('/users/:id', auth.requireAuth, auth.requireAdmin, (req, res) => {
                     return res.status(404).json({ error: 'User not found or already deleted' });
                 }
                 adminSessions.end(targetUser.id); // <Jun Kai/> a deleted admin is signed out wherever it is signed in
+                passwordReset.endResetsOf(targetUser.id).catch(() => {}); // <Jun Kai/> and cannot finish a password reset
                 
                 res.json({ 
                     success: true, 
@@ -3972,10 +4000,18 @@ router.delete('/users/:id/permanent', auth.requireAuth, auth.requireAdmin, (req,
 
 
 
-router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) => { // <Jun Kai/> system admins only
+router.put('/users/:id', auth.requireAuth, auth.requireAdmin, ensureEmailColumn, async (req, res) => { // <Jun Kai/> system admins only
     const { id } = req.params;
     const { username, full_name, role, password } = req.body;
     const currentUsername = req.session.user.username; // <Jun Kai/> the signed-in admin, not a name the browser sends
+    // <Jun Kai start> the email only changes when the request sends one; a new password follows the account rule
+    const emailSent = Object.prototype.hasOwnProperty.call(req.body || {}, 'email');
+    const email = emailSent ? accountEmail.normalizeEmail(req.body.email) : undefined;
+    const emailBad = emailSent ? accountEmail.emailProblem(email) : null;
+    if (emailBad) return res.status(400).json({ error: emailBad });
+    const passwordBad = password && password.trim() !== '' ? accountEmail.passwordProblem(password, username || '') : null;
+    if (passwordBad) return res.status(400).json({ error: passwordBad });
+    // <Jun Kai end>
     logAudit('EDIT_USER', currentUsername, 'user', id, req); // <Jun Kai/> the admin who made the edit, not the account that was edited
     
     console.debug('✏️ Updating admin user:', { id, username, full_name, role, currentUsername });
@@ -4005,8 +4041,18 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
             if (!targetUser) {
                 return res.status(404).json({ error: 'User not found' });
             }
-            
-            
+
+            // <Jun Kai start>
+            if (emailSent && !email && targetUser.email) {
+                return res.status(400).json({ error: 'The email cannot be removed: it is needed to reset a forgotten password. Enter another one instead.' });
+            }
+            if (emailSent && email && email !== targetUser.email) {
+                const taken = await new Promise((resolve) => db.get('SELECT id FROM admin_users WHERE email = ? AND id != ?', [email, id], (e, row) => resolve(!e && !!row)));
+                if (taken) return res.status(400).json({ error: 'That email is already used by another account.' });
+            }
+            const emailChanged = emailSent && email !== (targetUser.email || null);
+            // <Jun Kai end>
+
             if (targetUser.username === 'systemadmin') {
                 // Check if the current user IS the systemadmin
                 if (currentUsername === 'systemadmin') {
@@ -4069,7 +4115,12 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                     updateFields.push('full_name = ?');
                     updateParams.push(full_name);
                 }
-                
+                // <Jun Kai/> the root's email, changed only by the root itself (checked above)
+                if (emailChanged) {
+                    updateFields.push('email = ?');
+                    updateParams.push(email);
+                }
+
                 // Include password if provided
                 if (password && password.trim() !== '') {
                     try {
@@ -4093,6 +4144,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                 console.debug('📝 Executing systemadmin self-update query');
                 
                 db.run(updateQuery, updateParams, function(err) {
+                    if (accountEmail.isDuplicateEmail(err)) return res.status(400).json({ error: 'That email is already used by another account.' }); // <Jun Kai/>
                     if (err) {
                         console.error('❌ Error updating systemadmin account:', err);
                         return res.status(500).json({ error: 'Failed to update account: ' + err.message });
@@ -4101,6 +4153,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                     console.debug('✅ systemadmin account updated successfully:', { changes: this.changes, id });
                     // <Jun Kai start> a new password signs the account out everywhere but on this browser
                     adminSessions.accountChanged(req, targetUser, { passwordChanged: !!(password && password.trim() !== '') });
+                    afterAccountEdit(targetUser, { emailChanged, newEmail: email, passwordChanged: !!(password && password.trim() !== ''), by: currentUsername }); // <Jun Kai/>
                     // <Jun Kai end>
                     
                     // Get the updated user data
@@ -4123,6 +4176,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                                 id: updatedUser.id,
                                 username: updatedUser.username,
                                 full_name: updatedUser.full_name,
+                                email: updatedUser.email || null, // <Jun Kai/>
                                 role: updatedUser.role
                             }
                         });
@@ -4151,6 +4205,11 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                     updateFields.push('role = ?');
                     updateParams.push(role);
                 }
+
+                if (emailChanged) { // <Jun Kai/>
+                    updateFields.push('email = ?');
+                    updateParams.push(email);
+                }
                 
                 if (password && password.trim() !== '') {
                     try {
@@ -4171,6 +4230,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                 updateParams.push(id);
                 
                 db.run(updateQuery, updateParams, function(err) {
+                    if (accountEmail.isDuplicateEmail(err)) return res.status(400).json({ error: 'That email is already used by another account.' }); // <Jun Kai/>
                     if (err) {
                         console.error('❌ Error updating user:', err);
                         return res.status(500).json({ error: 'Failed to update user: ' + err.message });
@@ -4180,6 +4240,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                     // <Jun Kai start> a session holds the name and role from the sign-in: an account with a new name,
                     // role or password signs in again; an admin who edited their own account stays signed in here
                     adminSessions.accountChanged(req, targetUser, { username, role, passwordChanged: !!(password && password.trim() !== '') });
+                    afterAccountEdit(targetUser, { emailChanged, newEmail: email, passwordChanged: !!(password && password.trim() !== ''), by: currentUsername }); // <Jun Kai/>
                     // <Jun Kai end>
                     
                     // Get the updated user data
@@ -4202,6 +4263,7 @@ router.put('/users/:id', auth.requireAuth, auth.requireAdmin, async (req, res) =
                                 id: updatedUser.id,
                                 username: updatedUser.username,
                                 full_name: updatedUser.full_name,
+                                email: updatedUser.email || null, // <Jun Kai/>
                                 role: updatedUser.role
                             }
                         });
@@ -5579,24 +5641,14 @@ router.post('/saved-themes', auth.requireAuth, (req, res) => {
         }
         
         // If this theme should be active, deactivate all other themes for this user
-        if (is_active) {
-            const deactivateQuery = 'UPDATE saved_themes SET is_active = 0 WHERE admin_user_id = ?';
-            db.run(deactivateQuery, [adminUserId], (deactivateErr) => {
-                if (deactivateErr) {
-                    console.error('❌ Error deactivating themes:', deactivateErr);
-                }
-            });
-        }
-        
-        // Insert the new theme
+        // <Jun Kai start> the new theme is inserted only after the other themes were switched off: both used to run at
+        // the same time, and when the switch-off finished last the new theme was not in use although it was asked for
         const insertQuery = `
             INSERT INTO saved_themes (admin_user_id, theme_name, theme_data, is_active)
             VALUES (?, ?, ?, ?)
         `;
-        
         const themeDataJson = JSON.stringify(theme_data);
-        
-        db.run(insertQuery, [adminUserId, theme_name, themeDataJson, is_active ? 1 : 0], function(insertErr) {
+        const insertTheme = () => db.run(insertQuery, [adminUserId, theme_name, themeDataJson, is_active ? 1 : 0], function(insertErr) {
             if (insertErr) {
                 console.error('❌ Error saving theme:', insertErr);
                 return res.status(500).json({ 
@@ -5610,12 +5662,21 @@ router.post('/saved-themes', auth.requireAuth, (req, res) => {
             // Log audit trail
             logAudit('SAVE_THEME', req.session.user.username, 'saved_themes', this.lastID, req);
             
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 message: 'Theme saved successfully',
                 theme_id: this.lastID
             });
         });
+        if (!is_active) return insertTheme();
+        db.run('UPDATE saved_themes SET is_active = 0 WHERE admin_user_id = ?', [adminUserId], (deactivateErr) => {
+            if (deactivateErr) {
+                console.error('❌ Error deactivating themes:', deactivateErr);
+                return res.status(500).json({ success: false, error: 'Failed to save theme' });
+            }
+            insertTheme();
+        });
+        // <Jun Kai end>
     });
 });
 

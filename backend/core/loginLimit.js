@@ -49,6 +49,12 @@ function success(username, address) {
     tries.delete(nameKey(username, address));
 }
 
+// <Jun Kai/> after a password reset: the lock of that username ends on every address (the address counts stay)
+function forgetName(username) {
+    const start = `name:${String(username || '').trim().toLowerCase()}|`;
+    for (const key of [...tries.keys()]) if (key.startsWith(start)) tries.delete(key);
+}
+
 function prune(now) {
     for (const [key, entry] of tries) {
         if (entry.lockedUntil <= now && !entry.fails.some((time) => now - time < WINDOW_MS)) tries.delete(key);
@@ -65,5 +71,5 @@ function reset() {
     tries.clear();
 }
 
-module.exports = { check, fail, success, message, reset, MAX_PER_NAME, MAX_PER_ADDRESS, WINDOW_MS, LOCK_MS };
+module.exports = { check, fail, success, message, reset, forgetName, MAX_PER_NAME, MAX_PER_ADDRESS, WINDOW_MS, LOCK_MS };
 // <Jun Kai end>
