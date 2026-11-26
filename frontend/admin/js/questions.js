@@ -443,7 +443,7 @@ function editQuestion(questionId, currentQuestionText, questionType, isRequired,
     }
 
     // <Jun Kai start> the edit card opens under the question's own row; one question is edited at a time.
-    // The type and the options stay fixed, so old answers keep their meaning.
+    // The type and the options stay fixed, so old answers keep their meaning (the options show once, in the row).
     const id = Number(questionId);
     const open = document.getElementById('edit-question-form');
     if (open && Number(open.dataset.questionId) === id) {
@@ -468,7 +468,9 @@ function editQuestion(questionId, currentQuestionText, questionType, isRequired,
                 <div class="ui-field">
                     <span class="ui-label">Question type</span>
                     <div class="qs-fixed"><span class="ui-tag is-blue">${questionsEscape(formatQuestionType(questionType))}</span></div>
-                    <span class="ui-help">The type cannot be changed, so old answers keep their meaning.</span>
+                    <span class="ui-help">${questionType === 'choice' && options && options.length
+                        ? 'The type and the options (listed above) cannot be changed, so old answers keep their meaning.'
+                        : 'The type cannot be changed, so old answers keep their meaning.'}</span>
                 </div>
                 <div class="ui-field">
                     <label class="ui-label" for="edit-display-order">Display order</label>
@@ -490,12 +492,6 @@ function editQuestion(questionId, currentQuestionText, questionType, isRequired,
                     </label>
                 </div>
             </div>
-            ${questionType === 'choice' && options && options.length ? `
-            <div class="ui-field">
-                <span class="ui-label">Options</span>
-                ${questionOptionsHtml(options)}
-                <span class="ui-help">Options cannot be changed, so old answers keep their meaning.</span>
-            </div>` : ''}
             <p class="ui-help qs-note">Old answers keep the question as it was. A change only applies to new answers.</p>
             <div id="edit-question-error" class="qs-error" role="alert" style="display: none;"></div>
             <div class="qs-form-actions">
