@@ -7045,7 +7045,7 @@ input:checked + .slider:before {
 
 /* <Jun Kai start> Kiosk Settings in the new look (admin redesign, Parameter Adjustment B). The rules above stay for the
    Tree page, which shares some of them; everything here starts with the page id or a pa- class. */
-#parameter-adjustment-page { margin-top: 0; }
+#parameter-adjustment-page { --pa-unsaved: var(--color-warning); margin-top: 0; }
 /* the content column is a scroll container that never scrolls (the window does), which would stop the save bar from sticking */
 .page-content:has(> #parameter-adjustment-page.active) { overflow: visible; }
 #parameter-adjustment-page .pa-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -7066,14 +7066,14 @@ input:checked + .slider:before {
 .pa-behind { margin-top: 20px; }
 .pa-behind-list { display: flex; flex-wrap: wrap; gap: 10px; }
 .pa-behind-btn [data-fb-icon] { display: inline-flex; }
-.pa-behind-btn.is-active { border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14); }
+.pa-behind-btn.is-active { border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-btn-primary-bg) 16%, transparent); }
 .pa-settings-gap { margin-top: 18px; }
 /* unsaved changes: the line in the save bar and a dot on each step that has some */
 .pa-changes { display: inline-flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
-.pa-changes::before { content: ""; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: #d97706; }
+.pa-changes::before { content: ""; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--pa-unsaved); }
 .pa-changes[hidden] { display: none; }
 .pa-behind-btn { position: relative; }
-.pa-step.has-changes .pa-step-num::after, .pa-behind-btn.has-changes::after { content: ""; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; box-sizing: border-box; border: 2px solid var(--theme-card-bg); border-radius: 50%; background: #d97706; }
+.pa-step.has-changes .pa-step-num::after, .pa-behind-btn.has-changes::after { content: ""; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; box-sizing: border-box; border: 2px solid var(--theme-card-bg); border-radius: 50%; background: var(--pa-unsaved); }
 /* live preview beside the settings. The kiosk sketch keeps the kiosk's light colours in dark mode too: they are
    custom properties, which the dark mode twin rules in colorScheme.js leave as they are. */
 .pa-work.has-preview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); gap: 20px; align-items: start; }
@@ -7085,7 +7085,7 @@ input:checked + .slider:before {
 .pa-device { --pa-frame: #1e293b; --pa-ink: #0f172a; --pa-soft: #475569; --pa-line: #cbd5e1; --pa-green: #047857; --pa-screen-bg: linear-gradient(135deg, #ecfdf5, #eff6ff); --pa-card-bg: rgb(255 255 255 / var(--pa-card-alpha, 0.9)); --pa-btn-text: #ffffff; padding: 9px; border-radius: 22px; background: var(--pa-frame); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18); transition: opacity 0.2s ease; }
 .pa-device.is-off { opacity: 0.45; }
 .pa-preview-block .pa-device { max-width: 440px; margin: 0 auto; }
-.pa-screen { display: grid; place-items: center; gap: 10px; min-height: 300px; padding: 20px 16px; border-radius: 14px; background: var(--pa-screen-bg); background-size: cover; background-position: center; overflow: hidden; }
+.pa-screen { display: grid; place-items: center; gap: 10px; min-height: 300px; padding: 20px 16px; border-radius: 14px; background: var(--pa-screen-bg); background-size: cover; background-position: center; background-attachment: scroll; overflow: hidden; }
 .pa-screen-card { width: 100%; padding: 18px 16px; border-radius: 12px; background: var(--pa-card-bg); color: var(--pa-ink); text-align: center; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12); }
 .pa-screen-title { margin: 0 0 6px; font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--pa-ink); overflow-wrap: anywhere; }
 .pa-screen-text { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--pa-soft); overflow-wrap: anywhere; }

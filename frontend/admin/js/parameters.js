@@ -151,11 +151,10 @@ function updateParameterPreview() {
     preview.style.setProperty('--pa-accent', normalizeHexColor(getInputValue('param-feedbackAccentColor'), '#4a7c59'));
     preview.style.setProperty('--pa-card-alpha', String(clampNumber(getInputValue('param-feedbackCardOpacity'), 0.55, 1, 0.9)));
     const background = getInputValue('param-feedbackBackground');
+    // a custom property, so dark mode leaves the typed background as it is
     preview.querySelectorAll('.pa-screen').forEach((screen) => {
-        screen.style.background = '';
-        if (!background) return;
-        screen.style.background = background;
-        screen.style.backgroundAttachment = 'scroll';
+        if (background) screen.style.setProperty('--pa-screen-bg', background);
+        else screen.style.removeProperty('--pa-screen-bg');
     });
     showPreviewPart(preview, 'languages', getCheckedValue('flag-floatingLanguageSelectorEnabled'));
 
@@ -170,7 +169,8 @@ function updateParameterPreview() {
     showPreviewPart(preview, 'questions-required', getCheckedValue('rule-requiredQuestionsEnabled'));
 
     const campaignTitle = getInputValue('campaign-title');
-    const pledgeOn = getCheckedValue('flag-pledgeEnabled');
+    // a missing switch counts as on, like the kiosk (flags.pledgeEnabled !== false)
+    const pledgeOn = document.getElementById('flag-pledgeEnabled')?.checked ?? true;
     setPreviewText(preview, 'pledge', getInputValue('param-pledgePrompt'));
     setPreviewText(preview, 'coach', getCheckedValue('campaign-enabled') && campaignTitle ? `${campaignTitle}: Smart Pledge Coach` : 'Smart Pledge Coach');
     setPreviewText(preview, 'pledge-need', getCheckedValue('rule-pledgeRequired') ? '(required)' : '(optional)');
