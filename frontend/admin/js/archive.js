@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     const panel = document.getElementById('archive-delete-panel');
-    if (!panel || panel.hidden || document.querySelector('.modal-overlay, .password-prompt-modal')) return;
+    if (!panel || panel.hidden || document.querySelector('.modal-overlay, .password-prompt-modal, dialog[open]')) return; // <Jun Kai/> a kit window (native dialog) counts too
     closeArchiveDeletePanel();
 }, true);
 // <Jun Kai end>
