@@ -209,7 +209,9 @@ function prepareFeedbackReportsPage() {
         renderAnalysisModes();
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !document.getElementById('ai-cache-panel').hidden) closeAiCachePanel();
+        if (event.key !== 'Escape' || document.getElementById('ai-cache-panel').hidden) return;
+        if (document.querySelector('dialog[open]')) return; // <Jun Kai/> a kit window above the panel closes first
+        closeAiCachePanel();
     });
 }
 
@@ -417,7 +419,7 @@ function filterFeedbackItemsByDate(items, fromDate, toDate) {
 
 // Open modal to view feedback insights by sentiment (Done by Yu Kang)
 // <Jun Kai start> rebuilt as a kit window: the date filter on top, each item as plain text (visitor words never become
-// HTML), the count in a status pill under the title; Escape, Close or a click outside closes it
+// HTML), the count in a status pill under the title; Escape or Close closes it
 function openFeedbackInsightsModal(sentiment) {
     const normalizedSentiment = String(sentiment || '').toLowerCase();
     const items = getFeedbackInsightsBySentiment(normalizedSentiment);

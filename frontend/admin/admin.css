@@ -4160,6 +4160,7 @@ td {
 .kit-viewer .va-dialog-head > div { min-width: 0; }
 .kit-viewer-status { margin-right: auto; font-size: 12px; color: var(--color-muted); }
 .kit-viewer-status.is-error { color: #b91c1c; }
+html[data-theme="dark"] .kit-viewer-status.is-error { color: #fca5a5; }
 .kit-viewer-meta { margin: 14px 0 0; font-size: 12px; color: var(--color-muted); }
 .kit-viewer-empty { margin: 0; padding: 28px 0; text-align: center; color: var(--color-muted); }
 .kit-viewer-text { padding: 16px; border-radius: 10px; background: var(--theme-bg-color); color: var(--theme-text-color); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }

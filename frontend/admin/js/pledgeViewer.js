@@ -50,8 +50,8 @@ async function translateAdminTextToEnglish(sourceId, outputId, button) {
 }
 
 // <Jun Kai start> One kit window (a native <dialog>, va-dialog look) for the photo, pledge, answer and insight viewers.
-// Escape, the close buttons and a click on the dimmed backdrop close it, and the focus goes back to where it was. The
-// old class name (photo-popup, pledge-popup, qa-popup) stays on the window, so the Feedback side panel can tell that a
+// Escape and the close buttons close it (a click outside does not, so a double click or a text selection dragged out
+// cannot close it by mistake), and the focus goes back to where it was. The old class name (photo-popup, pledge-popup, qa-popup) stays on the window, so the Feedback side panel can tell that a
 // viewer is open and lets the first Escape close the viewer only.
 function openKitViewer({ className, title, sub = '', wide = false }) {
     document.querySelectorAll(`dialog.${className}`).forEach((old) => old.remove());
@@ -63,7 +63,7 @@ function openKitViewer({ className, title, sub = '', wide = false }) {
     dialog.innerHTML = `<div class="va-dialog-inner">
         <div class="va-dialog-head">
             <div><h3 id="${id}-title"></h3><div class="va-dialog-sub"></div></div>
-            <button type="button" class="ui-btn ui-btn-icon va-dialog-close" data-kit-close aria-label="Close" title="Close">${uiIcon('cross', 18)}</button>
+            <button type="button" class="ui-btn ui-btn-icon va-dialog-close" data-kit-close aria-label="Close" title="Close">${uiIcon('close', 18)}</button>
         </div>
         <div class="va-dialog-body"></div>
         <div class="va-dialog-foot"><span class="kit-viewer-status" role="status" aria-live="polite"></span><button type="button" class="ui-btn ui-btn-secondary" data-kit-close>Close</button></div>
@@ -75,7 +75,6 @@ function openKitViewer({ className, title, sub = '', wide = false }) {
     const close = () => closeKitViewer(dialog);
     dialog.querySelectorAll('[data-kit-close]').forEach((button) => button.addEventListener('click', close));
     dialog.addEventListener('cancel', (event) => { event.preventDefault(); close(); });
-    dialog.addEventListener('click', (event) => { if (event.target === dialog) close(); });
     dialog.addEventListener('close', () => {
         dialog.remove();
         if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus();
@@ -181,7 +180,7 @@ function createQuestionAnswersPopup(feedbackId, answers) {
             const reply = document.createElement('div');
             reply.id = answerId;
             reply.className = 'kit-qa-a';
-            const shown = formatAnswer(answer.option_label || answer.answer_value, answer.question_type);
+            const shown = formatAnswerText(answer.option_label || answer.answer_value, answer.question_type);
             reply.textContent = shown || 'No answer provided';
             if (!shown) reply.classList.add('is-empty');
             item.append(question, reply);
@@ -194,10 +193,12 @@ function createQuestionAnswersPopup(feedbackId, answers) {
     // <Jun Kai end>
 }
 
-// Format answer based on question type (plain text now: the window sets it with textContent)
+// Format answer based on question type
+// (escaped HTML: the Feedback and Archive side panel puts it into its markup)
 function formatAnswer(answer, questionType) {
-    if (!answer) return ''; // <Jun Kai/>
-
+    if (!answer) return '<em>No answer provided</em>';
+    const safeAnswer = escapeHtmlSafe(answer);
+    
     switch(questionType) {
         case 'rating':
             const rating = parseInt(answer) || 0;
@@ -209,10 +210,24 @@ function formatAnswer(answer, questionType) {
             }
         case 'yesno':
             return ['1', 'yes', 'true'].includes(String(answer).trim().toLowerCase()) ? 'Yes' : 'No';
+        case 'choice':
+            return safeAnswer;
         default:
-            return String(answer); // <Jun Kai/>
+            return safeAnswer;
     }
 }
+
+// <Jun Kai start> the same reading as plain text, only for textContent (the answers window); '' when there is no answer
+function formatAnswerText(answer, questionType) {
+    if (!answer) return '';
+    if (questionType === 'rating') {
+        const rating = parseInt(answer) || 0;
+        return rating >= 1 && rating <= 5 ? `Rating: ${rating}/5` : `Rating: ${rating}`;
+    }
+    if (questionType === 'yesno') return ['1', 'yes', 'true'].includes(String(answer).trim().toLowerCase()) ? 'Yes' : 'No';
+    return String(answer);
+}
+// <Jun Kai end>
 
 // Close Q&A popup
 function closeQAPopup() {
