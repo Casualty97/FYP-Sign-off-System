@@ -2246,31 +2246,30 @@ html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
     margin-top: 0;
 }
 
-/* Tree section and info display */
-.tree-section {
-    background: var(--theme-card-bg);
-    border-radius: 16px;
-    padding: 25px;
-    border: 2px solid var(--theme-border-color);
+/* <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B): the tree's numbers on the left, the visitor list on the
+   right; on a narrow screen the list comes first */
+.dt-layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); grid-template-areas: "side list"; gap: 20px; align-items: start; }
+.dt-side { grid-area: side; display: grid; gap: 20px; min-width: 0; }
+.dt-side .ui-card + .ui-card { margin-top: 0; }
+.dt-list-card { grid-area: list; min-width: 0; overflow: hidden; }
+.dt-facts { display: grid; gap: 16px; }
+.dt-facts .ui-fact-value { font-size: 20px; }
+.dt-table td { padding-top: 11px; padding-bottom: 11px; }
+.dt-table .dt-num { text-align: right; width: 70px; font-variant-numeric: tabular-nums; }
+.dt-table .dt-tag-col { width: 1%; white-space: nowrap; text-align: right; }
+.dt-table .ui-who-text b { max-width: 260px; }
+.ui-avatar.dt-avatar-none { background: #94a3b8; }
+.dt-empty { text-align: center; padding: 36px 16px; }
+@media (max-width: 1180px) {
+    .dt-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "list" "side"; }
+    .dt-side { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
 }
-
-.tree-info {
-    margin: 20px 0;
-    padding: 20px;
-    background: #f8fafc;
-    border-radius: 8px;
+@media (max-width: 600px) {
+    #digital-tree-page .ui-page-header { flex-direction: column; align-items: flex-start; }
+    .dt-table th:nth-child(3), .dt-table td:nth-child(3) { display: none; }
+    .dt-table .ui-who-text b { max-width: 150px; }
 }
-
-.tree-info h4 {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.tree-info p {
-    font-size: 14px;
-    color: #64748b;
-}
+/* <Jun Kai end> */
 
 /* ==================== DIGITAL TREE ADJUSTMENT PAGE STYLES ==================== */
 /* (Done by Yu Kang) */

@@ -727,42 +727,69 @@
                 </div>
                 <!-- Digital Tree Page (DONE BY PRETI)-->
                 <div id="digital-tree-page" class="page">
-                    <div class="page-header">
-                        <h2>Tree Leaves</h2>
-                        <p>View visitor tree data and statistics</p>
+                    <!-- <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B): the numbers of this year's tree on the
+                         left, the visitor list with search and pages on the right. The ids of the year, the visitor count and
+                         the refresh are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Tree Leaves</h2>
+                            <p>Visitors on this year's digital tree. The tree shows visitors from <span id="current-year"></span> only.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="showPage('tree-adjustment')"><span data-fb-icon="sliders"></span>Tree Settings</button>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="refreshTreeData()"><span data-fb-icon="refresh"></span>Refresh</button>
+                        </div>
                     </div>
 
-
-
-                    <div class="tree-section">
-                        <div class="section-header">
-                            <h3>Tree Management</h3>
-                            <button class="btn-primary" onclick="refreshTreeData()">🔄 Refresh</button>
+                    <div class="dt-layout">
+                        <div class="dt-side">
+                            <section class="ui-card dt-facts-card" aria-labelledby="dt-facts-title">
+                                <div class="ui-card-header">
+                                    <h3 id="dt-facts-title">This year's tree</h3>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="dt-facts">
+                                        <div><span class="ui-fact-label">Leaves this year</span><span class="ui-fact-value" id="tree-count">0</span><span class="ui-fact-hint">one leaf for each visit</span></div>
+                                        <div><span class="ui-fact-label">Golden leaves</span><span class="ui-fact-value" id="dt-vip-leaves">0</span><span class="ui-fact-hint">leaves of VIPs</span></div>
+                                        <div><span class="ui-fact-label">Names hidden</span><span class="ui-fact-value" id="dt-hidden-names">0</span><span class="ui-fact-hint">visitors who did not agree to show their name</span></div>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
 
-                        <div class="tree-info">
-                            <h4>Current Year Visitors: <span id="tree-count">0</span></h4>
-                            <p>The digital tree shows visitors from <span id="current-year"></span> only.</p>
-                        </div>
-
-                        <table class="simple-table">
-                            <thead> 
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Visit Count</th>
-                                    <th>Last Visit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- This will be populated dynamically by JavaScript (DONE BY PRETI)-->
-                                <tr>
-                                    <td colspan="3" style="text-align: center; padding: 40px; color: #64748b;">
-                                        Loading tree data...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <section class="ui-card dt-list-card" aria-label="Visitors on the tree">
+                            <div class="ui-filterbar" role="search" aria-label="Search the visitors on the tree">
+                                <label class="ui-search">
+                                    <span class="ui-sr-only">Search a visitor</span>
+                                    <span class="ui-search-icon" data-fb-icon="search"></span>
+                                    <input type="search" id="dt-search" placeholder="Search a visitor" autocomplete="off" maxlength="255" oninput="filterTreeVisitors()">
+                                </label>
+                            </div>
+                            <div class="ui-table-wrap">
+                                <table class="ui-table dt-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th class="dt-num">Visits</th>
+                                            <th>Leaf added</th>
+                                            <th class="dt-tag-col"><span class="ui-sr-only">Leaf</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="4" class="ui-empty">Loading the tree</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="ui-pager">
+                                <span><span id="dt-page-info" aria-live="polite">Loading</span><span class="ui-pager-status" id="dt-status" role="status"></span></span>
+                                <span class="ui-pager-buttons">
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="dt-prev" onclick="changeTreeVisitorPage(-1)" disabled>Previous</button>
+                                    <button type="button" class="ui-btn ui-btn-secondary" id="dt-next" onclick="changeTreeVisitorPage(1)" disabled>Next</button>
+                                </span>
+                            </div>
+                        </section>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- Digital Tree Adjustment Page (DONE BY Yu Kang)-->

@@ -22,7 +22,7 @@ async function loadDigitalTreeData() {
     } catch (error) {
         console.error('Error loading tree data:', error);
         updateDigitalTreeTable([]);
-        alert('Error loading tree data: ' + error.message);
+        setTreeLeavesStatus('down', 'The tree could not be loaded: ' + error.message); // <Jun Kai/> no alert box
     }
 }
 
@@ -558,59 +558,106 @@ async function uploadTreeBackground() {
     }
 }
 
-// Update the digital tree table
-function updateDigitalTreeTable(treeData) {
-    const tbody = document.querySelector('#digital-tree-page table tbody');
-    if (!tbody) {
-        console.error('Digital tree table tbody not found');
-        return;
-    }
-    
-    tbody.innerHTML = '';
-    
-    // Update current year display
-    const currentYear = new Date().getFullYear();
-    const currentYearSpan = document.getElementById('current-year');
-    const treeCountSpan = document.getElementById('tree-count');
-    
-    if (currentYearSpan) {
-        currentYearSpan.textContent = currentYear;
-    }
-    
-    if (!treeData || treeData.length === 0) {
-        if (treeCountSpan) {
-            treeCountSpan.textContent = '0';
-        }
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="3" style="text-align: center; padding: 40px; color: #64748b;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🌳</div>
-                    <h3 style="color: #64748b; margin-bottom: 10px;">No Tree Data Found</h3>
-                    <p>No visitors have been recorded for ${currentYear} yet.</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    // Update tree count
-    if (treeCountSpan) {
-        treeCountSpan.textContent = treeData.length;
-    }
-    
-    // Add each visitor to the table
-    treeData.forEach(visitor => {
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-            <td>${visitor.name || 'Anonymous'}</td>
-            <td>${visitor.visit_count || 1}</td>
-            <td>${visitor.last_visit ? new Date(visitor.last_visit).toLocaleDateString() : 'N/A'}</td>
-        `;
-        
-        tbody.appendChild(row);
+// <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B). /api/tree answers one row per leaf, so a visitor who came
+// twice has two rows. The search and the pages work on that answer in the browser; the numbers on the left come
+// from it too. Newest leaves first.
+let treeVisitorRows = [];
+let treeVisitorPage = 1;
+let treeLeavesReady = false;
+const TREE_VISITORS_PER_PAGE = 10;
+const TREE_AVATAR_HUES = [262, 172, 330, 28, 245, 152, 18, 218];
+
+function prepareTreeLeavesPage() {
+    if (treeLeavesReady) return;
+    treeLeavesReady = true;
+    document.querySelectorAll('#digital-tree-page [data-fb-icon]').forEach((slot) => {
+        slot.innerHTML = uiIcon(slot.dataset.fbIcon, slot.closest('button, a') ? 15 : 16);
     });
 }
+
+function setTreeLeavesStatus(tone, message) {
+    const el = document.getElementById('dt-status');
+    if (el) el.innerHTML = message ? uiPill(tone, message) : '';
+}
+
+function treeInitials(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+function treeLeafDate(value) {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function treeVisitorRowHtml(row) {
+    const name = String(row.name || 'Anonymous visitor');
+    const named = Boolean(row.hasPublicName) && !row.archived;
+    const hue = TREE_AVATAR_HUES[Math.abs(Number(row.id) || 0) % TREE_AVATAR_HUES.length];
+    let tag = '';
+    if (row.isVip) tag = '<span class="ui-tag is-amber">VIP</span>';
+    else if (row.archived) tag = '<span class="ui-tag">Archived</span>';
+    else if (!named) tag = '<span class="ui-tag">Name hidden</span>';
+    const avatar = named
+        ? `<span class="ui-avatar" style="--ui-hue: ${hue}" aria-hidden="true">${escapeHtmlSafe(treeInitials(name))}</span>`
+        : '<span class="ui-avatar dt-avatar-none" aria-hidden="true">?</span>';
+    return `<tr><td><span class="ui-who">${avatar}<span class="ui-who-text"><b title="${escapeHtmlSafe(name)}">${escapeHtmlSafe(name)}</b></span></span></td>`
+        + `<td class="dt-num">${Number(row.visit_count) || 1}</td><td>${escapeHtmlSafe(treeLeafDate(row.created_at))}</td><td class="dt-tag-col">${tag}</td></tr>`;
+}
+
+function renderTreeVisitors() {
+    const tbody = document.querySelector('#digital-tree-page table tbody');
+    if (!tbody) return;
+    const query = (document.getElementById('dt-search')?.value || '').trim().toLowerCase();
+    const list = treeVisitorRows.filter((row) => !query || String(row.name || '').toLowerCase().includes(query));
+    const pages = Math.max(1, Math.ceil(list.length / TREE_VISITORS_PER_PAGE));
+    treeVisitorPage = Math.min(Math.max(1, treeVisitorPage), pages);
+    const first = (treeVisitorPage - 1) * TREE_VISITORS_PER_PAGE;
+    const shown = list.slice(first, first + TREE_VISITORS_PER_PAGE);
+
+    if (shown.length) {
+        tbody.innerHTML = shown.map(treeVisitorRowHtml).join('');
+    } else {
+        const year = new Date().getFullYear();
+        const text = treeVisitorRows.length ? 'No visitor matches the search.' : `No visitors on the ${year} tree yet.`;
+        tbody.innerHTML = `<tr><td colspan="4" class="ui-empty dt-empty">${text}</td></tr>`;
+    }
+    const info = document.getElementById('dt-page-info');
+    if (info) info.textContent = list.length ? `Showing ${first + 1} to ${first + shown.length} of ${list.length}` : 'No visitors';
+    const prev = document.getElementById('dt-prev');
+    const next = document.getElementById('dt-next');
+    if (prev) prev.disabled = treeVisitorPage <= 1;
+    if (next) next.disabled = treeVisitorPage >= pages;
+}
+
+function filterTreeVisitors() {
+    treeVisitorPage = 1;
+    renderTreeVisitors();
+}
+
+function changeTreeVisitorPage(step) {
+    treeVisitorPage += step;
+    renderTreeVisitors();
+}
+
+// Update the digital tree table (the list and the numbers beside it)
+function updateDigitalTreeTable(treeData) {
+    prepareTreeLeavesPage();
+    const rows = Array.isArray(treeData) ? treeData : [];
+    const yearSpan = document.getElementById('current-year');
+    if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    const setCount = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+    setCount('tree-count', rows.length);
+    setCount('dt-vip-leaves', rows.filter((row) => row.isVip).length);
+    setCount('dt-hidden-names', rows.filter((row) => !row.hasPublicName && !row.archived).length);
+
+    treeVisitorRows = rows.slice().sort((a, b) => (new Date(b.created_at).getTime() || 0) - (new Date(a.created_at).getTime() || 0));
+    treeVisitorPage = 1;
+    renderTreeVisitors();
+}
+// <Jun Kai end>
 
 // Leaf image management for digital tree parameters
 async function uploadParameterLeaf() {
