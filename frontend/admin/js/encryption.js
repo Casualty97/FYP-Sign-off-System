@@ -89,7 +89,7 @@ async function requestDecryptedEmail(feedbackId, password) {
 
 // ids: the encrypted ids on the page; store(id, email): puts a clear email in the page's current list (a filter
 // change during the loop starts a new list). Resolves with how many were decrypted (0 when cancelled or nothing
-// worked). A Cancel while the first email is being checked drops that answer on purpose: nothing is shown.
+// worked). Cancel and Escape wait while the first email is being checked (uiPrompt), so its answer always counts.
 async function decryptEmailsOnPage(ids, store) {
     if (sessionStorage.getItem('userRole') !== 'system_admin') {
         showNotification('Only a System Admin can decrypt emails.', 'error');

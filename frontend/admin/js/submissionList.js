@@ -325,8 +325,7 @@ function makeSubmissionList(cfg) {
     // Decrypt the email of one visitor, from the panel (the toolbar button does the whole page)
     view.decryptOne = async (feedbackId) => {
         if (sessionStorage.getItem('userRole') !== 'system_admin') return;
-        // the password window decrypts while it stays open, so a wrong password shows under the field (encryption.js);
-        // a Cancel while it is being checked drops the answer on purpose, nothing is shown
+        // the password window decrypts while it stays open, so a wrong password shows under the field (encryption.js)
         let email = null;
         const password = await showPasswordPrompt('Decrypt the email of this visitor?\n\nEnter your System Admin password:', {
             confirmText: 'Decrypt',

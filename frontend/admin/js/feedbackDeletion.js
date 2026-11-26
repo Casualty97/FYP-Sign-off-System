@@ -21,7 +21,7 @@ async function deleteArchiveFeedback(feedbackId) {
 // <Jun Kai start> The delete check in the kit look (26 Nov 2026): one password field in a kit dialog. The password is
 // checked and the feedback deleted while the window stays open, so a wrong password or a failed delete shows under
 // the field for another try. The list moves on only after the window has closed, and it follows what the delete
-// itself did: a Cancel while it was already on its way still shows it as deleted once the server answered.
+// itself did (Cancel and Escape also wait for a running check in uiPrompt, so nothing is lost either way).
 function showDeletePasswordModal() {
     const feedbackId = currentDeleteFeedbackId;
     const source = currentDeleteSource;
