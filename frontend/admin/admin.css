@@ -2210,17 +2210,6 @@ html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback
 /* a narrow preview (a phone, or a narrow column at about 1000 to 1200 px) gets the compact look, by the preview's own width */
 .ks-holder { container: ks-preview / inline-size; }
 @container ks-preview (max-width: 460px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } .ks-screen.has-qr .ks-card { width: 60%; } .ks-screen.has-qr .ks-title { font-size: 12px; } .ks-qr { width: 36%; padding: 8px 6px; } .ks-qr-text { display: none; } }
-/* the dark twins colorScheme.js makes would darken the kiosk copy, so these stronger rules keep its own colours */
-html[data-theme="dark"] .ui-card-body .ks-screen { background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; border-color: #1e293b; }
-html[data-theme="dark"] .ks-screen .ks-card { background: rgba(248, 250, 244, 0.95); border-top-color: #8bc58f; }
-html[data-theme="dark"] .ks-screen .ks-brand { color: #2f6f45; }
-html[data-theme="dark"] .ks-screen .ks-logo { background: linear-gradient(135deg, #4a7c59, #8bc58f); }
-html[data-theme="dark"] .ks-screen .ks-title { color: #1d4a32; }
-html[data-theme="dark"] .ks-screen .ks-subtitle { color: #4b5a52; }
-html[data-theme="dark"] .ks-screen .ks-btn { background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; }
-html[data-theme="dark"] .ks-screen .ks-qr { background: rgba(248, 250, 244, 0.95); }
-html[data-theme="dark"] .ks-screen .ks-qr-head { color: #2f6f45; }
-html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
 /* <Jun Kai end> */
 
 /* ==================== EMAIL MANAGEMENT PAGE STYLES ==================== */
@@ -6012,10 +6001,6 @@ html[data-theme="dark"] #timer-countdown-page { --color-dark-gray: #a7b4c4; --co
 .pt-badge { position: absolute; top: 22px; left: 22px; display: flex; align-items: center; justify-content: center; min-width: 48px; height: 48px; padding: 0 6px; border: 3px solid #ffffff; border-radius: 999px; background: rgba(0, 0, 0, 0.7); color: #ffffff; font-size: 24px; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); box-sizing: border-box; }
 .pt-badge[hidden] { display: none; }
 .pt-caption { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
-html[data-theme="dark"] .ui-card-body .pt-camera { background: radial-gradient(circle at 50% 40%, #334155, #0b1120 75%); }
-html[data-theme="dark"] .pt-camera .pt-person { fill: #475569; }
-html[data-theme="dark"] .pt-camera .pt-corner { border-color: #6366f1; }
-html[data-theme="dark"] .pt-camera .pt-badge { border-color: #ffffff; background: rgba(0, 0, 0, 0.7); color: #ffffff; }
 /* <Jun Kai end> */
 
 /* ==================== SERVER SCHEDULE MANAGEMENT (DONE BY BERNISSA) ==================== */
@@ -9318,7 +9303,6 @@ html[data-theme="dark"] .dx-unlock-error { color: #fca5a5; }
 @media (max-width: 1280px) { .be-grid { grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); } .be-grid > .be-card:last-child { grid-column: 1 / -1; } }
 @media (max-width: 860px) { .be-grid { grid-template-columns: 1fr; } }
 html[data-theme="dark"] .be-badge.is-active { background: rgba(59, 130, 246, 0.16); border-left-color: #60a5fa; }
-html[data-theme="dark"] .be-mail { background: #f8fafc; }
 /* <Jun Kai end> */
 
 /* <Jun Kai start> Style & Theme B: saved themes as picture cards on top, the colours of each page as rows that fold
@@ -9535,4 +9519,11 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
 .ui-dialog .va-dialog-body { padding-top: 8px; }
 .ui-dialog .va-dialog-foot { border-top: 0; padding-top: 10px; padding-bottom: 18px; }
 .ui-dialog-error { margin: 8px 0 0; color: #b91c1c; }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Previews of screens without a dark mode (kiosk screens, emails) keep their light look in dark mode:
+   colorScheme.js leaves them out of the dark twins (ADMIN_LIGHT_ONLY), so the hand-written dark copies of the kiosk preview,
+   the photo timer camera and the badge email are gone. The Live Pulse card lets the page show through its gradient, so in
+   dark mode the light page colour sits under it. */
+html[data-theme="dark"] #pulse-page .pulse-launch-section { background-color: #f3f6fa; }
 /* <Jun Kai end> */
