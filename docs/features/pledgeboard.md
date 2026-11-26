@@ -12,6 +12,14 @@
 
 Public list of pledges with likes and a search box; phones reach it after submitting feedback. The admin tab approves or rejects pledges and edits the topic list.
 
+**The admin page** (26 Nov 2026, Jun Kai, admin redesign option A picked by the team)
+
+- A card on top lists every pledge that waits for a decision, most liked first, with Approve and Reject. Only a pledge with a negative tone can wait; the others are approved at once.
+- The ranking table follows: most liked first, with chips for All, Approved, Waiting and Rejected, a search by name or pledge, and 25 pledges a page. The rank is the place among all pledges, also when the list is filtered.
+- A pledge with a negative tone offers only the two other choices (for example Reject and Back to waiting for an approved one). Its buttons are switched off while a decision is on its way, so a double click saves once, and the result or an error is a line on the page.
+- Any state other than approved or rejected (an old "flagged" value too) counts as waiting, because the public board shows only approved pledges.
+- Known issue (not changed): formatPledgeRow in backend/features/pledgeboard/routes.js approves every pledge whose tone is not "negative", so a pledge the tone check marks "needs_review" is shown on the public board without a decision.
+
 **Routes** (from tests/contracts/routes.snapshot.txt)
 
 | Method | Path | Registered in |
