@@ -6,7 +6,7 @@
 # Options:
 #   -From <web address | zip file | unzipped package folder>   another source, e.g. a copy on SharePoint or a USB stick
 #   -Sha256 <hash>      the zip's checksum, when no .sha256 file sits next to it
-#   -WithAiModel        the package with the offline AI model (from GitHub)
+#   -WithAiModel        no longer needed: the package always has the offline AI model (kept so old commands work)
 #   anything else (-Role WallPC, -InstallDir, -NonInteractive, -AdminPasswordFile ...) goes to install.cmd
 # <Jun Kai start>
 [CmdletBinding()]
@@ -35,7 +35,6 @@ $Tar = Join-Path $env:SystemRoot 'System32\tar.exe'
 $Curl = Join-Path $env:SystemRoot 'System32\curl.exe'
 $Repo = 'https://github.com/Casualty97/FYP-Sign-off-System/releases/latest/download'
 $ZipName = 'rp-xperience-kiosk-windows-x64.zip'
-if ($WithAiModel) { $ZipName = 'rp-xperience-kiosk-windows-x64-ai.zip' }
 
 function Write-Ok([string]$t) { Write-Host "   ok    $t" -ForegroundColor Green }
 function Write-Bad([string]$t) { Write-Host "   error $t" -ForegroundColor Red }
