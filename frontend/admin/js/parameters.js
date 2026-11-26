@@ -19,18 +19,40 @@ const DEFAULT_LANDING_LAYOUT_SETTINGS = {
     pledgeboardButtonHeight: 64
 };
 
-function switchParameterTab(tabId) {
-    document.querySelectorAll('#parameter-adjustment-page .param-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.getAttribute('onclick')?.includes(tabId));
-        // <Jun Kai start>
-        tab.setAttribute('aria-selected', String(tab.classList.contains('active')));
-        // <Jun Kai end>
-    });
+// <Jun Kai start>
+// The page is grouped by kiosk screen now. Each old tab opens the step that holds most of its settings.
+const PARAMETER_TAB_STEPS = {
+    'feedback-tab': 'thanks',
+    'landing-layout-tab': 'start',
+    'content-tab': 'pledge',
+    'email-tab': 'email',
+    'features-tab': 'photo',
+    'validation-tab': 'details',
+    'photo-tab': 'photo',
+    'assets-tab': 'look',
+    'archive-tab': 'archive'
+};
 
-    document.querySelectorAll('#parameter-adjustment-page .parameter-section').forEach(section => {
-        section.classList.toggle('active', section.id === tabId);
+// shows one step (or one "Behind the scenes" group); jump scrolls to it, for the buttons below the steps
+function showParameterStep(step, jump = false) {
+    const page = document.getElementById('parameter-adjustment-page');
+    const target = page?.querySelector(`[data-pa-group="${step}"]`);
+    if (!target) return;
+    page.querySelectorAll('[data-pa-group]').forEach((group) => { group.hidden = group !== target; });
+    page.querySelectorAll('button[data-pa-step]').forEach((button) => {
+        const on = button.dataset.paStep === step;
+        button.classList.toggle('is-active', on);
+        if (on) button.setAttribute('aria-current', 'step');
+        else button.removeAttribute('aria-current');
     });
+    page.dataset.paCurrent = step;
+    if (jump) target.scrollIntoView({ block: 'start' });
 }
+
+function switchParameterTab(tabId) {
+    showParameterStep(PARAMETER_TAB_STEPS[tabId] || 'start');
+}
+// <Jun Kai end>
 
 // <Jun Kai start>
 // the page's icons are drawn once, the first time it opens
