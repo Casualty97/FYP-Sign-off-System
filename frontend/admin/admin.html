@@ -1319,10 +1319,16 @@
 
                 <!-- Assets Management Page (Done By Yu Kang)-->
                 <div id="asset-page" class="page">
-                    <div class="page-header">
-                        <h2>Assets</h2>
-                        <p>Register Bluetooth-tracked assets and see which ones are currently detected nearby</p>
+                    <!-- <Jun Kai start> Assets page (admin redesign, Assets A): Ryan's layout in the new look. The ids, and the
+                         lines his branch changes (the registry help text, the Offline label, the place above #asset-grid),
+                         stay as they are, so his changes still fit when he merges main. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Assets</h2>
+                            <p>Assets tracked by Bluetooth and which ones are detected nearby.</p>
+                        </div>
                     </div>
+                    <!-- <Jun Kai end> -->
 
                     <div class="asset-section">
                         <div class="asset-hero">
@@ -1331,8 +1337,8 @@
                                 <p>Start by adding the Bluetooth ID, then attach a name, location, and notes for each asset.</p>
                             </div>
                             <div class="asset-hero-actions">
-                                <button class="btn-secondary" onclick="refreshAssetData()">Refresh</button>
-                                <button class="btn-primary" onclick="showAddAssetModal()">+ Add Asset</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="refreshAssetData()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Refresh</button><!-- <Jun Kai/> kit button -->
+                                <button type="button" class="ui-btn ui-btn-primary" onclick="showAddAssetModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add asset</button><!-- <Jun Kai/> kit button -->
                             </div>
                         </div>
 
@@ -1340,14 +1346,17 @@
                             <div class="asset-summary-card">
                                 <span>Total Assets</span>
                                 <strong id="asset-total-count">0</strong>
+                                <small class="asset-summary-note">registered</small><!-- <Jun Kai/> -->
                             </div>
                             <div class="asset-summary-card">
                                 <span>Detected Nearby</span>
                                 <strong id="asset-detected-count">0</strong>
+                                <small class="asset-summary-note">seen in the last scan</small><!-- <Jun Kai/> -->
                             </div>
                             <div class="asset-summary-card">
                                 <span>Offline</span>
                                 <strong id="asset-offline-count">0</strong>
+                                <small class="asset-summary-note">not seen in the last scan</small><!-- <Jun Kai/> -->
                             </div>
                         </div>
 
