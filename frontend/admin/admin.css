@@ -9528,3 +9528,11 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
 #tree-adjustment-page.is-view-only :is(input, select, textarea) { pointer-events: none; }
 .tree-view-only-note { margin: 0 0 16px; }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> uiConfirm, uiAlert and uiPrompt (uiKit.js): the small va-dialog; a message keeps its line breaks */
+.ui-dialog .ui-dialog-text { white-space: pre-line; }
+.ui-dialog .va-dialog-head { border-bottom: 0; padding-bottom: 6px; }
+.ui-dialog .va-dialog-body { padding-top: 8px; }
+.ui-dialog .va-dialog-foot { border-top: 0; padding-top: 10px; padding-bottom: 18px; }
+.ui-dialog-error { margin: 8px 0 0; color: #b91c1c; }
+/* <Jun Kai end> */
