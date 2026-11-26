@@ -1618,7 +1618,7 @@ function themeKitColours(colors) {
 }
 
 // light mode: the card tint, the card texts and the accent of one scope (the whole page or one page)
-function themeKitLight(colors, scope, isGlobal) {
+function themeKitLight(colors, scope) {
     const kit = themeKitColours(colors);
     const cardVars = [];
     const scopeVars = [];
@@ -1628,7 +1628,6 @@ function themeKitLight(colors, scope, isGlobal) {
     if (kit.border) cardVars.push(`--l3-card-edge: color-mix(in srgb, ${kit.border} 80%, transparent)`, `--theme-border-color: ${kit.border}`);
     if (kit.accent) {
         scopeVars.push(`--theme-btn-primary-bg: ${kit.accent}`, `--theme-btn-primary-text: ${kit.onAccent}`, `--l3-focus: ${kit.accent}`, `--l3-link: ${kit.accent}`);
-        if (isGlobal) scopeVars.push(`--l3-nav-active: color-mix(in srgb, ${kit.accent} 14%, #FFFFFF)`, `--l3-nav-strong: ${kit.accent}`);
     }
     let css = '';
     if (scopeVars.length) css += `${scope} { ${scopeVars.join('; ')}; }\n`;
@@ -1637,7 +1636,7 @@ function themeKitLight(colors, scope, isGlobal) {
 }
 
 // dark mode: only the accent
-function themeKitDark(colors, scope, isGlobal) {
+function themeKitDark(colors, scope) {
     const button = themeChosen(colors, 'button-color');
     if (!button) return '';
     const vars = [];
@@ -1646,7 +1645,6 @@ function themeKitDark(colors, scope, isGlobal) {
     const link = themeReadable(button, [THEME_KIT.darkCard], 4.5, '#FFFFFF');
     if (link) {
         vars.push(`--l3-link: ${link}`, `--l3-focus: ${link}`);
-        if (isGlobal) vars.push(`--l3-nav-active: color-mix(in srgb, ${link} 22%, transparent)`);
     }
     if (!vars.length) return '';
     return `${scope === ':root' ? ':root[data-theme="dark"]' : ':root[data-theme="dark"] ' + scope} { ${vars.join('; ')}; }\n`;
@@ -2030,16 +2028,16 @@ function applyThemeSettings() {
     // old-style page keeps its selector lists above); dark mode's accent goes into its own stylesheet, cleared when empty
     let dark = '';
     const globalColors = themeSettings.global && themeSettings.global.colors;
-    css += themeKitLight(globalColors, ':root', true);
-    dark += themeKitDark(globalColors, ':root', true);
+    css += themeKitLight(globalColors, ':root');
+    dark += themeKitDark(globalColors, ':root');
     themeConfig.sections.forEach((section) => {
         if (section.isGlobal || section.isSavedThemes || section.id === 'admin-dashboard') return;
         const own = themeSettings[section.id];
         if (!own || own.useGlobal !== false) return;
         const page = document.getElementById(section.id);
         if (!page || !page.querySelector('.ui-card')) return;
-        css += themeKitLight(own.colors, '#' + section.id, false);
-        dark += themeKitDark(own.colors, '#' + section.id, false);
+        css += themeKitLight(own.colors, '#' + section.id);
+        dark += themeKitDark(own.colors, '#' + section.id);
     });
     let darkEl = document.getElementById('dynamic-theme-dark-accent');
     if (!darkEl) {
