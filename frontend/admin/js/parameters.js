@@ -169,8 +169,9 @@ function updateParameterPreview() {
     showPreviewPart(preview, 'questions-required', getCheckedValue('rule-requiredQuestionsEnabled'));
 
     const campaignTitle = getInputValue('campaign-title');
-    // a missing switch counts as on, like the kiosk (flags.pledgeEnabled !== false)
-    const pledgeOn = document.getElementById('flag-pledgeEnabled')?.checked ?? true;
+    // <Jun Kai start> Zihan's work takes the pledge switch out of Kiosk Settings, so the pledge step is always on
+    const pledgeOn = true;
+    // <Jun Kai end>
     setPreviewText(preview, 'pledge', getInputValue('param-pledgePrompt'));
     setPreviewText(preview, 'coach', getCheckedValue('campaign-enabled') && campaignTitle ? `${campaignTitle}: Smart Pledge Coach` : 'Smart Pledge Coach');
     setPreviewText(preview, 'pledge-need', getCheckedValue('rule-pledgeRequired') ? '(required)' : '(optional)');
