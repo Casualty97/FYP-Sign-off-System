@@ -3259,6 +3259,7 @@ html[data-theme="dark"] #questions-page { --color-dark-gray: #a7b4c4; --color-mu
 .qs-option-input { display: flex; align-items: center; gap: 8px; margin: 0; }
 .qs-option-input .ui-input { flex: 1; min-width: 0; }
 .qs-option-input .qs-option-order { flex: 0 0 84px; }
+.qs-option-input .ui-input[aria-invalid="true"] { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
 .qs-note { margin: 0; }
 .qs-error { font-size: 13px; color: #b91c1c; }
 html[data-theme="dark"] .qs-error { color: #fca5a5; }

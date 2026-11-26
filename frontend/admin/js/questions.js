@@ -16,6 +16,10 @@ function prepareQuestionsPage() {
     const pageEl = document.getElementById('questions-page');
     pageEl.addEventListener('input', renderQuestionPreview);
     pageEl.addEventListener('change', renderQuestionPreview);
+    // an option marked empty loses its red edge as soon as something is typed in it
+    pageEl.addEventListener('input', (event) => {
+        if (event.target.getAttribute('aria-invalid') === 'true' && event.target.value.trim()) event.target.removeAttribute('aria-invalid');
+    });
 }
 
 function setQuestionStatus(type, message) {
@@ -283,12 +287,14 @@ function toggleOptionsField(questionType) {
 function addOptionField() {
     const optionsList = document.getElementById('options-list');
 
-    // <Jun Kai start> one option row in the kit look; the order starts at the row's place in the list
+    // <Jun Kai start> one option row in the kit look; its order starts one past the highest order already typed
+    const orders = [...optionsList.querySelectorAll('.qs-option-order')].map((input) => parseInt(input.value) || 0);
+    const nextOrder = orders.length ? Math.max(...orders) + 1 : 1;
     const optionDiv = document.createElement('div');
     optionDiv.className = 'option-input-group qs-option-input';
     optionDiv.innerHTML = `
         <input type="text" class="ui-input" placeholder="Option label" aria-label="Option label" required>
-        <input type="number" class="ui-input qs-option-order" placeholder="Order" value="${optionsList.children.length + 1}" min="0" aria-label="Option order">
+        <input type="number" class="ui-input qs-option-order" placeholder="Order" value="${nextOrder}" min="0" aria-label="Option order">
         <button type="button" class="ui-btn ui-btn-icon ui-danger" onclick="removeOptionField(this)" aria-label="Remove option" title="Remove">${uiIcon('trash', 16)}</button>
     `;
     // <Jun Kai end>
@@ -339,17 +345,28 @@ async function handleAddQuestion(event) {
             return;
         }
 
-        optionInputs.forEach((group, index) => {
-            const labelInput = group.querySelector('input[type="text"]');
-            const orderInput = group.querySelector('input[type="number"]');
-
-            if (labelInput.value.trim()) {
-                options.push({
-                    option_label: labelInput.value.trim(),
-                    display_order: parseInt(orderInput.value) || index
-                });
-            }
+        // <Jun Kai start> an option row with no label is an error instead of being skipped, and the orders are
+        // numbered 1, 2, 3 again in the order chosen, so two options never share a number
+        const rows = [...optionInputs].map((group, index) => ({
+            labelInput: group.querySelector('input[type="text"]'),
+            order: parseInt(group.querySelector('input[type="number"]').value) || 0,
+            index
+        }));
+        rows.forEach((row) => {
+            if (row.labelInput.value.trim()) row.labelInput.removeAttribute('aria-invalid');
+            else row.labelInput.setAttribute('aria-invalid', 'true');
         });
+        const emptyRow = rows.find((row) => !row.labelInput.value.trim());
+        if (emptyRow) {
+            errorDiv.textContent = `Option ${emptyRow.index + 1} has no label. Type one or remove that row.`;
+            errorDiv.style.display = 'block';
+            emptyRow.labelInput.focus();
+            return;
+        }
+        rows.sort((a, b) => a.order - b.order || a.index - b.index).forEach((row, position) => {
+            options.push({ option_label: row.labelInput.value.trim(), display_order: position + 1 });
+        });
+        // <Jun Kai end>
 
         if (options.length === 0) {
             errorDiv.textContent = 'At least one valid option is required for multiple choice questions';
@@ -620,9 +637,9 @@ function readQuestionDraftOptions() {
     const options = [];
     document.querySelectorAll('#options-list .option-input-group').forEach((group, index) => {
         const label = group.querySelector('input[type="text"]').value.trim();
-        if (label) options.push({ option_label: label, display_order: parseInt(group.querySelector('input[type="number"]').value) || index });
+        if (label) options.push({ option_label: label, display_order: parseInt(group.querySelector('input[type="number"]').value) || 0, index });
     });
-    return options.sort((a, b) => a.display_order - b.display_order);
+    return options.sort((a, b) => a.display_order - b.display_order || a.index - b.index);
 }
 
 function collectPreviewQuestions() {
