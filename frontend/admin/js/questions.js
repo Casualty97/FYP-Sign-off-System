@@ -114,14 +114,14 @@ async function loadQuestionManagementData() {
     try {
         console.log('❓ Loading question management data...');
         const response = await fetch('/api/admin/questions?includeInactive=1');
-
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
+        
         const data = await response.json();
         console.log('Question API response:', data);
-
+        
         if (data.success) {
             updateQuestionManagementTable(data.questions);
             setQuestionStatus('', ''); // <Jun Kai/> a good load clears an old message
@@ -148,11 +148,11 @@ function updateQuestionManagementTable(questionsData) {
         console.error('Questions container not found');
         return;
     }
-
+    
     // <Jun Kai start> the map is filled first, so an empty list also clears the old questions
     window.questionsDataMap.clear();
     (questionsData || []).forEach((question) => window.questionsDataMap.set(question.id, question));
-
+    
     if (!questionsData || questionsData.length === 0) {
         container.innerHTML = `
             <div class="ui-card qs-empty">
@@ -163,7 +163,7 @@ function updateQuestionManagementTable(questionsData) {
         renderQuestionPreview();
         return;
     }
-
+    
     container.innerHTML = questionsData.map(questionRowHtml).join('');
     renderQuestionPreview();
     // <Jun Kai end>
@@ -187,7 +187,7 @@ function showAddQuestionModal() {
         setQuestionStatus('error', 'Only a system admin can add questions.'); // <Jun Kai/>
         return;
     }
-
+    
     // <Jun Kai start> the new question opens as a card above the list (its own slot, so a list reload keeps it)
     const slot = document.getElementById('questions-new-slot');
     if (!slot) return;
@@ -271,7 +271,7 @@ function closeAddQuestionModal() {
 function toggleOptionsField(questionType) {
     const optionsContainer = document.getElementById('options-container');
     const optionsList = document.getElementById('options-list');
-
+    
     if (questionType === 'choice') {
         optionsContainer.style.display = 'block';
         if (optionsList.children.length === 0) {
@@ -286,7 +286,7 @@ function toggleOptionsField(questionType) {
 // Add option field
 function addOptionField() {
     const optionsList = document.getElementById('options-list');
-
+    
     // <Jun Kai start> one option row in the kit look; its order starts one past the highest order already typed
     const orders = [...optionsList.querySelectorAll('.qs-option-order')].map((input) => parseInt(input.value) || 0);
     const nextOrder = orders.length ? Math.max(...orders) + 1 : 1;
@@ -298,7 +298,7 @@ function addOptionField() {
         <button type="button" class="ui-btn ui-btn-icon ui-danger" onclick="removeOptionField(this)" aria-label="Remove option" title="Remove">${uiIcon('trash', 16)}</button>
     `;
     // <Jun Kai end>
-
+    
     optionsList.appendChild(optionDiv);
     optionDiv.querySelector('input').focus(); // <Jun Kai/>
 }
@@ -313,30 +313,30 @@ function removeOptionField(button) {
 // Handle add question
 async function handleAddQuestion(event) {
     event.preventDefault();
-
+    
     const questionText = document.getElementById('question-text').value;
     const questionType = document.getElementById('question-type').value;
     const displayOrder = parseInt(document.getElementById('display-order').value) || 0;
     const isRequired = document.getElementById('is-required').value === '1';
     const isActive = document.getElementById('question-is-active').checked;
     const errorDiv = document.getElementById('question-error');
-
+    
     errorDiv.style.display = 'none';
-
+    
     if (!questionText.trim()) {
         errorDiv.textContent = 'Question text is required';
         errorDiv.style.display = 'block';
         return;
     }
-
+    
     if (!questionType) {
         errorDiv.textContent = 'Please select a question type';
         errorDiv.style.display = 'block';
         return;
     }
-
+    
     let options = [];
-
+    
     if (questionType === 'choice') {
         const optionInputs = document.querySelectorAll('#options-list .option-input-group');
         if (optionInputs.length === 0) {
@@ -344,7 +344,7 @@ async function handleAddQuestion(event) {
             errorDiv.style.display = 'block';
             return;
         }
-
+        
         // <Jun Kai start> an option row with no label is an error instead of being skipped, and the orders are
         // numbered 1, 2, 3 again in the order chosen, so two options never share a number
         const rows = [...optionInputs].map((group, index) => ({
@@ -367,21 +367,21 @@ async function handleAddQuestion(event) {
             options.push({ option_label: row.labelInput.value.trim(), display_order: position + 1 });
         });
         // <Jun Kai end>
-
+        
         if (options.length === 0) {
             errorDiv.textContent = 'At least one valid option is required for multiple choice questions';
             errorDiv.style.display = 'block';
             return;
         }
     }
-
+    
     const username = sessionStorage.getItem('loggedUser');
     if (!username) {
         errorDiv.textContent = 'User session not found. Please login again.';
         errorDiv.style.display = 'block';
         return;
     }
-
+    
     try {
         const response = await fetch('/api/admin/questions', {
             method: 'POST',
@@ -398,9 +398,9 @@ async function handleAddQuestion(event) {
                 options: options
             })
         });
-
+        
         const data = await response.json();
-
+        
         if (data.success) {
             if (await closeAddQuestionModal()) setQuestionStatus('success', 'Question added.'); // <Jun Kai/> after the reload
         } else {
@@ -422,7 +422,7 @@ function editQuestionById(questionId) {
         setQuestionStatus('error', 'This question was not found. Open the page again to reload the list.'); // <Jun Kai/>
         return;
     }
-
+    
     editQuestion(
         question.id,
         question.question_text,
@@ -441,7 +441,7 @@ function editQuestion(questionId, currentQuestionText, questionType, isRequired,
         setQuestionStatus('error', 'Only a system admin can change questions.'); // <Jun Kai/>
         return;
     }
-
+    
     // <Jun Kai start> the edit card opens under the question's own row; one question is edited at a time.
     // The type and the options stay fixed, so old answers keep their meaning (the options show once, in the row).
     const id = Number(questionId);
@@ -509,28 +509,28 @@ function editQuestion(questionId, currentQuestionText, questionType, isRequired,
 // Handle edit question
 async function handleEditQuestion(event, questionId) {
     event.preventDefault();
-
+    
     const questionText = document.getElementById('edit-question-text').value;
     const displayOrder = parseInt(document.getElementById('edit-display-order').value) || 0;
     const isRequired = document.getElementById('edit-is-required').value === '1';
     const isActive = document.getElementById('edit-is-active').checked;
     const errorDiv = document.getElementById('edit-question-error');
-
+    
     errorDiv.style.display = 'none';
-
+    
     if (!questionText.trim()) {
         errorDiv.textContent = 'Question text is required';
         errorDiv.style.display = 'block';
         return;
     }
-
+    
     const username = sessionStorage.getItem('loggedUser');
     if (!username) {
         errorDiv.textContent = 'User session not found. Please login again.';
         errorDiv.style.display = 'block';
         return;
     }
-
+    
     try {
         const response = await fetch(`/api/admin/questions/${questionId}`, {
             method: 'PUT',
@@ -545,9 +545,9 @@ async function handleEditQuestion(event, questionId) {
                 is_active: isActive
             })
         });
-
+        
         const data = await response.json();
-
+        
         if (data.success) {
             closeEditQuestionModal();
             if (await loadQuestionManagementData()) setQuestionStatus('success', 'Question saved. Old answers keep the question as it was.'); // <Jun Kai/> after the reload
@@ -588,7 +588,7 @@ async function deleteQuestion(questionId) {
         return;
     }
     // <Jun Kai end>
-
+    
     if (confirm('Delete this question? If visitors already answered it, it is turned off instead, so their answers are kept.')) { // <Jun Kai/>
         try {
             const username = sessionStorage.getItem('loggedUser');
@@ -596,16 +596,16 @@ async function deleteQuestion(questionId) {
                 setQuestionStatus('error', 'Your sign in was not found. Please sign in again.'); // <Jun Kai/>
                 return;
             }
-
+            
             const response = await fetch(`/api/admin/questions/${questionId}`, {
                 method: 'DELETE',
                 headers: {
                     'x-username': username
                 }
             });
-
+            
             const data = await response.json();
-
+            
             if (data.success) {
                 // <Jun Kai start> a question with answers is only turned off by the server; the message comes after the reload
                 const turnedOff = /deactivated/i.test(data.message || '');
