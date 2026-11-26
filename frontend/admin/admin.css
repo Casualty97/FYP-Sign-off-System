@@ -5685,7 +5685,7 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 /* <Jun Kai start> The permanent deletion window (archiveDeletion.js) is a kit window (va-dialog) now; the old window styles are gone */
-.archive-delete-note { margin: 0 0 14px; }
+.archive-delete-dialog .archive-delete-note { margin: 0 0 16px; } /* after .ui-note in the file, so the dialog class makes it win */
 .archive-delete-note p { margin: 0 0 4px; }
 .archive-delete-note ul { margin: 0; padding-left: 18px; }
 /* <Jun Kai end> */
