@@ -95,7 +95,8 @@ function renderBluetoothAssets() {
         return `
             <article class="asset-card">
                 <div class="asset-card-header">
-                    <div>
+                    <span class="asset-card-icon" aria-hidden="true">${uiIcon(/tablet/i.test(asset.category || '') ? 'tablet' : 'bluetooth', 18)}</span><!-- <Jun Kai/> -->
+                    <div class="asset-card-heading">
                         <div class="asset-card-title">${name}</div>
                         <div class="asset-card-subtitle">Bluetooth ID: ${bluetoothId}</div>
                     </div>
@@ -126,8 +127,10 @@ function renderBluetoothAssets() {
                 </div>
 
                 <div class="asset-card-actions">
-                    <button class="btn-secondary" onclick="showAddAssetModal('${safeBluetoothId}')">Edit</button>
-                    <button class="btn-warning" onclick="deleteAsset('${safeBluetoothId}')">Delete</button>
+                    <!-- <Jun Kai start> kit icon buttons; the name is in the label for screen readers -->
+                    <button type="button" class="ui-btn ui-btn-icon" title="Edit" aria-label="Edit ${name}" onclick="showAddAssetModal('${safeBluetoothId}')">${uiIcon('edit', 16)}</button>
+                    <button type="button" class="ui-btn ui-btn-icon ui-danger" title="Delete" aria-label="Delete ${name}" onclick="deleteAsset('${safeBluetoothId}')">${uiIcon('trash', 16)}</button>
+                    <!-- <Jun Kai end> -->
                 </div>
             </article>
         `;
@@ -222,8 +225,8 @@ function showAddAssetModal(defaultBluetoothId = '') {
                 </div>
 
                 <div class="asset-form-actions">
-                    <button type="button" class="btn-secondary" onclick="closeAssetModal()">Cancel</button>
-                    <button type="submit" class="btn-primary">Save Asset</button>
+                    <button type="button" class="ui-btn ui-btn-secondary" onclick="closeAssetModal()">Cancel</button><!-- <Jun Kai/> kit button -->
+                    <button type="submit" class="ui-btn ui-btn-primary">Save Asset</button><!-- <Jun Kai/> kit button -->
                 </div>
             </form>
         </div>

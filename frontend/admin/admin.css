@@ -2148,71 +2148,57 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
   margin-top: 0;
 }
 
-#form-management-page .overlay-section,
-#form-management-page .user-section {
-  background: #f4f4f4;
-  border-radius: 16px;
-  padding: 25px;
-  border: 2px solid var(--theme-border-color);
-}
+/* <Jun Kai start> Start Screen Text and Feedback QR Code (own pages): a settings card, the old box rules went with the old markup */
+@media (max-width: 640px) { #form-management-page { padding: 20px; } }
+#form-management-page, #Feedback-page-QR-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback-page-QR-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.fm-page-status, .qr-page-status { margin: 0 0 12px; }
+.fm-grid, .qr-grid { align-items: start; }
+/* the kit's 340px minimum is wider than a 360px phone, so it may shrink to the page */
+#form-management-page .fm-grid, #Feedback-page-QR-page .qr-grid { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
+.fm-fields { display: flex; flex-direction: column; gap: 16px; }
 
-/* Buttons: white + no coloured border */
-#form-management-page .btn-primary,
-#form-management-page .btn-secondary {
-  background: #ffffff;
-  color: var(--theme-text-color);
-  border: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
+#Feedback-page-QR-page { min-height: 100%; padding: 30px; margin-top: 0; }
+@media (max-width: 640px) { #Feedback-page-QR-page { padding: 20px; } }
+.qr-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.qr-toggle-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.qr-toggle-text strong { font-size: 14px; font-weight: 600; color: var(--theme-card-text); }
+.qr-toggle-text small { font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
 
-#form-management-page .btn-primary:hover,
-#form-management-page .btn-secondary:hover {
-  background: #f8fafc;
-}
-
-#form-management-page .form-group input,
-#form-management-page .form-group select {
-  background: #ffffff;
-  border: 2px solid var(--theme-border-color);
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 15px;
-}
-
-#form-management-page #fm-bg {
-  width: 280px;
-  height: 48px;
-  padding: 12px 16px;
-}
-
-/* Form status message */
-#fm-status.fm-status {
-  margin-top: 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid transparent;
-}
-
-#fm-status.fm-status--hidden {
-  display: none;
-}
-
-#fm-status.fm-status--success {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
-}
-
-#fm-status.fm-status--error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #991b1b;
-}
+/* the kiosk's first screen in small, copied from the look of feedback.html; it stays light in dark mode like the kiosk */
+.ks-screen { position: relative; display: flex; align-items: center; justify-content: center; gap: 4%; aspect-ratio: 16 / 10; padding: 4%; overflow: hidden; border: 8px solid #1e293b; border-radius: 18px; background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14); box-sizing: border-box; }
+.ks-card { display: flex; flex-direction: column; gap: 8px; width: 62%; max-height: 100%; padding: 16px 18px; overflow: hidden; border-top: 3px solid #8bc58f; border-radius: 6px; background: rgba(248, 250, 244, 0.95); box-shadow: 0 8px 20px rgba(24, 57, 43, 0.16); box-sizing: border-box; }
+.ks-brand { display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 600; color: #2f6f45; }
+.ks-logo { width: 14px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, #4a7c59, #8bc58f); flex: 0 0 auto; }
+.ks-title { font-size: 19px; font-weight: 800; line-height: 1.15; color: #1d4a32; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ks-subtitle { font-size: 10px; line-height: 1.5; color: #4b5a52; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ks-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: 2px; }
+.ks-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 50%; max-width: 100%; height: 22px; padding: 0 8px; border-radius: 5px; background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; font-size: 8px; font-weight: 700; white-space: nowrap; box-sizing: border-box; }
+.ks-btn-wide { width: 100%; }
+/* with the QR code on, the text goes left and the QR panel right, as in feedback.html #land-page-qrcode */
+.ks-qr { display: none; flex-direction: column; align-items: center; gap: 6px; width: 30%; padding: 12px 10px; border-radius: 8px; background: rgba(248, 250, 244, 0.95); box-shadow: 0 8px 20px rgba(24, 57, 43, 0.16); text-align: center; box-sizing: border-box; }
+.ks-screen.has-qr .ks-card { width: 56%; }
+.ks-screen.has-qr .ks-btn { width: 100%; }
+.ks-screen.has-qr .ks-qr { display: flex; }
+.ks-qr-head { font-size: 9px; font-weight: 700; color: #2f6f45; }
+.ks-qr-image { display: block; width: 100%; max-width: 110px; height: auto; border-radius: 4px; }
+.ks-qr-text { font-size: 8px; line-height: 1.4; color: #4b5a52; }
+.qr-preview-caption { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+/* a narrow preview (a phone, or a narrow column at about 1000 to 1200 px) gets the compact look, by the preview's own width */
+.ks-holder { container: ks-preview / inline-size; }
+@container ks-preview (max-width: 460px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } .ks-screen.has-qr .ks-card { width: 60%; } .ks-screen.has-qr .ks-title { font-size: 12px; } .ks-qr { width: 36%; padding: 8px 6px; } .ks-qr-text { display: none; } }
+/* the dark twins colorScheme.js makes would darken the kiosk copy, so these stronger rules keep its own colours */
+html[data-theme="dark"] .ui-card-body .ks-screen { background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; border-color: #1e293b; }
+html[data-theme="dark"] .ks-screen .ks-card { background: rgba(248, 250, 244, 0.95); border-top-color: #8bc58f; }
+html[data-theme="dark"] .ks-screen .ks-brand { color: #2f6f45; }
+html[data-theme="dark"] .ks-screen .ks-logo { background: linear-gradient(135deg, #4a7c59, #8bc58f); }
+html[data-theme="dark"] .ks-screen .ks-title { color: #1d4a32; }
+html[data-theme="dark"] .ks-screen .ks-subtitle { color: #4b5a52; }
+html[data-theme="dark"] .ks-screen .ks-btn { background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; }
+html[data-theme="dark"] .ks-screen .ks-qr { background: rgba(248, 250, 244, 0.95); }
+html[data-theme="dark"] .ks-screen .ks-qr-head { color: #2f6f45; }
+html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
+/* <Jun Kai end> */
 
 /* ==================== EMAIL MANAGEMENT PAGE STYLES ==================== */
 
@@ -2265,31 +2251,65 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
     margin-top: 0;
 }
 
-/* Tree section and info display */
-.tree-section {
-    background: var(--theme-card-bg);
-    border-radius: 16px;
-    padding: 25px;
-    border: 2px solid var(--theme-border-color);
+/* <Jun Kai start> Tree Leaves (admin redesign, Digital Tree B): the tree's numbers on the left, the visitor list on the
+   right; on a narrow screen the list comes first */
+#digital-tree-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #digital-tree-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.dt-layout { display: grid; grid-template-columns: minmax(min(280px, 100%), 380px) minmax(0, 1fr); grid-template-areas: "side list"; gap: 20px; align-items: start; }
+.dt-side { grid-area: side; display: grid; gap: 20px; min-width: 0; }
+.dt-side .ui-card + .ui-card { margin-top: 0; }
+.dt-list-card { grid-area: list; min-width: 0; overflow: hidden; }
+.dt-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dt-facts .ui-fact-value { font-size: 20px; }
+.dt-table td { padding-top: 11px; padding-bottom: 11px; }
+.dt-table .dt-num { text-align: right; width: 70px; font-variant-numeric: tabular-nums; }
+.dt-table .dt-tag-col { width: 1%; white-space: nowrap; text-align: right; }
+.dt-table .ui-who-text b { max-width: 260px; }
+.ui-avatar.dt-avatar-none { background: #94a3b8; }
+.dt-empty { text-align: center; padding: 36px 16px; }
+#digital-tree-page .ui-pager { flex-wrap: wrap; }
+#digital-tree-page .ui-pill { white-space: normal; overflow-wrap: anywhere; }
+.dt-screen { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; border: 6px solid #1e293b; background: #e2e8f0; }
+.dt-screen iframe { position: absolute; top: 0; left: 0; width: 1600px; height: 900px; border: 0; transform-origin: 0 0; pointer-events: none; }
+.dt-screen-note { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #475569; background: #e2e8f0; }
+.dt-screen[data-state="ready"] .dt-screen-note { display: none; }
+html[data-theme="dark"] .dt-screen { border-color: #0b1220; background: #1e293b; }
+html[data-theme="dark"] .dt-screen-note { background: #1e293b; color: #cbd5e1; }
+.dt-preview-card .ui-card-header { align-items: flex-start; }
+.dt-vip-card .ui-card-header h3 { display: flex; align-items: center; gap: 6px; }
+.dt-vip-add { display: flex; gap: 8px; }
+.dt-vip-add .ui-input { flex: 1 1 auto; min-width: 0; }
+.dt-vip-add .ui-btn { flex-shrink: 0; }
+.dt-vip-help { margin: 8px 0 0; }
+.ui-status-slot.dt-vip-status { margin-top: 10px; min-height: 0; }
+.ui-status-slot.dt-vip-status:empty { display: none; }
+.dt-vip-list { margin-top: 8px; }
+.dt-vip-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.dt-vip-row + .dt-vip-row { border-top: 1px solid var(--theme-border-color); }
+.dt-vip-star { display: inline-flex; color: #d97706; flex-shrink: 0; }
+.dt-vip-name { display: grid; flex: 1 1 auto; min-width: 0; }
+.dt-vip-name b { font-size: 14px; font-weight: 600; color: var(--theme-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-vip-name small { font-size: 12px; color: var(--color-muted); }
+.dt-vip-row.is-asking { flex-wrap: wrap; }
+.dt-vip-row.is-asking .ui-btn { height: 32px; }
+html[data-theme="dark"] .dt-vip-star { color: #fbbf24; }
+.dt-preview-card .ui-card-header .ui-btn { flex-shrink: 0; text-decoration: none; }
+@media (max-width: 1180px) {
+    .dt-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "list" "side"; }
+    .dt-side { grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); align-items: start; }
 }
-
-.tree-info {
-    margin: 20px 0;
-    padding: 20px;
-    background: #f8fafc;
-    border-radius: 8px;
+@media (max-width: 600px) {
+    #digital-tree-page .ui-page-header { flex-direction: column; align-items: flex-start; }
+    .dt-table th:nth-child(2), .dt-table td:nth-child(2), .dt-table th:nth-child(3), .dt-table td:nth-child(3) { display: none; }
+    .dt-table .ui-who-text b { max-width: 150px; }
 }
-
-.tree-info h4 {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 8px;
+@media (max-width: 420px) {
+    .dt-table th, .dt-table td { padding-left: 10px; padding-right: 10px; }
+    .dt-table .ui-who { min-width: 0; }
+    .dt-table .ui-who-text b { max-width: 110px; }
+    .dt-preview-card .ui-card-header { flex-direction: column; }
 }
-
-.tree-info p {
-    font-size: 14px;
-    color: #64748b;
-}
+/* <Jun Kai end> */
 
 /* ==================== DIGITAL TREE ADJUSTMENT PAGE STYLES ==================== */
 /* (Done by Yu Kang) */
@@ -2445,6 +2465,44 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
     display: flex;
     gap: 8px;
 }
+
+/* <Jun Kai start> Photo Overlays A, the picture gallery: each card leads with the desktop and mobile pictures; the
+   details open in the kit's side panel. Only rules scoped to #overlay-page or the ov- classes, so other pages that use
+   .overlay-section keep their look. */
+#overlay-page .overlay-grid.ov-gallery { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 18px; margin-top: 0; background: none; border-radius: 0; }
+#overlay-page .ov-loading { grid-column: 1 / -1; margin: 0; }
+#overlay-page .overlay-card.ov-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin-top: 0; padding: 14px; border: 1px solid var(--l3-card-edge); border-radius: 16px; background: var(--l3-card); cursor: pointer; overflow: visible; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+#overlay-page .overlay-card.ov-card::before { display: none; }
+#overlay-page .overlay-card.ov-card:hover { transform: none; border-color: color-mix(in srgb, var(--theme-btn-primary-bg) 40%, var(--l3-card-edge)); box-shadow: var(--l3-card-shadow); }
+#overlay-page .overlay-card.ov-card.is-open { border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-btn-primary-bg) 28%, transparent); }
+.ov-pics { display: flex; align-items: center; justify-content: center; gap: 10px; height: 128px; padding: 12px; border-radius: 12px; background: var(--theme-bg-color); }
+/* a checkerboard behind the picture shows where an overlay is see-through (the visitor's photo shows there) */
+.ov-pic { position: relative; display: block; height: 100%; flex-shrink: 0; overflow: hidden; border: 1px solid var(--theme-border-color); border-radius: 8px; background: repeating-conic-gradient(var(--theme-bg-color) 0 25%, var(--theme-card-bg) 0 50%) 0 0 / 14px 14px; }
+.ov-pic-desktop { aspect-ratio: 16 / 9; }
+.ov-pic-mobile { aspect-ratio: 9 / 16; }
+.ov-pic img, .ov-pic video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ov-pic.is-missing img, .ov-pic.is-missing video { display: none; }
+.ov-pic.is-missing::after, .ov-pic:empty::after { content: 'Missing'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--color-muted); }
+.ov-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.ov-text { min-width: 0; }
+.ov-name { display: block; max-width: 100%; padding: 0; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 700; color: var(--theme-text-color); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.ov-name:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: 2px; border-radius: 4px; }
+.ov-sub { margin: 3px 0 0; font-size: 12px; color: var(--color-dark-gray); overflow-wrap: anywhere; }
+.ov-sub code, .ov-facts code, .ov-path { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+.ov-actions { display: flex; gap: 2px; }
+.ov-hint { margin: 18px 0 0; padding: 12px 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; background: var(--theme-bg-color); font-size: 13px; color: var(--color-dark-gray); }
+.ov-panel-pics { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); align-items: end; gap: 12px; }
+.ov-panel-pics figure { margin: 0; min-width: 0; }
+.ov-panel-pics .ov-pic { width: 100%; height: auto; }
+.ov-panel-pics figcaption { margin-top: 6px; font-size: 12px; color: var(--color-dark-gray); }
+.ov-path { overflow-wrap: anywhere; }
+/* the old page rule sets the padding by id, so the room for the open panel is set by id too */
+@media (min-width: 1100px) { #overlay-page.ui-has-sidepanel { padding-right: 494px; } }
+@media (max-width: 600px) {
+    #overlay-page { padding: 20px 16px; }
+    #overlay-page .ui-page-header { flex-direction: column; align-items: flex-start; }
+}
+/* <Jun Kai end> */
 
 .overlay-preview-popup {
     position: fixed;
@@ -2904,6 +2962,67 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
     margin-top: 18px;
 }
 
+/* <Jun Kai start> Assets page (Assets A): Ryan's layout in the new look. The rules above stay for the markup they name;
+   these give the page the kit's glass cards, count tiles and tags, in light and dark. Colours are variables or CSS, never
+   inline, so the dark scheme can follow. */
+#asset-page { --color-dark-gray: #475569; --color-muted: #64748b; --asset-green: #166534; --asset-amber: #92400e; }
+html[data-theme="dark"] #asset-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; --asset-green: #86efac; --asset-amber: #fcd34d; }
+#asset-page .asset-section { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+#asset-page .asset-hero { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0; margin: -6px 0 18px; background: none; border: 0; border-radius: 0; flex-wrap: wrap; }
+#asset-page .asset-hero > div:first-child { min-width: 0; flex: 1 1 320px; }
+#asset-page .asset-hero h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
+#asset-page .asset-hero p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); max-width: 680px; }
+#asset-page .asset-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+#asset-page .asset-hero-actions .ui-btn svg { margin-right: 6px; }
+
+#asset-page .asset-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
+#asset-page .asset-summary-card { display: grid; gap: 4px; padding: 16px 18px; background: var(--l3-card); border: 1px solid var(--l3-card-edge); border-radius: 18px; box-shadow: var(--l3-card-shadow); }
+#asset-page .asset-summary-card span { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-dark-gray); }
+#asset-page .asset-summary-card strong { font-size: 26px; font-weight: 750; line-height: 1.15; color: var(--theme-text-color); font-variant-numeric: tabular-nums; }
+#asset-page .asset-summary-note { font-size: 12px; color: var(--color-muted); }
+#asset-page .asset-summary-card:nth-child(2) { background: rgba(22, 163, 74, 0.08); border-color: rgba(22, 163, 74, 0.35); }
+#asset-page .asset-summary-card:nth-child(2) strong { color: var(--asset-green); }
+#asset-page .asset-summary-card:nth-child(3) { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.4); }
+#asset-page .asset-summary-card:nth-child(3) strong { color: var(--asset-amber); }
+/* on the green and amber tints the lighter grey falls under 4.5 contrast */
+#asset-page .asset-summary-card:nth-child(n+2) .asset-summary-note { color: var(--color-dark-gray); }
+/* the scanner status line of Ryan's branch sits between the counts and the cards */
+#asset-page #asset-scanner-status { margin: -6px 0 14px; font-size: 13px; color: var(--color-dark-gray); }
+
+#asset-page .asset-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; margin: 0; }
+#asset-page .asset-card { display: flex; flex-direction: column; min-width: 0; padding: 18px 20px 14px; background: var(--l3-card); border: 1px solid var(--l3-card-edge); border-radius: 18px; box-shadow: var(--l3-card-shadow); transition: none; }
+#asset-page .asset-card::before { content: none; }
+#asset-page .asset-card:hover { transform: none; }
+/* icon, name and pill on the first line; the Bluetooth ID gets the whole width under them */
+#asset-page .asset-card-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; column-gap: 10px; row-gap: 2px; margin: 0 0 12px; }
+#asset-page .asset-card-heading { display: contents; }
+#asset-page .asset-card-icon { grid-column: 1; grid-row: 1; display: inline-flex; padding-top: 2px; color: var(--color-dark-gray); }
+#asset-page .asset-card-title { grid-column: 2; grid-row: 1; margin: 0; font-size: 16px; font-weight: 600; color: var(--theme-text-color); overflow-wrap: anywhere; }
+#asset-page .asset-status-pill { grid-column: 3; grid-row: 1; }
+#asset-page .asset-card-subtitle { grid-column: 2 / -1; grid-row: 2; font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#asset-page .asset-status-pill { gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+#asset-page .asset-status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+#asset-page .asset-status-pill.detected { background: #dcfce7; color: #166534; }
+#asset-page .asset-status-pill.offline { background: #fef3c7; color: #92400e; }
+html[data-theme="dark"] #asset-page .asset-status-pill.detected { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+html[data-theme="dark"] #asset-page .asset-status-pill.offline { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+#asset-page .asset-details { gap: 0; margin: 0; }
+/* a line only between rows: the dark scheme copies every rule with its colours, and a copied row rule would bring back
+   a border that a :first-child rule had taken away */
+#asset-page .asset-detail-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; padding: 7px 0; border-top: 0; }
+#asset-page .asset-detail-row + .asset-detail-row { border-top: 1px solid var(--theme-border-color); }
+#asset-page .asset-detail-label { font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--color-dark-gray); }
+#asset-page .asset-detail-value { font-size: 13px; text-align: left; color: var(--theme-text-color); overflow-wrap: anywhere; }
+#asset-page .asset-card-actions { gap: 4px; margin-top: auto; padding-top: 10px; }
+#asset-page .asset-empty-state { padding: 36px 20px; background: var(--l3-card); border: 1px dashed var(--theme-border-color); border-radius: 18px; color: var(--color-dark-gray); }
+#asset-page .asset-empty-state strong { color: var(--theme-text-color); font-size: 15px; font-weight: 600; }
+@media (max-width: 760px) {
+    #asset-page { padding: 18px 16px; }
+    #asset-page .asset-summary { grid-template-columns: minmax(0, 1fr); }
+    #asset-page .asset-hero-actions { width: 100%; }
+}
+/* <Jun Kai end> */
+
 /* ==================== QUESTION MANAGEMENT PAGE STYLES ==================== */
 
 /* Questions page container */
@@ -3141,6 +3260,98 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
     line-height: 1.3;
 }
 
+/* <Jun Kai start> Questions in the new look (admin redesign, Questions B): slim rows, Add and Edit inside the list */
+#questions-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #questions-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+#questions-page .ui-page-header .ui-btn svg { flex-shrink: 0; }
+.qs-status { margin: 0 0 12px; }
+.qs-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+.qs-list-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: 900px; }
+.qs-list { display: flex; flex-direction: column; gap: 14px; }
+.qs-list-col .ui-card + .ui-card { margin-top: 0; }
+#questions-new-slot:empty { display: none; }
+.qs-row { padding: 0; overflow: hidden; }
+.qs-row-main { display: flex; align-items: center; gap: 16px; padding: 16px 20px; }
+.qs-num { flex: 0 0 auto; min-width: 24px; text-align: center; font-size: 15px; font-weight: 700; color: var(--theme-text-color); font-variant-numeric: tabular-nums; }
+.qs-body { flex: 1; min-width: 0; }
+.qs-text { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.qs-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.qs-side { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.qs-side .ui-pill { margin-right: 8px; }
+.qs-row.is-off .qs-num, .qs-row.is-off .qs-text { color: var(--color-dark-gray); }
+.qs-options { padding: 12px 20px 16px 60px; border-top: 1px solid var(--theme-border-color); }
+.qs-options-title { margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
+.qs-option-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.qs-option-list li { display: flex; gap: 12px; font-size: 13px; line-height: 1.5; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.qs-option-num { min-width: 16px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.qs-edit-slot:empty { display: none; }
+.qs-edit-slot { border-top: 1px solid var(--theme-border-color); }
+.qs-row.is-editing { border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.qs-form { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 20px; }
+.qs-form-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
+.qs-textarea { height: auto; min-height: 80px; padding: 10px 12px; line-height: 1.5; font-family: inherit; resize: vertical; }
+.qs-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.qs-fixed { display: flex; align-items: center; min-height: 38px; }
+.qs-switch-row { display: flex; align-items: center; gap: 10px; min-height: 38px; font-size: 14px; color: var(--theme-text-color); cursor: pointer; }
+.qs-option-inputs { display: flex; flex-direction: column; gap: 8px; }
+.qs-option-inputs:empty { display: none; }
+.qs-option-input { display: flex; align-items: center; gap: 8px; margin: 0; }
+.qs-option-input .ui-input { flex: 1; min-width: 0; }
+.qs-option-input .qs-option-order { flex: 0 0 84px; }
+.qs-option-input .ui-input[aria-invalid="true"] { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+.qs-note { margin: 0; }
+.qs-error { font-size: 13px; color: #b91c1c; }
+html[data-theme="dark"] .qs-error { color: #fca5a5; }
+.qs-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.qs-empty { padding: 32px 24px; text-align: center; font-size: 14px; color: var(--color-dark-gray); }
+.qs-empty strong { display: block; margin-bottom: 6px; font-size: 15px; color: var(--theme-text-color); }
+.qs-empty p { margin: 0 0 16px; }
+@media (max-width: 640px) {
+    .qs-row-main { flex-wrap: wrap; gap: 10px 12px; padding: 14px 16px; }
+    .qs-body { flex-basis: calc(100% - 40px); }
+    .qs-side { width: 100%; justify-content: flex-end; }
+    .qs-side .ui-pill { margin-right: auto; }
+    .qs-options { padding: 12px 16px 14px; }
+    .qs-form { padding: 16px; }
+    .qs-form-grid { grid-template-columns: minmax(0, 1fr); }
+    .qs-option-input .qs-option-order { flex-basis: 64px; }
+}
+/* the live preview: a tablet with the kiosk's own light colours. Its rules start with html[data-theme] (set in light and
+   dark), so colorScheme.js makes no dark twin of them and the tablet looks the same in both modes */
+.qs-preview-card { min-width: 0; }
+.qs-preview-body { padding: 20px 22px 24px; }
+.qs-preview-note { margin: 0 0 14px; font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+html[data-theme] .qs-device { max-width: 330px; margin: 0 auto; padding: 12px; border-radius: 28px; background: #1f2937; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18); }
+html[data-theme] .qs-screen { position: relative; display: flex; flex-direction: column; gap: 12px; height: 560px; padding: 22px 16px; overflow-y: auto; border-radius: 18px; background: #ffffff linear-gradient(180deg, #ffffff, #f6faf5); color: #18392b; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; }
+html[data-theme] .qs-k-title { flex-shrink: 0; font-size: 19px; font-weight: 900; text-align: center; color: #18392b; }
+html[data-theme] .qs-k-list { display: flex; flex-direction: column; gap: 10px; }
+html[data-theme] .qs-k-q { padding: 12px; border: 1px solid rgba(74, 124, 89, 0.2); border-radius: 8px; background: #ffffff; transition: box-shadow 0.15s ease, border-color 0.15s ease; }
+html[data-theme] .qs-k-q.is-draft { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16); }
+html[data-theme] .qs-k-label { font-size: 12px; font-weight: 800; line-height: 1.4; color: #18392b; overflow-wrap: anywhere; }
+html[data-theme] .qs-k-empty { font-weight: 600; font-style: italic; color: #7b8f84; }
+html[data-theme] .qs-k-rating { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+html[data-theme] .qs-k-rate { display: flex; align-items: center; justify-content: center; height: 30px; border: 1px solid rgba(74, 124, 89, 0.34); border-radius: 6px; background: #ffffff; font-size: 12px; font-weight: 900; color: #52685d; }
+html[data-theme] .qs-k-text { height: 52px; margin-top: 8px; padding: 8px 10px; border: 1px solid rgba(74, 124, 89, 0.34); border-radius: 6px; background: #ffffff; font-size: 11px; color: #8a9a91; }
+html[data-theme] .qs-k-choices { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
+html[data-theme] .qs-k-choices.is-row { flex-direction: row; gap: 14px; }
+html[data-theme] .qs-k-choice { display: flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1.35; color: #18392b; overflow-wrap: anywhere; }
+html[data-theme] .qs-k-radio { flex-shrink: 0; width: 11px; height: 11px; border: 1px solid #6b7c73; border-radius: 50%; background: #ffffff; }
+html[data-theme] .qs-k-none { padding: 18px 8px; text-align: center; font-size: 12px; color: #52685d; }
+html[data-theme] .qs-k-button { flex-shrink: 0; margin-top: auto; padding: 11px; border-radius: 8px; background: #3d7650 linear-gradient(135deg, #4a7c59, #2f6f45); color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; }
+/* the content column is a scroll container that never scrolls (the window does), which would stop the preview from
+   sticking; the same fix as the Visitor Data Archive save bar */
+.page-content:has(> #questions-page.active) { overflow: visible; }
+@media (min-width: 1200px) {
+    .qs-grid { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); }
+    .qs-list-col { max-width: none; }
+    .qs-preview-card { position: sticky; top: 20px; }
+}
+@media (max-width: 640px) {
+    .qs-preview-body { padding: 16px; }
+    html[data-theme] .qs-screen { height: 480px; }
+}
+/* <Jun Kai end> */
+
 /* ==================== USER MANAGEMENT PAGE STYLES ==================== */
 
 /* Users page container */
@@ -3209,169 +3420,7 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
     box-sizing: border-box;
 }
 
-#vip-page .vip-card {
-    background: #ffffff;
-    border-radius: 18px;
-    border: 1px solid #e5e7eb;
-    padding: 22px;
-
-    width: 100%;         
-    max-width: none;      
-    box-sizing: border-box;
-}
-
-/* Header */
-#vip-page .vip-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid #eef2f7;
-}
-
-#vip-page .vip-card-header h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-}
-
-#vip-page .vip-subtext {
-    margin-top: 6px;
-    color: #64748b;
-    font-size: 14px;
-}
-
-/* Add VIP Button (unique) */
-#vip-page .vip-add-btn {
-    border: none;
-    background: #111827;
-    color: #ffffff;
-    padding: 10px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-#vip-page .vip-add-btn:hover {
-    opacity: 0.92;
-}
-
-/* Info row */
-#vip-page .vip-info-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 16px;
-}
-
-#vip-page .vip-info-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
-    color: #9a3412;
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-#vip-page .vip-count {
-    color: #334155;
-    font-size: 13px;
-}
-
-/* VIP list layout */
-#vip-page .vip-list {
-    margin-top: 18px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-@media (max-width: 700px) {
-    #vip-page .vip-list {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* VIP item */
-#vip-page .vip-item {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-#vip-page .vip-item-left {
-    min-width: 0;
-}
-
-#vip-page .vip-item-actions {
-    flex-shrink: 0;
-    margin-left: auto;
-}
-
-#vip-page .vip-name {
-    font-weight: 700;
-    color: #0f172a;
-}
-
-#vip-page .vip-date {
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 4px;
-}
-
-#vip-page .vip-badge {
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
-    color: #92400e;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-#vip-page .vip-delete-btn {
-    background: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-}
-
-#vip-page .vip-delete-btn:hover {
-    background: #fecaca;
-    border-color: #fca5a5;
-    transform: translateY(-1px);
-}
-
-#vip-page .vip-delete-btn:active {
-    transform: translateY(0);
-}
-
-/* Empty state */
-#vip-page .vip-empty {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 26px;
-    color: #64748b;
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    border-radius: 14px;
-}
+/* <Jun Kai/> the VIP list is a card on Tree Leaves since the admin redesign; its rules are in the Tree Leaves block */
 
 
 /* ==================== AUDIT LOGS PAGE STYLES ==================== */
@@ -5916,21 +5965,35 @@ input[type="color"]::-webkit-color-swatch {
     padding: 30px;
 }
 
-.timer-countdown-section {
-    background: #F7F7F7FF;
-    border: 2px solid #F7F7F7FF;
-    border-radius: 16px;
-    padding: 25px;
-}
-
-#timer-countdown-page .toolbar {
-    margin-top: 10px;
-}
-
-#timer-countdown-message {
-    font-size: 14px;
-    margin-top: 12px;
-}
+/* <Jun Kai start> Photo Timer (own page): the countdown card, the old box rules went with the old markup */
+@media (max-width: 640px) { #timer-countdown-page { padding: 20px; } }
+#timer-countdown-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #timer-countdown-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+#timer-countdown-page .ui-page-header .ui-btn svg { margin-right: 6px; }
+.pt-status { margin: 0 0 12px; }
+.pt-grid { align-items: start; }
+#timer-countdown-page .pt-grid { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
+.pt-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pt-input { position: relative; width: 150px; flex: 0 0 auto; }
+.pt-input .ui-input { padding-right: 70px; }
+.pt-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--color-muted); pointer-events: none; }
+#timer-countdown-seconds.input-error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+/* the kiosk's camera view in small (feedback.css #countdown-overlay and .corner); dark colours are set again for dark mode */
+.pt-camera { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #334155, #0b1120 75%); }
+.pt-person { position: absolute; left: 50%; bottom: 0; width: 46%; height: 82%; transform: translateX(-50%); fill: #475569; }
+.pt-corner { position: absolute; width: 16px; height: 16px; border: 3px solid #6366f1; }
+.pt-corner-tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; }
+.pt-corner-tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; }
+.pt-corner-bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; }
+.pt-corner-br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; }
+.pt-badge { position: absolute; top: 22px; left: 22px; display: flex; align-items: center; justify-content: center; min-width: 48px; height: 48px; padding: 0 6px; border: 3px solid #ffffff; border-radius: 999px; background: rgba(0, 0, 0, 0.7); color: #ffffff; font-size: 24px; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); box-sizing: border-box; }
+.pt-badge[hidden] { display: none; }
+.pt-caption { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+html[data-theme="dark"] .ui-card-body .pt-camera { background: radial-gradient(circle at 50% 40%, #334155, #0b1120 75%); }
+html[data-theme="dark"] .pt-camera .pt-person { fill: #475569; }
+html[data-theme="dark"] .pt-camera .pt-corner { border-color: #6366f1; }
+html[data-theme="dark"] .pt-camera .pt-badge { border-color: #ffffff; background: rgba(0, 0, 0, 0.7); color: #ffffff; }
+/* <Jun Kai end> */
 
 /* ==================== SERVER SCHEDULE MANAGEMENT (DONE BY BERNISSA) ==================== */
 
@@ -6949,6 +7012,124 @@ input:checked + .slider:before {
         position: static;
     }
 }
+
+/* <Jun Kai start> Kiosk Settings in the new look (admin redesign, Parameter Adjustment B). The rules above stay for the
+   Tree page, which shares some of them; everything here starts with the page id or a pa- class. */
+#parameter-adjustment-page { --pa-unsaved: var(--color-warning); margin-top: 0; }
+/* the content column is a scroll container that never scrolls (the window does), which would stop the save bar from sticking */
+.page-content:has(> #parameter-adjustment-page.active) { overflow: visible; }
+#parameter-adjustment-page .pa-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* the eight kiosk screens in the order a visitor sees them; each opens its own group of settings. The lines between
+   steps are box shadows clipped by the bar: a border reset with :first-child would lose to the dark mode copy of the border. */
+.pa-steps { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); margin-bottom: 20px; border: 1px solid var(--l3-card-edge); border-radius: 14px; background: var(--l3-card); box-shadow: var(--l3-card-shadow); overflow: hidden; }
+.pa-step { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 14px 12px; border: 0; box-shadow: -1px 0 0 var(--theme-border-color), 0 -1px 0 var(--theme-border-color); background: transparent; color: var(--theme-text-color); font: inherit; text-align: left; cursor: pointer; transition: background-color 0.15s ease; }
+.pa-step:hover { background: var(--theme-bg-color); }
+.pa-step:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: -2px; }
+.pa-step-num { position: relative; display: inline-grid; place-items: center; flex-shrink: 0; width: 24px; height: 24px; border: 1px solid var(--theme-border-color); border-radius: 50%; font-size: 12px; font-weight: 600; color: var(--color-dark-gray); font-variant-numeric: tabular-nums; }
+.pa-step-text { min-width: 0; }
+.pa-step-text strong { display: block; font-size: 13px; font-weight: 600; line-height: 1.3; }
+.pa-step-text small { display: block; margin-top: 2px; font-size: 12px; line-height: 1.35; color: var(--color-dark-gray); }
+.pa-step.is-active { background: var(--theme-bg-color); box-shadow: -1px 0 0 var(--theme-border-color), 0 -1px 0 var(--theme-border-color), inset 0 -3px 0 var(--theme-btn-primary-bg); }
+.pa-step.is-active .pa-step-num { border-color: var(--theme-btn-primary-bg); background: var(--theme-btn-primary-bg); color: var(--theme-btn-primary-text); }
+#parameter-adjustment-page .pa-editor > .pa-group { margin-top: 0; scroll-margin-top: 96px; }
+#parameter-adjustment-page .pa-group[hidden] { display: none; }
+.pa-behind { margin-top: 20px; }
+.pa-behind-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.pa-behind-btn [data-fb-icon] { display: inline-flex; }
+.pa-behind-btn.is-active { border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-btn-primary-bg) 16%, transparent); }
+.pa-settings-gap { margin-top: 18px; }
+/* unsaved changes: the line in the save bar and a dot on each step that has some */
+.pa-changes { display: inline-flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.pa-changes::before { content: ""; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--pa-unsaved); }
+.pa-changes[hidden] { display: none; }
+.pa-behind-btn { position: relative; }
+.pa-step.has-changes .pa-step-num::after, .pa-behind-btn.has-changes::after { content: ""; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; box-sizing: border-box; border: 2px solid var(--theme-card-bg); border-radius: 50%; background: var(--pa-unsaved); }
+/* live preview beside the settings. The kiosk sketch keeps the kiosk's light colours in dark mode too: they are
+   custom properties, which the dark mode twin rules in colorScheme.js leave as they are. */
+.pa-work.has-preview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); gap: 20px; align-items: start; }
+#parameter-adjustment-page .pa-preview { position: sticky; top: 16px; margin-top: 0; }
+#parameter-adjustment-page .pa-preview[hidden], .pa-preview-block[hidden], .pa-preview [data-pa-show][hidden] { display: none; }
+.pa-preview-note { margin: 12px 0 0; font-size: 12px; line-height: 1.45; color: var(--color-dark-gray); }
+#pa-preview .landing-layout-preview { position: static; max-width: 600px; height: calc(520px * var(--pa-landing-scale, 0.55)); margin: 0 auto; padding: 0; border: 0; border-radius: 10px; background: none; overflow: hidden; }
+#pa-preview .landing-preview-stage { width: 600px; height: 520px; min-height: 0; transform: scale(var(--pa-landing-scale, 0.55)); transform-origin: top left; }
+.pa-device { --pa-frame: #1e293b; --pa-ink: #0f172a; --pa-soft: #475569; --pa-line: #cbd5e1; --pa-green: #047857; --pa-screen-bg: linear-gradient(135deg, #ecfdf5, #eff6ff); --pa-card-bg: rgb(255 255 255 / var(--pa-card-alpha, 0.9)); --pa-btn-text: #ffffff; padding: 9px; border-radius: 22px; background: var(--pa-frame); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18); transition: opacity 0.2s ease; }
+.pa-device.is-off { opacity: 0.45; }
+.pa-preview-block .pa-device { max-width: 440px; margin: 0 auto; }
+.pa-screen { display: grid; place-items: center; gap: 10px; min-height: 300px; padding: 20px 16px; border-radius: 14px; background: var(--pa-screen-bg); background-size: cover; background-position: center; background-attachment: scroll; overflow: hidden; }
+.pa-screen-card { width: 100%; padding: 18px 16px; border-radius: 12px; background: var(--pa-card-bg); color: var(--pa-ink); text-align: center; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12); }
+.pa-screen-title { margin: 0 0 6px; font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--pa-ink); overflow-wrap: anywhere; }
+.pa-screen-text { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--pa-soft); overflow-wrap: anywhere; }
+.pa-screen-small { margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--pa-soft); overflow-wrap: anywhere; }
+.pa-screen-green { color: var(--pa-green); }
+.pa-screen-icon { display: inline-flex; margin-bottom: 6px; color: var(--pa-green); }
+.pa-screen-icon svg { width: 34px; height: 34px; }
+.pa-screen-coach { display: grid; gap: 2px; margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--pa-line); border-radius: 10px; text-align: left; font-size: 12px; color: var(--pa-soft); }
+.pa-screen-coach strong { font-size: 13px; color: var(--pa-ink); }
+.pa-screen-field { display: grid; gap: 3px; margin: 0 0 8px; text-align: left; font-size: 12px; font-weight: 600; color: var(--pa-ink); }
+.pa-screen-field em { font-style: normal; font-weight: 400; color: var(--pa-soft); }
+.pa-screen-field i { display: block; padding: 8px 10px; border: 1px solid var(--pa-line); border-radius: 8px; font-style: normal; font-weight: 400; color: var(--pa-soft); }
+.pa-screen-lines { display: grid; gap: 8px; margin: 0 0 10px; }
+.pa-screen-lines span { height: 30px; border: 1px solid var(--pa-line); border-radius: 8px; }
+.pa-screen-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pa-screen-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; margin-top: 4px; padding: 0 16px; border-radius: 8px; background: var(--pa-accent, #4a7c59); color: var(--pa-btn-text); font-size: 12px; font-weight: 700; }
+.pa-screen-btn-light { border: 1px solid var(--pa-accent, #4a7c59); background: var(--pa-card-bg); color: var(--pa-accent, #4a7c59); }
+.pa-screen-camera { display: grid; place-items: end center; height: 130px; margin: 6px 0 8px; padding: 8px; border-radius: 10px; background: var(--pa-frame); }
+.pa-screen-camera span { padding: 3px 8px; border-radius: 999px; background: var(--pa-card-bg); color: var(--pa-ink); font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
+.pa-screen-social { display: flex; justify-content: center; gap: 8px; margin: 4px 0; }
+.pa-screen-social span { width: 22px; height: 22px; border-radius: 50%; background: var(--pa-accent, #4a7c59); }
+.pa-screen-languages { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.pa-screen-languages span { padding: 4px 9px; border-radius: 999px; background: var(--pa-card-bg); color: var(--pa-ink); font-size: 11px; font-weight: 600; }
+.pa-device-mail { --pa-mail-bg: #ffffff; --pa-mail-photo: #e2e8f0; }
+.pa-mail { padding: 16px; border-radius: 14px; background: var(--pa-mail-bg); color: var(--pa-ink); font-size: 12px; line-height: 1.55; }
+.pa-mail p { margin: 0 0 9px; overflow-wrap: anywhere; }
+.pa-mail-subject { font-size: 14px; font-weight: 700; line-height: 1.35; }
+.pa-mail-from { color: var(--pa-soft); }
+.pa-mail-photo { display: grid; place-items: center; height: 90px; margin: 0 0 9px; border-radius: 8px; background: var(--pa-mail-photo); color: var(--pa-soft); font-weight: 600; }
+.pa-mail-badge { padding: 8px 10px; border-left: 3px solid var(--pa-accent, #4a7c59); border-radius: 6px; background: var(--pa-mail-photo); font-weight: 600; }
+.pa-mail .pa-mail-footer { margin: 12px 0 0; padding-top: 9px; border-top: 1px solid var(--pa-line); font-size: 11px; color: var(--pa-soft); }
+#parameter-adjustment-page .pa-textarea { height: auto; min-height: 84px; padding: 9px 12px; line-height: 1.5; resize: vertical; font-family: inherit; }
+#parameter-adjustment-page .pa-short { max-width: 160px; }
+/* this page leans on its help lines, so they use the darker grey that stays readable on a white card */
+#parameter-adjustment-page .ui-help { color: var(--color-dark-gray); }
+.pa-subhead { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.pa-form > .pa-subhead { margin: 6px 0 -8px; }
+.pa-subhead-help { margin: 0 0 14px; }
+.pa-settings { border: 1px solid var(--theme-border-color); border-radius: 12px; overflow: hidden; }
+.pa-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0; padding: 12px 16px; cursor: pointer; }
+.pa-setting + .pa-setting { border-top: 1px solid var(--theme-border-color); }
+.pa-setting-text { min-width: 0; }
+.pa-setting-text strong { display: block; font-size: 14px; font-weight: 600; color: var(--theme-text-color); }
+.pa-setting-text small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--color-dark-gray); }
+.pa-settings + .pa-form, .pa-form + .pa-settings { margin-top: 18px; }
+.pa-choice { display: flex; flex-wrap: wrap; align-items: center; min-height: 38px; }
+.pa-range { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 12px; align-items: center; min-height: 38px; }
+.pa-range input[type="range"] { width: 100%; margin: 0; accent-color: var(--theme-btn-primary-bg); }
+.pa-range output { padding: 6px 8px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-bg-color); color: var(--theme-text-color); font-size: 13px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.pa-color-row { display: flex; align-items: center; gap: 12px; }
+#parameter-adjustment-page .pa-color-row input[type="color"] { width: 54px; height: 38px; padding: 3px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-card-bg); }
+#parameter-adjustment-page .pa-color-row .feedback-style-preview { min-height: 38px; padding: 8px 14px; box-shadow: none; }
+.pa-upload-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pa-file { max-width: 100%; font-size: 13px; color: var(--color-dark-gray); }
+.pa-file::file-selector-button { height: 36px; margin-right: 10px; padding: 0 14px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-card-bg); color: var(--theme-text-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pa-inline-btn { margin-top: 18px; }
+.pa-savebar { position: sticky; bottom: 16px; z-index: 5; display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 10px 12px 10px 16px; border: 1px solid var(--theme-border-color); border-radius: 12px; background: var(--theme-card-bg); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 1px 2px rgba(15, 23, 42, 0.06); }
+.pa-status { min-width: 0; }
+.pa-status .ui-pill { white-space: normal; }
+.pa-savebar-spacer { flex: 1; }
+@media (max-width: 1200px) {
+    .pa-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 1180px) {
+    .pa-work.has-preview { grid-template-columns: minmax(0, 1fr); }
+    #parameter-adjustment-page .pa-preview { position: static; }
+}
+@media (max-width: 640px) {
+    #parameter-adjustment-page { padding: 20px; }
+    #parameter-adjustment-page .pa-form { grid-template-columns: minmax(0, 1fr); }
+    .pa-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pa-savebar { flex-wrap: wrap; }
+}
+/* <Jun Kai end> */
 
 .admin-translation-result { /* Translation result styling (Done by Caeden) */
     margin: 4px 0 14px;
@@ -9226,4 +9407,54 @@ html[data-theme="dark"] .theme-row-dots span { box-shadow: inset 0 0 0 1px rgba(
     #theme-settings-page .theme-settings-form, .theme-override { padding-left: 16px; padding-right: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .theme-row-chevron, .theme-saved-card { transition: none; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Pledgeboard A (admin redesign, picked by the team): the pledges waiting for a decision as a card on
+   top, then the ranking table with status chips (pledgeboard.js) */
+#pledgeboard-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #pledgeboard-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.pb-status { margin: -8px 0 18px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45; background: #ecfdf5; color: #065f46; }
+.pb-status[data-kind="error"] { background: #fef2f2; color: #991b1b; }
+.pb-status[hidden] { display: none; }
+html[data-theme="dark"] .pb-status { background: rgba(16, 185, 129, 0.14); color: #a7f3d0; }
+html[data-theme="dark"] .pb-status[data-kind="error"] { background: rgba(239, 68, 68, 0.14); color: #fca5a5; }
+
+.pb-decide-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700; vertical-align: 1px; }
+.pb-decide-count.is-zero { background: #f1f5f9; color: #475569; }
+html[data-theme="dark"] .pb-decide-count { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+html[data-theme="dark"] .pb-decide-count.is-zero { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+.pb-decide-list { display: grid; }
+.pb-decide-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 16px 22px; }
+.pb-decide-row + .pb-decide-row { border-top: 1px solid var(--theme-border-color); }
+.pb-decide-empty { padding: 18px 22px; }
+.pb-decide-meta { font-size: 13px; color: var(--color-dark-gray); overflow-wrap: anywhere; }
+.pb-decide-meta b { margin-right: 2px; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
+.pb-decide-quote { margin-top: 4px; font-size: 15px; line-height: 1.45; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-decide-quote::before { content: '\201C'; }
+.pb-decide-quote::after { content: '\201D'; }
+.pb-decide-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+#pledgeboard-page .pb-reject { border-color: #fecaca; color: #b91c1c; }
+html[data-theme="dark"] #pledgeboard-page .pb-reject { border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+
+.pb-avatar { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--pb-avatar); color: #ffffff; font-size: 12px; font-weight: 700; }
+.pb-decide-row .pb-avatar { width: 36px; height: 36px; font-size: 13px; }
+.pb-person { display: inline-flex; align-items: center; gap: 10px; }
+.pb-person b { font-weight: 600; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-chip-count { margin-left: 4px; font-weight: 700; opacity: 0.75; }
+.pb-table td { vertical-align: middle; }
+.pb-rank { font-weight: 700; color: var(--theme-text-color); white-space: nowrap; }
+.pb-pledge { min-width: 220px; max-width: 420px; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-likes { font-weight: 600; color: var(--theme-text-color); white-space: nowrap; }
+.pb-heart { display: inline-flex; margin-right: 5px; color: #e11d48; vertical-align: -2px; }
+html[data-theme="dark"] .pb-heart { color: #fb7185; }
+.pb-tone { display: block; margin-top: 3px; font-size: 12px; color: var(--color-dark-gray); white-space: nowrap; }
+.pb-date { white-space: nowrap; }
+.pb-col-actions { text-align: right; white-space: nowrap; }
+.pb-actions { display: inline-flex; gap: 6px; }
+#pledgeboard-page .pb-small { height: 30px; padding: 0 10px; font-size: 12px; }
+#pledgeboard-page .pledge-auto-approved { padding: 0; background: none; color: var(--color-muted); font-weight: 500; }
+@media (max-width: 720px) {
+    .pb-decide-row { grid-template-columns: auto minmax(0, 1fr); padding: 14px 16px; }
+    .pb-decide-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
 /* <Jun Kai end> */
