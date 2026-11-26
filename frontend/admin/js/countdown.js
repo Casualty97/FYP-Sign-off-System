@@ -42,6 +42,21 @@ function markTimerQuickPick() {
         btn.setAttribute('aria-pressed', String(on));
     });
 }
+
+// the preview: the kiosk shows the number in a round badge on the camera view and counts down to 1 (feedback photo.js).
+// An empty field saves as 0, so it shows as no countdown too.
+function renderTimerPreview() {
+    const input = document.getElementById('timer-countdown-seconds');
+    const badge = document.getElementById('pt-preview-badge');
+    const caption = document.getElementById('pt-preview-caption');
+    if (!input || !badge || !caption) return;
+    const seconds = Number(input.value) || 0;
+    badge.hidden = seconds === 0;
+    badge.textContent = String(seconds);
+    caption.textContent = seconds === 0
+        ? 'No countdown: the kiosk takes the photo as soon as the visitor presses Capture Photo.'
+        : `The kiosk counts down from ${seconds} to 1 on the camera view, then takes the photo.`;
+}
 // <Jun Kai end>
 
 // Load timer countdown setting from server
@@ -192,6 +207,7 @@ function validateTimerCountdown() {
 
     input.value = input.value.replace(/[^0-9]/g, '');
     markTimerQuickPick(); // <Jun Kai/>
+    renderTimerPreview(); // <Jun Kai/>
 
     const value = Number(input.value);
     const originalValue = Number(input.dataset.originalValue || 0);
