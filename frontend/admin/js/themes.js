@@ -1547,6 +1547,112 @@ function isDarkThemeColor(color) {
     return luminance < 0.45;
 }
 
+// <Jun Kai start> Option A, "tinted glass" (picked 26 Nov 2026): a theme's colours reach the cards and the accent of the
+// rebuilt pages through the kit's colour variables instead of old selector lists, with these rules:
+//   - a colour that is still the built-in default was not chosen, so it changes nothing: an untouched account looks
+//     exactly like the kit;
+//   - the card colour tints the glass only when every text that will sit on it can still be read (4.5:1): the theme's
+//     own text colours when they are readable there, otherwise the kit's, and the kit's red warnings;
+//   - the button colour becomes the accent (buttons, links, focus rings, the open sidebar item, chips), darkened only as
+//     far as needed for white text and for links on the card (4.5:1);
+//   - dark mode (its own small stylesheet, the light one is switched off there) takes only the accent: buttons keep the
+//     same filled colour when white text reads on it and it stands out from the dark card (3:1), links and focus rings
+//     get a lighter shade that reads on the dark card (4.5:1).
+// A page with its own colours gets the same, limited to that page. Status tags, danger buttons, notices, table heads
+// and charts keep their own colours.
+const THEME_KIT = { card: '#FFFFFF', darkCard: '#111A2B', text: '#1E293B', muted: '#64748B', red: '#B91C1C' };
+
+function themeHex(value) {
+    const color = normalizeThemeColor(value);
+    if (/^#[0-9A-F]{6}$/.test(color)) return color;
+    return /^#[0-9A-F]{8}$/.test(color) ? color.slice(0, 7) : null;
+}
+
+// a colour that differs from the built-in default, or null when it was never chosen
+function themeChosen(colors, key) {
+    const value = colors && colors[key];
+    if (!value || themeSameColor(value, getCustomDefaultColors()[key])) return null;
+    return themeHex(value);
+}
+
+function themeMixHex(from, to, share) {
+    const a = parseInt(from.slice(1), 16);
+    const b = parseInt(to.slice(1), 16);
+    const channel = (shift) => Math.round(((a >> shift) & 255) * (1 - share) + ((b >> shift) & 255) * share);
+    return '#' + [16, 8, 0].map((shift) => channel(shift).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+// the colour itself when it reaches the contrast on every background, otherwise mixed step by step toward black (or
+// white) until it does; null when even that is not enough
+function themeReadable(color, backgrounds, min, toward) {
+    for (let step = 0; step <= 20; step++) {
+        const candidate = step ? themeMixHex(color, toward, step / 20) : color;
+        if (backgrounds.every((bg) => themeContrast(candidate, bg) >= min)) return candidate;
+    }
+    return null;
+}
+
+// what the rules above make of one set of colours in light mode; null fields mean "the kit's own"
+function themeKitColours(colors) {
+    const card = themeChosen(colors, 'card-background');
+    const text = themeChosen(colors, 'card-primary-text');
+    const sub = themeChosen(colors, 'card-secondary-text');
+    const button = themeChosen(colors, 'button-color');
+    const buttonText = themeChosen(colors, 'button-text-color');
+    const readableOn = (color, bg) => (color && themeContrast(color, bg) >= 4.5 ? color : null);
+    let surface = THEME_KIT.card;
+    let tinted = null;
+    if (card) {
+        const willSit = [readableOn(text, card) || THEME_KIT.text, readableOn(sub, card) || THEME_KIT.muted, THEME_KIT.red];
+        if (willSit.every((color) => themeContrast(color, card) >= 4.5)) { surface = card; tinted = card; }
+    }
+    const accent = button ? themeReadable(button, ['#FFFFFF', surface], 4.5, '#000000') : null;
+    return {
+        card: tinted,
+        text: readableOn(text, surface),
+        sub: readableOn(sub, surface),
+        border: themeChosen(colors, 'card-border-color'),
+        accent,
+        onAccent: accent ? (buttonText && themeContrast(buttonText, accent) >= 4.5 ? buttonText : '#FFFFFF') : null
+    };
+}
+
+// light mode: the card tint, the card texts and the accent of one scope (the whole page or one page)
+function themeKitLight(colors, scope, isGlobal) {
+    const kit = themeKitColours(colors);
+    const cardVars = [];
+    const scopeVars = [];
+    if (kit.card) cardVars.push(`--l3-card: color-mix(in srgb, ${kit.card} 82%, transparent)`, `--theme-card-bg: ${kit.card}`, `--l3-field: color-mix(in srgb, ${kit.card} 70%, transparent)`);
+    if (kit.text) cardVars.push(`--theme-text-color: ${kit.text}`);
+    if (kit.sub) cardVars.push(`--color-dark-gray: ${kit.sub}`, `--color-muted: ${kit.sub}`);
+    if (kit.border) cardVars.push(`--l3-card-edge: color-mix(in srgb, ${kit.border} 80%, transparent)`, `--theme-border-color: ${kit.border}`);
+    if (kit.accent) {
+        scopeVars.push(`--theme-btn-primary-bg: ${kit.accent}`, `--theme-btn-primary-text: ${kit.onAccent}`, `--l3-focus: ${kit.accent}`, `--l3-link: ${kit.accent}`);
+        if (isGlobal) scopeVars.push(`--l3-nav-active: color-mix(in srgb, ${kit.accent} 14%, #FFFFFF)`, `--l3-nav-strong: ${kit.accent}`);
+    }
+    let css = '';
+    if (scopeVars.length) css += `${scope} { ${scopeVars.join('; ')}; }\n`;
+    if (cardVars.length) css += `${scope === ':root' ? '.ui-card' : scope + ' .ui-card'} { ${cardVars.join('; ')}; }\n`;
+    return css;
+}
+
+// dark mode: only the accent
+function themeKitDark(colors, scope, isGlobal) {
+    const button = themeChosen(colors, 'button-color');
+    if (!button) return '';
+    const vars = [];
+    const fill = themeReadable(button, ['#FFFFFF'], 4.5, '#000000');
+    if (fill && themeContrast(fill, THEME_KIT.darkCard) >= 3) vars.push(`--theme-btn-primary-bg: ${fill}`, '--theme-btn-primary-text: #FFFFFF');
+    const link = themeReadable(button, [THEME_KIT.darkCard], 4.5, '#FFFFFF');
+    if (link) {
+        vars.push(`--l3-link: ${link}`, `--l3-focus: ${link}`);
+        if (isGlobal) vars.push(`--l3-nav-active: color-mix(in srgb, ${link} 22%, transparent)`);
+    }
+    if (!vars.length) return '';
+    return `${scope === ':root' ? ':root[data-theme="dark"]' : ':root[data-theme="dark"] ' + scope} { ${vars.join('; ')}; }\n`;
+}
+// <Jun Kai end>
+
 function applyBackgroundCompanionColors(sectionId, backgroundColor) {
     if (!themeSettings[sectionId]?.colors) return;
 
@@ -1776,12 +1882,19 @@ function updatePreview(sectionId) {
     const frame = themeEffectiveColors('admin-dashboard');
     const set = (name, value, fallback) => preview.style.setProperty(name, themeSafeColor(value, fallback));
     set('--preview-bg', colors['page-background'], '#F3F6FA');
-    set('--preview-card-bg', colors['card-background'], '#FFFFFF');
-    set('--preview-border', colors['card-border-color'], '#E2E8F0');
-    set('--preview-heading', colors['primary-text'], '#1E293B');
-    set('--preview-text', colors['secondary-text'], '#64748B');
-    set('--preview-btn-bg', colors['button-color'], '#2563EB');
-    set('--preview-btn-text', colors['button-text-color'], '#FFFFFF');
+    // the card and its texts and the buttons as the pages will really show them (option A: a colour that would not read
+    // is left out, the accent is darkened until white text reads on it)
+    const kit = themeKitColours(colors);
+    set('--preview-card-bg', kit.card, THEME_KIT.card);
+    set('--preview-border', kit.border, '#E2E8F0');
+    set('--preview-heading', kit.text, THEME_KIT.text);
+    set('--preview-text', kit.sub, THEME_KIT.muted);
+    set('--preview-btn-bg', kit.accent, '#2563EB');
+    set('--preview-btn-text', kit.onAccent, '#FFFFFF');
+    // the page title outside the card: the main text colour when it reads on the page colour, as on the real pages
+    const title = themeChosen(colors, 'primary-text');
+    const pageColour = themeHex(colors['page-background']) || '#F3F6FA';
+    set('--preview-title', title && themeContrast(title, pageColour) >= 4.5 ? title : null, THEME_KIT.text);
     set('--preview-header-bg', frame['admin-header-bg'], '#FFFFFF');
     set('--preview-header-text', frame['primary-header-text'], '#1E293B');
     set('--preview-nav-bg', frame['navbar-background'], '#FFFFFF');
@@ -1913,6 +2026,29 @@ function applyThemeSettings() {
         });
     });
     
+    // <Jun Kai start> Option A: the overall colours, then every rebuilt page that has its own colours switched on (an
+    // old-style page keeps its selector lists above); dark mode's accent goes into its own stylesheet, cleared when empty
+    let dark = '';
+    const globalColors = themeSettings.global && themeSettings.global.colors;
+    css += themeKitLight(globalColors, ':root', true);
+    dark += themeKitDark(globalColors, ':root', true);
+    themeConfig.sections.forEach((section) => {
+        if (section.isGlobal || section.isSavedThemes || section.id === 'admin-dashboard') return;
+        const own = themeSettings[section.id];
+        if (!own || own.useGlobal !== false) return;
+        const page = document.getElementById(section.id);
+        if (!page || !page.querySelector('.ui-card')) return;
+        css += themeKitLight(own.colors, '#' + section.id, false);
+        dark += themeKitDark(own.colors, '#' + section.id, false);
+    });
+    let darkEl = document.getElementById('dynamic-theme-dark-accent');
+    if (!darkEl) {
+        darkEl = document.createElement('style');
+        darkEl.id = 'dynamic-theme-dark-accent';
+        document.head.appendChild(darkEl);
+    }
+    darkEl.textContent = dark;
+    // <Jun Kai end>
     styleEl.textContent = css;
 }
 
