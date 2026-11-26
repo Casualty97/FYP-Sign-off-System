@@ -13,6 +13,19 @@ function getTimerCountdownEls() {
     };
 }
 
+// <Jun Kai start> the redesigned page: a pill under the title for saved or failed, and button text without wiping the icon
+function setTimerStatus(type, message) {
+    const status = document.getElementById('timer-countdown-status');
+    if (!status) return;
+    status.innerHTML = type ? uiPill(type === 'success' ? 'ok' : 'down', message) : '';
+}
+
+function setTimerButtonText(btn, text) {
+    const label = btn.querySelector('.pt-btn-text');
+    if (label) label.textContent = text;
+}
+// <Jun Kai end>
+
 // Load timer countdown setting from server
 async function loadTimerCountdownSetting() {
     console.log('⏱️ Loading timer countdown setting...');
@@ -26,7 +39,8 @@ async function loadTimerCountdownSetting() {
 
     // Handle REFRESH button state
     refreshBtn.disabled = true;
-    refreshBtn.textContent = '⏳ Loading...';
+    setTimerButtonText(refreshBtn, 'Loading'); // <Jun Kai/>
+    setTimerStatus('', ''); // <Jun Kai/>
 
     // Keep save button disabled during load (but don't change its text)
     saveBtn.disabled = true;
@@ -64,7 +78,7 @@ async function loadTimerCountdownSetting() {
         
     } catch (err) {
         console.error("❌ Failed to load countdown:", err);
-        showNotification('Failed to load timer countdown: ' + err.message, 'error');
+        setTimerStatus('error', 'Failed to load the countdown: ' + err.message); // <Jun Kai/>
         
         // Set default values
         input.value = 3;
@@ -73,7 +87,7 @@ async function loadTimerCountdownSetting() {
     } finally {
         // Restore REFRESH button to normal
         refreshBtn.disabled = false;
-        refreshBtn.textContent = '🔄 Refresh';
+        setTimerButtonText(refreshBtn, 'Refresh'); // <Jun Kai/>
         
         // Re-validate save button state
         validateTimerCountdown();
@@ -89,12 +103,12 @@ async function saveTimerCountdownSetting() {
     
     // Validate input
     if (!Number.isInteger(value) || value < 0) {
-        showNotification("Please enter a whole number 0 or higher.", 'error');
+        setTimerStatus('error', 'Please enter a whole number 0 or higher.'); // <Jun Kai/>
         return;
     }
 
     saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
+    setTimerButtonText(saveBtn, 'Saving'); // <Jun Kai/>
 
     try {
         console.log('💾 Attempting to save countdown:', value);
@@ -133,7 +147,7 @@ async function saveTimerCountdownSetting() {
         validateTimerCountdown();
         
         // Show success message
-        showNotification('Countdown saved successfully!', 'success');
+        setTimerStatus('success', value === 0 ? 'Saved: no countdown, the photo is taken at once' : `Saved: a ${value} second countdown`); // <Jun Kai/>
         
         // Log server response
         console.log('Server confirmed countdown_seconds:', data.countdown_seconds);
@@ -143,13 +157,13 @@ async function saveTimerCountdownSetting() {
         
         // Show detailed error message
         let errorMessage = 'Failed to save countdown: ' + err.message;
-        
-        showNotification(errorMessage, 'error');
-        
+
+        setTimerStatus('error', errorMessage); // <Jun Kai/>
+
         // Re-enable save button on error
         saveBtn.disabled = false;
     } finally {
-        saveBtn.textContent = '💾 Save';
+        setTimerButtonText(saveBtn, 'Save'); // <Jun Kai/>
     }
 }
 

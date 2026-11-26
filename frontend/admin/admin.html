@@ -2190,48 +2190,47 @@
                 </div>
                 <!--  Management Page (DONE BY NADHIRAH)-->
                 <div id="form-management-page" class="page">
-
-                    <div class="page-header">
-                        <h2>Start Screen Text</h2>
-                        <p>Manage form background, landing title, and subtitle</p>
+                    <!-- <Jun Kai start> Start Screen Text page (admin redesign, own page): the three fields in a card. The ids of the
+                         fields and the status line are the old ones, so loading and saving work as before. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Start Screen Text</h2>
+                            <p>The background, title and subtitle of the kiosk's first screen.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button class="ui-btn ui-btn-secondary" type="button" onclick="loadFormUISettings()">Reset</button>
+                            <button class="ui-btn ui-btn-primary" type="button" onclick="saveFormUISettings()">Save</button>
+                        </div>
                     </div>
+                    <div id="fm-status" class="ui-status-slot fm-page-status" aria-live="polite"></div>
 
-                    <!-- OUTER CARD (same as Question Management) -->
-                    <div class="overlay-section user-section">
-
-                        <div class="section-header">
-                            <h3> Settings</h3>
-                            <div class="header-actions">
-                                <button class="btn-secondary" onclick="loadFormUISettings()">Reset</button>
-                                <button class="btn-primary" onclick="saveFormUISettings()">Save</button>
+                    <div class="ui-grid-2 fm-grid">
+                        <section class="ui-card" aria-labelledby="fm-settings-title">
+                            <div class="ui-card-header"><h3 id="fm-settings-title">Settings</h3></div>
+                            <div class="ui-card-body fm-fields">
+                                <div class="ui-field">
+                                    <label class="ui-label" for="fm-bg">Background</label>
+                                    <select id="fm-bg" class="ui-select">
+                                        <option value="linear-gradient(135deg, #f0f4ff 0%, #f8f0ff 50%, #f0f9ff 100%)">Default gradient</option>
+                                        <option value="#ffffff">White</option>
+                                        <option value="#f1f5f9">Light gray</option>
+                                        <option value="#0f172a">Dark</option>
+                                    </select>
+                                    <span class="ui-help">The kiosk shows the campus photo over this background at the moment, so visitors do not see this choice.</span>
+                                </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="fm-title">Landing title</label>
+                                    <input id="fm-title" class="ui-input" type="text" maxlength="100">
+                                </div>
+                                <div class="ui-field">
+                                    <label class="ui-label" for="fm-subtitle">Landing subtitle</label>
+                                    <input id="fm-subtitle" class="ui-input" type="text" maxlength="200">
+                                    <span class="ui-help">An empty title or subtitle shows the kiosk's own text.</span>
+                                </div>
                             </div>
-                        </div>
-
-                        <!-- CONTENT MUST STAY INSIDE user-section -->
-                        <div class="form-group">
-                            <label for="fm-bg">Background</label>
-                            <select id="fm-bg">
-                                <option value="linear-gradient(135deg, #f0f4ff 0%, #f8f0ff 50%, #f0f9ff 100%)">
-                                Default Gradient
-                                </option>
-                                <option value="#ffffff">White</option>
-                                <option value="#f1f5f9">Light Gray</option>
-                                <option value="#0f172a">Dark</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fm-title">Landing Title</label>
-                            <input id="fm-title" type="text" maxlength="100">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fm-subtitle">Landing Subtitle</label>
-                            <input id="fm-subtitle" type="text" maxlength="200">
-                        </div>
-
-                        <div id="fm-status" class="fm-status fm-status--hidden" aria-live="polite"></div>
-                </div>
+                        </section>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
                 
                 <!-- Parameter Adjustment Page -->
@@ -2912,48 +2911,38 @@
 
                 <!-- Timer Countdown Page (DONE BY BERNISSA) -->
                 <div id="timer-countdown-page" class="page">
-                    <div class="page-header">
-                        <h2>Photo Timer</h2>
-                        <p>
-                            Configure the countdown duration for automated photo capturing in the feedback form.
-                        </p>
-                    </div>
-
-                    <div class="timer-countdown-section">
-                        <div class="section-header">
-                            <h3>Automated Photo Capture Timer</h3>
-                            <!-- Refresh button (DONE BY BERNISSA) -->
-                            <button class="btn-primary" id="refresh-timer-btn" onclick="loadTimerCountdownSetting()">
-                                🔄 Refresh
-                            </button>
+                    <!-- <Jun Kai start> Photo Timer page (admin redesign, own page): the countdown in a card, Refresh and Save on top.
+                         The ids of the field and the two buttons are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Photo Timer</h2>
+                            <p>The countdown before the kiosk takes the visitor's photo.</p>
                         </div>
-
-                        <div class="toolbar">
-                            <!-- Countdown input (DONE BY BERNISSA) -->
-                            <div class="timer-input-group">
-                                <label class="filter-label" for="timer-countdown-seconds">
-                                    Countdown (seconds)
-                                </label>
-
-                                <input type="text" id="timer-countdown-seconds" class="filter-input" min="0" step="1" oninput="validateTimerCountdown()"/>
-                                <p class="text-muted font-size-13">
-                                    Whole numbers only. Use <strong>0</strong> to disable countdown.
-                                </p>
-                            </div>
-
-                            <!-- Save button (DONE BY BERNISSA) -->
-                            <div class="toolbar-buttons">
-                                <button
-                                    class="btn-primary"
-                                    id="save-timer-countdown-btn"
-                                    onclick="saveTimerCountdownSetting()"
-                                    disabled
-                                >
-                                    💾 Save
-                                </button>
-                            </div>
+                        <div class="ui-row">
+                            <button class="ui-btn ui-btn-secondary" type="button" id="refresh-timer-btn" onclick="loadTimerCountdownSetting()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg><span class="pt-btn-text">Refresh</span></button>
+                            <button class="ui-btn ui-btn-primary" type="button" id="save-timer-countdown-btn" onclick="saveTimerCountdownSetting()" disabled><span class="pt-btn-text">Save</span></button>
                         </div>
                     </div>
+                    <div id="timer-countdown-status" class="ui-status-slot pt-status" aria-live="polite"></div>
+
+                    <div class="ui-grid-2 pt-grid">
+                        <section class="ui-card" aria-labelledby="pt-countdown-title">
+                            <div class="ui-card-header"><h3 id="pt-countdown-title">Countdown</h3></div>
+                            <div class="ui-card-body">
+                                <div class="ui-field">
+                                    <label class="ui-label" for="timer-countdown-seconds">Countdown (seconds)</label>
+                                    <div class="pt-row">
+                                        <div class="pt-input">
+                                            <input type="text" id="timer-countdown-seconds" class="ui-input" inputmode="numeric" autocomplete="off" oninput="validateTimerCountdown()">
+                                            <span class="pt-unit" aria-hidden="true">seconds</span>
+                                        </div>
+                                    </div>
+                                    <span class="ui-help">Whole numbers only. 0 switches the countdown off.</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
                 
                 <!-- Server Schedule Page (DONE BY BERNISSA) -->
@@ -4429,31 +4418,34 @@
 
                 <!-- Feedback Page QR Code (DONE BY Yu Kang) -->
                 <div id="Feedback-page-QR-page" class="page">
-                    <div class="page-header">
-                        <h2>Feedback QR Code</h2>
-                        <p>Manage the QR code for the feedback page</p>
-                    </div>
-
-                    <div class="overlay-section user-section">
-                        <div class="landing-qr-settings-card">
-                            <div class="section-header">
-                                <h3>QR Code Settings</h3>
-                                <div class="header-actions">
-                                    <button class="btn-primary" onclick="saveLandingPageQR()">Save</button>
-                                </div>
-                            </div>
-
-                            <div class="theme-override-toggle landing-qr-toggle-row">
-                                <label class="toggle-switch" for="qr-code-toggle">
-                                    <input type="checkbox" id="qr-code-toggle" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                                <label for="qr-code-toggle" class="toggle-label">Enable QR Code on Landing Page</label>
-                            </div>
-
-                            <div id="landing-qr-status" class="fm-status fm-status--hidden" aria-live="polite"></div>
+                    <!-- <Jun Kai start> Feedback QR Code page (admin redesign, own page): one switch in a card. The ids of the switch
+                         and the status line are the old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Feedback QR Code</h2>
+                            <p>A QR code on the kiosk's first screen, so a visitor can open the form on their own phone.</p>
+                        </div>
+                        <div class="ui-row">
+                            <button class="ui-btn ui-btn-primary" type="button" onclick="saveLandingPageQR()">Save</button>
                         </div>
                     </div>
+                    <div id="landing-qr-status" class="ui-status-slot qr-page-status" aria-live="polite"></div>
+
+                    <div class="ui-grid-2 qr-grid">
+                        <section class="ui-card" aria-labelledby="qr-settings-title">
+                            <div class="ui-card-header"><h3 id="qr-settings-title">QR code</h3></div>
+                            <div class="ui-card-body">
+                                <label class="qr-toggle-row">
+                                    <span class="qr-toggle-text">
+                                        <strong>Show the QR code on the start screen</strong>
+                                        <small>Visitors scan it to fill in the form on their own phone.</small>
+                                    </span>
+                                    <span class="ui-switch"><input type="checkbox" id="qr-code-toggle" checked><span class="ui-switch-track"></span></span>
+                                </label>
+                            </div>
+                        </section>
+                    </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
 
