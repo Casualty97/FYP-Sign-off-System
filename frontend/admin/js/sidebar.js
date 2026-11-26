@@ -46,14 +46,29 @@ function navSaveFolds() {
     try { localStorage.setItem(NAV_FOLD_KEY, JSON.stringify(folds)); } catch { /* private window: kept until the page closes */ }
 }
 
+// <Jun Kai start> a folded group that holds the open page still shows that one row (admin.css), so its body stays
+// usable; the other rows are display: none there, which keeps them out of the Tab order anyway
+function navBodyInert(group) {
+    const sidebar = navSidebar();
+    if (!group.classList.contains('is-folded') || (sidebar && sidebar.classList.contains('is-searching'))) return false;
+    return !group.querySelector('.nav-item.active');
+}
+
+function navSyncInert() {
+    for (const group of navGroups()) {
+        const body = group.querySelector('.nav-group-body');
+        if (body && body.inert !== navBodyInert(group)) body.inert = navBodyInert(group);
+    }
+}
+// <Jun Kai end>
+
 // a folded group is also taken out of the Tab order (inert), except while a search shows its matches
 function navSetFolded(group, folded) {
-    const sidebar = navSidebar();
     group.classList.toggle('is-folded', folded);
     const toggle = group.querySelector('.nav-group-toggle');
     if (toggle) toggle.setAttribute('aria-expanded', folded ? 'false' : 'true');
     const body = group.querySelector('.nav-group-body');
-    if (body) body.inert = folded && !(sidebar && sidebar.classList.contains('is-searching'));
+    if (body) body.inert = navBodyInert(group); // <Jun Kai/>
 }
 
 // how many pages a folded group holds, and no group at all when the role sees none of its pages
@@ -182,7 +197,7 @@ function navFilter(query) {
         const any = navLinks(section).some((link) => navAllowed(link) && !link.classList.contains('nav-miss'));
         section.classList.toggle('nav-section-miss', searching && !any);
         const body = section.querySelector('.nav-group-body');
-        if (body) body.inert = !searching && section.classList.contains('is-folded');
+        if (body) body.inert = navBodyInert(section); // <Jun Kai/>
     }
     const empty = document.getElementById('nav-search-empty');
     if (empty && empty.hidden !== (!searching || found > 0)) empty.hidden = !searching || found > 0;
@@ -255,9 +270,11 @@ function navInit() {
 
     // a link that becomes the open page unfolds its group; a change of the Incidents count reaches the group heading
     new MutationObserver((changes) => {
-        if (changes.some((c) => c.type === 'attributes' && c.attributeName === 'class' && c.target.classList.contains('nav-item') && c.target.classList.contains('active'))) navRevealActive();
+        // <Jun Kai/> only a link that just became the open page counts, not a search highlight on the open one
+        if (changes.some((c) => c.type === 'attributes' && c.attributeName === 'class' && c.target.classList.contains('nav-item') && c.target.classList.contains('active') && !/\bactive\b/.test(c.oldValue || ''))) navRevealActive();
+        if (changes.some((c) => c.type === 'attributes' && c.attributeName === 'class' && c.target.classList.contains('nav-item'))) navSyncInert(); // <Jun Kai/>
         if (changes.some((c) => c.target.nodeType === 3 || (c.target.classList && c.target.classList.contains('inc-nav-badge')))) navMirrorBadges();
-    }).observe(sidebar, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'], childList: true, characterData: true });
+    }).observe(sidebar, { subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ['class', 'hidden'], childList: true, characterData: true });
 
     // the folds only slide after the first paint, so the page does not open with groups closing
     requestAnimationFrame(() => sidebar.classList.add('nav-ready'));
