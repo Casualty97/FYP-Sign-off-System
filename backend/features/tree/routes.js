@@ -27,8 +27,10 @@
 
 const express = require('express');
 const router = express.Router();
-const { getBadgeSummary } = require('../email/service');
+const { getBadgeSummary, determineBadgeKeys, BADGE_CONFIGS } = require('../email/service');
+const { MULTI_PLEDGE_KEY, MULTI_PLEDGE_COLOUR } = require('../parameters/tree3d');
 const { isFeedbackFlagged } = require('../analysis/flagged');
+<<<<<<< HEAD
 // <Jun Kai start>
 const deletedCounts = require('../archive/deletedCounts');
 const archivedLeaves = require('../archive/archivedLeaves');
@@ -56,6 +58,24 @@ function treeProblem(text, err, now = Date.now()) {
     return true;
 }
 // <Jun Kai end>
+=======
+const paths = require('../../core/paths');
+const { createTreeLiveEvents, FINGERPRINT_SQL } = require('./liveEvents');
+
+let db;
+
+// The tree screens' live connection (GET /api/tree/events, ./liveEvents.js): told at once when the tree's data
+// or the admin's settings change, instead of checking on a timer.
+const liveEvents = createTreeLiveEvents({
+    readFingerprint: callback => {
+        if (!db) return callback(new Error('Database not initialized'));
+        return db.all(FINGERPRINT_SQL, [], (error, rows) => callback(error, rows?.[0] || null));
+    },
+    settingsFile: paths.dataFile('parametersConfig.json'),
+    // The leaf count for the automatic growth stage is counted again at once, not after its 10 seconds.
+    onChange: () => { leafCountCache.at = 0; }
+});
+>>>>>>> weijie_working_branches
 
 function setDatabase(database) {
     db = database;
@@ -111,37 +131,14 @@ router.get('/', (req, res) => {
         // A returning visitor can therefore grow multiple leaves instead of only updating one user row.
         const requestedYear = parseTreeYear(req.query.year);
         const treeYear = requestedYear || getCurrentTreeYear();
-        const leafQuery = `
-            SELECT
-                f.id AS feedback_id,
-                u.name,
-                u.visit_count,
-                u.created_at AS user_created_at,
-                f.created_at,
-                f.comment,
-                f.data_retention,
-                f.metadata,
-                fa.answer_values
-            FROM feedback f
-            JOIN users u ON f.user_id = u.id
-            LEFT JOIN (
-                SELECT feedback_id, GROUP_CONCAT(answer_value SEPARATOR ' ') AS answer_values
-                FROM feedback_answers
-                WHERE answer_value IS NOT NULL
-                  AND TRIM(answer_value) != ''
-                GROUP BY feedback_id
-            ) fa ON fa.feedback_id = f.id
-            WHERE f.is_active = 1
-              AND YEAR(CONVERT_TZ(f.created_at, '+00:00', '+08:00')) = ?
-            ORDER BY f.created_at ASC, f.id ASC
-        `;
 
-        db.all(leafQuery, [treeYear], (userErr, rows) => {
+        loadLeafRows(treeYear, (userErr, visibleRows, hiddenCount) => {
             if (userErr) {
                 treeProblem('the leaves could not be read', userErr); // <Jun Kai/>
                 return res.status(500).json({ error: 'Leaf query error: ' + userErr.message });
             }
 
+<<<<<<< HEAD
             const visibleRows = (rows || []).filter(row => !isFeedbackFlagged([
                 row.comment,
                 row.answer_values
@@ -151,9 +148,75 @@ router.get('/', (req, res) => {
             // live ones, in the same order: created_at, then id
             return archivedLeaves.withKept(mapRowsToVisitors(visibleRows, vipSet), treeYear).then((leaves) => { res.json(leaves); });
             // <Jun Kai end>
+=======
+            console.log('✅ Tree leaves fetched:', visibleRows.length, hiddenCount ? `(${hiddenCount} flagged hidden)` : '');
+            return res.json(mapRowsToVisitors(visibleRows, vipSet));
+>>>>>>> weijie_working_branches
         });
     });
 });
+
+// The tree's leaves for a year: one per active feedback submission, oldest first, without flagged
+// feedback. GET /api/tree shows these, and the automatic growth stage counts them (countLiveTreeLeaves).
+const LEAF_QUERY = `
+    SELECT
+        f.id AS feedback_id,
+        u.name,
+        u.visit_count,
+        u.created_at AS user_created_at,
+        f.created_at,
+        f.comment,
+        f.data_retention,
+        f.metadata,
+        fa.answer_values
+    FROM feedback f
+    JOIN users u ON f.user_id = u.id
+    LEFT JOIN (
+        SELECT feedback_id, GROUP_CONCAT(answer_value SEPARATOR ' ') AS answer_values
+        FROM feedback_answers
+        WHERE answer_value IS NOT NULL
+          AND TRIM(answer_value) != ''
+        GROUP BY feedback_id
+    ) fa ON fa.feedback_id = f.id
+    WHERE f.is_active = 1
+      AND YEAR(CONVERT_TZ(f.created_at, '+00:00', '+08:00')) = ?
+    ORDER BY f.created_at ASC, f.id ASC
+`;
+
+function loadLeafRows(treeYear, callback) {
+    db.all(LEAF_QUERY, [treeYear], (error, rows) => {
+        if (error) return callback(error);
+        const visibleRows = (rows || []).filter(row => !isFeedbackFlagged([row.comment, row.answer_values]));
+        return callback(null, visibleRows, (rows || []).length - visibleRows.length);
+    });
+}
+
+// How many leaves the live tree has now (this year's, as GET /api/tree returns them), for the automatic
+// growth stage (features/parameters/treeStage.js). The 2D and 3D trees ask every 5 seconds, so the count
+// is kept for 10 seconds.
+const LEAF_COUNT_CACHE_MS = 10 * 1000;
+let leafCountCache = { at: 0, year: null, count: 0 };
+function countLiveTreeLeaves() {
+    const year = getCurrentTreeYear();
+    if (leafCountCache.year === year && Date.now() - leafCountCache.at < LEAF_COUNT_CACHE_MS) {
+        return Promise.resolve(leafCountCache.count);
+    }
+    return new Promise((resolve, reject) => {
+        if (!db) return reject(new Error('Database not initialized'));
+        loadLeafRows(year, (error, visibleRows) => {
+            if (error) return reject(error);
+            leafCountCache = { at: Date.now(), year, count: visibleRows.length };
+            return resolve(visibleRows.length);
+        });
+    });
+}
+
+/**
+ * GET /api/tree/events
+ * Server-Sent Events for the 2D and 3D tree screens: "tree" when a feedback is added, deleted or archived or a
+ * VIP changes, "settings" when the admin saves settings (features/tree/liveEvents.js).
+ */
+router.get('/events', liveEvents.handler);
 
 /**
  * GET /api/tree/years
@@ -253,10 +316,23 @@ function mapRowsToVisitors(rows, vipSet) {
         const pledgeText = String(r.comment || metadata.pledge || '').trim();
         const pledgeSnippet = pledgeText.length > 140 ? `${pledgeText.slice(0, 137)}...` : pledgeText;
         const isVip = canShowName && vipSet.has(name.toLowerCase());
-        const badge = getBadgeSummary({
-            pledge: pledgeText,
-            pledgeTopic: metadata.pledgeTopic || ''
-        });
+        // Every topic the visitor chose in the pledge form (several can be ticked), each its own badge. With more
+        // than one badge the leaf is "Multiple pledges" (MULTI_PLEDGE_KEY), brown unless the admin sets another
+        // colour (Owner: Role 2, Wei Jie); with one, that badge as before.
+        const pledgeTopics = Array.isArray(metadata.pledgeTopics) && metadata.pledgeTopics.length
+            ? metadata.pledgeTopics.map(String)
+            : (metadata.pledgeTopic ? String(metadata.pledgeTopic).split(',').map(topic => topic.trim()).filter(Boolean) : []);
+        const badgeKeys = determineBadgeKeys({ pledgeTopics });
+        const badge = badgeKeys.length > 1
+            ? {
+                badgeKey: MULTI_PLEDGE_KEY,
+                badgeName: `Multiple pledges: ${badgeKeys.map(key => BADGE_CONFIGS[key]?.name || key).join(', ')}`,
+                badgeColor: MULTI_PLEDGE_COLOUR
+            }
+            : getBadgeSummary({
+                pledge: pledgeText,
+                pledgeTopic: metadata.pledgeTopic || pledgeTopics[0] || ''
+            });
 
         return {
             id: r.feedback_id || r.user_id,
@@ -268,7 +344,9 @@ function mapRowsToVisitors(rows, vipSet) {
             badgeKey: badge.badgeKey,
             badgeName: badge.badgeName,
             badgeColor: badge.badgeColor,
+            badgeKeys, // every badge of the topics chosen (one for most visitors)
             pledgeTopic: metadata.pledgeTopic || '',
+            pledgeTopics,
             pledgeSnippet,
             hasPublicName: canShowName,
             privacyLabel: canShowName ? 'Name shown with long-term consent' : 'Name hidden for privacy'
@@ -310,5 +388,11 @@ router.get('/vip-names', (req, res) => {
 module.exports = {
     router,
     setDatabase,
+<<<<<<< HEAD
     treeProblem // <Jun Kai/> for the unit test of the 3 line limit
+=======
+    countLiveTreeLeaves,
+    // A feedback was saved here (features/feedback/routes.js): the tree screens are told at once.
+    nudgeTreeScreens: () => liveEvents.nudge()
+>>>>>>> weijie_working_branches
 };

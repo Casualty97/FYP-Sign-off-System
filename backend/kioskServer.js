@@ -114,7 +114,9 @@ const pulseRoutes = require('./features/pulse/routes');
 const emailService = require('./features/email/service');
 const parametersConfigStore = require('./features/parameters/store');
 
-const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features/tree/routes');
+const { router: treeRoutes, setDatabase: setTreeDatabase, countLiveTreeLeaves } = require('./features/tree/routes');
+const { withAutoTreeStage } = require('./features/parameters/treeStage');
+const { serveChosenTree } = require('./features/parameters/treeDisplay');
 const dataRetentionCleanup = require('./features/archive/retention');
 const QRCode = require('qrcode');
 // <Jun Kai start>
@@ -284,9 +286,11 @@ app.use('/api/pledgeboard', pledgeboardRoutes);
 app.use('/api/pulse', pulseRoutes);
 app.use('/api/tree', treeRoutes);
 
-app.get('/api/parameters', (req, res) => {
+app.get('/api/parameters', async (req, res) => {
   try {
-    res.json({ success: true, parameters: parametersConfigStore.readParametersConfig() });
+    // In Auto, the tree's growth stage follows its leaf count (features/parameters/treeStage.js).
+    const parameters = await withAutoTreeStage(parametersConfigStore.readParametersConfig(), countLiveTreeLeaves);
+    res.json({ success: true, parameters });
   } catch (error) {
     console.error('Error loading public parameters:', error);
     res.status(500).json({ success: false, error: 'Failed to load parameters' });
@@ -406,13 +410,15 @@ app.get('/pledgeboard', (req, res) => {
   res.sendFile(path.join(paths.FRONTEND, 'Pledgeboard', 'Pledgeboard.html'));
 });
 
-app.get('/tree', (req, res) => {
+// The 2D or 3D tree, as chosen in the admin's Display 2D/3D Tree: the other address goes straight to the
+// chosen tree (features/parameters/treeDisplay.js).
+app.get('/tree', serveChosenTree('2d', (req, res) => {
   res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
-});
+}));
 
-app.get('/3dTree', (req, res) => {
+app.get('/3dTree', serveChosenTree('3d', (req, res) => {
   res.sendFile(path.join(paths.FRONTEND, '3dTree', '3dTree.html'));
-});
+}));
 
 app.get('/pulse', (req, res) => {
   res.sendFile(path.join(paths.FRONTEND, 'pulse', 'pulse.html'));
