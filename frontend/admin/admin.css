@@ -2148,71 +2148,52 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
   margin-top: 0;
 }
 
-#form-management-page .overlay-section,
-#form-management-page .user-section {
-  background: #f4f4f4;
-  border-radius: 16px;
-  padding: 25px;
-  border: 2px solid var(--theme-border-color);
-}
+/* <Jun Kai start> Start Screen Text and Feedback QR Code (own pages): a settings card, the old box rules went with the old markup */
+@media (max-width: 640px) { #form-management-page { padding: 20px; } }
+#form-management-page, #Feedback-page-QR-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback-page-QR-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.fm-page-status, .qr-page-status { margin: 0 0 12px; }
+.fm-grid, .qr-grid { align-items: start; }
+.fm-fields { display: flex; flex-direction: column; gap: 16px; }
 
-/* Buttons: white + no coloured border */
-#form-management-page .btn-primary,
-#form-management-page .btn-secondary {
-  background: #ffffff;
-  color: var(--theme-text-color);
-  border: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
+#Feedback-page-QR-page { min-height: 100%; padding: 30px; margin-top: 0; }
+@media (max-width: 640px) { #Feedback-page-QR-page { padding: 20px; } }
+.qr-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.qr-toggle-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.qr-toggle-text strong { font-size: 14px; font-weight: 600; color: var(--theme-card-text); }
+.qr-toggle-text small { font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
 
-#form-management-page .btn-primary:hover,
-#form-management-page .btn-secondary:hover {
-  background: #f8fafc;
-}
-
-#form-management-page .form-group input,
-#form-management-page .form-group select {
-  background: #ffffff;
-  border: 2px solid var(--theme-border-color);
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 15px;
-}
-
-#form-management-page #fm-bg {
-  width: 280px;
-  height: 48px;
-  padding: 12px 16px;
-}
-
-/* Form status message */
-#fm-status.fm-status {
-  margin-top: 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid transparent;
-}
-
-#fm-status.fm-status--hidden {
-  display: none;
-}
-
-#fm-status.fm-status--success {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
-}
-
-#fm-status.fm-status--error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #991b1b;
-}
+/* the kiosk's first screen in small, copied from the look of feedback.html; it stays light in dark mode like the kiosk */
+.ks-screen { position: relative; display: flex; align-items: center; justify-content: center; gap: 4%; aspect-ratio: 16 / 10; padding: 4%; overflow: hidden; border: 8px solid #1e293b; border-radius: 18px; background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14); box-sizing: border-box; }
+.ks-card { display: flex; flex-direction: column; gap: 8px; width: 62%; max-height: 100%; padding: 16px 18px; overflow: hidden; border-top: 3px solid #8bc58f; border-radius: 6px; background: rgba(248, 250, 244, 0.95); box-shadow: 0 8px 20px rgba(24, 57, 43, 0.16); box-sizing: border-box; }
+.ks-brand { display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 600; color: #2f6f45; }
+.ks-logo { width: 14px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, #4a7c59, #8bc58f); flex: 0 0 auto; }
+.ks-title { font-size: 19px; font-weight: 800; line-height: 1.15; color: #1d4a32; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ks-subtitle { font-size: 10px; line-height: 1.5; color: #4b5a52; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ks-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: 2px; }
+.ks-btn { display: inline-flex; align-items: center; justify-content: center; width: 50%; height: 22px; border-radius: 5px; background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.ks-btn-wide { width: 100%; }
+/* with the QR code on, the text goes left and the QR panel right, as in feedback.html #land-page-qrcode */
+.ks-qr { display: none; flex-direction: column; align-items: center; gap: 6px; width: 30%; padding: 12px 10px; border-radius: 8px; background: rgba(248, 250, 244, 0.95); box-shadow: 0 8px 20px rgba(24, 57, 43, 0.16); text-align: center; box-sizing: border-box; }
+.ks-screen.has-qr .ks-card { width: 56%; }
+.ks-screen.has-qr .ks-qr { display: flex; }
+.ks-qr-head { font-size: 9px; font-weight: 700; color: #2f6f45; }
+.ks-qr-image { display: block; width: 100%; max-width: 110px; height: auto; border-radius: 4px; }
+.ks-qr-text { font-size: 8px; line-height: 1.4; color: #4b5a52; }
+.qr-preview-caption { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+@media (max-width: 640px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } .ks-screen.has-qr .ks-card { width: 60%; } .ks-screen.has-qr .ks-title { font-size: 12px; } .ks-screen.has-qr .ks-btn { width: 100%; } .ks-qr { width: 36%; padding: 8px 6px; } .ks-qr-text { display: none; } }
+/* the dark twins colorScheme.js makes would darken the kiosk copy, so these stronger rules keep its own colours */
+html[data-theme="dark"] .ui-card-body .ks-screen { background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; border-color: #1e293b; }
+html[data-theme="dark"] .ks-screen .ks-card { background: rgba(248, 250, 244, 0.95); border-top-color: #8bc58f; }
+html[data-theme="dark"] .ks-screen .ks-brand { color: #2f6f45; }
+html[data-theme="dark"] .ks-screen .ks-logo { background: linear-gradient(135deg, #4a7c59, #8bc58f); }
+html[data-theme="dark"] .ks-screen .ks-title { color: #1d4a32; }
+html[data-theme="dark"] .ks-screen .ks-subtitle { color: #4b5a52; }
+html[data-theme="dark"] .ks-screen .ks-btn { background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; }
+html[data-theme="dark"] .ks-screen .ks-qr { background: rgba(248, 250, 244, 0.95); }
+html[data-theme="dark"] .ks-screen .ks-qr-head { color: #2f6f45; }
+html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
+/* <Jun Kai end> */
 
 /* ==================== EMAIL MANAGEMENT PAGE STYLES ==================== */
 
@@ -5954,21 +5935,34 @@ input[type="color"]::-webkit-color-swatch {
     padding: 30px;
 }
 
-.timer-countdown-section {
-    background: #F7F7F7FF;
-    border: 2px solid #F7F7F7FF;
-    border-radius: 16px;
-    padding: 25px;
-}
-
-#timer-countdown-page .toolbar {
-    margin-top: 10px;
-}
-
-#timer-countdown-message {
-    font-size: 14px;
-    margin-top: 12px;
-}
+/* <Jun Kai start> Photo Timer (own page): the countdown card, the old box rules went with the old markup */
+@media (max-width: 640px) { #timer-countdown-page { padding: 20px; } }
+#timer-countdown-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #timer-countdown-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+#timer-countdown-page .ui-page-header .ui-btn svg { margin-right: 6px; }
+.pt-status { margin: 0 0 12px; }
+.pt-grid { align-items: start; }
+.pt-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pt-input { position: relative; width: 150px; flex: 0 0 auto; }
+.pt-input .ui-input { padding-right: 70px; }
+.pt-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--color-muted); pointer-events: none; }
+#timer-countdown-seconds.input-error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+/* the kiosk's camera view in small (feedback.css #countdown-overlay and .corner); dark colours are set again for dark mode */
+.pt-camera { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #334155, #0b1120 75%); }
+.pt-person { position: absolute; left: 50%; bottom: 0; width: 46%; height: 82%; transform: translateX(-50%); fill: #475569; }
+.pt-corner { position: absolute; width: 16px; height: 16px; border: 3px solid #6366f1; }
+.pt-corner-tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; }
+.pt-corner-tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; }
+.pt-corner-bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; }
+.pt-corner-br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; }
+.pt-badge { position: absolute; top: 22px; left: 22px; display: flex; align-items: center; justify-content: center; min-width: 48px; height: 48px; padding: 0 6px; border: 3px solid #ffffff; border-radius: 999px; background: rgba(0, 0, 0, 0.7); color: #ffffff; font-size: 24px; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); box-sizing: border-box; }
+.pt-badge[hidden] { display: none; }
+.pt-caption { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
+html[data-theme="dark"] .ui-card-body .pt-camera { background: radial-gradient(circle at 50% 40%, #334155, #0b1120 75%); }
+html[data-theme="dark"] .pt-camera .pt-person { fill: #475569; }
+html[data-theme="dark"] .pt-camera .pt-corner { border-color: #6366f1; }
+html[data-theme="dark"] .pt-camera .pt-badge { border-color: #ffffff; background: rgba(0, 0, 0, 0.7); color: #ffffff; }
+/* <Jun Kai end> */
 
 /* ==================== SERVER SCHEDULE MANAGEMENT (DONE BY BERNISSA) ==================== */
 
