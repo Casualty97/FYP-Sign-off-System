@@ -120,6 +120,8 @@ async function loadQuestionManagementData() {
 
         if (data.success) {
             updateQuestionManagementTable(data.questions);
+            setQuestionStatus('', ''); // <Jun Kai/> a good load clears an old message
+            return true; // <Jun Kai/>
         } else {
             console.error('Failed to load question data:', data.error);
             setQuestionStatus('error', 'Could not load the questions: ' + (data.error || 'unknown error')); // <Jun Kai/>
@@ -132,6 +134,7 @@ async function loadQuestionManagementData() {
         if (container && !window.questionsDataMap.size) container.innerHTML = '<div class="ui-card qs-empty">The questions could not be loaded.</div>';
         // <Jun Kai end>
     }
+    return false; // <Jun Kai/>
 }
 
 // Update question management table
@@ -256,7 +259,7 @@ function closeAddQuestionModal() {
     if (slot) slot.innerHTML = ''; // <Jun Kai/>
     renderQuestionPreview(); // <Jun Kai/>
     if (document.getElementById('questions-page').classList.contains('active')) {
-        loadQuestionManagementData();
+        return loadQuestionManagementData(); // <Jun Kai/> true once the list is loaded again
     }
 }
 
@@ -382,8 +385,7 @@ async function handleAddQuestion(event) {
         const data = await response.json();
 
         if (data.success) {
-            setQuestionStatus('success', 'Question added.'); // <Jun Kai/>
-            closeAddQuestionModal();
+            if (await closeAddQuestionModal()) setQuestionStatus('success', 'Question added.'); // <Jun Kai/> after the reload
         } else {
             errorDiv.textContent = data.error || 'Failed to add question';
             errorDiv.style.display = 'block';
@@ -534,9 +536,8 @@ async function handleEditQuestion(event, questionId) {
         const data = await response.json();
 
         if (data.success) {
-            setQuestionStatus('success', 'Question saved. Old answers keep the question as it was.'); // <Jun Kai/>
             closeEditQuestionModal();
-            loadQuestionManagementData();
+            if (await loadQuestionManagementData()) setQuestionStatus('success', 'Question saved. Old answers keep the question as it was.'); // <Jun Kai/> after the reload
         } else {
             errorDiv.textContent = data.error || 'Failed to update question';
             errorDiv.style.display = 'block';
@@ -593,13 +594,14 @@ async function deleteQuestion(questionId) {
             const data = await response.json();
 
             if (data.success) {
-                // <Jun Kai start> a question with answers is only turned off by the server
+                // <Jun Kai start> a question with answers is only turned off by the server; the message comes after the reload
                 const turnedOff = /deactivated/i.test(data.message || '');
-                setQuestionStatus(turnedOff ? 'info' : 'success', turnedOff
-                    ? 'The question already has answers, so it was turned off instead of deleted. Its answers are kept.'
-                    : 'Question deleted.');
+                if (await loadQuestionManagementData()) {
+                    setQuestionStatus(turnedOff ? 'info' : 'success', turnedOff
+                        ? 'The question already has answers, so it was turned off instead of deleted. Its answers are kept.'
+                        : 'Question deleted.');
+                }
                 // <Jun Kai end>
-                loadQuestionManagementData();
             } else {
                 setQuestionStatus('error', 'The question was not deleted: ' + (data.error || 'unknown error')); // <Jun Kai/>
             }
