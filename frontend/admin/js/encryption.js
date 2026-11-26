@@ -74,145 +74,84 @@ function updateArchiveEncryptionButtons() {
     }
 }
 
-//Decrypt all emails on current feedback page (MAX 25)
-async function decryptAllEmails() {
+// <Jun Kai start> Decrypting the emails of one page, for Feedback and Archived Feedback (kit dialogs, 26 Nov 2026).
+// The password window checks the first email while it stays open, so a wrong password shows under the field for
+// another try; the other emails follow after it closed. Messages are notifications instead of browser boxes.
+async function requestDecryptedEmail(feedbackId, password) {
+    const username = sessionStorage.getItem('loggedUser');
+    const response = await fetch('/api/admin/decrypt-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-username': username },
+        body: JSON.stringify({ feedbackId, password, username })
+    });
+    return response.json().catch(() => ({ success: false }));
+}
+
+// ids: the encrypted ids on the page; map: where the clear emails go. Resolves with how many were decrypted
+// (0 when cancelled or nothing worked).
+async function decryptEmailsOnPage(ids, map) {
     if (sessionStorage.getItem('userRole') !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
-        return;
+        showNotification('Only a System Admin can decrypt emails.', 'error');
+        return 0;
     }
-    
-    if (encryptedFeedbackIds.length === 0) {
-        alert('No encrypted emails on this page.');
-        return;
+    const list = [...ids];
+    if (list.length === 0) {
+        showNotification('There are no encrypted emails on this page.', 'info');
+        return 0;
     }
-    
-    const password = await showPasswordPrompt(`🔓 Decrypt ${encryptedFeedbackIds.length} emails on this page? It might take a few seconds/minutes.\n\nEnter your System Admin password:`);
-    if (!password) return;
-    
+    let first = null;
+    const password = await showPasswordPrompt(`Decrypt ${list.length} email${list.length === 1 ? '' : 's'} on this page?\n\nThis can take a few seconds or minutes.`, {
+        label: 'System Admin password',
+        confirmText: 'Decrypt',
+        check: async (value) => {
+            const data = await requestDecryptedEmail(list[0], value);
+            if (!data.success) return data.error || 'That password is not right. Try again.';
+            first = data;
+            return null;
+        }
+    });
+    if (!password || !first) return 0;
+    map[list[0]] = first.decryptedEmail;
+    let decrypted = 1;
     try {
-        const username = sessionStorage.getItem('loggedUser');
-        let successCount = 0;
-        let passwordVerified = false;
-        
-        for (const feedbackId of encryptedFeedbackIds) {
-            const response = await fetch('/api/admin/decrypt-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-username': username
-                },
-                body: JSON.stringify({ feedbackId, password, username })
-            });
-            
-            const data = await response.json();
-            
-            // Check first response if password is wrong, stop immediately
-            if (!passwordVerified) {
-                if (!data.success) {
-                    // Wrong password on first attempt
-                    alert('❌ Incorrect password. Decryption cancelled.\n\nPlease try again with the correct System Admin password.');
-                    console.error('❌ Authentication failed: Invalid password');
-                    return; // Exit function don't set isAnyEmailDecrypted
-                }
-                passwordVerified = true;
-            }
-            
+        for (const feedbackId of list.slice(1)) {
+            const data = await requestDecryptedEmail(feedbackId, password);
             if (data.success) {
-                decryptedEmailMap[feedbackId] = data.decryptedEmail;
-                successCount++;
+                map[feedbackId] = data.decryptedEmail;
+                decrypted++;
             } else {
                 console.warn(`⚠️ Failed to decrypt email for feedback ID: ${feedbackId}`);
             }
         }
-        
-        // Only set flag if at least one email was successfully decrypted
-        if (successCount > 0) {
-            isAnyEmailDecrypted = true;
-            renderFeedbackPage();
-            console.log(`✅ Successfully decrypted ${successCount} of ${encryptedFeedbackIds.length} emails`);
-            
-            if (successCount < encryptedFeedbackIds.length) {
-                alert(`⚠️ Partially completed: ${successCount} of ${encryptedFeedbackIds.length} emails decrypted.\n\nSome emails could not be decrypted.`);
-            }
-        } else {
-            alert('❌ No emails were decrypted. Please try again.');
-            console.error('❌ Decryption failed: No emails were successfully decrypted');
-        }
     } catch (error) {
         console.error('❌ Decryption error:', error);
-        alert('❌ Network error occurred during decryption.\n\nPlease check your connection and try again.');
+        showNotification(`The connection stopped after ${decrypted} of ${list.length} emails. Try again for the rest.`, 'error');
+        return decrypted;
+    }
+    if (decrypted < list.length) {
+        showNotification(`${decrypted} of ${list.length} emails were decrypted. Some could not be decrypted.`, 'error');
+    } else {
+        showNotification(`${decrypted} email${decrypted === 1 ? '' : 's'} decrypted.`, 'success');
+    }
+    return decrypted;
+}
+
+//Decrypt all emails on current feedback page (MAX 25)
+async function decryptAllEmails() {
+    if (await decryptEmailsOnPage(encryptedFeedbackIds, decryptedEmailMap)) {
+        isAnyEmailDecrypted = true;
+        renderFeedbackPage();
     }
 }
 
 //Decrypt all emails on current archive page (MAX 25)
 async function decryptAllArchiveEmails() {
-    if (sessionStorage.getItem('userRole') !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
-        return;
-    }
-    
-    if (encryptedArchiveIds.length === 0) {
-        alert('No encrypted emails on this page.');
-        return;
-    }
-    
-    const password = await showPasswordPrompt(`🔓 Decrypt ${encryptedArchiveIds.length} emails on this page? It might take a few seconds/minutes.\n\nEnter your System Admin password:`);
-    if (!password) return;
-    
-    try {
-        const username = sessionStorage.getItem('loggedUser');
-        let successCount = 0;
-        let passwordVerified = false;
-        
-        for (const feedbackId of encryptedArchiveIds) {
-            const response = await fetch('/api/admin/decrypt-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-username': username
-                },
-                body: JSON.stringify({ feedbackId, password, username })
-            });
-            
-            const data = await response.json();
-            
-            // Check first response if password is wrong, stop immediately
-            if (!passwordVerified) {
-                if (!data.success) {
-                    // Wrong password on first attempt
-                    alert('❌ Incorrect password. Decryption cancelled.\n\nPlease try again with the correct System Admin password.');
-                    console.error('❌ Authentication failed: Invalid password');
-                    return; // Exit function - don't set isAnyArchiveEmailDecrypted
-                }
-                passwordVerified = true;
-            }
-            
-            if (data.success) {
-                decryptedArchiveEmailMap[feedbackId] = data.decryptedEmail;
-                successCount++;
-            } else {
-                console.warn(`⚠️ Failed to decrypt email for feedback ID: ${feedbackId}`);
-            }
-        }
-        
-        // Only set flag if at least one email was successfully decrypted
-        if (successCount > 0) {
-            isAnyArchiveEmailDecrypted = true;
-            renderArchivePage();
-            console.log(`✅ Successfully decrypted ${successCount} of ${encryptedArchiveIds.length} archive emails`);
-            
-            if (successCount < encryptedArchiveIds.length) {
-                alert(`⚠️ Partially completed: ${successCount} of ${encryptedArchiveIds.length} emails decrypted.\n\nSome emails could not be decrypted.`);
-            }
-        } else {
-            alert('❌ No emails were decrypted. Please try again.');
-            console.error('❌ Decryption failed: No emails were successfully decrypted');
-        }
-    } catch (error) {
-        console.error('❌ Decryption error:', error);
-        alert('❌ Network error occurred during decryption.\n\nPlease check your connection and try again.');
+    if (await decryptEmailsOnPage(encryptedArchiveIds, decryptedArchiveEmailMap)) {
+        isAnyArchiveEmailDecrypted = true;
+        renderArchivePage();
     }
 }
+// <Jun Kai end>
 
 //Re-encrypt feedback emails
 function reEncryptAllEmails() {
