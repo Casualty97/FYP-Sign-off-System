@@ -4190,32 +4190,6 @@ td {
 }
 /* <Jun Kai end> */
 
-/* Email popup */
-.email-popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1001;
-    padding: 20px;
-    box-sizing: border-box;
-    animation: fadeIn 0.3s ease-out;
-}
-
-.email-container {
-    background: var(--theme-card-bg);
-    border-radius: 12px;
-    text-align: center;
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: scaleIn 0.3s ease-out;
-}
-
 /* Download and delete access modals */
 .download-access-modal, .delete-access-modal {
     position: fixed;
