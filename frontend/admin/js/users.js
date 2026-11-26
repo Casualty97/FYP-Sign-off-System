@@ -667,20 +667,17 @@ async function permanentDeleteUser(userId, username) {
     }
     
     // <Jun Kai start> One kit dialog where the admin types the username (two OK boxes in a row were easy to click
-    // through). Nothing is deleted when the typed name does not match.
+    // through). A name that does not match is pointed out in the same dialog, so nothing is deleted by mistake.
     const typed = await uiPrompt({
         title: `Delete ${username} for good?`,
         message: 'This removes the account from the database. It cannot be undone.',
         label: `Type ${username} to confirm`,
         emptyText: 'Type the username first.',
         confirmText: 'Delete for good',
-        danger: true
+        danger: true,
+        check: (value) => (value.trim() === username ? null : `That is not ${username}. Type the username exactly as shown.`)
     });
-    if (typed === null) return;
-    if (typed.trim() !== username) {
-        showNotification('The username you typed does not match. Nothing was deleted.', 'error');
-        return;
-    }
+    if (typed === null || typed.trim() !== username) return;
     // <Jun Kai end>
     try {
         const response = await fetch(`/api/admin/users/${userId}/permanent`, {
