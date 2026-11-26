@@ -2252,7 +2252,7 @@ html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
 .dt-side { grid-area: side; display: grid; gap: 20px; min-width: 0; }
 .dt-side .ui-card + .ui-card { margin-top: 0; }
 .dt-list-card { grid-area: list; min-width: 0; overflow: hidden; }
-.dt-facts { display: grid; gap: 16px; }
+.dt-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .dt-facts .ui-fact-value { font-size: 20px; }
 .dt-table td { padding-top: 11px; padding-bottom: 11px; }
 .dt-table .dt-num { text-align: right; width: 70px; font-variant-numeric: tabular-nums; }
@@ -2279,7 +2279,7 @@ html[data-theme="dark"] .dt-screen-note { background: #1e293b; color: #cbd5e1; }
 .dt-vip-row:first-child { border-top: 0; }
 .dt-vip-star { display: inline-flex; color: #d97706; flex-shrink: 0; }
 .dt-vip-name { display: grid; flex: 1 1 auto; min-width: 0; }
-.dt-vip-name b { font-weight: 600; color: var(--theme-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-vip-name b { font-size: 14px; font-weight: 600; color: var(--theme-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dt-vip-name small { font-size: 12px; color: var(--color-muted); }
 .dt-vip-row.is-asking { flex-wrap: wrap; }
 .dt-vip-row.is-asking .ui-btn { height: 32px; }
