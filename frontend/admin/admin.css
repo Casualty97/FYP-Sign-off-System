@@ -8656,8 +8656,14 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 .nav-group.is-folded .nav-group-badge:not([hidden]) { display: inline-flex; }
 .nav-group-chevron { flex-shrink: 0; margin-left: auto; opacity: 0.75; transition: transform 0.2s ease; }
 .nav-group.is-folded .nav-group-chevron { transform: rotate(-90deg); }
-/* the folded group that holds the open page keeps a mark, so it is clear where the open page is */
-.nav-group.is-folded:has(.nav-item.active) .nav-group-name::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%; background: var(--l3-focus); vertical-align: 1px; }
+/* <Jun Kai start> a folded group that holds the open page keeps that page as its one visible row, the others stay hidden
+   (sidebar.js sets has-open-row; nav-no-slide skips the slide for the one frame the row comes or goes, so nothing jumps) */
+.nav-group.is-folded.has-open-row .nav-group-body { grid-template-rows: 1fr; }
+.sidebar:not(.is-searching) .nav-group.is-folded.has-open-row .nav-item:not(.active) { display: none; }
+.nav-group-body.nav-no-slide { transition: none !important; }
+/* the Incidents count already shows on the visible row, so the heading does not repeat it */
+.nav-group.is-folded.has-open-row:has(.nav-item.active .inc-nav-badge:not([hidden])) .nav-group-badge { display: none; }
+/* <Jun Kai end> */
 .nav-group-body { display: grid; grid-template-rows: 1fr; }
 .nav-group-body > nav { min-height: 0; overflow: hidden; padding-bottom: 4px; }
 .nav-group.is-folded .nav-group-body { grid-template-rows: 0fr; }
@@ -8667,7 +8673,6 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 .sidebar.is-searching .nav-group.is-folded .nav-group-body { grid-template-rows: 1fr; }
 .sidebar.is-searching .nav-group-toggle { pointer-events: none; }
 .sidebar.is-searching :is(.nav-group-count, .nav-group-badge, .nav-group-chevron) { display: none; }
-.sidebar.is-searching .nav-group-name::after { display: none; }
 
 .nav-search { display: flex; align-items: center; gap: 8px; height: 36px; margin: 0 12px 12px; padding: 0 10px; border: 1px solid var(--l3-field-edge); border-radius: 11px; background: var(--l3-field); color: var(--l3-nav-heading); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .nav-search:focus-within { border-color: var(--l3-focus); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22); }
