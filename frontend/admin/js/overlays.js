@@ -328,7 +328,7 @@ function showAddOverlayModal() {
             <div class="ov-add-file-row">
                 ${input}
             </div>
-            <p class="ui-help" id="ov-add-${kind}-help">PNG or animated GIF, at most 10 MB. Best at ${size}.</p>
+            <p class="ui-help" id="ov-add-${kind}-help">PNG or animated GIF, at most 10 MB. Best at ${size}. An animated GIF shows only its first frame here; the kiosk plays all of it.</p>
             <p class="ui-help is-error ov-add-error" id="ov-add-${kind}-error" hidden></p>
         </div>`;
     panel.innerHTML = `

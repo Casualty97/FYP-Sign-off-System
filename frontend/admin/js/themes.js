@@ -1354,7 +1354,7 @@ function updateSectionTitle(sectionId) {
     const title = document.getElementById('current-section-title');
     if (title) title.textContent = section.name;
     const previewFor = document.getElementById('theme-preview-for');
-    if (previewFor) previewFor.textContent = `${section.name}. Changes show here before you save.`;
+    if (previewFor) previewFor.textContent = themePreviewCaption(section.name); // <Jun Kai/> says when dark mode shows only the button colour
 
     const overrideContainer = document.getElementById('override-toggle-container');
     const resetBtn = document.getElementById('reset-to-global-btn');
@@ -1914,7 +1914,17 @@ function updatePreview(sectionId) {
 // <Jun Kai/> the preview follows a Light / Dark switch right away (colorScheme.js sends admin-color-scheme)
 window.addEventListener('admin-color-scheme', () => {
     if (document.getElementById('theme-preview') && typeof currentSection !== 'undefined') updatePreview(currentSection);
+    const previewFor = document.getElementById('theme-preview-for');
+    const section = typeof currentSection !== 'undefined' && themeConfig.sections.find((s) => s.id === currentSection);
+    if (previewFor && section) previewFor.textContent = themePreviewCaption(section.name);
 });
+
+// <Jun Kai/> in dark mode a theme shows only its button colour (option A), so the preview says so instead of promising every change
+function themePreviewCaption(name) {
+    return document.documentElement.dataset.theme === 'dark'
+        ? `${name}. In dark mode only the button colour shows here. Switch to light mode to see the other colours.`
+        : `${name}. Changes show here before you save.`;
+}
 
 // Apply theme settings to the actual page using CSS selectors
 function applyThemeSettings() {
