@@ -478,7 +478,7 @@ function setDateRangePreset(preset) {
 async function downloadAuditExcel() {
     const userRole = sessionStorage.getItem('userRole');
     if (userRole !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
+        showNotification('Only a System Admin can download the audit logs.', 'error'); // <Jun Kai/>
         return;
     }
     
@@ -495,7 +495,7 @@ async function downloadAuditExcel() {
         }));
         
         if (excelData.length === 0) {
-            alert('No audit logs to download. Try adjusting your filters.');
+            showNotification('No audit logs to download. Try other filters.', 'info'); // <Jun Kai/>
             return;
         }
         
@@ -535,7 +535,7 @@ async function downloadAuditExcel() {
         
     } catch (error) {
         console.error('❌ Error downloading audit logs:', error);
-        alert('Error downloading audit logs: ' + error.message);
+        showNotification('Could not download the audit logs: ' + error.message, 'error'); // <Jun Kai/>
     }
 }
 

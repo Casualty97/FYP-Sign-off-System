@@ -209,7 +209,9 @@ function prepareFeedbackReportsPage() {
         renderAnalysisModes();
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !document.getElementById('ai-cache-panel').hidden) closeAiCachePanel();
+        if (event.key !== 'Escape' || document.getElementById('ai-cache-panel').hidden) return;
+        if (document.querySelector('dialog[open]')) return; // <Jun Kai/> a kit window above the panel closes first
+        closeAiCachePanel();
     });
 }
 
@@ -381,12 +383,14 @@ function getFeedbackInsightsBySentiment(sentiment) {
     return items.filter(item => String(item.sentiment || '').toLowerCase() === sentiment);
 }
 
-function closeFeedbackInsightsModal() {
+// <Jun Kai start> closes the insights window; now=true removes it at once (a new one is about to open)
+function closeFeedbackInsightsModal(now = false) {
     const modal = document.getElementById('feedback-insights-modal');
-    if (modal) {
-        modal.remove();
-    }
+    if (!modal) return;
+    if (now) modal.remove();
+    else closeKitViewer(modal);
 }
+// <Jun Kai end>
 
 // Filter feedback items by date range (Done by Yu Kang)
 function filterFeedbackItemsByDate(items, fromDate, toDate) {
@@ -414,137 +418,81 @@ function filterFeedbackItemsByDate(items, fromDate, toDate) {
 }
 
 // Open modal to view feedback insights by sentiment (Done by Yu Kang)
+// <Jun Kai start> rebuilt as a kit window: the date filter on top, each item as plain text (visitor words never become
+// HTML), the count in a status pill under the title; Escape or Close closes it
 function openFeedbackInsightsModal(sentiment) {
     const normalizedSentiment = String(sentiment || '').toLowerCase();
-    let items = getFeedbackInsightsBySentiment(normalizedSentiment);
-    const titleMap = {
-        positive: 'Positive Feedback',
-        neutral: 'Neutral Feedback',
-        negative: 'Negative Feedback'
-    };
-    const colorMap = {
-        positive: '#10b981',
-        neutral: '#f59e0b',
-        negative: '#ef4444'
-    };
+    const items = getFeedbackInsightsBySentiment(normalizedSentiment);
+    const titleMap = { positive: 'Positive feedback', neutral: 'Neutral feedback', negative: 'Negative feedback' };
+    const toneMap = { positive: 'ok', neutral: 'warn', negative: 'down' };
 
-    closeFeedbackInsightsModal();
+    closeFeedbackInsightsModal(true);
+    const { dialog, body } = openKitViewer({ className: 'insights-popup', title: titleMap[normalizedSentiment] || 'Feedback', wide: true });
+    dialog.id = 'feedback-insights-modal';
+    const head = dialog.querySelector('.va-dialog-head > div');
+    const count = document.createElement('div');
+    count.className = 'va-dialog-sub kit-insight-count';
+    head.appendChild(count);
+    const showCount = (n) => { count.innerHTML = uiPill(toneMap[normalizedSentiment] || 'muted', `${n} ${n === 1 ? 'item' : 'items'}`); };
 
-    const modal = document.createElement('div');
-    modal.id = 'feedback-insights-modal';
-    modal.style.cssText = `
-        position: fixed;
-        inset: 0;
-        z-index: 10020;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(15, 23, 42, 0.72);
-        padding: 20px;
-    `;
+    const filter = document.createElement('div');
+    filter.className = 'kit-insight-filter';
+    filter.innerHTML = `
+        <div class="ui-field"><label class="ui-label" for="feedbackDateFrom">From</label><input type="date" id="feedbackDateFrom" class="ui-input"></div>
+        <div class="ui-field"><label class="ui-label" for="feedbackDateTo">To</label><input type="date" id="feedbackDateTo" class="ui-input"></div>
+        <button type="button" id="applyFeedbackDateFilter" class="ui-btn ui-btn-primary">Apply</button>
+        <button type="button" id="clearFeedbackDateFilter" class="ui-btn ui-btn-secondary">Clear</button>`;
+    const list = document.createElement('div');
+    list.id = 'feedbackModalContent';
+    list.className = 'kit-insight-list';
+    body.append(filter, list);
 
-    const content = items.length
-        ? items.map(item => `
-            <div style="padding: 14px 0; border-top: 1px solid #e2e8f0;">
-                <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;">
-                    <strong style="color: #0f172a;">${escapeHtml(item.source || 'Feedback')}</strong>
-                    <span style="font-size: 12px; color: #64748b;">${escapeHtml(item.date || '')}</span>
-                </div>
-                ${item.question ? `<div style="margin-bottom: 6px; color: #1d4ed8; font-size: 13px; font-weight: 600;">${escapeHtml(item.question)}</div>` : ''}
-                <div style="color: #475569; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(item.text || '')}</div>
-            </div>
-        `).join('')
-        : `<div style="padding: 18px 0; color: #64748b;">No ${escapeHtml(normalizedSentiment)} feedback was found for the selected analysis window.</div>`;
-
-    modal.innerHTML = `
-        <div style="width: min(920px, 100%); max-height: 86vh; background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35); display: flex; flex-direction: column; overflow: hidden;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
-                <div>
-                    <h3 style="margin: 0; color: #0f172a; font-size: 20px;">${escapeHtml(titleMap[normalizedSentiment] || 'Feedback')}</h3>
-                    <div style="margin-top: 4px; color: ${colorMap[normalizedSentiment] || '#64748b'}; font-weight: 700; font-size: 13px;">${items.length} item(s)</div>
-                </div>
-                <button type="button" onclick="closeFeedbackInsightsModal()" style="background: transparent; border: 0; color: #64748b; font-size: 28px; line-height: 1; cursor: pointer; padding: 4px 8px;">&times;</button>
-            </div>
-
-            <div style="padding:18px 22px; border-bottom:1px solid #e2e8f0; display:flex; gap:14px; align-items:end; flex-wrap:wrap;">
-                <div>
-                    <label style="display:block; font-size:12px; color:#64748b; margin-bottom:4px;">
-                        From
-                    </label>
-                    <input type="date" id="feedbackDateFrom" style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px;">
-                </div>
-
-                <div>
-                    <label style="display:block; font-size:12px; color:#64748b; margin-bottom:4px;">
-                        To
-                    </label>
-                    <input type="date" id="feedbackDateTo" style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px;">
-                </div>
-
-                <button id="applyFeedbackDateFilter" class="btn-primary">
-                    Apply
-                </button>
-
-                <button id="clearFeedbackDateFilter" class="btn-primary">
-                    Clear
-                </button>
-            </div>
-
-            <div id="feedbackModalContent" style="padding:20px 22px 22px; overflow:auto; background:#fff;">
-                ${content}
-            </div>
-        </div>
-    `;
-
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeFeedbackInsightsModal();
+    const renderItems = (shown) => {
+        list.replaceChildren();
+        if (!shown.length) {
+            const empty = document.createElement('p');
+            empty.className = 'kit-viewer-empty';
+            empty.textContent = items.length ? 'No feedback in these dates.' : `No ${normalizedSentiment} feedback was found for the selected analysis window.`;
+            list.appendChild(empty);
         }
-    });
-
-    document.body.appendChild(modal);
-
-    // Add event listener for the "Apply" button to filter feedback items by date
-    modal.querySelector('#applyFeedbackDateFilter').addEventListener('click', () => {
-        const from = modal.querySelector('#feedbackDateFrom').value;
-        const to = modal.querySelector('#feedbackDateTo').value;
-        const filtered = filterFeedbackItemsByDate(items, from, to);
-
-        renderItems(filtered);
-
-        const count = modal.querySelector('h3')
-            .nextElementSibling;
-
-        count.textContent = `${filtered.length} item(s)`;
-    });
-
-    // Add event listener for the "Clear" button to reset the date filters
-    modal.querySelector('#clearFeedbackDateFilter').addEventListener('click', () => {
-        modal.querySelector('#feedbackDateFrom').value = '';
-        modal.querySelector('#feedbackDateTo').value = '';
-
-        renderItems(items);
-
-        modal.querySelector('h3').nextElementSibling.textContent = `${items.length} item(s)`;
-    });
-
-    // Add event listeners for date filter buttons
-    const contentContainer = modal.querySelector('#feedbackModalContent');
-    const renderItems = (filteredItems) => {
-
-        contentContainer.innerHTML = filteredItems.length
-            ? filteredItems.map(item => `
-                <div style="padding: 14px 0; border-top: 1px solid #e2e8f0;">
-                    <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;">
-                        <strong style="color: #0f172a;">${escapeHtml(item.source || 'Feedback')}</strong>
-                        <span style="font-size: 12px; color: #64748b;">${escapeHtml(item.date || '')}</span>
-                    </div>
-
-                    ${item.question ? `<div style="margin-bottom: 6px; color: #1d4ed8; font-size: 13px; font-weight: 600;">${escapeHtml(item.question)}</div>`: ''}
-                    <div style="color: #475569; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(item.text || '')}</div>
-                </div>`).join(''): `<div style="padding:20px;color:#64748b;text-align:center;">No feedback found.</div>`;
+        shown.forEach((item) => {
+            const row = document.createElement('article');
+            row.className = 'kit-insight';
+            const top = document.createElement('div');
+            top.className = 'kit-insight-head';
+            const source = document.createElement('strong');
+            source.textContent = item.source || 'Feedback';
+            const date = document.createElement('span');
+            date.className = 'kit-insight-date';
+            date.textContent = item.date || '';
+            top.append(source, date);
+            row.appendChild(top);
+            if (item.question) {
+                const question = document.createElement('p');
+                question.className = 'kit-insight-q';
+                question.textContent = item.question;
+                row.appendChild(question);
+            }
+            const text = document.createElement('p');
+            text.className = 'kit-insight-text';
+            text.textContent = item.text || '';
+            row.appendChild(text);
+            list.appendChild(row);
+        });
+        showCount(shown.length);
     };
+
+    filter.querySelector('#applyFeedbackDateFilter').addEventListener('click', () => {
+        renderItems(filterFeedbackItemsByDate(items, filter.querySelector('#feedbackDateFrom').value, filter.querySelector('#feedbackDateTo').value));
+    });
+    filter.querySelector('#clearFeedbackDateFilter').addEventListener('click', () => {
+        filter.querySelector('#feedbackDateFrom').value = '';
+        filter.querySelector('#feedbackDateTo').value = '';
+        renderItems(items);
+    });
+    renderItems(items);
 }
+// <Jun Kai end>
 
 // Analyze feedback into AI Insight Summary (Done by Yu Kang)
 let feedbackAnalysisAbortController = null;
