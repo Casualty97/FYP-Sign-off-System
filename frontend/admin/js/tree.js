@@ -6,6 +6,7 @@
 async function loadDigitalTreeData() {
     try {
         console.log('🌳 Loading digital tree data...');
+        loadTreePreview(); // <Jun Kai/> the small copy of the tree screen on Tree Leaves
         await loadTreeStageSelection();
         await loadAvailableTreeBackgrounds();
         const response = await fetch('/api/tree');
@@ -656,6 +657,65 @@ function updateDigitalTreeTable(treeData) {
     treeVisitorRows = rows.slice().sort((a, b) => (new Date(b.created_at).getTime() || 0) - (new Date(a.created_at).getTime() || 0));
     treeVisitorPage = 1;
     renderTreeVisitors();
+}
+
+// The small copy of the tree screen: the real /tree (or /3dtree in 3D mode) page in a frame, drawn at 1600 x 900 and
+// scaled down to the card. It can only be looked at (no clicks), and it is emptied when another page opens, so a
+// 3D tree does not keep running in the background.
+const TREE_FRAME_WIDTH = 1600;
+let treeFrameWatch = null;
+
+function fitTreeFrame() {
+    const screen = document.getElementById('dt-screen');
+    const frame = document.getElementById('dt-tree-frame');
+    if (screen && frame) frame.style.transform = `scale(${screen.clientWidth / TREE_FRAME_WIDTH})`;
+}
+
+function watchTreeFrame() {
+    if (treeFrameWatch) return;
+    const page = document.getElementById('digital-tree-page');
+    const screen = document.getElementById('dt-screen');
+    if (!page || !screen) return;
+    treeFrameWatch = new MutationObserver(() => {
+        if (page.classList.contains('active')) return;
+        const frame = document.getElementById('dt-tree-frame');
+        if (frame && frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
+        screen.dataset.state = 'idle';
+    });
+    treeFrameWatch.observe(page, { attributes: true, attributeFilter: ['class'] });
+    if (typeof ResizeObserver === 'function') new ResizeObserver(fitTreeFrame).observe(screen);
+    window.addEventListener('resize', fitTreeFrame);
+}
+
+async function loadTreePreview() {
+    const frame = document.getElementById('dt-tree-frame');
+    const screen = document.getElementById('dt-screen');
+    const note = document.getElementById('dt-screen-note');
+    if (!frame || !screen) return;
+    watchTreeFrame();
+    let mode = '2d';
+    try {
+        const response = await fetch('/api/admin/parameters/treeParameters', { credentials: 'include' });
+        const data = await response.json();
+        if (response.ok && data.success && String(data.parameters?.treeDisplayMode || '').toLowerCase() === '3d') mode = '3d';
+    } catch (error) {
+        console.warn('Tree display mode not read, showing the 2D tree:', error);
+    }
+    const address = mode === '3d' ? '/3dtree' : '/tree';
+    const open = document.getElementById('dt-open-tree');
+    if (open) open.setAttribute('href', address);
+    const label = document.getElementById('dt-preview-mode');
+    if (label) label.textContent = mode === '3d' ? 'A small copy of the 3D tree screen' : 'A small copy of the tree screen';
+    if (!document.getElementById('digital-tree-page')?.classList.contains('active')) return;
+    screen.dataset.state = 'loading';
+    if (note) note.textContent = 'Loading the tree';
+    frame.onload = () => {
+        if (frame.getAttribute('src') === 'about:blank') return;
+        screen.dataset.state = 'ready';
+        fitTreeFrame();
+    };
+    frame.setAttribute('src', address);
+    fitTreeFrame();
 }
 // <Jun Kai end>
 

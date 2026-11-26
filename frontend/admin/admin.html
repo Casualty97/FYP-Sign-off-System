@@ -743,6 +743,21 @@
 
                     <div class="dt-layout">
                         <div class="dt-side">
+                            <section class="ui-card dt-preview-card" aria-labelledby="dt-preview-title">
+                                <div class="ui-card-header">
+                                    <div>
+                                        <h3 id="dt-preview-title">How the tree looks now</h3>
+                                        <p id="dt-preview-mode">A small copy of the tree screen</p>
+                                    </div>
+                                    <a class="ui-btn ui-btn-secondary" id="dt-open-tree" href="/tree" target="_blank" rel="noopener"><span data-fb-icon="monitor"></span>Open the tree</a>
+                                </div>
+                                <div class="ui-card-body">
+                                    <div class="dt-screen" id="dt-screen" data-state="idle">
+                                        <iframe id="dt-tree-frame" title="A small copy of the tree screen" tabindex="-1" aria-hidden="true" sandbox="allow-scripts allow-same-origin" referrerpolicy="same-origin"></iframe>
+                                        <span class="dt-screen-note" id="dt-screen-note">Loading the tree</span>
+                                    </div>
+                                </div>
+                            </section>
                             <section class="ui-card dt-facts-card" aria-labelledby="dt-facts-title">
                                 <div class="ui-card-header">
                                     <h3 id="dt-facts-title">This year's tree</h3>
