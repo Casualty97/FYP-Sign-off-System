@@ -2250,7 +2250,7 @@ html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
    right; on a narrow screen the list comes first */
 #digital-tree-page { --color-dark-gray: #475569; --color-muted: #64748b; }
 html[data-theme="dark"] #digital-tree-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
-.dt-layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); grid-template-areas: "side list"; gap: 20px; align-items: start; }
+.dt-layout { display: grid; grid-template-columns: minmax(min(280px, 100%), 380px) minmax(0, 1fr); grid-template-areas: "side list"; gap: 20px; align-items: start; }
 .dt-side { grid-area: side; display: grid; gap: 20px; min-width: 0; }
 .dt-side .ui-card + .ui-card { margin-top: 0; }
 .dt-list-card { grid-area: list; min-width: 0; overflow: hidden; }
@@ -2289,12 +2289,18 @@ html[data-theme="dark"] .dt-vip-star { color: #fbbf24; }
 .dt-preview-card .ui-card-header .ui-btn { flex-shrink: 0; text-decoration: none; }
 @media (max-width: 1180px) {
     .dt-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "list" "side"; }
-    .dt-side { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+    .dt-side { grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); align-items: start; }
 }
 @media (max-width: 600px) {
     #digital-tree-page .ui-page-header { flex-direction: column; align-items: flex-start; }
     .dt-table th:nth-child(2), .dt-table td:nth-child(2), .dt-table th:nth-child(3), .dt-table td:nth-child(3) { display: none; }
     .dt-table .ui-who-text b { max-width: 150px; }
+}
+@media (max-width: 420px) {
+    .dt-table th, .dt-table td { padding-left: 10px; padding-right: 10px; }
+    .dt-table .ui-who { min-width: 0; }
+    .dt-table .ui-who-text b { max-width: 110px; }
+    .dt-preview-card .ui-card-header { flex-direction: column; }
 }
 /* <Jun Kai end> */
 
