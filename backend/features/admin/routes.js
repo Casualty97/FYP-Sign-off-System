@@ -7313,7 +7313,7 @@ router.get('/email-config', auth.requireAuth, (req, res) => {
   }
 });
 
-router.put('/email-config', auth.requireAuth, async (req, res) => {
+router.put('/email-config', auth.requireAdmin, async (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const incoming = req.body || {};
 
@@ -7366,7 +7366,7 @@ router.put('/email-config', auth.requireAuth, async (req, res) => {
   }
 });
 
-router.post('/email-config/test', auth.requireAuth, async (req, res) => {
+router.post('/email-config/test', auth.requireAdmin, async (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const to = req.body?.to;
     if (!to) return res.status(400).json({ success: false, error: 'Missing "to" email.' });
@@ -7563,7 +7563,7 @@ router.get('/server-schedules', auth.requireAuth, (req, res) => {
 });
 
 // POST /api/admin/server-schedules  new policy, placed just above the first policy it outranks
-router.post('/server-schedules', auth.requireAuth, (req, res) => {
+router.post('/server-schedules', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const checked = schedulePolicies.normalize(req.body || {});
   if (checked.error) return res.status(400).json({ success: false, error: checked.error });
   try {
@@ -7588,7 +7588,7 @@ router.post('/server-schedules', auth.requireAuth, (req, res) => {
 });
 
 // PUT /api/admin/server-schedules/:id  edit; the policy only moves when its kind (repeat type or Active/Stop) changes
-router.put('/server-schedules/:id', auth.requireAuth, (req, res) => {
+router.put('/server-schedules/:id', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const scheduleId = parseInt(req.params.id, 10);
   try {
     const config = readSchedulesConfig();
@@ -7620,7 +7620,7 @@ router.put('/server-schedules/:id', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server-schedules/reorder  { ids: [...] } after a drag, or { order: 'default' } to re-sort.
 // (POST, because PUT /server-schedules/:id would take "reorder" for an id.)
-router.post('/server-schedules/reorder', auth.requireAuth, (req, res) => {
+router.post('/server-schedules/reorder', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   try {
     const config = readSchedulesConfig();
     const body = req.body || {};
@@ -7670,7 +7670,7 @@ router.get('/server-schedules/preview', auth.requireAuth, (req, res) => {
 
 // DELETE /api/admin/server-schedules/:id
 // Delete schedule
-router.delete('/server-schedules/:id', auth.requireAuth, (req, res) => {
+router.delete('/server-schedules/:id', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const scheduleId = parseInt(req.params.id);
   
   console.debug(`🗑️  Deleting schedule ID ${scheduleId}`);
@@ -7710,7 +7710,7 @@ router.delete('/server-schedules/:id', auth.requireAuth, (req, res) => {
 
 // PUT /api/admin/server-schedules/:id/toggle
 // Toggle schedule active status
-router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
+router.put('/server-schedules/:id/toggle', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const scheduleId = parseInt(req.params.id);
   const { is_active } = req.body;
   
@@ -7754,7 +7754,7 @@ router.put('/server-schedules/:id/toggle', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server-schedules/enable-all
 // Enable all schedules
-router.post('/server-schedules/enable-all', auth.requireAuth, (req, res) => {
+router.post('/server-schedules/enable-all', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   console.debug('✅ Enabling all schedules');
   
   try {
@@ -7785,7 +7785,7 @@ router.post('/server-schedules/enable-all', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server-schedules/disable-all
 // Disable all schedules
-router.post('/server-schedules/disable-all', auth.requireAuth, (req, res) => {
+router.post('/server-schedules/disable-all', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   console.debug('⏸️  Disabling all schedules');
   
   try {
@@ -8171,7 +8171,7 @@ router.delete('/assets/:bluetoothId', auth.requireAdmin, (req, res) => {
 
 // POST /api/admin/server/start
 // Manually start the kiosk service
-router.post('/server/start', auth.requireAuth, (req, res) => {
+router.post('/server/start', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     console.log('▶️  Manual server start requested');
     // <Jun Kai start> a start by hand goes into the History list too, with who pressed it
     const username = (req.session.user && req.session.user.username) || 'unknown';
@@ -8186,7 +8186,7 @@ router.post('/server/start', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server/restart
 // Restart the kiosk application stack from the admin panel
-router.post('/server/restart', auth.requireAuth, (req, res) => {
+router.post('/server/restart', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     const { spawn } = require('child_process');
     const rootDir = paths.ROOT;
     const logsDir = path.join(rootDir, 'logs');
@@ -8236,7 +8236,7 @@ router.post('/server/restart', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server/stop (Done by Yu Kang)
 // Manually stop the kiosk service
-router.post('/server/stop', auth.requireAuth, (req, res) => {
+router.post('/server/stop', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
     const username = (req.session.user && req.session.user.username) || 'unknown';
     console.log('⏹️  Manual stop requested by', username);
     res.json({ success: true, message: 'Computer entering hibernate mode. Please wait...' });
@@ -8263,7 +8263,7 @@ router.get('/server/mode', auth.requireAuth, (req, res) => {
 
 // POST /api/admin/server/mode
 // Set server control mode (auto or manual)
-router.post('/server/mode', auth.requireAuth, (req, res) => {
+router.post('/server/mode', auth.requireAdmin, (req, res) => { // <Jun Kai/> System Admin only, like its page
   const { mode } = req.body;
   
   console.debug(`🔄 Changing server control mode to: ${forLog(mode)}`); // <Jun Kai/>
