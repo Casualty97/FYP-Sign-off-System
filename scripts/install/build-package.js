@@ -1,13 +1,14 @@
 // Owner: Role 3, Jun Kai.
 // Builds the offline package of the kiosk for 64 bit Windows: one zip that installs on a PC with nothing on it.
-//   node scripts/install/build-package.js [--out C:\rpkb] [--build N] [--with-ai-model] [--cache <dir>]
+//   node scripts/install/build-package.js [--out C:\rpkb] [--build N] [--cache <dir>] [--no-ai-model]
 // Runs on Windows with Node.js 22 and git (the GitHub Actions Windows runner, or a laptop). Steps: the project's
 // files by an allow list (never backend\.env, certificates, runtime data, visitor photos or the email settings),
 // npm ci --omit=dev for Windows x64 (bcrypt, sharp), Node.js and MySQL 8.4 downloaded and checked against their
 // checksums, the Visual C++ runtime next to the programs that need it, a check that every DLL is there, then
 // payload\app.zip + payload\mysql.zip, the install scripts, version.json and checksums.sha256, zipped as
-// dist\rp-xperience-kiosk-windows-x64.zip (+ .sha256). --with-ai-model also makes ...-windows-x64-ai.zip with the
-// sentiment model inside, so that AI feature works offline.
+// dist\rp-xperience-kiosk-windows-x64.zip (+ .sha256). The zip carries the sentiment model too, so the local AI check
+// works on a PC without internet from the first start (the user's choice, 26 Nov 2026); --no-ai-model leaves it out
+// for a quicker test build only.
 // <Jun Kai start>
 const fs = require('fs');
 const path = require('path');
@@ -297,6 +298,13 @@ async function main() {
     if (check.problems.length) throw new Error(`missing DLLs:\n  ${check.problems.join('\n  ')}`);
     say(`${check.checked} x64 programs and libraries checked, nothing missing`);
 
+    const withModel = !process.argv.includes('--no-ai-model');
+    if (withModel) {
+        step(`the offline AI model (${MODEL})`);
+        const fetchModel = `require('@xenova/transformers').pipeline('sentiment-analysis', '${MODEL}').then(() => console.log('   model ready'), (e) => { console.error(e.message); process.exit(1); })`;
+        run(path.join(stageApp, 'runtime', 'node', 'node.exe'), ['-e', fetchModel], { cwd: stageApp });
+    }
+
     step('records');
     const assets = walkRel(path.join(stageApp, 'assets')).map((r) => r.replace(/\\/g, '/')).sort();
     fs.writeFileSync(path.join(stageApp, '.shipped-assets.txt'), assets.join('\n') + '\n');
@@ -309,25 +317,16 @@ async function main() {
         date: new Date().toISOString().slice(0, 10),
         node: RUNTIME.node.version,
         mysql: RUNTIME.mysql.version,
-        aiModel: false,
+        aiModel: withModel,
         migrations,
         longestPath: longest,
         unpackedMB: Math.ceil((dirSize(stageApp) + dirSize(stageMysql)) / 1048576),
     };
     say(`build ${build}, ${migrations.length} database changes, longest path ${longest} characters, ${info.unpackedMB} MB unpacked`);
 
-    const made = [await makePackage({ out, stageApp, stageMysql, info, zipName: ZIP })];
-    if (process.argv.includes('--with-ai-model')) {
-        step(`the offline AI model (${MODEL})`);
-        const fetchModel = `require('@xenova/transformers').pipeline('sentiment-analysis', '${MODEL}').then(() => console.log('   model ready'), (e) => { console.error(e.message); process.exit(1); })`;
-        run(path.join(stageApp, 'runtime', 'node', 'node.exe'), ['-e', fetchModel], { cwd: stageApp });
-        info.aiModel = true;
-        info.unpackedMB = Math.ceil((dirSize(stageApp) + dirSize(stageMysql)) / 1048576);
-        info.longestPath = Math.max(info.longestPath, ...walkRel(stageApp).map((r) => r.length));
-        made.push(await makePackage({ out, stageApp, stageMysql, info, zipName: `${ZIP}-ai` }));
-    }
+    const made = await makePackage({ out, stageApp, stageMysql, info, zipName: ZIP });
     copyFile(path.join(__dirname, 'get-kiosk.ps1'), path.join(out, 'dist', 'get-kiosk.ps1'));
-    console.log(`\nDone: ${made.join(', ')}`);
+    console.log(`\nDone: ${made}${withModel ? ' (with the offline AI model)' : ' (WITHOUT the AI model: a test build)'}`);
 }
 
 if (require.main === module) {
