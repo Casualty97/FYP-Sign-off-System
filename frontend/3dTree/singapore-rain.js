@@ -54,7 +54,9 @@ export function recentRain(observations, now, area) {
     const samples=report.rows.filter(row=>Number.isFinite(row.value)&&row.value>=0)
       .map(({stationId,value})=>{
         const station=stationMap.get(stationId);
-        return {name:station?.name??stationId,...station?.labelLocation,value};
+        // The feed gives a gauge's place as location (labelLocation in older answers): without it no gauge
+        // was ever near an area, so an area's rain always read as unavailable.
+        return {name:station?.name??stationId,...(station?.location??station?.labelLocation),value};
       });
     if (!samples.length) continue;
 

@@ -1,9 +1,15 @@
-import { availableAreas, nearestPoint, recentRain, singaporeCoordinates } from './singapore-rain.js';
+import { recentRain } from './singapore-rain.js';
+
+// The automatic (live) weather is detected at one place only: Woodlands (Admin > 3D Tree Settings > Weather:
+// Automatic). Its rain is the nearest Woodlands rain gauge's (singapore-rain.js recentRain, within about 6 km of
+// it), its sky (sunrise, sunset, clouds, thunder) Open-Meteo's at Woodlands. No other place is offered, and the
+// viewer's own location is not used.
+export const WEATHER_AREA = Object.freeze({ name: 'Woodlands', latitude: 1.4360, longitude: 103.7860 });
 
 const rainFeed = 'https://api-open.data.gov.sg/v2/real-time/api/rainfall';
 const areaFeed = 'https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast';
 const skyFeed = 'https://api.open-meteo.com/v1/forecast?'+new URLSearchParams({
-  latitude:1.3521, longitude:103.8198, current:'weather_code,cloud_cover',
+  latitude:WEATHER_AREA.latitude, longitude:WEATHER_AREA.longitude, current:'weather_code,cloud_cover',
   daily:'sunrise,sunset', timezone:'Asia/Singapore', forecast_days:2,
 });
 const displayClock = new Intl.DateTimeFormat('en-SG',{
@@ -55,7 +61,7 @@ export function conditions(now,observations,forecast,area=null) {
     else if (area) status='Rain reported';
     else status='Rain at '+reading.wetCount+(reading.wetCount===1?' gauge':' gauges');
   }
-  const name=area?.name??'All Singapore';
+  const name=area?.name??WEATHER_AREA.name;
   const label=name+' · '+period+' · '+status+' · '+singaporeTime(now);
   const detail=reading
     ? (reading.station?reading.station+' rain gauge · ':'')+'Reading at '+singaporeTime(reading.at)
@@ -73,37 +79,28 @@ export function installSkyControls(weather,camera) {
   const rising={sunrise:true,sunset:false};
   const themes={Day:'sunny',Sunrise:'sunrise',Sunset:'sunset',Night:'night'};
   for (const button of [live,manual,rainButton,play,...presets]) button.disabled=false;
-  areaSelect.disabled=false;
+  areaSelect.disabled=true; // Woodlands only: nothing to choose
 
   const rainfall={url:rainFeed,interval:60000};
   const locations={url:areaFeed,interval:30*60000};
   const sky={url:skyFeed,interval:5*60000};
   const feeds=[rainfall,locations,sky];
   let active=false, preset='day', raining=false, playing=false, liveState=null, timer;
-  let areas=new Map(), listedNames='', pickedArea=false;
-  let detectedPoint=null, locationMessage='', watchId=null, watchGeneration=0;
+  let area=WEATHER_AREA;
 
+  // The one place listed: Woodlands, at the forecast feed's own Woodlands point once that has arrived.
   function updateAreaChoices() {
-    const selected=areaSelect.value||'all';
-    const updated=new Map([...availableAreas(locations.data,rainfall.data).values()]
-      .map(area=>['area:'+area.name,area]));
-    // Keep a selected gauge when the named-area list finishes loading.
-    if (areas.has(selected) && !updated.has(selected)) updated.set(selected,areas.get(selected));
-    areas=updated;
-    const options=[...areas].sort((a,b)=>a[1].name.localeCompare(b[1].name));
-    const names=options.map(([key])=>key).join('\n');
-    if (names===listedNames) return;
-    listedNames=names;
-    areaSelect.replaceChildren(new Option('All Singapore','all'),new Option('Use my location','location'),
-      ...options.map(([key,area])=>new Option(area.name,key)));
-    areaSelect.value=selected;
+    const listed=locations.data?.data?.area_metadata?.find?.(item=>item?.name===WEATHER_AREA.name)?.label_location;
+    if (Number.isFinite(listed?.latitude) && Number.isFinite(listed?.longitude)) {
+      area={name:WEATHER_AREA.name,latitude:listed.latitude,longitude:listed.longitude};
+    }
+    if (areaSelect.options.length!==1 || areaSelect.value!=='area:'+WEATHER_AREA.name) {
+      areaSelect.replaceChildren(new Option(WEATHER_AREA.name,'area:'+WEATHER_AREA.name));
+    }
   }
 
   function selectedArea() {
-    if (areaSelect.value!=='location') return areas.get(areaSelect.value)??null;
-    if (!detectedPoint) return null;
-    const nearest=nearestPoint(detectedPoint,areas.values());
-    return {...detectedPoint,name:nearest?'Near '+nearest.name:'My location'};
+    return area;
   }
 
   function refresh() {
@@ -114,14 +111,12 @@ export function installSkyControls(weather,camera) {
     play.setAttribute('aria-pressed',String(playing));
     for (const button of presets) button.setAttribute('aria-pressed',String(!active&&!playing&&button.dataset.sky===preset));
     areaPanel.hidden=!active;
-    locationNote.hidden=!locationMessage;
-    if (locationNote.textContent!==locationMessage) locationNote.textContent=locationMessage;
+    locationNote.hidden=true;
     readout.hidden=!(active||playing);
     let label='Day → Sunset → Night';
     if (active) {
       const clock=liveState.period+' · '+singaporeTime(Date.now());
-      if (areaSelect.value==='location' && !detectedPoint) label=clock;
-      else label=rainfall.checked?liveState.label:'Checking rain · '+clock;
+      label=rainfall.checked?liveState.label:'Checking rain at '+WEATHER_AREA.name+' · '+clock;
     }
     if (readout.textContent!==label) readout.textContent=label;
     readout.title=active?liveState.detail:'';
@@ -130,18 +125,9 @@ export function installSkyControls(weather,camera) {
     document.body.dataset.weather=rain?'rain':skyName;
   }
 
-  function clearLocation() {
-    watchGeneration++;
-    if (watchId!==null) navigator.geolocation.clearWatch(watchId);
-    watchId=null;
-    detectedPoint=null;
-    locationMessage='';
-  }
-
   function stopLive() {
     active=false;
     clearInterval(timer);
-    clearLocation();
     for (const feed of feeds) {
       feed.request?.abort();
       feed.request=null;
@@ -159,9 +145,7 @@ export function installSkyControls(weather,camera) {
     refresh();
   }
   function applyLive(seconds) {
-    const area=selectedArea();
-    const observations=areaSelect.value==='location'&&!area?null:rainfall.data;
-    liveState=conditions(Date.now(),observations,sky.data,area);
+    liveState=conditions(Date.now(),rainfall.data,sky.data,selectedArea());
     weather.setSky(liveState.phase,camera,{
       seconds,align:false,rising:rising[liveState.period.toLowerCase()],
     });
@@ -198,74 +182,17 @@ export function installSkyControls(weather,camera) {
     return Promise.all(feeds.map(refreshFeed));
   }
 
-  function locationUnavailable(message) {
-    clearLocation();
-    areaSelect.value='all';
-    locationMessage=message;
-    applyLive();
-  }
-
-  function changeArea() {
-    clearLocation();
-    if (areaSelect.value==='location') {
-      const geolocation=navigator.geolocation;
-      if (!geolocation) {
-        locationUnavailable('Location is unavailable. Choose an area.');
-        return;
-      }
-      locationMessage='Finding your area…';
-      const generation=watchGeneration;
-      watchId=geolocation.watchPosition(({coords})=>{
-        if (generation!==watchGeneration) return;
-        if (!singaporeCoordinates(coords)) {
-          locationUnavailable('Location is outside the Singapore weather area. Choose an area.');
-          return;
-        }
-        detectedPoint={latitude:coords.latitude,longitude:coords.longitude};
-        locationMessage='';
-        applyLive();
-      },error=>{
-        if (generation!==watchGeneration) return;
-        if (error.code===1) {
-          locationUnavailable('Location access is off. Choose an area.');
-          return;
-        }
-        locationMessage='Waiting for your location. You can choose an area.';
-        applyLive();
-      },{maximumAge:60000,timeout:12000});
-    }
-    applyLive();
-  }
-
-  async function useGrantedLocation() {
-    try {
-      const permission=await navigator.permissions?.query({name:'geolocation'});
-      if (permission?.state==='granted' && active && !pickedArea && areaSelect.value==='all') {
-        areaSelect.value='location';
-        changeArea();
-      }
-    } catch {
-      // The location option can also request permission directly.
-    }
-  }
-
   function startLive(initial=false) {
     if (active) return;
     active=true;
     playing=false;
     if (!initial) weather.frameSky(camera);
     applyLive(initial?0:undefined);
-    if (areaSelect.value==='location') changeArea();
-    else if (!pickedArea) useGrantedLocation();
     tick();
     timer=setInterval(tick,15000);
   }
 
   updateAreaChoices();
-  areaSelect.addEventListener('change',()=>{
-    pickedArea=true;
-    changeArea();
-  });
   live.addEventListener('click',()=>startLive());
   document.addEventListener('visibilitychange',()=>{
     if (!document.hidden) tick();

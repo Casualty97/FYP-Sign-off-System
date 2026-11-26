@@ -31,14 +31,13 @@
     <section class="weather-panel glass-card" aria-label="Weather">
       <p class="panel-label" id="weather-title">Weather</p>
       <div class="weather-source" role="group" aria-label="Weather source">
-        <button type="button" id="live-weather" aria-pressed="true" disabled>Live Singapore</button>
+        <button type="button" id="live-weather" aria-pressed="true" disabled>Live Woodlands</button>
         <button type="button" id="manual-weather" aria-pressed="false" disabled>Manual</button>
       </div>
       <div class="weather-location" id="weather-location" hidden>
-        <label for="weather-area">Rain area</label>
+        <label for="weather-area">Weather location</label>
         <select id="weather-area" disabled>
-          <option value="all">All Singapore</option>
-          <option value="location">Use my location</option>
+          <option value="area:Woodlands">Woodlands</option>
         </select>
         <p id="weather-location-note" role="status" hidden></p>
       </div>

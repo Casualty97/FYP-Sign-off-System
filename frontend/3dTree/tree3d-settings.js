@@ -15,7 +15,7 @@ const POLL_MS = 5000;
 const DEFAULT_SUBTITLE = 'Terminalia catappa · A living river valley';
 const DEFAULTS = {
   glowLook: true, // the glowing look (glow-look.js); scene.js reloads the page when it changes
-  weatherSource: 'live', manualSky: 'day', manualRain: false, rainArea: 'all', riverLevelMode: 'auto',
+  weatherSource: 'live', manualSky: 'day', manualRain: false, rainArea: 'Woodlands', riverLevelMode: 'auto',
   autoOrbit: true, soundEnabled: false, soundVolume: 78, showSoilPanel: false,
   musicEnabled: true, musicVolume: 45, musicStyle: 'kalimba', // the gentle background music with the nature sounds (background-music.js)
   musicTrack: '', // the admin's uploaded music, for musicStyle 'uploaded' (assets/Tree/music)
@@ -171,20 +171,8 @@ function applyWeather(settings) {
       if (pressed(controls.rain) !== settings.manualRain) controls.rain?.click();
     }
     applied.weather = weather;
-    applied.area = undefined; // choose the area again in live weather
   }
-
-  // The area list arrives with the live weather feed, so this waits until the area is listed.
-  if (settings.weatherSource === 'live' && applied.area !== settings.rainArea && controls.area) {
-    const value = settings.rainArea === 'all' ? 'all' : `area:${settings.rainArea}`;
-    if ([...controls.area.options].some(option => option.value === value)) {
-      if (controls.area.value !== value) {
-        controls.area.value = value;
-        controls.area.dispatchEvent(new Event('change'));
-      }
-      applied.area = settings.rainArea;
-    }
-  }
+  // The automatic weather's place is always Woodlands (singapore-weather.js WEATHER_AREA): rainArea is not used.
 }
 
 function applyRiver(settings) {

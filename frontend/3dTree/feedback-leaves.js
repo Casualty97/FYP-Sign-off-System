@@ -807,7 +807,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
           const shown = shownSpot(existing, existing.shown);
           existing.spot = { ...existing.spot, position: shown.position.clone(), quaternion: shown.quaternion.clone(), outward: shown.outward.clone(),
             local: tree.worldToLocal(shown.position.clone()), // and it keeps to the tree from here (followTree)
-            around: undefined, reach: undefined, depth: undefined, view: undefined }; // its glide starts again from here (shownSpot)
+            around: undefined, reach: undefined, depth: undefined, view: undefined, sideFrom: undefined }; // its glide starts again from here (shownSpot)
           placed.set(key, existing.spot);
         }
         existing.isVip = isVip;
@@ -909,7 +909,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   // canopy's height, on screen and clear of the title box. As the tree turns it glides with the tree as every
   // leaf does: at the edge of the tree's outline it goes out of sight and comes back on the other side
   // (shownSpot). The other side if one side has no such spots; anywhere on the front if neither has.
-  const SIDE_FROM = (50 * Math.PI) / 180, SIDE_TO = (80 * Math.PI) / 180;
+  const SIDE_FROM = (60 * Math.PI) / 180, SIDE_TO = (82 * Math.PI) / 180;
+  const SIDE_MIDDLE = (SIDE_FROM + SIDE_TO) / 2;
   function sideSpots(area, size, random) {
     if (!canopyBox || !area.length) return null;
     camera.updateMatrixWorld();
@@ -930,7 +931,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       // The furthest out at that side, as the viewer sees it.
       const across = anchor => out.subVectors(anchor.position, orbitCentre).dot(right) * side;
       band.sort((a, b) => across(b) - across(a));
-      const ends = band.slice(0, Math.max(8, Math.round(band.length * 0.3))).filter(anchor => seenOnScreen(anchor.position, size));
+      const ends = band.slice(0, Math.max(8, Math.round(band.length * 0.2))).filter(anchor => seenOnScreen(anchor.position, size));
       if (ends.length) return ends;
     }
     return null;
@@ -946,9 +947,14 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     // facing the viewer, so the leaves are seen, and then spots on screen and clear of the title box.
     const inArea = anchors.filter(anchor => inLeafArea(anchor.position));
     const area = inArea.length > 40 ? inArea : anchors;
-    const facing = area.filter(anchor => anchor.outward.dot(toCamera.subVectors(camera.position, anchor.position).normalize()) > 0.2);
+    // The whole front half of the canopy, out to both its sides (FRONT_REACH round the trunk either side of the
+    // viewer), so the leaves spread across all of it; the farthest from the leaves already there is chosen below.
+    const view = Math.atan2(camera.position.x - orbitCentre.x, camera.position.z - orbitCentre.z);
+    const facing = area.filter(anchor => Math.abs(turnedTo(Math.atan2(anchor.position.x - orbitCentre.x, anchor.position.z - orbitCentre.z), view)) <= FRONT_REACH
+      && anchor.outward.dot(toCamera.subVectors(camera.position, anchor.position).normalize()) > -0.15);
     const seen = facing.filter(anchor => seenOnScreen(anchor.position, size));
-    const pool = (isVip && sideSpots(area, size, random)) || (seen.length > 40 ? seen : facing.length > 40 ? facing : area);
+    const sides = isVip ? sideSpots(area, size, random) : null;
+    const pool = sides || (seen.length > 40 ? seen : facing.length > 40 ? facing : area);
     if (!pool.length) return null;
     const taken = [...leaves.values()].filter(leaf => leaf.state !== 'falling').map(leaf => shownSpot(leaf, leaf.shown).position);
     // How far apart two spots look to the viewer: their distance across the view, leaving out depth.
@@ -958,12 +964,14 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       offset.subVectors(a, b);
       return offset.addScaledVector(viewDirection, -offset.dot(viewDirection)).length();
     };
+    // The spot farthest from every leaf already there, as the viewer sees them, of SPREAD_TRIES spots at random
+    // (not the first one far enough: the canopy's spots are densest in its middle, so that kept the leaves there):
+    // the leaves spread out evenly over all of the canopy, out to both its sides.
     let best = null, bestGap = -Infinity;
-    for (let attempt = 0; attempt < 120; attempt++) {
+    for (let attempt = 0; attempt < SPREAD_TRIES; attempt++) {
       const anchor = pool[Math.floor(random() * pool.length)];
       const gap = taken.reduce((nearest, position) => Math.min(nearest, apartOnScreen(position, anchor.position)), Infinity);
       if (gap > bestGap) { best = anchor; bestGap = gap; }
-      if (gap >= size * 1.25) break; // no overlap with any other leaf, as the viewer sees them
     }
     // Its own angle: the leaf faces out of the canopy and towards the viewer, turned at random.
     const facingDir = best.outward.clone().lerp(toCamera.subVectors(camera.position, best.position).normalize(), 0.5).normalize();
@@ -978,6 +986,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       phase: random() * Math.PI * 2,
       prefersLeft: random() > 0.5, // its side when left and right leaves are mixed
     };
+    // A VIP's leaf keeps to its side of the tree as the tree turns (shownSpot): its angle round from the viewer.
+    if (sides) spot.sideFrom = turnedTo(Math.atan2(best.position.x - orbitCentre.x, best.position.z - orbitCentre.z), view);
     placed.set(key, spot);
     return spot;
   }
@@ -995,6 +1005,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
   // the viewer: the edge of the tree's outline), and goes out of sight only there, quickly, as if round the
   // side of the tree, coming back in the same way at the other side.
   const GLIDE_REACH = (90 * Math.PI) / 180;   // how far to either side of the viewer a leaf glides
+  const FRONT_REACH = (80 * Math.PI) / 180;   // a new leaf's spot: up to this far round to either side of the viewer
+  const SPREAD_TRIES = 400;                   // spots tried for a new leaf, the farthest from the others taken
   const GLIDE_FADE = (5 * Math.PI) / 180;     // over how much of that, at its very end, it fades out (and in, on the other side)
   const glideTurn = new T.Quaternion();
   const turnedTo = (angle, around) => Math.atan2(Math.sin(angle - around), Math.cos(angle - around)); // -pi to pi
@@ -1022,7 +1034,16 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     const view = Math.atan2(camera.position.x - orbitCentre.x, camera.position.z - orbitCentre.z);
     // How far round from the viewer it is, kept within GLIDE_REACH either side (wrapping round).
     const span = 2 * GLIDE_REACH;
-    const fromView = ((turnedTo(spot.around, view) + GLIDE_REACH) % span + span) % span - GLIDE_REACH;
+    let fromView = ((turnedTo(spot.around, view) + GLIDE_REACH) % span + span) % span - GLIDE_REACH;
+    if (leaf.isVip) {
+      // A VIP's leaf stays at the side of the tree, however far the tree turns (no gliding into the middle): at
+      // its own angle round from the viewer; one placed elsewhere (made VIP later, or before) goes out to a side.
+      if (spot.sideFrom === undefined) {
+        const away = Math.abs(fromView);
+        spot.sideFrom = Math.sign(fromView || 1) * (away >= SIDE_FROM && away <= SIDE_TO ? away : SIDE_MIDDLE);
+      }
+      fromView = spot.sideFrom;
+    }
     const angle = view + fromView;
     const moved = turnedTo(angle, spot.around); // 0 while at its own spot; a jump of 2 x GLIDE_REACH on wrapping
     if (surface) {
@@ -1042,7 +1063,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
     glideTurn.setFromAxisAngle(UP, turnedTo(view, spot.view));
     out.quaternion.copy(glideTurn).multiply(spot.quaternion);
     out.outward.copy(spot.outward).applyQuaternion(glideTurn);
-    out.glide = smoothstep(GLIDE_REACH, GLIDE_REACH - GLIDE_FADE, Math.abs(fromView)); // faded at the edges
+    out.glide = leaf.isVip ? 1 : smoothstep(GLIDE_REACH, GLIDE_REACH - GLIDE_FADE, Math.abs(fromView)); // faded at the edges
     return out;
   }
 
@@ -1750,12 +1771,16 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   // ---------- every frame ----------
 
-  // A resting leaf shows while its spot is on the viewer's side of the canopy; a VIP leaf that the view
-  // leaves round the back of the tree fades away instead of showing through it.
-  const towardsCamera = new T.Vector3();
+  // A resting leaf shows in full while it is on the viewer's half of the tree (round the trunk, as seen from
+  // above: every leaf's spot is, out to both sides of the canopy, FRONT_REACH), and fades only were it round the
+  // back. Not by which way the canopy's surface faces there: at the canopy's two ends that faces sideways, which
+  // left the leaves there (and a VIP's at the side) half see-through. A VIP's leaf, kept at the side, always shows.
   function facingAmount(leaf) {
-    towardsCamera.subVectors(camera.position, leaf.shown.position).normalize();
-    return smoothstep(-0.2, 0.15, leaf.shown.outward.dot(towardsCamera));
+    if (leaf.isVip) return 1;
+    const p = leaf.shown.position;
+    const x = p.x - orbitCentre.x, z = p.z - orbitCentre.z, cx = camera.position.x - orbitCentre.x, cz = camera.position.z - orbitCentre.z;
+    const front = (x * cx + z * cz) / Math.max(1e-6, Math.hypot(x, z) * Math.hypot(cx, cz)); // 1 facing the viewer, 0 at the side
+    return smoothstep(-0.1, 0.1, front);
   }
 
   // Nearer leaves are drawn over farther ones: glow, leaf, then its name, leaf by leaf. A leaf floating in
