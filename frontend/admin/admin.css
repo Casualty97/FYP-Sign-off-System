@@ -9227,3 +9227,53 @@ html[data-theme="dark"] .theme-row-dots span { box-shadow: inset 0 0 0 1px rgba(
 }
 @media (prefers-reduced-motion: reduce) { .theme-row-chevron, .theme-saved-card { transition: none; } }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> Pledgeboard A (admin redesign, picked by the team): the pledges waiting for a decision as a card on
+   top, then the ranking table with status chips (pledgeboard.js) */
+#pledgeboard-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #pledgeboard-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.pb-status { margin: -8px 0 18px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45; background: #ecfdf5; color: #065f46; }
+.pb-status[data-kind="error"] { background: #fef2f2; color: #991b1b; }
+.pb-status[hidden] { display: none; }
+html[data-theme="dark"] .pb-status { background: rgba(16, 185, 129, 0.14); color: #a7f3d0; }
+html[data-theme="dark"] .pb-status[data-kind="error"] { background: rgba(239, 68, 68, 0.14); color: #fca5a5; }
+
+.pb-decide-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700; vertical-align: 1px; }
+.pb-decide-count.is-zero { background: #f1f5f9; color: #475569; }
+html[data-theme="dark"] .pb-decide-count { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+html[data-theme="dark"] .pb-decide-count.is-zero { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+.pb-decide-list { display: grid; }
+.pb-decide-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 16px 22px; }
+.pb-decide-row + .pb-decide-row { border-top: 1px solid var(--theme-border-color); }
+.pb-decide-empty { padding: 18px 22px; }
+.pb-decide-meta { font-size: 13px; color: var(--color-dark-gray); overflow-wrap: anywhere; }
+.pb-decide-meta b { margin-right: 2px; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
+.pb-decide-quote { margin-top: 4px; font-size: 15px; line-height: 1.45; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-decide-quote::before { content: '\201C'; }
+.pb-decide-quote::after { content: '\201D'; }
+.pb-decide-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+#pledgeboard-page .pb-reject { border-color: #fecaca; color: #b91c1c; }
+html[data-theme="dark"] #pledgeboard-page .pb-reject { border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+
+.pb-avatar { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--pb-avatar); color: #ffffff; font-size: 12px; font-weight: 700; }
+.pb-decide-row .pb-avatar { width: 36px; height: 36px; font-size: 13px; }
+.pb-person { display: inline-flex; align-items: center; gap: 10px; }
+.pb-person b { font-weight: 600; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-chip-count { margin-left: 4px; font-weight: 700; opacity: 0.75; }
+.pb-table td { vertical-align: middle; }
+.pb-rank { font-weight: 700; color: var(--theme-text-color); white-space: nowrap; }
+.pb-pledge { min-width: 220px; max-width: 420px; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-likes { font-weight: 600; color: var(--theme-text-color); white-space: nowrap; }
+.pb-heart { display: inline-flex; margin-right: 5px; color: #e11d48; vertical-align: -2px; }
+html[data-theme="dark"] .pb-heart { color: #fb7185; }
+.pb-tone { display: block; margin-top: 3px; font-size: 12px; color: var(--color-dark-gray); white-space: nowrap; }
+.pb-date { white-space: nowrap; }
+.pb-col-actions { text-align: right; white-space: nowrap; }
+.pb-actions { display: inline-flex; gap: 6px; }
+#pledgeboard-page .pb-small { height: 30px; padding: 0 10px; font-size: 12px; }
+#pledgeboard-page .pledge-auto-approved { padding: 0; background: none; color: var(--color-muted); font-weight: 500; }
+@media (max-width: 720px) {
+    .pb-decide-row { grid-template-columns: auto minmax(0, 1fr); padding: 14px 16px; }
+    .pb-decide-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+/* <Jun Kai end> */
