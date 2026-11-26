@@ -100,17 +100,10 @@ try {
     Test-That 'app.zip brings its own Node.js and the Windows packages (bcrypt, sharp)' (($appList -contains 'runtime/node/node.exe') -and @($appList | Where-Object { $_ -like 'node_modules/bcrypt/*' }).Count -and @($appList | Where-Object { $_ -like 'node_modules/@img/sharp-win32-x64/*' }).Count) 'missing'
     $pkgInfo = Get-PackageInfo $pkg
     $build = [int]$pkgInfo.build
-    $aiZip = Join-Path $Dist 'rp-xperience-kiosk-windows-x64-ai.zip'
-    if (Test-Path $aiZip) {
-        $aiWork = Join-Path $work 'ai'
-        New-Item -ItemType Directory -Path $aiWork -Force | Out-Null
-        & $Tar -xf $aiZip -C $aiWork 'rp-xperience-kiosk/payload/app.zip' 'rp-xperience-kiosk/version.json'
-        $aiList = @(& $Tar -tf (Join-Path $aiWork 'rp-xperience-kiosk\payload\app.zip'))
-        $model = @($aiList | Where-Object { $_ -match 'node_modules/@xenova/transformers/\.cache/Xenova/bert-base-multilingual-uncased-sentiment/.*\.onnx$' })
-        $aiInfo = Get-PackageInfo (Join-Path $aiWork 'rp-xperience-kiosk')
-        Test-That 'the -ai zip holds the offline sentiment model and says so' ($model.Count -ge 1 -and $aiInfo.aiModel -eq $true) "$($model.Count) model file(s), aiModel $($aiInfo.aiModel)"
-        Remove-Item -LiteralPath $aiWork -Recurse -Force -ErrorAction SilentlyContinue
-    } else { Test-That 'the -ai zip was built' $false $aiZip }
+    # one package with the offline AI model inside (no separate -ai zip any more)
+    $model = @($appList | Where-Object { $_ -match '^node_modules/@xenova/transformers/\.cache/Xenova/bert-base-multilingual-uncased-sentiment/.*\.onnx$' })
+    Test-That 'the zip holds the offline sentiment model and says so' ($model.Count -ge 1 -and $pkgInfo.aiModel -eq $true) "$($model.Count) model file(s), aiModel $($pkgInfo.aiModel)"
+    Test-That 'there is no separate -ai zip' (-not (Test-Path (Join-Path $Dist 'rp-xperience-kiosk-windows-x64-ai.zip'))) 'an -ai zip was built'
 
     Write-Part 'One command install from a download (Wall PC, MySQL service, firewall rule)'
     $server = Start-Process -FilePath 'node' -ArgumentList @((ConvertTo-Arg (Join-Path $PSScriptRoot 'serve-dir.js')), (ConvertTo-Arg $Dist), '8099') -PassThru -WindowStyle Hidden

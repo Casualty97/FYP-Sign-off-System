@@ -58,8 +58,8 @@ have them, and without them MySQL and the local sentiment model would not start.
 of every `.exe`, `.dll` and `.node` file (`scripts/install/pe-imports.js`) and stops if a DLL is neither in the
 package nor part of Windows.
 
-`rp-xperience-kiosk-windows-x64-ai.zip` is the same with the sentiment model
-(`Xenova/bert-base-multilingual-uncased-sentiment`) inside, so that AI feature works without internet.
+The zip also carries the sentiment model (`Xenova/bert-base-multilingual-uncased-sentiment`, about 110 MB), so the
+local AI check works on a PC without internet from the first start. There is one package only.
 
 ## Where things go
 
@@ -173,14 +173,16 @@ tables, the old encryption key instead of a new one, and the admin accounts of t
 ## Building the package
 
 ```
-node scripts/install/build-package.js --out C:\rpkb [--with-ai-model]
+node scripts/install/build-package.js --out C:\rpkb
 ```
+
+`--no-ai-model` leaves the model out, for a quicker test build only; releases always carry it.
 
 Runs on Windows with Node.js 22 and git (Visual Studio's redistributable folder gives the Visual C++ runtime; the
 GitHub Windows runner has it). Node.js is checked against nodejs.org's `SHASUMS256.txt`; MySQL against the SHA256
 pinned in `scripts/install/runtime.js`. The result is in `C:\rpkb\dist`.
 
-`release.yml` builds both zips after CI passes on main and publishes them, with `get-kiosk.ps1`, as a normal GitHub
+`release.yml` builds the zip after CI passes on main and publishes it, with `get-kiosk.ps1`, as a normal GitHub
 Release, so `releases/latest/download/<name>` always gives the newest one. The zips are never committed. After
 publishing, it deletes the older releases it made (tags starting with `build-`), so only the newest one stays; a
 release made by hand is never deleted, and the git tags stay. Keep a copy of a zip elsewhere if an older build may
@@ -188,15 +190,15 @@ be needed again.
 
 ## Tests
 
-CI job `package` (Windows runner): builds both packages, runs `tests/install/kiosk-data.test.ps1` (the passphrase
+CI job `package` (Windows runner): builds the package, runs `tests/install/kiosk-data.test.ps1` (the passphrase
 lock) and `tests/install/installer-checks.test.ps1` (refusals, the dry run on a fake package, and that every command
 the scripts call exists), then `tests/install/package-flow.ps1`: the one command install from a download, the MySQL
 service stopped and started again, a repair through the package's `install.cmd`, an update through its `update.cmd`
 with a "Restart application" window open, two failed updates that must put everything back, a refused older
 package, the installed `update.cmd` with another source, an export, an uninstall that keeps the data, a reinstall
 cut off half way and then finished, a full uninstall, a laptop install that loads the exported data, and a failed
-fresh install. After every uninstall it checks that nothing of the kiosk is left. It also checks that the `-ai` zip
-holds the model. Unit tests: `tests/unit/installPackage.test.js`.
+fresh install. After every uninstall it checks that nothing of the kiosk is left. It also checks that the zip
+holds the AI model. Unit tests: `tests/unit/installPackage.test.js`.
 
 Not covered by CI (the runner is already an administrator and has the Visual C++ runtime): the real Windows prompt,
 answered by a different administrator account while a standard user installs, the questions when `install.cmd` is
