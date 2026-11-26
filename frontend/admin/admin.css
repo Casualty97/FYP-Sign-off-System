@@ -8749,10 +8749,13 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: 
 .nav-group.is-folded .nav-group-badge:not([hidden]) { display: inline-flex; }
 .nav-group-chevron { flex-shrink: 0; margin-left: auto; opacity: 0.75; transition: transform 0.2s ease; }
 .nav-group.is-folded .nav-group-chevron { transform: rotate(-90deg); }
-/* the folded group that holds the open page keeps a mark, so it is clear where the open page is */
-/* <Jun Kai start> a folded group that holds the open page keeps that page as its one visible row, the others stay hidden */
-.nav-group.is-folded:has(.nav-item.active) .nav-group-body { grid-template-rows: 1fr; }
-.sidebar:not(.is-searching) .nav-group.is-folded:has(.nav-item.active) .nav-item:not(.active) { display: none; }
+/* <Jun Kai start> a folded group that holds the open page keeps that page as its one visible row, the others stay hidden
+   (sidebar.js sets has-open-row; nav-no-slide skips the slide for the one frame the row comes or goes, so nothing jumps) */
+.nav-group.is-folded.has-open-row .nav-group-body { grid-template-rows: 1fr; }
+.sidebar:not(.is-searching) .nav-group.is-folded.has-open-row .nav-item:not(.active) { display: none; }
+.nav-group-body.nav-no-slide { transition: none !important; }
+/* the Incidents count already shows on the visible row, so the heading does not repeat it */
+.nav-group.is-folded.has-open-row:has(.nav-item.active .inc-nav-badge:not([hidden])) .nav-group-badge { display: none; }
 /* <Jun Kai end> */
 .nav-group-body { display: grid; grid-template-rows: 1fr; }
 .nav-group-body > nav { min-height: 0; overflow: hidden; padding-bottom: 4px; }
