@@ -6,6 +6,7 @@
 async function loadDigitalTreeData() {
     try {
         console.log('🌳 Loading digital tree data...');
+        setTreeLeavesStatus('', ''); // <Jun Kai/> an old answer (Make VIP, a failed load) goes on every load
         loadTreePreview(); // <Jun Kai/> the small copy of the tree screen on Tree Leaves
         showTreeVipCard(); // <Jun Kai/> the VIP card, for a System Admin only
         await loadTreeStageSelection();
@@ -24,7 +25,13 @@ async function loadDigitalTreeData() {
     } catch (error) {
         console.error('Error loading tree data:', error);
         updateDigitalTreeTable([]);
-        setTreeLeavesStatus('down', 'The tree could not be loaded: ' + error.message); // <Jun Kai/> no alert box
+        // <Jun Kai start> no alert box: a status line on Tree Leaves, and a notice when the load came from another page
+        // (Refresh Data on Tree Settings), where that status line cannot be seen
+        setTreeLeavesStatus('down', 'The tree could not be loaded: ' + error.message);
+        if (!document.getElementById('digital-tree-page')?.classList.contains('active') && typeof showNotification === 'function') {
+            showNotification('The tree could not be loaded: ' + error.message, 'error');
+        }
+        // <Jun Kai end>
     }
 }
 
@@ -612,6 +619,7 @@ function markTreeVip(name, isVip) {
     });
     const golden = document.getElementById('dt-vip-leaves');
     if (golden) golden.textContent = treeVisitorRows.filter((row) => row.isVip).length;
+    if (!isVip) setTreeLeavesStatus('', ''); // a "now a VIP" line would be wrong after a removal
     renderTreeVisitors();
 }
 
