@@ -60,7 +60,7 @@ async function loadFormUISettings() {
     document.getElementById('fm-subtitle').value = cfg.landingSubtitle || '';
     renderFormUiPreview(); // <Jun Kai/> setting .value fires no input event
 
-    setFormStatus('Settings loaded', 'success');
+    setFormStatus('Settings loaded', 'success'); // <Jun Kai/> clears the pill
   } catch (err) {
     console.error(err);
     setFormStatus('Failed to load settings', 'error');
@@ -93,7 +93,7 @@ async function saveFormUISettings() {
       throw new Error(data.error || 'Save failed');
     }
 
-    setFormStatus('Changes saved', 'success');
+    setFormStatus('Changes saved', 'success'); // <Jun Kai/>
   } catch (err) {
     console.error(err);
     setFormStatus('Failed to save changes', 'error');
@@ -152,7 +152,7 @@ async function saveLandingPageQR() {
     setFormPill('landing-qr-status', showLandingPageQRCode ? 'Saved: the QR code shows on the start screen' : 'Saved: the QR code is hidden', 'success');
   } catch (error) {
     console.error('Failed to save landing page QR setting:', error);
-    setFormPill('landing-qr-status', 'Failed to save the QR setting', 'error');
+    setFormPill('landing-qr-status', 'Failed to save the QR setting', 'error'); // <Jun Kai/>
   }
 }
 
