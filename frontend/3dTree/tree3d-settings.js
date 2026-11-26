@@ -26,7 +26,7 @@ const DEFAULTS = {
   showWeatherPanel: true, showRiverPanel: true, showControlsBar: true, showYearReview: true,
   gustRequestedAt: '', sunsetRequestedAt: '',
   showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldColor: '#1f5f2e', leafSide: 'both', leafNewHours: 24,
-  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true, vipSparkle: true, vipTurn: true, trunkGlow: true, trunkGlowStrength: 100, leafScale: 1, showLeafNames: true,
+  vipLeafColor: '#d4af37', vipLeafScale: 1, vipLeafBrightness: 70, vipGlow: true, vipSparkle: true, vipTurn: true, trunkGlow: true, trunkGlowStrength: 100, leafScale: 1, showLeafNames: true,
   leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1, // the names on the leaves (feedback-leaves.js)
   vipNameOwnStyle: false, vipNameFont: 'auto', vipNameWeight: 700, vipNameColor: '#ffffff', vipNameSize: 1, // VIP names, if their own
   titleBox: {

@@ -69,6 +69,8 @@
 //   (how many leaves: the same as the 2D tree, its treeParameters.leafFallThreshold "Maximum Visible Leaves")
 //   vipLeafColor       VIP leaves' gold (VIP_LEAF_COLOURS); VIPs are the names in the admin's VIP Management
 //   vipLeafScale       size of VIP leaves, 0.4 to 2.5 (2D: vipLeafDisplayScale)
+//   vipLeafBrightness  how bright the gold VIP leaves are, with their gold pulse, glow and star, 30 to 120
+//                      (percent; 70 by default, softer than at first (100), so the name reads on the gold)
 //   vipGlow            the gold pulse around VIP leaves (2D: vipGoldPulse)
 //   vipSparkle         the white star of light twinkling at a VIP leaf's tip (on by default)
 //   vipTurn            VIP leaves turn gently from left to right and back on the tree (on by default)
@@ -210,6 +212,7 @@ const DEFAULT_TREE3D_PARAMETERS = Object.freeze({
   leafScale: 1,
   vipLeafColor: '#d4af37',
   vipLeafScale: 1,
+  vipLeafBrightness: 70,
   vipGlow: true,
   vipSparkle: true,
   vipTurn: true,
@@ -365,6 +368,7 @@ function normalizeTree3dParameters(updates) {
   if (has('leafScale')) out.leafScale = Math.round(number(updates.leafScale, 0.4, 2.5, 'Leaf scale') * 100) / 100;
   if (has('vipLeafColor')) out.vipLeafColor = colour(updates.vipLeafColor, VIP_LEAF_COLOURS, 'VIP leaf colour');
   if (has('vipLeafScale')) out.vipLeafScale = Math.round(number(updates.vipLeafScale, 0.4, 2.5, 'VIP leaf scale') * 100) / 100;
+  if (has('vipLeafBrightness')) out.vipLeafBrightness = Math.round(number(updates.vipLeafBrightness, 30, 120, 'VIP leaf brightness'));
   if (has('vipGlow')) out.vipGlow = bool(updates.vipGlow, 'VIP gold glow');
   if (has('vipSparkle')) out.vipSparkle = bool(updates.vipSparkle, 'VIP leaf tip star');
   if (has('vipTurn')) out.vipTurn = bool(updates.vipTurn, 'VIP leaf turning');

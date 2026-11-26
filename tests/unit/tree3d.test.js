@@ -42,6 +42,14 @@ test('several pledge topics: one "Multiple pledges" leaf, brown by default, a co
     assert.equal(mergeTree3dParameters({}, {}).badgeLeafColors['multi-pledge'], '#8b5a2b');
 });
 
+test('VIP leaf brightness: softer by default (70%), 30 to 120 percent', () => {
+    assert.equal(DEFAULT_TREE3D_PARAMETERS.vipLeafBrightness, 70);
+    assert.deepEqual(normalizeTree3dParameters({ vipLeafBrightness: 55.4 }), { vipLeafBrightness: 55 });
+    assert.equal(normalizeTree3dParameters({ vipLeafBrightness: 5 }).vipLeafBrightness, 30);
+    assert.equal(normalizeTree3dParameters({ vipLeafBrightness: 500 }).vipLeafBrightness, 120);
+    assert.throws(() => normalizeTree3dParameters({ vipLeafBrightness: 'shiny' }), { statusCode: 400, message: /VIP leaf brightness/ });
+});
+
 test('the glowing look is on by default and can be turned off', () => {
     assert.equal(DEFAULT_TREE3D_PARAMETERS.glowLook, true);
     assert.equal(normalizeTree3dParameters({ glowLook: false }).glowLook, false);

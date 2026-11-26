@@ -113,6 +113,7 @@ const TREE3D_LEAF_COLOURS = {
 const TREE3D_VIP_DEFAULTS = {
     vipLeafColor: '#d4af37',
     vipLeafScale: 1,
+    vipLeafBrightness: 70, // how bright the gold VIP leaves are, 30 to 120 percent (soft, so the name reads)
     vipGlow: true,
     vipSparkle: true, // the white star at the leaf's tip
     vipTurn: true, // turning gently from left to right and back
@@ -562,6 +563,18 @@ function tree3dNameStyle(prefix) {
 
 // The two name previews: the names on a leaf in the chosen look (3D Leaf Adjustments), and the VIP names on
 // the gold leaf (3D VIP Leaf Adjustments), in their own style or, when that is off, the same as the others.
+// Look > VIP leaf brightness as a share (0.3 to 1.2), and a colour dimmed by it, as the 3D tree shows it.
+function tree3dVipBrightness() {
+    const value = Number(tree3dField('vipLeafBrightness')?.value);
+    return (Number.isFinite(value) ? Math.min(120, Math.max(30, value)) : TREE3D_VIP_DEFAULTS.vipLeafBrightness) / 100;
+}
+function tree3dDimColour(hex, share) {
+    const value = parseInt(String(hex || '#d4af37').slice(1), 16);
+    if (!Number.isFinite(value)) return hex;
+    const part = shift => Math.max(0, Math.min(255, Math.round(((value >> shift) & 255) * share))).toString(16).padStart(2, '0');
+    return `#${part(16)}${part(8)}${part(0)}`;
+}
+
 function updateTree3dNamePreview() {
     const glowing = tree3dField('glowLook')?.checked !== false;
     const look = glowing ? 'glowing look' : 'natural look';
@@ -579,11 +592,12 @@ function updateTree3dNamePreview() {
     const vipSize = tree3dNameStyle('vipName').size;
     if (tree3dField('vipNameSizeValue')) tree3dField('vipNameSizeValue').textContent = `${Math.round(vipSize * 100)}%`;
     paintTree3dNameSample('vipName', own ? tree3dNameStyle('vipName') : names, glowing,
-        glowing ? '#ffd23f' : tree3dShownColour(tree3dField('leafVipColor')?.value || '#d4af37'),
-        `VIP name preview, ${own ? 'own style' : 'same as the other names'}, ${look}`);
+        tree3dDimColour(glowing ? '#ffd23f' : tree3dShownColour(tree3dField('leafVipColor')?.value || '#d4af37'), tree3dVipBrightness()),
+        `VIP name preview, ${own ? 'own style' : 'same as the other names'}, ${look}`, true);
 }
 
-function paintTree3dNameSample(prefix, style, glowing, leafColour, caption) {
+// onGold: a VIP name, written as on the 3D tree with a strong dark edge on the gold.
+function paintTree3dNameSample(prefix, style, glowing, leafColour, caption, onGold = false) {
     const sample = tree3dField(`${prefix}Sample`);
     if (!sample) return;
     const { fontKey, weight, colour, size } = style;
@@ -591,13 +605,13 @@ function paintTree3dNameSample(prefix, style, glowing, leafColour, caption) {
     const value = parseInt(colour.slice(1), 16);
     const linear = c => { const v = c / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
     const dark = 0.2126 * linear((value >> 16) & 255) + 0.7152 * linear((value >> 8) & 255) + 0.0722 * linear(value & 255) < 0.25;
-    const behind = dark ? 'rgba(255,255,255,0.85)' : 'rgba(8,28,14,0.85)';
+    const behind = dark ? 'rgba(255,255,255,0.85)' : onGold ? 'rgba(46,26,0,0.92)' : 'rgba(8,28,14,0.85)';
     sample.style.fontFamily = family;
     sample.style.fontWeight = String(weight);
     sample.style.color = colour;
     const handwritten = (fontKey === 'auto' && glowing) || fontKey === 'elegant-script';
     sample.style.fontSize = `${((handwritten ? 18 : 15) * size).toFixed(1)}px`;
-    sample.style.textShadow = glowing && !dark
+    sample.style.textShadow = glowing && !dark && !onGold
         ? `0 0 3px ${behind}, 0 0 8px ${colour}`
         : `-1px -1px 0 ${behind}, 1px -1px 0 ${behind}, -1px 1px 0 ${behind}, 1px 1px 0 ${behind}`;
     tree3dField(`${prefix}Frame`)?.classList.toggle('glowing', glowing);
@@ -660,9 +674,12 @@ function updateTree3dLeafPreview() {
     const vipColour = (tree3dField('leafVipColor')?.value || '').toLowerCase();
     const vipSide = side === 'both' ? 'right' : side;
     const vipPreview = tree3dField('leafVipPreview');
+    const vipBright = tree3dVipBrightness();
+    if (tree3dField('vipLeafBrightnessValue')) tree3dField('vipLeafBrightnessValue').textContent = `${Math.round(vipBright * 100)}%`;
+    tree3dField('leafVipGlowBox')?.style.setProperty('--vip-glow', String(Math.min(1, vipBright))); // the preview's gold glow
     if (vipPreview) {
         const size = (0.5 + vipScale * 0.3).toFixed(2);
-        vipPreview.style.setProperty('--leaf-colour', vipColour);
+        vipPreview.style.setProperty('--leaf-colour', tree3dDimColour(vipColour, vipBright));
         vipPreview.style.transform = `scale(${vipSide === 'left' ? -size : size}, ${size})`;
     }
     tree3dField('leafVipGlowBox')?.classList.toggle('glowing', tree3dField('vipGlow')?.checked === true);
@@ -801,6 +818,10 @@ function fillTree3dForm(settings) {
     const vip = { ...TREE3D_VIP_DEFAULTS, ...(settings || {}) };
     tree3dField('leafVipColor').value = offered('Vip', vip.vipLeafColor) ? vip.vipLeafColor.toLowerCase() : TREE3D_VIP_DEFAULTS.vipLeafColor;
     tree3dField('vipLeafScale').value = vip.vipLeafScale;
+    if (tree3dField('vipLeafBrightness')) {
+        const bright = Number(vip.vipLeafBrightness);
+        tree3dField('vipLeafBrightness').value = Number.isFinite(bright) ? Math.min(120, Math.max(30, bright)) : TREE3D_VIP_DEFAULTS.vipLeafBrightness;
+    }
     tree3dField('vipGlow').checked = vip.vipGlow !== false;
     if (tree3dField('vipSparkle')) tree3dField('vipSparkle').checked = vip.vipSparkle !== false;
     if (tree3dField('vipTurn')) tree3dField('vipTurn').checked = vip.vipTurn !== false;
@@ -893,6 +914,7 @@ function collectTree3dSettings() {
         } : {}),
         vipLeafColor: tree3dField('leafVipColor').value,
         vipLeafScale: Number(tree3dField('vipLeafScale').value) || TREE3D_VIP_DEFAULTS.vipLeafScale,
+        ...(tree3dField('vipLeafBrightness') ? { vipLeafBrightness: Math.round(tree3dVipBrightness() * 100) } : {}),
         vipGlow: tree3dField('vipGlow').checked,
         ...(tree3dField('vipSparkle') ? { vipSparkle: tree3dField('vipSparkle').checked } : {}),
         ...(tree3dField('vipTurn') ? { vipTurn: tree3dField('vipTurn').checked } : {}),

@@ -1838,6 +1838,14 @@
                                                 <p style="font-size:12px; color:#666; margin-top:4px;">Size of VIP leaves on the 3D tree (1 = standard).</p>
                                             </div>
                                             <div>
+                                                <label for="tree3d-vipLeafBrightness" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">VIP leaf brightness</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-vipLeafBrightness" min="30" max="120" step="5" value="70" oninput="updateTree3dLeafPreview()">
+                                                    <span id="tree3d-vipLeafBrightnessValue">70%</span>
+                                                </div>
+                                                <p style="font-size:12px; color:#666; margin-top:4px;">How bright the gold VIP leaves are, with their gold glow and star. 70% (the default) is soft, so the name reads clearly; 100% is as bright as before.</p>
+                                            </div>
+                                            <div>
                                                 <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Glow</span>
                                                 <label style="display:flex; align-items:center; gap:8px; color:#334155;">
                                                     <input type="checkbox" id="tree3d-vipGlow" onchange="updateTree3dLeafPreview()"> Gold glow pulsing around VIP leaves

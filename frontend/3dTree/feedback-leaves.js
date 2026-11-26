@@ -233,7 +233,10 @@ const GOLD_GLOW = new T.Color(0xffd23f); // the 2D VIP leaf's gold glow (vipGold
 // In the glowing look a VIP's gold leaf already glows like the others, so it is darker there, for its name to
 // read clearly on it: the leaf dimmer, its gold pulse and the gold glow around it gentler (the natural look
 // keeps the 2D tree's pulse: up to 18% brighter, with the gold glow at up to 70%).
-const VIP_GLOWING = { leaf: 0.62, pulse: 0.05, halo: 0.25 };
+const VIP_GLOWING = { leaf: 0.62, pulse: 0.03, halo: 0.14 };
+// The natural look's VIP leaf: its gold pulse (up to 8% brighter) and gold glow (up to 35%), gentle, so its name
+// reads. Both looks: the admin's VIP leaf brightness (vipLeafBrightness, 70% by default; 100% as at first).
+const VIP_NATURAL = { pulse: 0.08, halo: 0.35 };
 // At night (natural look) the leaves are in moonlight, as the tree is (matte-tree.js), but less dim, so they
 // and their names stay easy to read; the glowing look lights them itself.
 const NIGHT_LEAF = new T.Color(0.6, 0.65, 0.78);
@@ -255,7 +258,8 @@ const BADGE_LEAF_COLOURS = { // the 2D tree's default badge colours
 const ESG_GLOW_COLOURS = { environmental: '#2ee05a', social: '#2f8fff', governance: '#ff8a1f' };
 const BADGE_ESG = { 'social-champion': 'social', 'governance-guardian': 'governance' };
 // A VIP's leaf has a star of light twinkling at its tip (both looks), as the VIP leaf of the concept.
-const SPARKLE_SIZE = 1.4;        // the star's size (its rays tip to tip), as a share of the leaf's size
+const SPARKLE_SIZE = 0.9;        // the star's size (its rays tip to tip), as a share of the leaf's size (small,
+                                 // clear of the name)
 const SPARKLE_EVERY = 2.4;       // seconds between its brightest twinkles
 // A VIP's leaf on the tree turns gently from left to right and back, on its stem, as the viewer sees it: a
 // slow, smooth swing (VIP_TURN_SECONDS for left, right and back again), VIP_TURN_ANGLE each way, so its name
@@ -269,7 +273,7 @@ const DEFAULTS = { showFeedbackLeaves: true, leafNewColor: '#7cb342', leafOldCol
   leafAppearMs: APPEAR_MS, leafShowcaseSeconds: SHOWCASE_MS / 1000, leafFloatMs: FLOAT_MS, leafFallMs: FALL_MS, leafBatchMode: 'groups', leafBatchCount: BATCH_SIZE, leafBatchSize: BATCH_SIZE,
   badgeColours: true, badgeLeafColors: BADGE_LEAF_COLOURS,
   tree2d: { leafFallThreshold: 15, treeStage: 4, leafShowcaseSeconds: SHOWCASE_MS / 1000 },
-  vipLeafColor: '#d4af37', vipLeafScale: 1, vipGlow: true, vipSparkle: true, vipTurn: true,
+  vipLeafColor: '#d4af37', vipLeafScale: 1, vipLeafBrightness: 70, vipGlow: true, vipSparkle: true, vipTurn: true,
   leafNameFont: 'auto', leafNameWeight: 700, leafNameColor: '#ffffff', leafNameSize: 1, // the names: the look's own font, bold, white, standard size
   vipNameOwnStyle: false, vipNameFont: 'auto', vipNameWeight: 700, vipNameColor: '#ffffff', vipNameSize: 1 }; // VIP names: as the others unless ticked
 
@@ -405,7 +409,9 @@ function fitName(name, nameStyle) {
 // soft dark shadow, so they read clearly on the bright leaf. Natural look, and dark letters in the glowing
 // look: crisp letters with an edge, readable on any leaf colour (2D: white bold with a text shadow); the edge is
 // dark, or light for dark letters.
-function nameLabel(name, nameStyle = nameStyles.normal) {
+// onGold: a VIP's name, on its gold leaf: always crisp letters with a strong dark edge (a soft glow washes out
+// on the light gold).
+function nameLabel(name, nameStyle = nameStyles.normal, onGold = false) {
   const { lines, box, pxPerUnit } = fitName(name, nameStyle);
   const height = lines.length * nameStyle.lineHeight;
   const canvas = document.createElement('canvas');
@@ -417,14 +423,15 @@ function nameLabel(name, nameStyle = nameStyles.normal) {
   context.textBaseline = 'middle';
   context.lineJoin = 'round';
   const { colour, dark } = nameStyle;
-  const behind = dark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(8, 28, 14, 0.85)';
+  const behind = dark ? 'rgba(255, 255, 255, 0.85)' : onGold ? 'rgba(46, 26, 0, 0.92)' : 'rgba(8, 28, 14, 0.85)';
   const linePx = canvas.height / lines.length;
   lines.forEach((line, i) => {
     const y = linePx * (i + 0.5);
     // Natural look, or dark letters on a glowing leaf: crisp letters with an edge (a glow would blur dark letters).
-    if (!leafLook.aura || dark) {
-      // A thin light edge round dark letters (a thick one would cover them, so they would look white).
-      context.lineWidth = NAME_FONT_PX * (dark ? 0.07 : 0.16);
+    if (!leafLook.aura || dark || onGold) {
+      // A thin light edge round dark letters (a thick one would cover them, so they would look white); on gold
+      // a bolder dark edge.
+      context.lineWidth = NAME_FONT_PX * (dark ? 0.07 : onGold ? 0.22 : 0.16);
       context.strokeStyle = behind;
       context.fillStyle = colour;
       context.strokeText(line, canvas.width / 2, y);
@@ -1219,7 +1226,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
 
   // vip: a VIP's name, in the VIP names' style.
   function shapeNameLabel(nameMesh, name, vip = false) {
-    const label = nameLabel(name || 'Anonymous visitor', vip ? nameStyles.vip : nameStyles.normal);
+    const label = nameLabel(name || 'Anonymous visitor', vip ? nameStyles.vip : nameStyles.normal, vip);
     nameMesh.material.map = label.texture;
     nameMesh.material.needsUpdate = true;
     nameMesh.userData = { name, vip, width: label.width, height: label.height };
@@ -1873,8 +1880,9 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
       const gold = glow <= 0.01 && leaf.isVip && settings.vipGlow !== false && leaf.state !== 'falling'
         ? 0.55 + 0.45 * (0.5 + 0.5 * Math.sin((time / 2000) * Math.PI * 2)) // 2D vipGoldPulse, 2 s
         : 0;
+      const vipBright = leaf.isVip ? within(settings.vipLeafBrightness, 70, 30, 120) / 100 : 1; // the admin's VIP leaf brightness
       leaf.material.color.copy(leaf.colour).lerp(NEON, glow * 0.35)
-        .multiplyScalar(leaf.isVip && leafLook.aura ? VIP_GLOWING.leaf * (1 + gold * VIP_GLOWING.pulse) : 1 + gold * 0.18);
+        .multiplyScalar(!leaf.isVip ? 1 : vipBright * (leafLook.aura ? VIP_GLOWING.leaf * (1 + gold * VIP_GLOWING.pulse) : 1 + gold * VIP_NATURAL.pulse));
       if (!leafLook.aura) leaf.material.color.multiply(nightLight);
       placeName(leaf);
       // Glowing look: every leaf glows in its own colour (AURA), breathing gently, each at its own pace, with
@@ -1893,7 +1901,8 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         }
         leaf.halo.position.copy(leaf.mesh.position);
         leaf.halo.scale.copy(haloSize.setScalar(leaf.scale * MODEL_SIZE * (glow > 0.01 ? 2.6 : 2.5)));
-        leaf.halo.material.opacity = Math.max(breathe, glow > 0.01 ? glow * 0.75 : gold * (leafLook.aura ? VIP_GLOWING.halo : 0.7)) * leaf.material.opacity;
+        leaf.halo.material.opacity = Math.max(breathe * (leaf.isVip ? vipBright : 1),
+          glow > 0.01 ? glow * 0.75 : gold * (leafLook.aura ? VIP_GLOWING.halo : VIP_NATURAL.halo) * vipBright) * leaf.material.opacity;
       }
       // A VIP's star of light at the leaf's tip: twinkling (brightest every SPARKLE_EVERY seconds, each leaf at
       // its own time), turning slowly, with its leaf (shown as the leaf is, and not while it falls).
@@ -1906,7 +1915,7 @@ export function addFeedbackLeaves({ scene, tree, clock, camera, renderer, glow =
         leaf.sparkle.position.copy(LEAF_TIP).applyMatrix4(leaf.mesh.matrixWorld);
         leaf.sparkle.scale.setScalar(leaf.scale * MODEL_SIZE * SPARKLE_SIZE * (0.7 + 0.5 * twinkle));
         leaf.sparkle.material.rotation = time / 4000 + leaf.spot.phase;
-        leaf.sparkle.material.opacity = Math.min(1, twinkle * 1.1) * leaf.material.opacity;
+        leaf.sparkle.material.opacity = Math.min(0.75, twinkle * 0.8) * Math.min(1, vipBright + 0.2) * leaf.material.opacity; // soft
       }
     }
     // No new leaf on its way any more (one was removed meanwhile): the leaves still waiting fall.
