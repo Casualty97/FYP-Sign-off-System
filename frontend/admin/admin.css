@@ -2154,6 +2154,8 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
 html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback-page-QR-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
 .fm-page-status, .qr-page-status { margin: 0 0 12px; }
 .fm-grid, .qr-grid { align-items: start; }
+/* the kit's 340px minimum is wider than a 360px phone, so it may shrink to the page */
+#form-management-page .fm-grid, #Feedback-page-QR-page .qr-grid { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
 .fm-fields { display: flex; flex-direction: column; gap: 16px; }
 
 #Feedback-page-QR-page { min-height: 100%; padding: 30px; margin-top: 0; }
@@ -6003,6 +6005,7 @@ html[data-theme="dark"] #timer-countdown-page { --color-dark-gray: #a7b4c4; --co
 #timer-countdown-page .ui-page-header .ui-btn svg { margin-right: 6px; }
 .pt-status { margin: 0 0 12px; }
 .pt-grid { align-items: start; }
+#timer-countdown-page .pt-grid { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
 .pt-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pt-input { position: relative; width: 150px; flex: 0 0 auto; }
 .pt-input .ui-input { padding-right: 70px; }
