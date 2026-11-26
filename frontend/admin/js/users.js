@@ -439,7 +439,7 @@ function closeAddUserModal() {
 function editUser(userId, username, currentRole, fullName, email = '') { // <Jun Kai/> email
     const currentUserRole = sessionStorage.getItem('userRole');
     if (currentUserRole !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
+        showNotification('Only a System Admin can change accounts.', 'error'); // <Jun Kai/> a short note, no browser box
         return;
     }
     
@@ -450,7 +450,7 @@ function editUser(userId, username, currentRole, fullName, email = '') { // <Jun
     
     // Check if trying to edit protected root account (but allow self-edit)
     if (username === 'systemadmin' && !isSystemAdminSelf) {
-        alert('⚠️ The root account "systemadmin" can only be edited by itself.\n\nPlease log in as systemadmin to change this account.');
+        showNotification('Only the root account itself can change it. Sign in as systemadmin to do that.', 'error'); // <Jun Kai/>
         return;
     }
     
@@ -570,7 +570,7 @@ function closeEditUserModal() {
 async function deleteUser(userId, username) {
     const currentUserRole = sessionStorage.getItem('userRole');
     if (currentUserRole !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
+        showNotification('Only a System Admin can change accounts.', 'error'); // <Jun Kai/> a short note, no browser box
         return;
     }
     
@@ -578,20 +578,25 @@ async function deleteUser(userId, username) {
     
     // Check if trying to delete protected root account
     if (username === 'systemadmin') {
-        alert('❌ The root account "systemadmin" cannot be deleted. This is a protected system account.');
+        showNotification('The root account cannot be deleted.', 'error'); // <Jun Kai/>
         return;
     }
     
     // Check if trying to delete own account
     if (username === currentUser) {
-        alert('⚠️ You cannot delete your own account!');
+        showNotification('You cannot delete your own account.', 'error'); // <Jun Kai/>
         return;
     }
     
-    // inform user about soft delete
-    if (confirm(`Are you sure you want to delete the user "${username}"?\n\n✅ This is a soft delete - the user will be moved to "Deleted Users" and can be restored later.`)) {
-        await performUserDeletion(userId, username);
-    }
+    // <Jun Kai start> the kit dialog says what happens: the account moves to Deleted and can come back
+    const sure = await uiConfirm({
+        title: `Delete ${username}?`,
+        message: 'The account moves to the Deleted tab and can no longer sign in. You can restore it from there.',
+        confirmText: 'Delete',
+        danger: true
+    });
+    if (sure) await performUserDeletion(userId, username);
+    // <Jun Kai end>
 }
 
 // Perform user deletion (soft delete)
@@ -608,14 +613,14 @@ async function performUserDeletion(userId, username) {
         const data = await response.json();
         
         if (data.success) {
-            alert(`✅ User "${username}" has been moved to Deleted Users.\n\nYou can restore this user from the "Deleted Users" tab.`);
+            showNotification(`${username} is in the Deleted tab. You can restore it from there.`, 'success'); // <Jun Kai/>
             loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
-            alert(`❌ Failed to delete user "${username}": ${data.error || 'Unknown error'}`);
+            await uiAlert({ title: `Could not delete ${username}`, message: data.error || 'The server did not say why.' }); // <Jun Kai/>
         }
     } catch (error) {
         console.error('Error deleting user:', error);
-        alert(`❌ Error deleting user "${username}": ${error.message}`);
+        await uiAlert({ title: `Could not delete ${username}`, message: `The server could not be reached: ${error.message}` }); // <Jun Kai/>
     }
 }
 
@@ -623,11 +628,12 @@ async function performUserDeletion(userId, username) {
 async function restoreUser(userId, username) {
     const currentUserRole = sessionStorage.getItem('userRole');
     if (currentUserRole !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
+        showNotification('Only a System Admin can change accounts.', 'error'); // <Jun Kai/> a short note, no browser box
         return;
     }
     
-    if (confirm(`Are you sure you want to restore the user "${username}"?\n\n✅ This will move them back to Active Users.`)) {
+    // <Jun Kai/> the kit dialog instead of the browser box
+    if (await uiConfirm({ title: `Restore ${username}?`, message: 'The account goes back to the Active tab and can sign in again.', confirmText: 'Restore' })) {
         try {
             const response = await fetch(`/api/admin/users/${userId}/restore`, {
                 method: 'POST',
@@ -640,14 +646,14 @@ async function restoreUser(userId, username) {
             const data = await response.json();
             
             if (data.success) {
-                alert(`✅ User "${username}" has been restored successfully!`);
+                showNotification(`${username} is back in the Active tab.`, 'success'); // <Jun Kai/>
                 loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
             } else {
-                alert(`❌ Failed to restore user "${username}": ${data.error || 'Unknown error'}`);
+                await uiAlert({ title: `Could not restore ${username}`, message: data.error || 'The server did not say why.' }); // <Jun Kai/>
             }
         } catch (error) {
             console.error('Error restoring user:', error);
-            alert(`❌ Error restoring user "${username}": ${error.message}`);
+            await uiAlert({ title: `Could not restore ${username}`, message: `The server could not be reached: ${error.message}` }); // <Jun Kai/>
         }
     }
 }
@@ -656,33 +662,23 @@ async function restoreUser(userId, username) {
 async function permanentDeleteUser(userId, username) {
     const currentUserRole = sessionStorage.getItem('userRole');
     if (currentUserRole !== 'system_admin') {
-        alert('Access denied. System Administrator privileges required.');
+        showNotification('Only a System Admin can change accounts.', 'error'); // <Jun Kai/> a short note, no browser box
         return;
     }
     
-    // Double confirmation for permanent deletion
-    const firstConfirm = confirm(
-        `⚠️ WARNING: PERMANENT DELETION\n\n` +
-        `You are about to PERMANENTLY delete the user "${username}".\n\n` +
-        `This action CANNOT be undone. The user data will be removed from the database forever.\n\n` +
-        `Are you absolutely sure?`
-    );
-    
-    if (!firstConfirm) {
-        return;
-    }
-    
-    const secondConfirm = confirm(
-        `⚠️ FINAL CONFIRMATION\n\n` +
-        `Type confirmation: Are you 100% sure you want to permanently delete "${username}"?\n\n` +
-        `Click OK to permanently delete, or Cancel to abort.`
-    );
-    
-    if (!secondConfirm) {
-        alert('❌ Permanent deletion cancelled.');
-        return;
-    }
-    
+    // <Jun Kai start> One kit dialog where the admin types the username (two OK boxes in a row were easy to click
+    // through). A name that does not match is pointed out in the same dialog, so nothing is deleted by mistake.
+    const typed = await uiPrompt({
+        title: `Delete ${username} for good?`,
+        message: 'This removes the account from the database. It cannot be undone.',
+        label: `Type ${username} to confirm`,
+        emptyText: 'Type the username first.',
+        confirmText: 'Delete for good',
+        danger: true,
+        check: (value) => (value.trim() === username ? null : `That is not ${username}. Type the username exactly as shown.`)
+    });
+    if (typed === null || typed.trim() !== username) return;
+    // <Jun Kai end>
     try {
         const response = await fetch(`/api/admin/users/${userId}/permanent`, {
             method: 'DELETE',
@@ -695,14 +691,14 @@ async function permanentDeleteUser(userId, username) {
         const data = await response.json();
         
         if (data.success) {
-            alert(`✅ User "${username}" has been permanently deleted from the database.`);
+            showNotification(`${username} is deleted for good.`, 'success'); // <Jun Kai/>
             loadUserManagementData(); // <Jun Kai/> both lists, so both tab counts stay right
         } else {
-            alert(`❌ Failed to permanently delete user "${username}": ${data.error || 'Unknown error'}`);
+            await uiAlert({ title: `Could not delete ${username}`, message: data.error || 'The server did not say why.' }); // <Jun Kai/>
         }
     } catch (error) {
         console.error('Error permanently deleting user:', error);
-        alert(`❌ Error permanently deleting user "${username}": ${error.message}`);
+        await uiAlert({ title: `Could not delete ${username}`, message: `The server could not be reached: ${error.message}` }); // <Jun Kai/>
     }
 }
 

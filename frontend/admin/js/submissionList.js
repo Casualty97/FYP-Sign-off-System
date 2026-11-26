@@ -325,22 +325,21 @@ function makeSubmissionList(cfg) {
     // Decrypt the email of one visitor, from the panel (the toolbar button does the whole page)
     view.decryptOne = async (feedbackId) => {
         if (sessionStorage.getItem('userRole') !== 'system_admin') return;
-        const password = await showPasswordPrompt('Decrypt the email of this visitor?\n\nEnter your System Admin password:');
-        if (!password) return;
-        try {
-            const username = sessionStorage.getItem('loggedUser');
-            const response = await fetch('/api/admin/decrypt-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-username': username },
-                body: JSON.stringify({ feedbackId, password, username })
-            });
-            const data = await response.json();
-            if (!data.success || !data.decryptedEmail) return alert(data.error || 'The email could not be decrypted. Check the password and try again.');
-            cfg.markDecrypted(feedbackId, data.decryptedEmail);
-            view.render();
-        } catch (error) {
-            alert('The email could not be decrypted: ' + error.message);
-        }
+        // the password window decrypts while it stays open, so a wrong password shows under the field (encryption.js)
+        let email = null;
+        const password = await showPasswordPrompt('Decrypt the email of this visitor?\n\nEnter your System Admin password:', {
+            confirmText: 'Decrypt',
+            check: async (value) => {
+                if (email) return null; // a second Enter while the window closes asks nothing again
+                const data = await requestDecryptedEmail(feedbackId, value);
+                if (!data.success || !data.decryptedEmail) return data.error || 'The email could not be decrypted. Check the password and try again.';
+                email = data.decryptedEmail;
+                return null;
+            }
+        });
+        if (!password || !email) return;
+        cfg.markDecrypted(feedbackId, email);
+        view.render();
     };
 
     // After a delete (feedbackDeletion.js): the list stays on its page, and an open panel moves on to the next submission
@@ -398,7 +397,7 @@ function makeSubmissionList(cfg) {
     // The key is looked at on its way down (capture), before such a window removes itself, so one Esc never closes both.
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' || view.openId === null) return;
-        if (document.querySelector(`.photo-popup, .pledge-popup, .qa-popup, .email-popup, .delete-access-modal, .password-prompt-modal, #ui-info-pop:popover-open, #${cfg.key}-date-pop:popover-open`)) return;
+        if (document.querySelector(`dialog[open], .photo-popup, .pledge-popup, .qa-popup, .email-popup, .delete-access-modal, .password-prompt-modal, #ui-info-pop:popover-open, #${cfg.key}-date-pop:popover-open`)) return;
         view.close();
     }, true);
 
