@@ -4151,7 +4151,7 @@ td {
 /* ==================== MODAL & POPUP STYLES ==================== */
 
 /* Photo, pledge, and QA popups */
-.photo-popup, .pledge-popup, .qa-popup, .email-popup {
+.photo-popup, .pledge-popup, .qa-popup {
     position: fixed;
     top: 0;
     left: 0;
@@ -4167,7 +4167,7 @@ td {
     animation: fadeIn 0.3s ease-out;
 }
 
-.photo-container, .pledge-container, .qa-container, .email-container {
+.photo-container, .pledge-container, .qa-container {
     background: var(--theme-card-bg);
     border-radius: 12px;
     text-align: center;
@@ -4207,57 +4207,7 @@ td {
     border-left: 4px solid #667eea;
 }
 
-/* Download and delete access modals */
-.download-access-modal, .delete-access-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.download-access-modal .password-prompt,
-.delete-access-modal .password-prompt {
-    background: var(--theme-card-bg);
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-}
-
-.download-access-modal .modal-icon,
-.delete-access-modal .modal-icon {
-    font-size: 48px;
-    margin-bottom: 20px;
-}
-
-.download-access-modal h3,
-.delete-access-modal h3 {
-    margin-bottom: 10px;
-    color: var(--theme-text-color);
-}
-
-.download-access-modal p,
-.delete-access-modal p {
-    color: #64748b;
-    margin-bottom: 25px;
-    font-size: 14px;
-}
-
-#download-access-error,
-#delete-access-error {
-    color: #dc2626;
-    font-size: 13px;
-    margin-top: 15px;
-    display: none;
-}
+/* <Jun Kai/> the email, password and delete windows are kit dialogs now (dialog.ui-dialog), styled with the va-dialog rules */
 
 /* ==================== UTILITY CLASSES FOR INLINE STYLE REPLACEMENT ==================== */
 
