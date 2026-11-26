@@ -6988,17 +6988,17 @@ input:checked + .slider:before {
 /* the content column is a scroll container that never scrolls (the window does), which would stop the save bar from sticking */
 .page-content:has(> #parameter-adjustment-page.active) { overflow: visible; }
 #parameter-adjustment-page .pa-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-/* the eight kiosk screens in the order a visitor sees them; each opens its own group of settings */
+/* the eight kiosk screens in the order a visitor sees them; each opens its own group of settings. The lines between
+   steps are box shadows clipped by the bar: a border reset with :first-child would lose to the dark mode copy of the border. */
 .pa-steps { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); margin-bottom: 20px; border: 1px solid var(--l3-card-edge); border-radius: 14px; background: var(--l3-card); box-shadow: var(--l3-card-shadow); overflow: hidden; }
-.pa-step { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 14px 12px; border: 0; border-left: 1px solid var(--theme-border-color); background: transparent; color: var(--theme-text-color); font: inherit; text-align: left; cursor: pointer; transition: background-color 0.15s ease; }
-.pa-step:first-child { border-left: 0; }
+.pa-step { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 14px 12px; border: 0; box-shadow: -1px 0 0 var(--theme-border-color), 0 -1px 0 var(--theme-border-color); background: transparent; color: var(--theme-text-color); font: inherit; text-align: left; cursor: pointer; transition: background-color 0.15s ease; }
 .pa-step:hover { background: var(--theme-bg-color); }
 .pa-step:focus-visible { outline: 2px solid var(--l3-focus); outline-offset: -2px; }
 .pa-step-num { position: relative; display: inline-grid; place-items: center; flex-shrink: 0; width: 24px; height: 24px; border: 1px solid var(--theme-border-color); border-radius: 50%; font-size: 12px; font-weight: 600; color: var(--color-dark-gray); font-variant-numeric: tabular-nums; }
 .pa-step-text { min-width: 0; }
 .pa-step-text strong { display: block; font-size: 13px; font-weight: 600; line-height: 1.3; }
 .pa-step-text small { display: block; margin-top: 2px; font-size: 12px; line-height: 1.35; color: var(--color-dark-gray); }
-.pa-step.is-active { background: var(--theme-bg-color); box-shadow: inset 0 -3px 0 var(--theme-btn-primary-bg); }
+.pa-step.is-active { background: var(--theme-bg-color); box-shadow: -1px 0 0 var(--theme-border-color), 0 -1px 0 var(--theme-border-color), inset 0 -3px 0 var(--theme-btn-primary-bg); }
 .pa-step.is-active .pa-step-num { border-color: var(--theme-btn-primary-bg); background: var(--theme-btn-primary-bg); color: var(--theme-btn-primary-text); }
 #parameter-adjustment-page .pa-editor > .pa-group { margin-top: 0; scroll-margin-top: 96px; }
 #parameter-adjustment-page .pa-group[hidden] { display: none; }
@@ -7087,8 +7087,6 @@ input:checked + .slider:before {
 .pa-savebar-spacer { flex: 1; }
 @media (max-width: 1200px) {
     .pa-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .pa-step:nth-child(4n + 1) { border-left: 0; }
-    .pa-step:nth-child(n + 5) { border-top: 1px solid var(--theme-border-color); }
 }
 @media (max-width: 1180px) {
     .pa-work.has-preview { grid-template-columns: minmax(0, 1fr); }
@@ -7098,9 +7096,6 @@ input:checked + .slider:before {
     #parameter-adjustment-page { padding: 20px; }
     #parameter-adjustment-page .pa-form { grid-template-columns: minmax(0, 1fr); }
     .pa-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .pa-step:nth-child(n) { border-left: 0; }
-    .pa-step:nth-child(even) { border-left: 1px solid var(--theme-border-color); }
-    .pa-step:nth-child(n + 3) { border-top: 1px solid var(--theme-border-color); }
     .pa-savebar { flex-wrap: wrap; }
 }
 /* <Jun Kai end> */
