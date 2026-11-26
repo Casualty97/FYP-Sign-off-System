@@ -381,9 +381,9 @@ function policyRequest(url, options, failure) {
         });
 }
 
-function deleteSchedule(scheduleId) {
+async function deleteSchedule(scheduleId) {
     const policy = schedulesData.find((s) => Number(s.id) === Number(scheduleId));
-    if (!confirm(`Delete "${policy ? policy.schedule_name : 'this policy'}"? This cannot be undone.`)) return;
+    if (!(await uiConfirm({ title: `Delete "${policy ? policy.schedule_name : 'this policy'}"?`, message: 'This cannot be undone.', confirmText: 'Delete', danger: true }))) return; // <Jun Kai/> a kit window instead of the browser's box
     policyRequest(`/api/admin/server-schedules/${scheduleId}`, { method: 'DELETE' }, 'Could not delete the policy')
         .then(() => {
             showNotification('Policy deleted', 'success');
@@ -405,8 +405,8 @@ function toggleScheduleStatus(scheduleId, newStatus) {
         });
 }
 
-function enableAllSchedules() {
-    if (!confirm('Enable every policy?')) return;
+async function enableAllSchedules() {
+    if (!(await uiConfirm({ title: 'Enable every policy?', confirmText: 'Enable all' }))) return; // <Jun Kai/> a kit window instead of the browser's box
     policyRequest('/api/admin/server-schedules/enable-all', { method: 'POST' }, 'Could not enable the policies')
         .then((data) => {
             showNotification(`${data.enabled_count} polic${data.enabled_count === 1 ? 'y' : 'ies'} enabled`, 'success');
@@ -415,8 +415,8 @@ function enableAllSchedules() {
         .catch((error) => showNotification(error.message, 'error'));
 }
 
-function disableAllSchedules() {
-    if (!confirm('Disable every policy? The kiosk then has no hours in automatic mode.')) return;
+async function disableAllSchedules() {
+    if (!(await uiConfirm({ title: 'Disable every policy?', message: 'The kiosk then has no hours in automatic mode.', confirmText: 'Disable all', danger: true }))) return; // <Jun Kai/> a kit window instead of the browser's box
     policyRequest('/api/admin/server-schedules/disable-all', { method: 'POST' }, 'Could not disable the policies')
         .then((data) => {
             showNotification(`${data.disabled_count} polic${data.disabled_count === 1 ? 'y' : 'ies'} disabled`, 'success');
@@ -425,8 +425,8 @@ function disableAllSchedules() {
         .catch((error) => showNotification(error.message, 'error'));
 }
 
-function resetPolicyOrder() {
-    if (!confirm('Put every policy back in the default order? Single dates go first, then days of the week, months and every day, with Stop above Active. Orders you dragged by hand are lost.')) return;
+async function resetPolicyOrder() {
+    if (!(await uiConfirm({ title: 'Put every policy back in the default order?', message: 'Single dates go first, then days of the week, months and every day, with Stop above Active. Orders you dragged by hand are lost.', confirmText: 'Use the default order' }))) return; // <Jun Kai/> a kit window instead of the browser's box
     policyRequest('/api/admin/server-schedules/reorder', { method: 'POST', body: JSON.stringify({ order: 'default' }) }, 'Could not reset the order')
         .then((data) => {
             schedulesData = data.schedules;
@@ -896,7 +896,7 @@ async function toggleServerMode() {
     const newMode = isAuto ? 'auto' : 'manual';
     // <Jun Kai start>
     // automatic mode hands the kiosk to the policies within a minute, so it is confirmed first
-    if (isAuto && !confirm('Switch to automatic mode?\n\nThe policies take over within a minute: they decide when the kiosk runs, and start the kiosk server when one of them needs it.')) {
+    if (isAuto && !(await uiConfirm({ title: 'Switch to automatic mode?', message: 'The policies take over within a minute: they decide when the kiosk runs, and start the kiosk server when one of them needs it.', confirmText: 'Switch to automatic' }))) { // <Jun Kai/> a kit window instead of the browser's box
         toggle.checked = false;
         return;
     }
@@ -1042,7 +1042,7 @@ function startServer() {
     });
 }
 
-function restartServer() {
+async function restartServer() {
     const toggle = document.getElementById('auto-mode-toggle');
     const isAuto = toggle ? toggle.checked : true;
 
@@ -1051,7 +1051,7 @@ function restartServer() {
         return;
     }
 
-    if (!confirm('Restart the kiosk application now?')) return;
+    if (!(await uiConfirm({ title: 'Restart the kiosk application now?', confirmText: 'Restart' }))) return; // <Jun Kai/> a kit window instead of the browser's box
 
     console.log('🔄 Restarting server manually...');
 
@@ -1073,7 +1073,7 @@ function restartServer() {
     });
 }
 
-function stopServer() {
+async function stopServer() {
     // Check if in manual mode
     const toggle = document.getElementById('auto-mode-toggle');
     const isAuto = toggle ? toggle.checked : true;
@@ -1083,7 +1083,7 @@ function stopServer() {
         return;
     }
     
-    if (!confirm('Stop the kiosk server? This PC hibernates right after, so the wall and tablets go dark until it is woken up.')) return;
+    if (!(await uiConfirm({ title: 'Stop the kiosk server?', message: 'This PC hibernates right after, so the wall and tablets go dark until it is woken up.', confirmText: 'Stop and hibernate', danger: true }))) return; // <Jun Kai/> a kit window instead of the browser's box
     
     console.log('⏹️ Stopping server manually...');
     

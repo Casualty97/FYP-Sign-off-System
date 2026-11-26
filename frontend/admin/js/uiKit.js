@@ -196,3 +196,124 @@ document.addEventListener('cancel', (event) => {
 window.addEventListener('scroll', () => { if (uiInfoOpenButton) placeUiInfo(); }, { capture: true, passive: true });
 window.addEventListener('resize', () => { if (uiInfoOpenButton) placeUiInfo(); });
 // <Jun Kai end>
+
+// <Jun Kai start> Kit dialogs instead of the browser's alert, confirm and prompt boxes (26 Nov 2026: every pop-up of the
+// admin page in the kit look). A native <dialog> with the va-dialog styles: the browser keeps the focus inside, Escape
+// cancels, and the focus goes back to where it was. Each one returns a Promise, so a caller awaits it:
+//   if (!(await uiConfirm({ title: 'Delete this overlay?', message: 'It cannot be undone.', confirmText: 'Delete', danger: true }))) return;
+//   const password = await uiPrompt({ title: 'Confirm it is you', label: 'Your password', type: 'password' }); // null when cancelled
+//   // "wrong password, try again" in the same dialog: check returns an error text to stay open, or nothing to close
+//   const ok = await uiPrompt({ title: 'Confirm it is you', label: 'Your password', type: 'password',
+//       check: async (value) => (await passwordIsRight(value)) ? null : 'That password is not right. Try again.' });
+//   await uiAlert({ title: 'Could not save', message: 'The server did not answer.' }); // only when it must be read; else showNotification
+// Texts are set as plain text (line breaks kept), never as HTML.
+function uiDialog(options, input) {
+    const { title = '', message = '', confirmText = 'OK', cancelText = 'Cancel', danger = false, cancel = true } = options || {};
+    return new Promise((resolve) => {
+        const opener = document.activeElement;
+        const id = `ui-dialog-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const dialog = document.createElement('dialog');
+        dialog.className = 'va-dialog va-dialog-small ui-dialog';
+        dialog.setAttribute('aria-labelledby', `${id}-title`);
+        if (message) dialog.setAttribute('aria-describedby', `${id}-text`);
+        dialog.innerHTML = `<form class="va-dialog-inner" novalidate>
+            <div class="va-dialog-head"><div><h3 id="${id}-title"></h3>${message ? `<div class="va-dialog-sub ui-dialog-text" id="${id}-text"></div>` : ''}</div></div>
+            ${input ? `<div class="va-dialog-body"><div class="ui-field"><label class="ui-label" for="${id}-input"></label><input class="ui-input" id="${id}-input"></div><p class="ui-help is-error ui-dialog-error" hidden></p></div>` : ''}
+            <div class="va-dialog-foot">
+                ${cancel ? '<button type="button" class="ui-btn ui-btn-secondary" data-ui-cancel></button>' : ''}
+                <button type="submit" class="ui-btn ${danger ? 'ui-btn-danger' : 'ui-btn-primary'}" data-ui-ok></button>
+            </div>
+        </form>`;
+        dialog.querySelector('h3').textContent = title;
+        if (message) dialog.querySelector('.ui-dialog-text').textContent = message;
+        dialog.querySelector('[data-ui-ok]').textContent = confirmText;
+        const cancelButton = dialog.querySelector('[data-ui-cancel]');
+        if (cancelButton) cancelButton.textContent = cancelText;
+        const field = input ? dialog.querySelector('input') : null;
+        if (field) {
+            dialog.querySelector('label').textContent = input.label || 'Answer';
+            field.type = input.type === 'password' ? 'password' : 'text';
+            field.value = input.value || '';
+            if (input.placeholder) field.placeholder = input.placeholder;
+            field.autocomplete = input.type === 'password' ? 'current-password' : 'off';
+        }
+        const cancelled = input ? null : (cancel ? false : undefined);
+        let done = false;
+        let answer;
+        const finish = (value) => {
+            if (done) return;
+            done = true;
+            answer = value; // given back once the dialog is closed and the focus is back, so a caller's own focus move wins
+            const close = () => { if (dialog.open) dialog.close(); };
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) close();
+            else { dialog.classList.add('is-closing'); setTimeout(close, 150); }
+        };
+        let busy = false;
+        const showError = (text) => {
+            const error = dialog.querySelector('.ui-dialog-error');
+            error.textContent = text;
+            error.hidden = false;
+            field.setAttribute('aria-invalid', 'true');
+            field.focus();
+            field.select();
+        };
+        dialog.querySelector('form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (busy || done) return; // no second run while it checks or while it closes
+            if (!field) return finish(cancel ? true : undefined);
+            const value = field.value;
+            if (input.required !== false && !value.trim()) {
+                showError(input.emptyText || `Type ${(input.label || 'an answer').toLowerCase()} first.`);
+                return;
+            }
+            if (typeof input.check === 'function') {
+                // the answer is checked while the dialog stays open; an error text keeps it open for another try
+                busy = true;
+                const okButton = dialog.querySelector('[data-ui-ok]');
+                const label = okButton.textContent;
+                okButton.disabled = true;
+                if (cancelButton) cancelButton.disabled = true; // the step may already be running on the server
+                okButton.textContent = input.checkingText || 'Checking...';
+                let problem = null;
+                try {
+                    problem = await input.check(value);
+                } catch (error) {
+                    problem = `Could not check it: ${error && error.message ? error.message : 'unknown error'}. Try again.`;
+                }
+                busy = false;
+                okButton.disabled = false;
+                if (cancelButton) cancelButton.disabled = false;
+                okButton.textContent = label;
+                if (done) return;
+                if (problem) { showError(String(problem)); return; }
+            }
+            finish(value);
+        });
+        // while a check runs, Cancel and Escape wait for it: the caller must hear what really happened on the server
+        if (cancelButton) cancelButton.addEventListener('click', () => { if (!busy) finish(cancelled); });
+        dialog.addEventListener('cancel', (event) => { event.preventDefault(); if (!busy) finish(cancelled); });
+        dialog.addEventListener('close', () => {
+            dialog.remove();
+            if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus();
+            resolve(answer);
+        });
+        document.body.appendChild(dialog);
+        dialog.showModal();
+        // a safe default: a dangerous step starts on Cancel, a question on its answer field, anything else on OK
+        (field || (danger && cancelButton) || dialog.querySelector('[data-ui-ok]')).focus();
+    });
+}
+
+function uiConfirm(options) {
+    return uiDialog({ confirmText: 'OK', ...options, cancel: true });
+}
+
+function uiAlert(options) {
+    return uiDialog({ confirmText: 'OK', ...(typeof options === 'string' ? { message: options } : options), cancel: false });
+}
+
+function uiPrompt(options) {
+    const { label, type, value, placeholder, required, emptyText, check, checkingText, ...rest } = options || {};
+    return uiDialog({ confirmText: 'OK', ...rest, cancel: true }, { label, type, value, placeholder, required, emptyText, check, checkingText });
+}
+// <Jun Kai end>

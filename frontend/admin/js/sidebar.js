@@ -46,14 +46,40 @@ function navSaveFolds() {
     try { localStorage.setItem(NAV_FOLD_KEY, JSON.stringify(folds)); } catch { /* private window: kept until the page closes */ }
 }
 
+// <Jun Kai start> a folded group that holds the open page still shows that one row (admin.css), so its body stays
+// usable; the other rows are display: none there, which keeps them out of the Tab order anyway
+function navBodyInert(group) {
+    const sidebar = navSidebar();
+    if (!group.classList.contains('is-folded') || (sidebar && sidebar.classList.contains('is-searching'))) return false;
+    return !group.querySelector('.nav-item.active');
+}
+
+// marks the group that holds the open page (has-open-row, used by admin.css) and refreshes inert; when a folded group
+// gains or loses that row its slide is skipped for one frame, so it does not open to full height and then slide shut
+function navSyncInert() {
+    for (const group of navGroups()) {
+        const body = group.querySelector('.nav-group-body');
+        const holds = Boolean(group.querySelector('.nav-item.active'));
+        if (group.classList.contains('has-open-row') !== holds) {
+            if (body && group.classList.contains('is-folded')) {
+                body.classList.add('nav-no-slide');
+                requestAnimationFrame(() => requestAnimationFrame(() => body.classList.remove('nav-no-slide')));
+            }
+            group.classList.toggle('has-open-row', holds);
+        }
+        if (body && body.inert !== navBodyInert(group)) body.inert = navBodyInert(group);
+    }
+}
+let navLastActive = null; // the open page's link, so a page that opens again (same link) does not unfold its group
+// <Jun Kai end>
+
 // a folded group is also taken out of the Tab order (inert), except while a search shows its matches
 function navSetFolded(group, folded) {
-    const sidebar = navSidebar();
     group.classList.toggle('is-folded', folded);
     const toggle = group.querySelector('.nav-group-toggle');
     if (toggle) toggle.setAttribute('aria-expanded', folded ? 'false' : 'true');
     const body = group.querySelector('.nav-group-body');
-    if (body) body.inert = folded && !(sidebar && sidebar.classList.contains('is-searching'));
+    if (body) body.inert = navBodyInert(group); // <Jun Kai/>
 }
 
 // how many pages a folded group holds, and no group at all when the role sees none of its pages
@@ -182,7 +208,7 @@ function navFilter(query) {
         const any = navLinks(section).some((link) => navAllowed(link) && !link.classList.contains('nav-miss'));
         section.classList.toggle('nav-section-miss', searching && !any);
         const body = section.querySelector('.nav-group-body');
-        if (body) body.inert = !searching && section.classList.contains('is-folded');
+        if (body) body.inert = navBodyInert(section); // <Jun Kai/>
     }
     const empty = document.getElementById('nav-search-empty');
     if (empty && empty.hidden !== (!searching || found > 0)) empty.hidden = !searching || found > 0;
@@ -229,6 +255,8 @@ function navInit() {
     }
     applySidebarRole(sessionStorage.getItem('userRole'));
     navRevealActive();
+    navLastActive = sidebar.querySelector('.nav-item.active'); // <Jun Kai/>
+    navSyncInert(); // <Jun Kai/>
 
     sidebar.addEventListener('click', (event) => {
         const toggle = event.target.closest('.nav-group-toggle');
@@ -255,7 +283,17 @@ function navInit() {
 
     // a link that becomes the open page unfolds its group; a change of the Incidents count reaches the group heading
     new MutationObserver((changes) => {
-        if (changes.some((c) => c.type === 'attributes' && c.attributeName === 'class' && c.target.classList.contains('nav-item') && c.target.classList.contains('active'))) navRevealActive();
+        // <Jun Kai start> only a different link becoming the open page unfolds its group: not a search highlight on the
+        // open one, and not showPage taking "active" off every link and putting it back on the same one
+        if (changes.some((c) => c.type === 'attributes' && c.attributeName === 'class' && c.target.classList.contains('nav-item'))) {
+            const now = sidebar.querySelector('.nav-item.active');
+            if (now !== navLastActive) {
+                navLastActive = now;
+                if (now) navRevealActive();
+            }
+            navSyncInert();
+        }
+        // <Jun Kai end>
         if (changes.some((c) => c.target.nodeType === 3 || (c.target.classList && c.target.classList.contains('inc-nav-badge')))) navMirrorBadges();
     }).observe(sidebar, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'], childList: true, characterData: true });
 

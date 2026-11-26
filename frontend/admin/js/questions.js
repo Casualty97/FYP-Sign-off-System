@@ -613,7 +613,7 @@ async function deleteQuestion(questionId) {
     }
     // <Jun Kai end>
     
-    if (confirm('Delete this question? If visitors already answered it, it is turned off instead, so their answers are kept.')) { // <Jun Kai/>
+    if (await uiConfirm({ title: 'Delete this question?', message: 'If visitors already answered it, it is turned off instead, so their answers are kept.', confirmText: 'Delete', danger: true })) { // <Jun Kai/> a kit window instead of the browser's box
         try {
             const username = sessionStorage.getItem('loggedUser');
             if (!username) {
