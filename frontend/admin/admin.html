@@ -1216,59 +1216,80 @@
 
                 <!-- Pledgeboard Page (DONE BY PRETI)-->
                 <div id="pledgeboard-page" class="page">
-                    <div class="page-header">
-                        <h2>Pledgeboard</h2>
-                        <p>View and manage pledge popularity and engagement</p>
+                    <!-- <Jun Kai start> Pledgeboard A (admin redesign, picked by the team): the pledges waiting for a decision
+                         get their own card on top with Approve and Reject, and the ranking table follows with status chips.
+                         Filled by pledgeboard.js. The ids of the count, the search box, the table body and the pager are the
+                         old ones. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Pledgeboard</h2>
+                            <p>Visitors' pledges and their likes. A pledge with a negative tone shows on the public board only after it is approved.</p>
+                        </div>
                     </div>
+                    <div class="pb-status" id="pledgeboard-status" role="status" aria-live="polite" hidden></div>
 
-                    <div class="pledgeboard-section">
-                        <div class="section-header">
-                            <h3>Pledges & Likes</h3>
-                            <button class="btn-primary" onclick="loadAdminPledgeboard()">🔄 Refresh</button>
-                        </div>
-
-                        <div class="pledgeboard-info">
-                            <h4>Current Month Pledges: <span id="pledgeboard-count">0</span></h4>
-                            <p style="margin: 5px 0 0 0; font-size: 14px; color: #64748b;">Showing pledges and likes from this month only</p>
-                        </div>
-
-                        <div class="toolbar">
-                            <input type="text" id="pledgeboard-search-input" class="search-input" 
-                                   placeholder="🔍 Search pledges by name or content..." 
-                                   oninput="filterPledgeboardData()">
-                            <div class="toolbar-buttons">
-                                <button class="btn-secondary" onclick="clearPledgeboardSearch()">Clear Search</button>
+                    <section class="ui-card pb-decide" aria-labelledby="pledgeboard-waiting-title">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3 id="pledgeboard-waiting-title">Waiting for your decision <span class="pb-decide-count" id="pledgeboard-waiting-count">0</span></h3>
+                                <p>These pledges stay off the public board until they are approved.</p>
                             </div>
                         </div>
-
-                        <table class="simple-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 80px;">Rank</th>
-                                    <th style="width: 200px;">Name</th>
-                                    <th>Pledge</th>
-                                    <th style="width: 100px; text-align: center;">Likes</th>
-                                    <!-- Pledge moderation columns (DONE BY XY) -->
-                                    <th style="width: 130px;">Status</th>
-                                    <th style="width: 150px;">Date</th>
-                                    <th style="width: 210px;">Moderation</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pledgeboard-table-body">
-                                <tr>
-                                    <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">
-                                        Loading pledgeboard data...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        
-                        <div class="pagination" style="margin-top: 20px;">
-                            <button onclick="prevPledgeboardPage()" id="prev-pledgeboard-btn" disabled>← Previous</button>
-                            <span id="pledgeboard-page-info">Page 1 of 0 (0 total)</span>
-                            <button onclick="nextPledgeboardPage()" id="next-pledgeboard-btn">Next →</button>
+                        <div class="pb-decide-list" id="pledgeboard-waiting-list">
+                            <div class="ui-empty pb-decide-empty">Loading the pledges</div>
                         </div>
-                    </div>
+                    </section>
+
+                    <section class="ui-card pb-card" aria-labelledby="pledgeboard-ranking-title">
+                        <div class="ui-card-header">
+                            <div>
+                                <h3 id="pledgeboard-ranking-title">Ranking</h3>
+                                <p><span id="pledgeboard-count">0</span> pledges that are not archived yet, most liked first</p>
+                            </div>
+                        </div>
+                        <div class="ui-filterbar" role="search" aria-label="Filter the pledges">
+                            <label class="ui-search">
+                                <span class="ui-sr-only">Search the pledges</span>
+                                <span class="ui-search-icon" data-fb-icon="search"></span>
+                                <input type="search" id="pledgeboard-search-input" placeholder="Search pledges by name or content" autocomplete="off" oninput="filterPledgeboardData()">
+                            </label>
+                            <div class="ui-chips pb-chips" role="radiogroup" aria-label="Status">
+                                <label class="ui-chip"><input type="radio" name="pledgeboard-status" value="" checked onchange="filterPledgeboardData()"><span>All <b class="pb-chip-count" id="pledgeboard-count-all">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="pledgeboard-status" value="approved" onchange="filterPledgeboardData()"><span>Approved <b class="pb-chip-count" id="pledgeboard-count-approved">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="pledgeboard-status" value="pending" onchange="filterPledgeboardData()"><span>Waiting <b class="pb-chip-count" id="pledgeboard-count-pending">0</b></span></label>
+                                <label class="ui-chip"><input type="radio" name="pledgeboard-status" value="rejected" onchange="filterPledgeboardData()"><span>Rejected <b class="pb-chip-count" id="pledgeboard-count-rejected">0</b></span></label>
+                            </div>
+                            <button type="button" class="ui-link" id="pledgeboard-clear-btn" onclick="clearPledgeboardSearch()" hidden>Clear search</button>
+                            <span class="ui-spacer"></span>
+                            <button type="button" class="ui-btn ui-btn-secondary" onclick="loadAdminPledgeboard()"><span data-fb-icon="refresh"></span>Refresh</button>
+                        </div>
+                        <div class="ui-table-wrap">
+                            <table class="ui-table pb-table">
+                                <thead>
+                                    <tr>
+                                        <th class="pb-col-rank">Rank</th>
+                                        <th>Name</th>
+                                        <th>Pledge</th>
+                                        <th class="pb-col-likes">Likes</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th class="pb-col-actions">Decision</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pledgeboard-table-body">
+                                    <tr><td colspan="7" class="ui-empty">Loading the pledges</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="ui-pager">
+                            <span id="pledgeboard-page-info" aria-live="polite">Loading</span>
+                            <span class="ui-pager-buttons">
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="prevPledgeboardPage()" id="prev-pledgeboard-btn" disabled>Previous</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="nextPledgeboardPage()" id="next-pledgeboard-btn" disabled>Next</button>
+                            </span>
+                        </div>
+                    </section>
+                    <!-- <Jun Kai end> -->
                 </div>
                 <div id="pulse-page" class="page">
                     <div class="page-header">
@@ -1319,10 +1340,16 @@
 
                 <!-- Assets Management Page (Done By Yu Kang)-->
                 <div id="asset-page" class="page">
-                    <div class="page-header">
-                        <h2>Assets</h2>
-                        <p>Register Bluetooth-tracked assets and see which ones are currently detected nearby</p>
+                    <!-- <Jun Kai start> Assets page (admin redesign, Assets A): Ryan's layout in the new look. The ids, and the
+                         lines his branch changes (the registry help text, the Offline label, the place above #asset-grid),
+                         stay as they are, so his changes still fit when he merges main. -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Assets</h2>
+                            <p>Assets tracked by Bluetooth and which ones are detected nearby.</p>
+                        </div>
                     </div>
+                    <!-- <Jun Kai end> -->
 
                     <div class="asset-section">
                         <div class="asset-hero">
@@ -1331,8 +1358,8 @@
                                 <p>Start by adding the Bluetooth ID, then attach a name, location, and notes for each asset.</p>
                             </div>
                             <div class="asset-hero-actions">
-                                <button class="btn-secondary" onclick="refreshAssetData()">Refresh</button>
-                                <button class="btn-primary" onclick="showAddAssetModal()">+ Add Asset</button>
+                                <button type="button" class="ui-btn ui-btn-secondary" onclick="refreshAssetData()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Refresh</button><!-- <Jun Kai/> kit button -->
+                                <button type="button" class="ui-btn ui-btn-primary" onclick="showAddAssetModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add asset</button><!-- <Jun Kai/> kit button -->
                             </div>
                         </div>
 
@@ -1340,14 +1367,17 @@
                             <div class="asset-summary-card">
                                 <span>Total Assets</span>
                                 <strong id="asset-total-count">0</strong>
+                                <small class="asset-summary-note">registered</small><!-- <Jun Kai/> -->
                             </div>
                             <div class="asset-summary-card">
                                 <span>Detected Nearby</span>
                                 <strong id="asset-detected-count">0</strong>
+                                <small class="asset-summary-note">seen in the last scan</small><!-- <Jun Kai/> -->
                             </div>
                             <div class="asset-summary-card">
                                 <span>Offline</span>
                                 <strong id="asset-offline-count">0</strong>
+                                <small class="asset-summary-note">not seen in the last scan</small><!-- <Jun Kai/> -->
                             </div>
                         </div>
 

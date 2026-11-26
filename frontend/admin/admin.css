@@ -2923,6 +2923,67 @@ html[data-theme="dark"] .ks-screen .ks-qr-text { color: #4b5a52; }
     margin-top: 18px;
 }
 
+/* <Jun Kai start> Assets page (Assets A): Ryan's layout in the new look. The rules above stay for the markup they name;
+   these give the page the kit's glass cards, count tiles and tags, in light and dark. Colours are variables or CSS, never
+   inline, so the dark scheme can follow. */
+#asset-page { --color-dark-gray: #475569; --color-muted: #64748b; --asset-green: #166534; --asset-amber: #92400e; }
+html[data-theme="dark"] #asset-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; --asset-green: #86efac; --asset-amber: #fcd34d; }
+#asset-page .asset-section { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+#asset-page .asset-hero { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0; margin: -6px 0 18px; background: none; border: 0; border-radius: 0; flex-wrap: wrap; }
+#asset-page .asset-hero > div:first-child { min-width: 0; flex: 1 1 320px; }
+#asset-page .asset-hero h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
+#asset-page .asset-hero p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); max-width: 680px; }
+#asset-page .asset-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+#asset-page .asset-hero-actions .ui-btn svg { margin-right: 6px; }
+
+#asset-page .asset-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
+#asset-page .asset-summary-card { display: grid; gap: 4px; padding: 16px 18px; background: var(--l3-card); border: 1px solid var(--l3-card-edge); border-radius: 18px; box-shadow: var(--l3-card-shadow); }
+#asset-page .asset-summary-card span { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-dark-gray); }
+#asset-page .asset-summary-card strong { font-size: 26px; font-weight: 750; line-height: 1.15; color: var(--theme-text-color); font-variant-numeric: tabular-nums; }
+#asset-page .asset-summary-note { font-size: 12px; color: var(--color-muted); }
+#asset-page .asset-summary-card:nth-child(2) { background: rgba(22, 163, 74, 0.08); border-color: rgba(22, 163, 74, 0.35); }
+#asset-page .asset-summary-card:nth-child(2) strong { color: var(--asset-green); }
+#asset-page .asset-summary-card:nth-child(3) { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.4); }
+#asset-page .asset-summary-card:nth-child(3) strong { color: var(--asset-amber); }
+/* on the green and amber tints the lighter grey falls under 4.5 contrast */
+#asset-page .asset-summary-card:nth-child(n+2) .asset-summary-note { color: var(--color-dark-gray); }
+/* the scanner status line of Ryan's branch sits between the counts and the cards */
+#asset-page #asset-scanner-status { margin: -6px 0 14px; font-size: 13px; color: var(--color-dark-gray); }
+
+#asset-page .asset-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; margin: 0; }
+#asset-page .asset-card { display: flex; flex-direction: column; min-width: 0; padding: 18px 20px 14px; background: var(--l3-card); border: 1px solid var(--l3-card-edge); border-radius: 18px; box-shadow: var(--l3-card-shadow); transition: none; }
+#asset-page .asset-card::before { content: none; }
+#asset-page .asset-card:hover { transform: none; }
+/* icon, name and pill on the first line; the Bluetooth ID gets the whole width under them */
+#asset-page .asset-card-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; column-gap: 10px; row-gap: 2px; margin: 0 0 12px; }
+#asset-page .asset-card-heading { display: contents; }
+#asset-page .asset-card-icon { grid-column: 1; grid-row: 1; display: inline-flex; padding-top: 2px; color: var(--color-dark-gray); }
+#asset-page .asset-card-title { grid-column: 2; grid-row: 1; margin: 0; font-size: 16px; font-weight: 600; color: var(--theme-text-color); overflow-wrap: anywhere; }
+#asset-page .asset-status-pill { grid-column: 3; grid-row: 1; }
+#asset-page .asset-card-subtitle { grid-column: 2 / -1; grid-row: 2; font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#asset-page .asset-status-pill { gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+#asset-page .asset-status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+#asset-page .asset-status-pill.detected { background: #dcfce7; color: #166534; }
+#asset-page .asset-status-pill.offline { background: #fef3c7; color: #92400e; }
+html[data-theme="dark"] #asset-page .asset-status-pill.detected { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+html[data-theme="dark"] #asset-page .asset-status-pill.offline { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+#asset-page .asset-details { gap: 0; margin: 0; }
+/* a line only between rows: the dark scheme copies every rule with its colours, and a copied row rule would bring back
+   a border that a :first-child rule had taken away */
+#asset-page .asset-detail-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; padding: 7px 0; border-top: 0; }
+#asset-page .asset-detail-row + .asset-detail-row { border-top: 1px solid var(--theme-border-color); }
+#asset-page .asset-detail-label { font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--color-dark-gray); }
+#asset-page .asset-detail-value { font-size: 13px; text-align: left; color: var(--theme-text-color); overflow-wrap: anywhere; }
+#asset-page .asset-card-actions { gap: 4px; margin-top: auto; padding-top: 10px; }
+#asset-page .asset-empty-state { padding: 36px 20px; background: var(--l3-card); border: 1px dashed var(--theme-border-color); border-radius: 18px; color: var(--color-dark-gray); }
+#asset-page .asset-empty-state strong { color: var(--theme-text-color); font-size: 15px; font-weight: 600; }
+@media (max-width: 760px) {
+    #asset-page { padding: 18px 16px; }
+    #asset-page .asset-summary { grid-template-columns: minmax(0, 1fr); }
+    #asset-page .asset-hero-actions { width: 100%; }
+}
+/* <Jun Kai end> */
+
 /* ==================== QUESTION MANAGEMENT PAGE STYLES ==================== */
 
 /* Questions page container */
@@ -9376,4 +9437,54 @@ html[data-theme="dark"] .theme-row-dots span { box-shadow: inset 0 0 0 1px rgba(
     #theme-settings-page .theme-settings-form, .theme-override { padding-left: 16px; padding-right: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .theme-row-chevron, .theme-saved-card { transition: none; } }
+/* <Jun Kai end> */
+
+/* <Jun Kai start> Pledgeboard A (admin redesign, picked by the team): the pledges waiting for a decision as a card on
+   top, then the ranking table with status chips (pledgeboard.js) */
+#pledgeboard-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #pledgeboard-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+.pb-status { margin: -8px 0 18px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45; background: #ecfdf5; color: #065f46; }
+.pb-status[data-kind="error"] { background: #fef2f2; color: #991b1b; }
+.pb-status[hidden] { display: none; }
+html[data-theme="dark"] .pb-status { background: rgba(16, 185, 129, 0.14); color: #a7f3d0; }
+html[data-theme="dark"] .pb-status[data-kind="error"] { background: rgba(239, 68, 68, 0.14); color: #fca5a5; }
+
+.pb-decide-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700; vertical-align: 1px; }
+.pb-decide-count.is-zero { background: #f1f5f9; color: #475569; }
+html[data-theme="dark"] .pb-decide-count { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+html[data-theme="dark"] .pb-decide-count.is-zero { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+.pb-decide-list { display: grid; }
+.pb-decide-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 16px 22px; }
+.pb-decide-row + .pb-decide-row { border-top: 1px solid var(--theme-border-color); }
+.pb-decide-empty { padding: 18px 22px; }
+.pb-decide-meta { font-size: 13px; color: var(--color-dark-gray); overflow-wrap: anywhere; }
+.pb-decide-meta b { margin-right: 2px; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
+.pb-decide-quote { margin-top: 4px; font-size: 15px; line-height: 1.45; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-decide-quote::before { content: '\201C'; }
+.pb-decide-quote::after { content: '\201D'; }
+.pb-decide-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+#pledgeboard-page .pb-reject { border-color: #fecaca; color: #b91c1c; }
+html[data-theme="dark"] #pledgeboard-page .pb-reject { border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+
+.pb-avatar { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--pb-avatar); color: #ffffff; font-size: 12px; font-weight: 700; }
+.pb-decide-row .pb-avatar { width: 36px; height: 36px; font-size: 13px; }
+.pb-person { display: inline-flex; align-items: center; gap: 10px; }
+.pb-person b { font-weight: 600; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-chip-count { margin-left: 4px; font-weight: 700; opacity: 0.75; }
+.pb-table td { vertical-align: middle; }
+.pb-rank { font-weight: 700; color: var(--theme-text-color); white-space: nowrap; }
+.pb-pledge { min-width: 220px; max-width: 420px; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.pb-likes { font-weight: 600; color: var(--theme-text-color); white-space: nowrap; }
+.pb-heart { display: inline-flex; margin-right: 5px; color: #e11d48; vertical-align: -2px; }
+html[data-theme="dark"] .pb-heart { color: #fb7185; }
+.pb-tone { display: block; margin-top: 3px; font-size: 12px; color: var(--color-dark-gray); white-space: nowrap; }
+.pb-date { white-space: nowrap; }
+.pb-col-actions { text-align: right; white-space: nowrap; }
+.pb-actions { display: inline-flex; gap: 6px; }
+#pledgeboard-page .pb-small { height: 30px; padding: 0 10px; font-size: 12px; }
+#pledgeboard-page .pledge-auto-approved { padding: 0; background: none; color: var(--color-muted); font-weight: 500; }
+@media (max-width: 720px) {
+    .pb-decide-row { grid-template-columns: auto minmax(0, 1fr); padding: 14px 16px; }
+    .pb-decide-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
 /* <Jun Kai end> */
