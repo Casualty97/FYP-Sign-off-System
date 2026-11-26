@@ -2154,6 +2154,8 @@ html[data-theme="dark"] .fr-table td.fr-empty.is-error, html[data-theme="dark"] 
 html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback-page-QR-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
 .fm-page-status, .qr-page-status { margin: 0 0 12px; }
 .fm-grid, .qr-grid { align-items: start; }
+/* the kit's 340px minimum is wider than a 360px phone, so it may shrink to the page */
+#form-management-page .fm-grid, #Feedback-page-QR-page .qr-grid { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
 .fm-fields { display: flex; flex-direction: column; gap: 16px; }
 
 #Feedback-page-QR-page { min-height: 100%; padding: 30px; margin-top: 0; }
@@ -2171,17 +2173,20 @@ html[data-theme="dark"] #form-management-page, html[data-theme="dark"] #Feedback
 .ks-title { font-size: 19px; font-weight: 800; line-height: 1.15; color: #1d4a32; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .ks-subtitle { font-size: 10px; line-height: 1.5; color: #4b5a52; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .ks-buttons { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-top: 2px; }
-.ks-btn { display: inline-flex; align-items: center; justify-content: center; width: 50%; height: 22px; border-radius: 5px; background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.ks-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 50%; max-width: 100%; height: 22px; padding: 0 8px; border-radius: 5px; background: linear-gradient(135deg, #3f7a52, #24563a); color: #ffffff; font-size: 8px; font-weight: 700; white-space: nowrap; box-sizing: border-box; }
 .ks-btn-wide { width: 100%; }
 /* with the QR code on, the text goes left and the QR panel right, as in feedback.html #land-page-qrcode */
 .ks-qr { display: none; flex-direction: column; align-items: center; gap: 6px; width: 30%; padding: 12px 10px; border-radius: 8px; background: rgba(248, 250, 244, 0.95); box-shadow: 0 8px 20px rgba(24, 57, 43, 0.16); text-align: center; box-sizing: border-box; }
 .ks-screen.has-qr .ks-card { width: 56%; }
+.ks-screen.has-qr .ks-btn { width: 100%; }
 .ks-screen.has-qr .ks-qr { display: flex; }
 .ks-qr-head { font-size: 9px; font-weight: 700; color: #2f6f45; }
 .ks-qr-image { display: block; width: 100%; max-width: 110px; height: auto; border-radius: 4px; }
 .ks-qr-text { font-size: 8px; line-height: 1.4; color: #4b5a52; }
 .qr-preview-caption { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
-@media (max-width: 640px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } .ks-screen.has-qr .ks-card { width: 60%; } .ks-screen.has-qr .ks-title { font-size: 12px; } .ks-screen.has-qr .ks-btn { width: 100%; } .ks-qr { width: 36%; padding: 8px 6px; } .ks-qr-text { display: none; } }
+/* a narrow preview (a phone, or a narrow column at about 1000 to 1200 px) gets the compact look, by the preview's own width */
+.ks-holder { container: ks-preview / inline-size; }
+@container ks-preview (max-width: 460px) { .ks-screen { aspect-ratio: 4 / 3; border-width: 6px; } .ks-card { width: 80%; padding: 10px 12px; gap: 5px; } .ks-title { font-size: 14px; } .ks-subtitle { font-size: 9px; -webkit-line-clamp: 2; } .ks-screen.has-qr .ks-card { width: 60%; } .ks-screen.has-qr .ks-title { font-size: 12px; } .ks-qr { width: 36%; padding: 8px 6px; } .ks-qr-text { display: none; } }
 /* the dark twins colorScheme.js makes would darken the kiosk copy, so these stronger rules keep its own colours */
 html[data-theme="dark"] .ui-card-body .ks-screen { background: linear-gradient(135deg, rgba(238, 248, 238, 0.88), rgba(230, 247, 239, 0.78)), url('/assets/static/rpPicture.jpg') center / cover no-repeat; border-color: #1e293b; }
 html[data-theme="dark"] .ks-screen .ks-card { background: rgba(248, 250, 244, 0.95); border-top-color: #8bc58f; }
@@ -3220,6 +3225,98 @@ html[data-theme="dark"] #asset-page .asset-status-pill.offline { background: rgb
     text-align: center;
     line-height: 1.3;
 }
+
+/* <Jun Kai start> Questions in the new look (admin redesign, Questions B): slim rows, Add and Edit inside the list */
+#questions-page { --color-dark-gray: #475569; --color-muted: #64748b; }
+html[data-theme="dark"] #questions-page { --color-dark-gray: #a7b4c4; --color-muted: #94a3b8; }
+#questions-page .ui-page-header .ui-btn svg { flex-shrink: 0; }
+.qs-status { margin: 0 0 12px; }
+.qs-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+.qs-list-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; max-width: 900px; }
+.qs-list { display: flex; flex-direction: column; gap: 14px; }
+.qs-list-col .ui-card + .ui-card { margin-top: 0; }
+#questions-new-slot:empty { display: none; }
+.qs-row { padding: 0; overflow: hidden; }
+.qs-row-main { display: flex; align-items: center; gap: 16px; padding: 16px 20px; }
+.qs-num { flex: 0 0 auto; min-width: 24px; text-align: center; font-size: 15px; font-weight: 700; color: var(--theme-text-color); font-variant-numeric: tabular-nums; }
+.qs-body { flex: 1; min-width: 0; }
+.qs-text { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.qs-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.qs-side { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.qs-side .ui-pill { margin-right: 8px; }
+.qs-row.is-off .qs-num, .qs-row.is-off .qs-text { color: var(--color-dark-gray); }
+.qs-options { padding: 12px 20px 16px 60px; border-top: 1px solid var(--theme-border-color); }
+.qs-options-title { margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--theme-text-color); }
+.qs-option-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.qs-option-list li { display: flex; gap: 12px; font-size: 13px; line-height: 1.5; color: var(--theme-text-color); overflow-wrap: anywhere; }
+.qs-option-num { min-width: 16px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.qs-edit-slot:empty { display: none; }
+.qs-edit-slot { border-top: 1px solid var(--theme-border-color); }
+.qs-row.is-editing { border-color: var(--theme-btn-primary-bg); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.qs-form { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 20px; }
+.qs-form-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--theme-text-color); }
+.qs-textarea { height: auto; min-height: 80px; padding: 10px 12px; line-height: 1.5; font-family: inherit; resize: vertical; }
+.qs-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.qs-fixed { display: flex; align-items: center; min-height: 38px; }
+.qs-switch-row { display: flex; align-items: center; gap: 10px; min-height: 38px; font-size: 14px; color: var(--theme-text-color); cursor: pointer; }
+.qs-option-inputs { display: flex; flex-direction: column; gap: 8px; }
+.qs-option-inputs:empty { display: none; }
+.qs-option-input { display: flex; align-items: center; gap: 8px; margin: 0; }
+.qs-option-input .ui-input { flex: 1; min-width: 0; }
+.qs-option-input .qs-option-order { flex: 0 0 84px; }
+.qs-option-input .ui-input[aria-invalid="true"] { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
+.qs-note { margin: 0; }
+.qs-error { font-size: 13px; color: #b91c1c; }
+html[data-theme="dark"] .qs-error { color: #fca5a5; }
+.qs-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.qs-empty { padding: 32px 24px; text-align: center; font-size: 14px; color: var(--color-dark-gray); }
+.qs-empty strong { display: block; margin-bottom: 6px; font-size: 15px; color: var(--theme-text-color); }
+.qs-empty p { margin: 0 0 16px; }
+@media (max-width: 640px) {
+    .qs-row-main { flex-wrap: wrap; gap: 10px 12px; padding: 14px 16px; }
+    .qs-body { flex-basis: calc(100% - 40px); }
+    .qs-side { width: 100%; justify-content: flex-end; }
+    .qs-side .ui-pill { margin-right: auto; }
+    .qs-options { padding: 12px 16px 14px; }
+    .qs-form { padding: 16px; }
+    .qs-form-grid { grid-template-columns: minmax(0, 1fr); }
+    .qs-option-input .qs-option-order { flex-basis: 64px; }
+}
+/* the live preview: a tablet with the kiosk's own light colours. Its rules start with html[data-theme] (set in light and
+   dark), so colorScheme.js makes no dark twin of them and the tablet looks the same in both modes */
+.qs-preview-card { min-width: 0; }
+.qs-preview-body { padding: 20px 22px 24px; }
+.qs-preview-note { margin: 0 0 14px; font-size: 13px; line-height: 1.45; color: var(--color-dark-gray); }
+html[data-theme] .qs-device { max-width: 330px; margin: 0 auto; padding: 12px; border-radius: 28px; background: #1f2937; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18); }
+html[data-theme] .qs-screen { position: relative; display: flex; flex-direction: column; gap: 12px; height: 560px; padding: 22px 16px; overflow-y: auto; border-radius: 18px; background: #ffffff linear-gradient(180deg, #ffffff, #f6faf5); color: #18392b; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; }
+html[data-theme] .qs-k-title { flex-shrink: 0; font-size: 19px; font-weight: 900; text-align: center; color: #18392b; }
+html[data-theme] .qs-k-list { display: flex; flex-direction: column; gap: 10px; }
+html[data-theme] .qs-k-q { padding: 12px; border: 1px solid rgba(74, 124, 89, 0.2); border-radius: 8px; background: #ffffff; transition: box-shadow 0.15s ease, border-color 0.15s ease; }
+html[data-theme] .qs-k-q.is-draft { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16); }
+html[data-theme] .qs-k-label { font-size: 12px; font-weight: 800; line-height: 1.4; color: #18392b; overflow-wrap: anywhere; }
+html[data-theme] .qs-k-empty { font-weight: 600; font-style: italic; color: #7b8f84; }
+html[data-theme] .qs-k-rating { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+html[data-theme] .qs-k-rate { display: flex; align-items: center; justify-content: center; height: 30px; border: 1px solid rgba(74, 124, 89, 0.34); border-radius: 6px; background: #ffffff; font-size: 12px; font-weight: 900; color: #52685d; }
+html[data-theme] .qs-k-text { height: 52px; margin-top: 8px; padding: 8px 10px; border: 1px solid rgba(74, 124, 89, 0.34); border-radius: 6px; background: #ffffff; font-size: 11px; color: #8a9a91; }
+html[data-theme] .qs-k-choices { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
+html[data-theme] .qs-k-choices.is-row { flex-direction: row; gap: 14px; }
+html[data-theme] .qs-k-choice { display: flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1.35; color: #18392b; overflow-wrap: anywhere; }
+html[data-theme] .qs-k-radio { flex-shrink: 0; width: 11px; height: 11px; border: 1px solid #6b7c73; border-radius: 50%; background: #ffffff; }
+html[data-theme] .qs-k-none { padding: 18px 8px; text-align: center; font-size: 12px; color: #52685d; }
+html[data-theme] .qs-k-button { flex-shrink: 0; margin-top: auto; padding: 11px; border-radius: 8px; background: #3d7650 linear-gradient(135deg, #4a7c59, #2f6f45); color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; }
+/* the content column is a scroll container that never scrolls (the window does), which would stop the preview from
+   sticking; the same fix as the Visitor Data Archive save bar */
+.page-content:has(> #questions-page.active) { overflow: visible; }
+@media (min-width: 1200px) {
+    .qs-grid { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); }
+    .qs-list-col { max-width: none; }
+    .qs-preview-card { position: sticky; top: 20px; }
+}
+@media (max-width: 640px) {
+    .qs-preview-body { padding: 16px; }
+    html[data-theme] .qs-screen { height: 480px; }
+}
+/* <Jun Kai end> */
 
 /* ==================== USER MANAGEMENT PAGE STYLES ==================== */
 
@@ -6003,6 +6100,7 @@ html[data-theme="dark"] #timer-countdown-page { --color-dark-gray: #a7b4c4; --co
 #timer-countdown-page .ui-page-header .ui-btn svg { margin-right: 6px; }
 .pt-status { margin: 0 0 12px; }
 .pt-grid { align-items: start; }
+#timer-countdown-page .pt-grid { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
 .pt-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pt-input { position: relative; width: 150px; flex: 0 0 auto; }
 .pt-input .ui-input { padding-right: 70px; }

@@ -1415,24 +1415,46 @@
 
                 <!-- Question Management Page (DONE BY PRETI)-->
                 <div id="questions-page" class="page">
-                    <div class="page-header">
-                        <h2>Questions</h2>
-                        <p>Manage feedback questions and their options</p>
-                    </div>
-
-                    <div class="user-section">
-                        <div class="section-header">
-                            <h3>Feedback Questions</h3>
-                            <button class="btn-primary" onclick="showAddQuestionModal()">+ Add Question</button>
+                    <!-- <Jun Kai start> Questions in the new look (admin redesign, Questions B): slim rows in the order
+                         visitors see them, and Add and Edit open inside the list instead of a window over the page -->
+                    <div class="ui-page-header">
+                        <div>
+                            <h2>Questions</h2>
+                            <p>The questions on the feedback form, in the order visitors see them.</p>
                         </div>
+                        <button class="ui-btn ui-btn-primary" type="button" onclick="showAddQuestionModal()"><span data-fb-icon="plus"></span>Add question</button>
+                    </div>
+                    <div id="questions-status" class="ui-status-slot qs-status" aria-live="polite"></div>
 
-                        <div id="questions-container">
-                            <!-- Questions will be loaded here dynamically (DONE BY PRETI)-->
-                            <div style="text-align: center; padding: 40px; color: #64748b;">
-                                Loading questions...
+                    <div class="qs-grid">
+                        <div class="qs-list-col">
+                            <div id="questions-new-slot"></div>
+                            <div id="questions-container" class="qs-list">
+                                <div class="ui-card qs-empty">Loading questions...</div>
                             </div>
                         </div>
+
+                        <!-- the live preview (new feature): the feedback form as visitors see it, redrawn while Add or Edit is typed in -->
+                        <aside class="ui-card qs-preview-card" aria-labelledby="qs-preview-title">
+                            <div class="ui-card-header">
+                                <div>
+                                    <h3 id="qs-preview-title">How visitors see it<span class="ui-info"><button type="button" class="ui-info-btn" aria-expanded="false" aria-label="About: What the preview shows" title="How this works"><span data-fb-icon="info"></span></button><template class="ui-info-body" data-title="What the preview shows"><ul><li>The feedback form as the kiosk tablet draws it, in English.</li><li>Only active questions are shown, in display order, with the number visitors see in front of each one. A star marks a required question.</li><li>What you type in the open Add or Edit card shows here straight away. Visitors only see it after you save.</li></ul></template></span></h3>
+                                    <p>Updates as you edit</p>
+                                </div>
+                            </div>
+                            <div class="qs-preview-body">
+                                <p id="questions-preview-note" class="qs-preview-note" hidden></p>
+                                <div class="qs-device">
+                                    <div class="qs-screen" id="questions-preview-screen">
+                                        <div class="qs-k-title">Share Your Feedback</div>
+                                        <div id="questions-preview" class="qs-k-list"></div>
+                                        <div class="qs-k-button">Continue to Pledge</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
+                    <!-- <Jun Kai end> -->
                 </div>
 
                 <!-- User Management Page (DONE BY PRETI)-->
@@ -2271,7 +2293,7 @@
                                     <p>The kiosk's first screen, with the text in the fields before you save.</p>
                                 </div>
                             </div>
-                            <div class="ui-card-body">
+                            <div class="ui-card-body ks-holder">
                                 <div class="ks-screen" id="fm-preview" aria-hidden="true">
                                     <div class="ks-card">
                                         <div class="ks-brand"><span class="ks-logo"></span>RP Xperience Centre Feedback Portal</div>
@@ -4535,7 +4557,7 @@
                                     <p>The kiosk's first screen with the switch as it is now, before you save. The title and subtitle come from Start Screen Text.</p>
                                 </div>
                             </div>
-                            <div class="ui-card-body">
+                            <div class="ui-card-body ks-holder">
                                 <div class="ks-screen" id="qr-preview" aria-hidden="true">
                                     <div class="ks-card">
                                         <div class="ks-brand"><span class="ks-logo"></span>RP Xperience Centre Feedback Portal</div>
