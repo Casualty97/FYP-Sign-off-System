@@ -9910,6 +9910,8 @@ button.treeadj-fold-toggle:focus-visible { outline: 2px solid var(--l3-focus, #2
 #tree-adjustment-page .treeadj-tile:focus-visible { outline: 2px solid var(--l3-focus, #2563eb); outline-offset: 2px; }
 #tree-adjustment-page .treeadj-tile-pic { border: 0 !important; border-radius: 7px !important; }
 #tree-adjustment-page .treeadj-tile-name { font-size: 12px !important; font-weight: 600; color: var(--theme-text-color) !important; overflow-wrap: anywhere; }
+/* the note IT roles get instead of a System Admin only picture list spans the whole list */
+#tree-adjustment-page .tree-pictures-admin-only { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 1100px) {
     .treeadj-layout { grid-template-columns: 1fr; }
     .treeadj-preview { position: static; order: -1; }
