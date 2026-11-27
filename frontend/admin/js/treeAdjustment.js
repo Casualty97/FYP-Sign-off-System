@@ -406,14 +406,45 @@ function treeAdjFrames() {
     return { '2d': treeAdjEl('treeadj-frame-2d'), '3d': treeAdjEl('tree3d-viewFrame') };
 }
 
-// one frame at a time: each holds a live connection, and the 3D one a whole 3D scene
+// <Jun Kai start> A 3D tree preview loads once for the sign-in session (about 20 model files, and the browser cannot
+// keep them for next time while the server's own HTTPS certificate is not trusted), so leaving its page no longer
+// empties it. While it is out of sight it is told its page is hidden: the 3D page then draws nothing (scene.js skips
+// every frame while document.hidden), and when it shows again it carries on at once. Signing out reloads the admin
+// page, which drops it. Also used by the Tree Leaves card (tree.js).
+function treeFramePause(frame, paused) {
+    if (!frame) return;
+    frame.dataset.treePaused = paused ? '1' : '';
+    if (!frame.dataset.treePauseWatch) {
+        // the 3D page reloads itself when the look changes: a paused frame stays paused
+        frame.dataset.treePauseWatch = '1';
+        frame.addEventListener('load', () => { if (frame.dataset.treePaused === '1') treeFramePause(frame, true); });
+    }
+    let doc = null;
+    try { doc = frame.contentDocument; } catch { return; }
+    if (!doc || !doc.defaultView || doc.location.href === 'about:blank') return;
+    if (paused) {
+        Object.defineProperty(doc, 'hidden', { configurable: true, get: () => true });
+        Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    } else {
+        delete doc.hidden; // back to the browser's own answer
+        delete doc.visibilityState;
+    }
+    doc.dispatchEvent(new Event('visibilitychange'));
+}
+
+const treeFrameLoaded = (frame, src) => !!frame && frame.getAttribute('src') === src;
+// <Jun Kai end>
+
+// one frame shown at a time; the 3D one stays loaded but paused when the 2D one shows (the 2D one is light and has
+// no scene to keep, so it is emptied: each frame holds a live connection to the server)
 function treeAdjShowPreview() {
     const screen = treeAdjEl('treeadj-screen');
     const frames = treeAdjFrames();
     if (!screen || !frames['2d'] || !frames['3d']) return;
     const kind = treeAdjMode();
     const other = kind === '3d' ? '2d' : '3d';
-    if (frames[other].getAttribute('src') && frames[other].getAttribute('src') !== 'about:blank') frames[other].setAttribute('src', 'about:blank');
+    if (other === '3d') treeFramePause(frames['3d'], true); // <Jun Kai/> kept for the session
+    else if (frames['2d'].getAttribute('src') && frames['2d'].getAttribute('src') !== 'about:blank') frames['2d'].setAttribute('src', 'about:blank');
     frames[other].hidden = true;
     screen.dataset.kind = kind;
     const sub = treeAdjEl('treeadj-preview-sub');
@@ -421,7 +452,7 @@ function treeAdjShowPreview() {
     const open = treeAdjEl('treeadj-open-tree');
     if (open) open.setAttribute('href', TREEADJ_OPEN_TREE[kind]);
     const frame = frames[kind];
-    if (frame.getAttribute('src') !== TREEADJ_FRAME_SRC[kind]) {
+    if (!treeFrameLoaded(frame, TREEADJ_FRAME_SRC[kind])) {
         screen.dataset.state = 'loading';
         const note = treeAdjEl('treeadj-screen-note');
         if (note) note.textContent = 'Loading the tree';
@@ -430,20 +461,17 @@ function treeAdjShowPreview() {
         };
         treeAdjLastDraft = '';
         frame.setAttribute('src', TREEADJ_FRAME_SRC[kind]);
+    } else {
+        // <Jun Kai start> already loaded this session: it carries on where it was, with the latest unsaved changes
+        screen.dataset.state = 'ready';
+        treeAdjLastDraft = '';
+        // <Jun Kai end>
     }
+    treeFramePause(frame, false); // <Jun Kai/>
     frame.hidden = false;
     // his 3D View & Zoom: shows the frame and starts the zoom readout (the address set above is kept)
     if (kind === '3d' && typeof openTree3dViewEditor === 'function') openTree3dViewEditor();
     treeAdjFit();
-}
-
-function treeAdjEmptyFrames() {
-    Object.values(treeAdjFrames()).forEach((frame) => {
-        if (frame && frame.getAttribute('src') && frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
-    });
-    const screen = treeAdjEl('treeadj-screen');
-    if (screen) screen.dataset.state = 'idle';
-    treeAdjLastDraft = '';
 }
 
 // tells the frame to read its settings again when the fields changed since the last time
@@ -503,7 +531,12 @@ function treeAdjClose() {
     treeAdjOpened = false;
     window.clearInterval(treeAdjTimer);
     window.clearInterval(treeAdjSavedTimer);
-    treeAdjEmptyFrames();
+    // <Jun Kai start> the 3D preview stays loaded but paused (no 0 to 18 again next time); the 2D one is emptied
+    const frames = treeAdjFrames();
+    treeFramePause(frames['3d'], true);
+    if (frames['2d'] && frames['2d'].getAttribute('src') && frames['2d'].getAttribute('src') !== 'about:blank') frames['2d'].setAttribute('src', 'about:blank');
+    if (typeof tree3dViewTimer !== 'undefined') window.clearInterval(tree3dViewTimer); // his zoom readout; it starts again with the preview
+    // <Jun Kai end>
 }
 
 // his two delete questions, in the kit window: his function runs once with the browser question answered "no" to
@@ -573,4 +606,24 @@ document.addEventListener('DOMContentLoaded', () => {
     new MutationObserver(follow).observe(page, { attributes: true, attributeFilter: ['class'] });
     follow();
 });
+// <Jun Kai end>
+
+// <Jun Kai start> The Tree Animation Demo and "Open the tree" each open one tab and use it again: pressing the link
+// again brings that tab to the front without loading the tree again (a new tab counts 0 to 18 once more). A tab that
+// shows another tree (2D or 3D) is moved to the one asked for; the demo tab keeps the tree chosen in it.
+function treeOpenInOneTab(event) {
+    const link = event.target.closest && event.target.closest('a[data-tree-tab]');
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    let tab = null;
+    try { tab = window.open('', link.dataset.treeTab); } catch { tab = null; }
+    if (!tab) return; // pop-ups blocked: the link opens a new tab as usual
+    event.preventDefault();
+    const want = new URL(link.href, window.location.href);
+    let now = '';
+    try { now = tab.location.href; } catch { now = ''; } // another site in that tab
+    const same = now && now !== 'about:blank' && new URL(now).pathname.toLowerCase() === want.pathname.toLowerCase();
+    if (!same) tab.location.href = want.href;
+    tab.focus();
+}
+document.addEventListener('click', treeOpenInOneTab);
 // <Jun Kai end>
