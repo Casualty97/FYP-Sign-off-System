@@ -1,0 +1,147 @@
+/* <Jun Kai start> Tree Animation Demo dock (treeDemo.js) over Wei Jie's 3D tree: the admin kit's look (white glass card,
+   green buttons). It sits above the page's own controls bar; while a demo plays it shrinks to one slim line. */
+.tdemo-dock {
+    position: absolute;
+    left: 50%;
+    bottom: 84px;
+    translate: -50% 0;
+    z-index: 30;
+    box-sizing: border-box;
+    width: min(820px, calc(100vw - 32px));
+    padding: 12px 12px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.28);
+    color: #111827;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.35;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+.tdemo-dock.is-ready { opacity: 1; visibility: visible; }
+.tdemo-dock * { box-sizing: border-box; }
+
+.tdemo-cards { display: flex; gap: 10px; }
+.tdemo-card {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+}
+.tdemo-icon {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #dcfce7;
+    color: #166534;
+}
+.tdemo-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.tdemo-text { flex: 1; min-width: 0; }
+.tdemo-text b { display: block; margin-bottom: 2px; font-size: 16px; }
+.tdemo-text span { display: block; color: #4b5563; }
+
+.tdemo-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 650;
+    cursor: pointer;
+}
+.tdemo-btn svg { width: 15px; height: 15px; fill: currentColor; }
+.tdemo-btn-primary { background: #166534; color: #fff; }
+.tdemo-btn-primary:hover:not(:disabled) { background: #14532d; }
+.tdemo-btn-secondary { background: #fff; color: #14532d; border-color: #d1d5db; }
+.tdemo-btn-secondary:hover { background: #f3f4f6; }
+.tdemo-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.tdemo-btn:focus-visible { outline: 3px solid #86efac; outline-offset: 2px; }
+
+.tdemo-foot { display: flex; align-items: center; gap: 12px; margin: 9px 2px 0; }
+.tdemo-note { flex: 1; min-width: 0; margin: 0; color: #6b7280; font-size: 13px; }
+
+/* which tree the demo shows (3D by default) */
+.tdemo-switch { flex: none; display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+.tdemo-switch button {
+    min-height: 30px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #374151;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+}
+.tdemo-switch button[aria-pressed="true"] { background: #fff; color: #14532d; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18); cursor: default; }
+.tdemo-switch button:focus-visible { outline: 3px solid #86efac; outline-offset: 1px; }
+
+/* 2D: the page's own demo buttons stay hidden (the dock presses them), and with no controls bar below, the dock sits
+   lower so more of the tree shows */
+.tdemo-2d .tree-demo-controls { display: none !important; }
+.tdemo-2d .tdemo-dock:not(.is-playing) { bottom: 22px; }
+
+/* while a demo plays: one slim line in the bottom left corner, so the new leaf waiting at the bottom middle stays
+   in sight (on the wall's wide shape his controls bar is bottom left, so the line sits above Year Review) */
+.tdemo-dock.is-playing {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    left: 22px;
+    bottom: 22px;
+    translate: none;
+    width: min(420px, calc(100vw - 32px));
+    padding: 10px 12px 10px 16px;
+}
+@media (min-aspect-ratio: 12/5) and (min-width: 901px) {
+    .tdemo-dock.is-playing { left: auto; right: 22px; bottom: 76px; }
+}
+.tdemo-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #16a34a;
+    box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.2);
+}
+.tdemo-now { flex: 1; min-width: 0; }
+.tdemo-now b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.tdemo-bar { display: block; height: 6px; margin-top: 7px; overflow: hidden; border-radius: 99px; background: #e5e7eb; }
+.tdemo-bar i { display: block; width: 0; height: 100%; border-radius: 99px; background: #16a34a; }
+.tdemo-left { flex: none; color: #6b7280; white-space: nowrap; }
+
+/* narrow screens: the two demos one above the other */
+@media (max-width: 700px) {
+    .tdemo-cards { flex-direction: column; gap: 8px; }
+    .tdemo-foot { flex-wrap: wrap; gap: 8px; }
+    /* a phone screen is full of the page's own panels: the titles say enough, so the dock stays small */
+    .tdemo-card { padding: 8px 10px; }
+    .tdemo-text span { display: none; }
+    .tdemo-icon { width: 34px; height: 34px; }
+    .tdemo-dock,
+    .tdemo-dock.is-playing { left: 50%; right: auto; bottom: 96px; translate: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tdemo-dock { transition: none; }
+}
+/* <Jun Kai end> */

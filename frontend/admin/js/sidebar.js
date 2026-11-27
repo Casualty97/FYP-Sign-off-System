@@ -134,21 +134,41 @@ function applySidebarRole(role) {
 
 // <Jun Kai start> Tree Settings is open to IT Admins and IT Staff, but every change on it needs a System Admin (the server
 // answers 403). For them the page is view only: a note says so, the fields are greyed out and the buttons that would
-// change something (save, upload, select, revert, reset) are hidden. Switching tabs and Refresh Data stay.
-const TREE_CHANGE_ACTION = /^(save|upload|select|revert|reset)[A-Z]/;
+// change something (save, upload, select, revert, reset, use, delete, the wall actions, capture, turn on the sound,
+// the turn time presets) are hidden. Opening the folds, Refresh Data, the preview's zoom and Listen here stay.
+const TREE_CHANGE_ACTION = /^(save|upload|select|revert|reset|use|delete|trigger|capture|turnOn|set)[A-Z]/;
+// buttons his scripts build later without an onclick: the music list (Use, Delete) and the saved views (Use on 3D
+// screen, Delete; Load in preview only moves the preview, so it stays)
+const TREE_CHANGE_BUTTONS = '#tree3d-musicList button, #tree3d-viewList .view3d-actions button:first-child, #tree3d-viewList .view3d-delete';
+// the picture tiles and colour swatches only choose a value: they stay in sight, locked like the fields
+const TREE_LOCKED_BUTTONS = '#param-treeBackgroundList > button, #param-existingLeafList > button, #param-existingVipLeafList > button, .leaf3d-swatches button';
+let treeViewOnlyWatch = null;
+
+function markTreeSettingsViewOnly(page, viewOnly) {
+    page.querySelectorAll('button[onclick]').forEach((button) => {
+        if (TREE_CHANGE_ACTION.test(button.getAttribute('onclick').trim())) button.setAttribute('data-tree-change', '');
+    });
+    page.querySelectorAll(TREE_CHANGE_BUTTONS).forEach((button) => button.setAttribute('data-tree-change', ''));
+    // only the fields locked here are opened again, so a field the page itself keeps off stays off
+    page.querySelectorAll(`input, select, textarea, ${TREE_LOCKED_BUTTONS}`).forEach((field) => {
+        if (viewOnly && !field.disabled) { field.disabled = true; field.setAttribute('data-tree-locked', ''); }
+        if (!viewOnly && field.hasAttribute('data-tree-locked')) { field.disabled = false; field.removeAttribute('data-tree-locked'); }
+    });
+}
 
 function applyTreeSettingsViewOnly(viewOnly) {
     const page = document.getElementById('tree-adjustment-page');
     if (!page) return;
     page.classList.toggle('is-view-only', viewOnly);
-    page.querySelectorAll('button[onclick]').forEach((button) => {
-        if (TREE_CHANGE_ACTION.test(button.getAttribute('onclick').trim())) button.setAttribute('data-tree-change', '');
-    });
-    // only the fields locked here are opened again, so a field the page itself keeps off stays off
-    page.querySelectorAll('input, select, textarea').forEach((field) => {
-        if (viewOnly && !field.disabled) { field.disabled = true; field.setAttribute('data-tree-locked', ''); }
-        if (!viewOnly && field.hasAttribute('data-tree-locked')) { field.disabled = false; field.removeAttribute('data-tree-locked'); }
-    });
+    markTreeSettingsViewOnly(page, viewOnly);
+    // the lists and colour swatches his scripts fill in later get the same treatment
+    if (viewOnly && !treeViewOnlyWatch) {
+        treeViewOnlyWatch = new MutationObserver(() => markTreeSettingsViewOnly(page, true));
+        treeViewOnlyWatch.observe(page, { childList: true, subtree: true });
+    } else if (!viewOnly && treeViewOnlyWatch) {
+        treeViewOnlyWatch.disconnect();
+        treeViewOnlyWatch = null;
+    }
     let note = document.getElementById('tree-view-only-note');
     if (viewOnly && !note) {
         note = document.createElement('p');

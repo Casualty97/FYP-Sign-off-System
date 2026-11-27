@@ -53,6 +53,7 @@ const fs = require('fs');
 const path = require('path');
 const paths = require('../../core/paths');
 const { contentSettings: defaultContentSettings } = require('../../config/defaults/parametersConfig.json');
+const { DEFAULT_TREE3D_PARAMETERS, mergeTree3dParameters } = require('./tree3d');
 
 const CONFIG_FILE = paths.dataFile('parametersConfig.json');
 
@@ -138,6 +139,8 @@ const DEFAULT_CONFIG = {
   treeParameters: {
     treeStage: 0,
     treeDisplayMode: "2d",
+    treeStyle: "painted", // the 2D tree's pictures: painted, natural or digital (features/parameters/tree2dStyle.js)
+    screenSize: { preset: "auto", width: null, height: null }, // the 2D tree's screen shape (features/parameters/screenSize.js)
     ovalWidth: 850,
     ovalHeight: 300,
     ovalTopOffset: -100,
@@ -150,6 +153,8 @@ const DEFAULT_CONFIG = {
     vipLeafDisplayScale: 1,
     showTitleBox: true
   },
+  // 3D ESG Tree page settings (Admin > Digital Tree Adjustment > 3D Tree Settings); see ./tree3d.js
+  tree3dParameters: DEFAULT_TREE3D_PARAMETERS,
   feedbackPageStyle: {
     backgroundCss: "",
     cardOpacity: 0.9,
@@ -164,7 +169,8 @@ const DEFAULT_CONFIG = {
       "sustainable-living-advocate": "#16a34a",
       "ocean-guardian": "#0284c7",
       "governance-guardian": "#7c3aed",
-      "social-champion": "#d97706"
+      "social-champion": "#d97706",
+      "multi-pledge": "#8b5a2b" // a visitor who chose several pledge topics (Owner: Role 2, Wei Jie)
     }
   },
   photoSettings: {
@@ -259,6 +265,7 @@ function mergeWithDefaults(config) {
     featureFlags: { ...DEFAULT_CONFIG.featureFlags, ...(config.featureFlags || {}) },
     validationRules: { ...DEFAULT_CONFIG.validationRules, ...(config.validationRules || {}) },
     treeParameters: { ...DEFAULT_CONFIG.treeParameters, ...(config.treeParameters || {}) },
+    tree3dParameters: mergeTree3dParameters(config.tree3dParameters, {}),
     feedbackPageStyle: { ...DEFAULT_CONFIG.feedbackPageStyle, ...(config.feedbackPageStyle || {}) },
     badgeLeafStyles: {
       ...DEFAULT_CONFIG.badgeLeafStyles,

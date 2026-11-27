@@ -304,9 +304,14 @@ test('a kept leaf goes to the tree shaped like a live row: the label as the name
     const row = { feedback_id: 41, created_at: at('2024-03-05T04:00:00Z'), label: 'J. T.', badge_key: 'ocean-guardian', is_vip: 1 };
     assert.deepEqual(leaves.treeLeaf(row, BADGES), {
         id: 41, name: 'J. T.', visit_count: 1, user_created_at: null, created_at: at('2024-03-05T04:00:00Z'), isVip: true,
-        badgeKey: 'ocean-guardian', badgeName: 'Ocean Guardian', badgeColor: '#0ea5e9', pledgeTopic: '', pledgeSnippet: '',
+        badgeKey: 'ocean-guardian', badgeName: 'Ocean Guardian', badgeColor: '#0ea5e9', badgeKeys: ['ocean-guardian'],
+        pledgeTopic: '', pledgeTopics: [], pledgeSnippet: '',
         hasPublicName: false, privacyLabel: 'Details archived', archived: true
     });
+    // a leaf of several pledges stays "Multiple pledges", as the live tree drew it
+    const several = leaves.treeLeaf({ ...row, badge_keys: 'ocean-guardian,climate-champion' }, BADGES);
+    assert.deepEqual([several.badgeKey, several.badgeColor, several.badgeKeys], ['multi-pledge', '#8b5a2b', ['ocean-guardian', 'climate-champion']]);
+    assert.match(several.badgeName, /^Multiple pledges: Ocean Guardian, /);
     // the same keys as a live row from mapRowsToVisitors, plus archived
     const tree = fs.readFileSync(path.join(__dirname, '..', '..', 'backend', 'features', 'tree', 'routes.js'), 'utf8');
     const liveKeys = [...tree.slice(tree.indexOf('function mapRowsToVisitors')).match(/return \{([\s\S]*?)\};/)[1].matchAll(/^\s*(\w+)[,:]/gm)].map((m) => m[1]);
