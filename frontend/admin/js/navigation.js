@@ -402,6 +402,11 @@ function showPage(pageName) {
         loadTreeStageSelection();
         loadTreeTitleSettings();
         updateAutoStagePreview();
+        loadTree3dSettings();
+        // The 2D Tree Background, Leaf and VIP Leaf pickers with their previews and the leaf sizes (as Refresh
+        // Data loads them): before, they only filled after visiting Digital Tree or Parameter Adjustment first.
+        loadParameters();
+        loadAvailableTreeBackgrounds();
     } else if (pageName === 'pledgeboard') {
         loadAdminPledgeboard();
     } else if (pageName === 'overlay') {

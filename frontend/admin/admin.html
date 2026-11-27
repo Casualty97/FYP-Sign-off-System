@@ -834,6 +834,33 @@
                         <h2>Tree Settings</h2>
                         <p>Adjust tree growth parameters and background settings</p>
                     </div>
+                    <!-- <Jun Kai start> Tree Adjustment B: the settings fold open on the left, the preview stays on the right -->
+                    <div class="treeadj-layout" id="treeadj-layout">
+                        <div class="treeadj-settings" id="treeadj-settings">
+                    <!-- <Jun Kai end> -->
+
+                    <!-- Which tree the wall shows. The settings below follow this choice: 2D shows the two 2D tabs,
+                         3D shows the 3D Tree Settings (showTreeSettingsForMode in admin/js/tree3d.js).
+                         Save Display makes the chosen tree live. -->
+                    <div class="tree-adjustment-section" data-treeadj-fold="display">
+                        <div class="section-header">
+                            <h3>Display 2D/3D Tree</h3>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <button class="btn-primary" onclick="saveTreeParameters()">Save Display</button>
+                            </div>
+                        </div>
+
+                        <div id="treeadj-body-display" class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
+                            <div style="flex:1;">
+                                <label for="param-treeDisplayMode">Tree Display Mode</label><br>
+                                <select id="param-treeDisplayMode" onchange="showTreeSettingsForMode(this.value)" style="padding:8px 10px;border:1px solid #d7dbe3;border-radius:6px;background:#fff;min-width:180px;">
+                                    <option value="2d">2D Tree</option>
+                                    <option value="3d">3D Tree</option>
+                                </select>
+                                <p style="font-size:12px;color:#666;margin-top:6px;">The settings below switch to the selected tree. Save Display makes it the tree on the wall: an open tree screen switches to it within a few seconds, and /tree or /3dTree always opens the selected tree.</p>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Tab Contents for Digital Tree Adjustment -->
                      <div class="tree-tabs">
@@ -847,7 +874,7 @@
                     </div>
 
                     <div id="tree-elements-tab" class="tree-tab-content active">
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="tree-display">
                             <div class="section-header">
                                 <h3>Tree Display</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -855,7 +882,7 @@
                                     <button class="btn-primary" onclick="refreshTreeData()">Refresh Data</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-tree-display" class="section-body">
                                 <!-- Auto / Manual toggle -->
                                 <div style="display:flex; align-items:center; gap:20px; margin-bottom:16px;">
                                     <label style="font-weight:600; display:flex; align-items:center; gap:8px;">
@@ -895,17 +922,61 @@
                                     <input type="checkbox" id="param-showTitleBox"> Display Tree Title Box
                                 </label>
                                 <p style="font-size:12px; color:#666; margin-top:6px;">Turn this off to hide the RP Xperience Centre Digital Tree title panel on the /tree screen.</p>
+
+                                <!-- The 2D tree's screen shape (js/tree.js, backend/features/parameters/screenSize.js) -->
+                                <div class="screen-size-panel">
+                                    <label for="param-screenPreset" class="tree-style-label">🖥️ Screen size</label>
+                                    <select id="param-screenPreset" data-screen-size onchange="updateScreenSizeFields('param')"></select>
+                                    <div id="param-screenCustom" class="screen-size-custom" hidden>
+                                        <label for="param-screenWidth">Width</label>
+                                        <input type="number" id="param-screenWidth" min="0.01" step="any" placeholder="7" oninput="updateScreenSizeFields('param')">
+                                        <span aria-hidden="true">×</span>
+                                        <label for="param-screenHeight">Height</label>
+                                        <input type="number" id="param-screenHeight" min="0.01" step="any" placeholder="2" oninput="updateScreenSizeFields('param')">
+                                    </div>
+                                    <p class="screen-size-shape" id="param-screenShape"></p>
+                                    <p class="tree-style-help">Auto fits the tree to the screen it is shown on. Choose a size when the display has another shape than the picture it is sent, as an LED wall's controller often does: the tree is then drawn in that shape, as large as the screen allows, black round it. Only the shape matters, so any unit works: 7 × 2 (metres) or 3840 × 1080 (pixels). Save Display to apply it on /tree.</p>
+                                </div>
+
+                                <!-- The 2D tree's pictures (checklist item 12): painted, or captured from the 3D tree (js/tree.js) -->
+                                <div class="tree-style-panel">
+                                    <label for="param-treeStyle" class="tree-style-label">🖼️ Tree picture style</label>
+                                    <select id="param-treeStyle" onchange="loadTreeStylePreviews()">
+                                        <option value="painted">Painted (the original stage pictures)</option>
+                                        <option value="natural">Natural (the 3D tree in daylight)</option>
+                                        <option value="digital">Digital (the glowing 3D tree)</option>
+                                    </select>
+                                    <div id="tree-style-previews" class="tree-style-previews" aria-live="polite"></div>
+                                    <div class="tree-style-actions">
+                                        <button type="button" class="btn-secondary" id="tree-style-capture" onclick="captureTreeStylesFrom3d()">📸 Capture from the 3D tree</button>
+                                        <span id="tree-style-status" class="tree-style-status"></span>
+                                    </div>
+                                    <p class="tree-style-help">Natural and Digital show the 3D tree itself at each growth stage, so the 2D and 3D screens match; the visitors' leaves sit on its canopy. Capture takes pictures of all five stages in both styles (about 2 to 4 minutes); capture again after changing the 3D tree, for example its trunk glow. Save Display to show the chosen style on /tree.</p>
+                                </div>
+
+                                <div id="tree-style-capture-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="tree-style-capture-title">
+                                    <div class="modal-content tree-style-capture-box">
+                                        <div class="modal-header">
+                                            <h3 class="modal-title" id="tree-style-capture-title">Capturing the 3D tree</h3>
+                                        </div>
+                                        <p id="tree-style-capture-progress" class="tree-style-capture-progress">Starting…</p>
+                                        <iframe id="tree-style-capture-frame" class="tree-style-capture-frame" title="The 3D tree being captured"></iframe>
+                                        <div class="tree-style-actions">
+                                            <button type="button" class="btn-secondary" onclick="cancelTreeStyleCapture()">Stop</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <br>
                         
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="background">
                             <div class="section-header">
                                 <h3>Tree Background</h3>
                                 <button class="btn-primary" onclick="selectTreeBackground()">Apply Selected</button>
                             </div>
-                            <div class="section-body" style="display:flex;gap:20px;align-items:flex-start;margin-top:12px;">
+                            <div id="treeadj-body-background" class="section-body" style="display:flex;gap:20px;align-items:flex-start;margin-top:12px;">
                                 <div style="flex:1;">
                                     <label for="param-treeBackgroundUpload">Upload custom background image</label><br>
                                     <input type="file" id="param-treeBackgroundUpload" accept="image/png,image/jpeg,image/webp">
@@ -928,14 +999,14 @@
                         </div>
 
                         <br>
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="leaf">
                             <div class="section-header">
                                 <h3>Leaf Adjustments</h3>
                                 <button class="btn-primary" onclick="saveTreeParameters()">Save Changes</button>
 
 
                             </div>
-                            <div class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
+                            <div id="treeadj-body-leaf" class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
                                 <div style="flex:1;">
                                     <label for="param-leafUpload">Upload custom leaf image</label><br>
                                     <input type="file" id="param-leafUpload" accept="image/png,image/jpeg,image/webp">
@@ -970,12 +1041,12 @@
 
                         <br>
 
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="vip-leaf">
                             <div class="section-header">
                                 <h3>VIP Leaf Adjustments</h3>
                                 <button class="btn-primary" onclick="saveTreeParameters()">Save Changes</button>
                             </div>
-                            <div class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
+                            <div id="treeadj-body-vip-leaf" class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
                                 <div style="flex:1;">
                                     <label for="param-vipLeafUpload">Upload custom VIP leaf image</label><br>
                                     <input type="file" id="param-vipLeafUpload" accept="image/png,image/jpeg,image/webp">
@@ -993,14 +1064,14 @@
                                     </div>
                                     <p style="font-size:12px;color:#666;margin-top:6px;">Browse existing VIP leaf images with thumbnails and labels.</p>
                                 </div>
-                                <!--<div style="width:260px;">
+                                <div style="width:260px;">
                                     <label for="param-vipLeafDisplayScale">VIP leaf display scale</label>
                                     <div style="display:flex;align-items:center;gap:8px;">
                                         <input type="range" id="param-vipLeafDisplayScale" min="0.4" max="2" step="0.05" value="1" oninput="(function(v){document.getElementById('param-vipLeafDisplayScaleValue').textContent = v; const p=document.getElementById('previewVipLeafBox'); if(p) p.style.transform='scale('+v+')';})(this.value)">
                                         <span id="param-vipLeafDisplayScaleValue">1</span>
                                     </div>
-                                    <p style="font-size:12px;color:#666;margin-top:6px;">Scale multiplier applied to base VIP leaf size on the tree.</p>
-                                </div>-->
+                                    <p style="font-size:12px;color:#666;margin-top:6px;">Scale multiplier applied to base VIP leaf size on the 2D tree, separate from the normal leaves' scale. Save Changes applies it; the /tree screen updates within a few seconds.</p>
+                                </div>
                                 <div style="width:120px;text-align:center;">
                                     <div class="preview-leaf-box" id="previewVipLeafBox" style="width:80px;height:80px;margin:auto;background-size:contain;background-repeat:no-repeat;background-position:center;border:1px solid #e6e9ef;border-radius:6px;"></div>
                                     <p style="font-size:12px;color:#666;margin-top:6px;">VIP Preview</p>
@@ -1009,7 +1080,7 @@
                         </div>
                         
                         <br>
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="title-box">
                             <div class="section-header">
                                 <h3>Tree Title Box Settings</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1021,7 +1092,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-title-box" class="section-body">
                                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:16px 24px;">
                                     <!-- Background opacity -->
                                     <div>
@@ -1131,29 +1202,764 @@
                                 </div>
                             </div>
                         </div>
-                        <br>
-                        <div class="tree-adjustment-section">
+                    </div>
+
+                    <!-- 3D Tree Settings (Role 2, Wei Jie): the controls of the /3dTree page and its title box.
+                         Saved as tree3dParameters (backend/features/parameters/tree3d.js) by admin/js/tree3d.js;
+                         the 3D page applies them within a few seconds (frontend/3dTree/tree3d-settings.js). -->
+                    <div id="tree3d-settings-tab" class="tree3d-settings">
+                        <!-- 3D Tree Growth Stage: the same stage as the 2D tree's (treeParameters.treeStage), shown on
+                             /3dTree with the Ketapang Stage 0 to 4 models in assets/Tree/3dTreeLeaves (tree-stage.js). -->
+                        <div class="tree-adjustment-section" data-treeadj-fold="stage3d">
                             <div class="section-header">
-                                <h3>Display 2D/3D Tree</h3>
+                                <h3>3D Tree Growth Stage</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
-                                    <button class="btn-primary" onclick="saveTreeParameters()">Save Display</button>
+                                    <button class="btn-primary" onclick="saveTree3dStage()">Save Stage</button>
                                 </div>
                             </div>
-
-                            <div class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
-                                <div style="flex:1;">
-                                    <label for="param-treeDisplayMode">Tree Display Mode</label><br>
-                                    <select id="param-treeDisplayMode" style="padding:8px 10px;border:1px solid #d7dbe3;border-radius:6px;background:#fff;min-width:180px;">
-                                        <option value="2d">2D Tree</option>
-                                        <option value="3d">3D Tree</option>
+                            <div id="treeadj-body-stage3d" class="section-body">
+                                <div style="display:flex; align-items:center; gap:20px; margin-bottom:16px;">
+                                    <label style="font-weight:600; display:flex; align-items:center; gap:8px;">
+                                        <input type="radio" name="tree3dStageMode" value="auto" onchange="updateTree3dStageMode()" checked> Auto (based on leaf count)
+                                    </label>
+                                    <label style="font-weight:600; display:flex; align-items:center; gap:8px;">
+                                        <input type="radio" name="tree3dStageMode" value="manual" onchange="updateTree3dStageMode()"> Manual override
+                                    </label>
+                                </div>
+                                <div id="tree3d-manualStage" style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                                    <label for="tree3d-treeStage" style="font-weight:600;">Current stage:</label>
+                                    <select id="tree3d-treeStage" style="padding:8px 10px;border:1px solid #d7dbe3;border-radius:6px;background:#fff;min-width:180px;">
+                                        <option value="0">Stage 0 - Bare Trunk</option>
+                                        <option value="1">Stage 1 - Early Growth</option>
+                                        <option value="2">Stage 2 - Young Canopy</option>
+                                        <option value="3">Stage 3 - Mature Canopy</option>
+                                        <option value="4">Stage 4 - Full Canopy</option>
                                     </select>
-                                    <p style="font-size:12px;color:#666;margin-top:6px;">Only the selected route stays live; the other route returns blocked.</p>
+                                    <span id="tree3d-stageStatus" style="font-size:13px;color:#64748b;">Shown on /3dTree after saving.</span>
+                                </div>
+                                <div style="margin-top:16px; padding:12px; background:#f8fafc; border-radius:8px;">
+                                    <div style="font-weight:600; margin-bottom:12px;">Leaf count thresholds for automatic stage</div>
+                                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px;">
+                                        <div><label for="tree3d-thresholdStage1">Stage 1 (Early Growth) min leaves:</label> <input type="number" id="tree3d-thresholdStage1" min="0" step="1" value="1" oninput="updateTree3dAutoStage()" style="width:100px;"></div>
+                                        <div><label for="tree3d-thresholdStage2">Stage 2 (Young Canopy) min leaves:</label> <input type="number" id="tree3d-thresholdStage2" min="0" step="1" value="10" oninput="updateTree3dAutoStage()" style="width:100px;"></div>
+                                        <div><label for="tree3d-thresholdStage3">Stage 3 (Mature Canopy) min leaves:</label> <input type="number" id="tree3d-thresholdStage3" min="0" step="1" value="25" oninput="updateTree3dAutoStage()" style="width:100px;"></div>
+                                        <div><label for="tree3d-thresholdStage4">Stage 4 (Full Canopy) min leaves:</label> <input type="number" id="tree3d-thresholdStage4" min="0" step="1" value="50" oninput="updateTree3dAutoStage()" style="width:100px;"></div>
+                                    </div>
+                                    <p style="font-size:12px; color:#64748b; margin-top:8px;">Current leaf count: <span id="tree3d-currentLeafCount">—</span> → automatic stage: <strong id="tree3d-autoStagePreview">—</strong>, <span id="tree3d-growthPreview">—</span></p>
+                                </div>
+                                <p style="font-size:12px; color:#666; margin-top:12px;">Auto: the tree grows by itself. On the 3D tree it grows a little with every new leaf: new foliage sprouts at the edge of the canopy in a fresh lime green that fades into the canopy over about 20 seconds, so every leaf's growth shows, and nothing already on the tree is taken away. When this year's leaf count reaches a stage's minimum (for example 10 leaves for Stage 2), both trees move to that stage within about 15 seconds: on the /3dTree screen the tree grows into the new stage's tree in place, without reloading: it keeps its size, its foliage and the visitors' leaves, then grows bigger with a growth spurt of fresh foliage. The tree is fully grown at the Stage 4 (Full Canopy) number: raise it to make the tree grow more slowly, over more leaves. Manual: the tree stays at the chosen stage, shown full. The same growth stage as the 2D tree, so both trees always match. The 3D tree shows the Ketapang Stage 0 to 4 model from assets/Tree/3dTreeLeaves. Stage 0 is a bare trunk with no feedback leaves.</p>
+                            </div>
+                        </div>
+
+                        <br>
+
+                        <!-- 3D Tree Visualization Parameters: the 2D tree's Visualization Parameters for the 3D tree, saved in
+                             tree3dParameters (Maximum Visible Leaves stays shared with the 2D tree in treeParameters). -->
+                        <div class="tree-adjustment-section" data-treeadj-fold="visual3d">
+                            <div class="section-header">
+                                <h3>3D Tree Visualization Parameters</h3>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <button class="btn-primary" onclick="saveTree3dVisualization()">Save Visualization</button>
+                                    <button class="btn-primary" onclick="resetTree3dVisualization()">Reset to Defaults</button>
+                                </div>
+                            </div>
+                            <div id="treeadj-body-visual3d" class="section-body">
+                                <p style="font-size:12px; color:#666; margin:0 0 14px;">Leaf placement and animation on the 3D tree, as the 2D tree's Visualization Parameters. The /3dTree screen applies a saved change within about 5 seconds; changing the leaf area places the leaves again.</p>
+                                <div style="font-weight:600; color:#334155; margin-bottom:8px;">Leaf area on the canopy</div>
+                                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px 24px; margin-bottom:18px;">
+                                    <div>
+                                        <label for="tree3d-leafAreaWidth" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf area width</label>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <input type="range" id="tree3d-leafAreaWidth" min="30" max="100" step="5" value="100" oninput="updateTree3dVisualLabels()">
+                                            <output id="tree3d-leafAreaWidthValue">100%</output>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">How much of the canopy's width leaves can appear on (2D: Leaf Canopy Width).</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafAreaHeight" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf area height</label>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <input type="range" id="tree3d-leafAreaHeight" min="30" max="100" step="5" value="100" oninput="updateTree3dVisualLabels()">
+                                            <output id="tree3d-leafAreaHeightValue">100%</output>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">How much of the canopy's height (2D: Leaf Canopy Height).</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafAreaOffset" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf area up or down</label>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <input type="range" id="tree3d-leafAreaOffset" min="-40" max="40" step="5" value="0" oninput="updateTree3dVisualLabels()">
+                                            <output id="tree3d-leafAreaOffsetValue">0%</output>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">Negative moves the area up (2D: Canopy Top Offset).</p>
+                                    </div>
+                                </div>
+                                <div style="font-weight:600; color:#334155; margin-bottom:8px;">Leaves and animation</div>
+                                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px 24px; margin-bottom:18px;">
+                                    <div>
+                                        <label for="tree3d-leafRefreshMs" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf refresh interval (milliseconds)</label>
+                                        <input type="number" id="tree3d-leafRefreshMs" min="5000" max="120000" step="1000" value="5000" style="width:120px;">
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">How often the 3D tree checks for new feedback (5000 = 5 seconds).</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafOpacity" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf opacity</label>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <input type="range" id="tree3d-leafOpacity" min="0.1" max="1" step="0.05" value="1" oninput="updateTree3dVisualLabels()">
+                                            <output id="tree3d-leafOpacityValue">1.00</output>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">1 = fully opaque; the names fade with the leaves.</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-maxVisibleLeaves" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Maximum Visible Leaves</label>
+                                        <input type="number" id="tree3d-maxVisibleLeaves" min="1" max="500" step="1" value="15" style="width:120px;" oninput="showTree3dMaxLeavesExample()">
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">First in, first out, shared with the 2D tree: one limit for the whole tree, the same at every growth stage. Set any number from 1 to 500: at <span id="tree3d-maxLeavesExample">15</span>, the <span id="tree3d-maxLeavesNext">16th</span> leaf makes the oldest fall and the new one joins. Many leaves are made smaller on the 3D tree so they all fit.</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafAppearMs" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf appear duration (milliseconds)</label>
+                                        <input type="number" id="tree3d-leafAppearMs" min="100" max="5000" step="100" value="900" style="width:120px;">
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">How long a new leaf takes to fade in at the bottom middle (2D: Leaf Animation Duration).</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafShowcaseSeconds" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Time at the bottom middle (seconds)</label>
+                                        <input type="number" id="tree3d-leafShowcaseSeconds" min="0" max="30" step="1" value="12" style="width:120px;">
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">How long a new feedback's leaf stays at the bottom middle of the screen before floating up to the tree, for example 10 to 15 seconds (0 = floats up at once). Shared with the 2D tree: one setting for both trees.</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafBatchMode" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Split new leaves arriving together</label>
+                                        <select id="tree3d-leafBatchMode" onchange="updateTree3dBatchFields()" style="width:100%; max-width:260px; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <option value="groups">Into a number of groups</option>
+                                            <option value="size">Into groups of a number of leaves</option>
+                                        </select>
+                                        <div id="tree3d-leafBatchCountBox" style="margin-top:6px;">
+                                            <label for="tree3d-leafBatchCount" style="color:#334155;">Number of groups</label>
+                                            <input type="number" id="tree3d-leafBatchCount" min="1" max="10" step="1" value="3" oninput="updateTree3dBatchFields()" style="width:80px; margin-left:6px;">
+                                        </div>
+                                        <div id="tree3d-leafBatchSizeBox" style="margin-top:6px; display:none;">
+                                            <label for="tree3d-leafBatchSize" style="color:#334155;">Leaves in a group (at most)</label>
+                                            <input type="number" id="tree3d-leafBatchSize" min="1" max="10" step="1" value="3" oninput="updateTree3dBatchFields()" style="width:80px; margin-left:6px;">
+                                        </div>
+                                        <p id="tree3d-leafBatchExample" style="font-size:12px; color:#166534; font-weight:600; margin-top:6px;"></p>
+                                        <p style="font-size:12px; color:#666; margin-top:4px;">When several feedbacks arrive together, their leaves are split into groups, as evenly as they go, and each group shows side by side at the bottom of the screen, spread across it, for the time above; then its leaves join the tree in no set order and the next group appears. Try it with <code>/3dTree?demo=10</code>.</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafFloatMs" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Float-up duration (milliseconds)</label>
+                                        <input type="number" id="tree3d-leafFloatMs" min="2000" max="20000" step="500" value="7200" style="width:120px;">
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">How long a new leaf takes to float up and settle on the tree.</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-leafFallMs" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf fall duration (milliseconds)</label>
+                                        <input type="number" id="tree3d-leafFallMs" min="500" max="10000" step="100" value="4200" style="width:120px;">
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">How long the oldest leaf takes to fall (2D: Leaf Fall Duration).</p>
+                                    </div>
+                                </div>
+                                <div style="font-weight:600; color:#334155; margin-bottom:8px;">Badge leaf styling</div>
+                                <label style="display:flex; align-items:center; gap:10px; font-weight:600; color:#334155; margin-bottom:6px;">
+                                    <input type="checkbox" id="tree3d-badgeColours"> Colour leaves by their badge (as the 2D tree)
+                                </label>
+                                <p style="font-size:12px; color:#666; margin:0 0 12px;">On (the default): each leaf is coloured by its visitor's badge, starting in a light shade of the badge's colour below and turning to a dark shade of it after the time in "A leaf stays light for"; VIP leaves stay gold. A badge left at its built-in colour here uses the 2D tree's colour for it (Badge Leaf Styling). This works in both the glowing and the natural look. Off: light green when new and dark green later (3D Leaf Adjustments); in the glowing look, green, blue or orange by the badge's E, S or G. The leaf size is the Leaf scale in 3D Leaf Adjustments.</p>
+                                <div id="tree3d-badgeColours-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap:10px 18px;"></div>
+                            </div>
+                        </div>
+
+                        <br>
+
+                        <div class="tree-adjustment-section" data-treeadj-fold="scene3d">
+                            <div class="section-header">
+                                <h3>3D Scene Controls</h3>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <button class="btn-primary" onclick="saveTree3dSettings()">Save 3D Settings</button>
+                                    <button class="btn-primary" onclick="resetTree3dSettings()">Reset to Defaults</button>
+                                </div>
+                            </div>
+                            <div id="treeadj-body-scene3d" class="section-body">
+                                <p style="font-size:12px; color:#666; margin:0 0 14px;">These are the controls shown on the /3dTree screen. The screen applies a saved change within about 5 seconds. Someone using the on-screen controls is not overruled until the next change here.</p>
+                                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:18px 24px;">
+                                    <div>
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Look</span>
+                                        <label style="display:flex; align-items:center; gap:8px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-glowLook"> Glowing look
+                                        </label>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">On: the tree at night, lit from within, with glowing leaves, rings of light and handwritten names. Off: the daylight river valley with natural leaves. The screen reloads into the new look within about 5 seconds; with the glowing look the scene stays at night whatever the weather.</p>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-trunkGlow" onchange="updateTree3dTrunkGlowFields()"> Trunk glow (light streams on the trunk, branches and roots)
+                                        </label>
+                                        <div style="display:flex; align-items:center; gap:10px; margin-top:6px;" id="tree3d-trunkGlowStrengthRow">
+                                            <label for="tree3d-trunkGlowStrength" style="color:#334155;">Strength</label>
+                                            <input type="range" id="tree3d-trunkGlowStrength" min="50" max="200" step="5" value="100" oninput="updateTree3dTrunkGlowFields()">
+                                            <span id="tree3d-trunkGlowStrengthValue">100%</span>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">In the glowing look: green, blue and orange streams of light running up the trunk and out along every branch and root, each in a soft halo. Strength makes them thinner and dimmer (50%) or thicker and brighter (up to 200%). Off: the bark shows plainly in the moonlight; the leaves and rings still glow. The screen changes within about 5 seconds, without reloading.</p>
+                                    </div>
+                                    <div>
+                                <div class="screen-size-panel">
+                                    <label for="tree3d-screenPreset" class="tree-style-label">🖥️ Screen size</label>
+                                    <select id="tree3d-screenPreset" data-screen-size onchange="updateScreenSizeFields('tree3d')"></select>
+                                    <div id="tree3d-screenCustom" class="screen-size-custom" hidden>
+                                        <label for="tree3d-screenWidth">Width</label>
+                                        <input type="number" id="tree3d-screenWidth" min="0.01" step="any" placeholder="7" oninput="updateScreenSizeFields('tree3d')">
+                                        <span aria-hidden="true">×</span>
+                                        <label for="tree3d-screenHeight">Height</label>
+                                        <input type="number" id="tree3d-screenHeight" min="0.01" step="any" placeholder="2" oninput="updateScreenSizeFields('tree3d')">
+                                    </div>
+                                    <p class="screen-size-shape" id="tree3d-screenShape"></p>
+                                    <p class="tree-style-help">Auto fits the tree to the screen it is shown on. Choose a size when the display has another shape than the picture it is sent, as an LED wall's controller often does: the tree is then drawn in that shape, as large as the screen allows, black round it. Only the shape matters, so any unit works: 7 × 2 (metres) or 3840 × 1080 (pixels). Save to apply it on /3dTree within about 5 seconds.</p>
+                                </div>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-weatherSource" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Weather</label>
+                                        <select id="tree3d-weatherSource" onchange="updateTree3dWeatherFields()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <option value="live">Automatic (live weather at Woodlands)</option>
+                                            <option value="manual">Manual</option>
+                                        </select>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">Automatic detects the weather at Woodlands by itself and follows it: the time of day there (sunrise, day, sunset, night) and rain and thunder from the Woodlands rain gauge, checked every minute. Only Woodlands is used; no other place is offered. Manual sets the sky yourself.</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-rainArea" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Weather location (automatic weather)</label>
+                                        <select id="tree3d-rainArea" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;" title="The automatic weather is always detected at Woodlands">
+                                            <option value="Woodlands">Woodlands</option>
+                                        </select>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">📍 Woodlands only.</p>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-manualSky" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Time of day (manual weather)</label>
+                                        <select id="tree3d-manualSky" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <option value="sunrise">Sunrise</option>
+                                            <option value="day">Day</option>
+                                            <option value="sunset">Sunset</option>
+                                            <option value="night">Night</option>
+                                        </select>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-manualRain"> Rain and thunder
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-riverLevelMode" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">River level</label>
+                                        <select id="tree3d-riverLevelMode" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <option value="auto">Auto (follows the rain)</option>
+                                            <option value="normal">Preview Normal</option>
+                                            <option value="high">Preview High</option>
+                                            <option value="danger">Preview Danger</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Motion</span>
+                                        <label style="display:flex; align-items:center; gap:8px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-autoOrbit" onchange="updateTree3dTurnFields()"> Turn the tree automatically
+                                        </label>
+                                        <!-- How fast and which way the tree turns (tree3dParameters.orbitSeconds, orbitDirection;
+                                             frontend/3dTree/tree-view.js setOrbit). -->
+                                        <div id="tree3d-turnFields" style="margin:8px 0 0 24px;">
+                                            <label for="tree3d-orbitTime" style="display:block; color:#334155; margin-bottom:4px;">One full turn every</label>
+                                            <div style="display:flex; gap:8px; align-items:center;">
+                                                <input type="number" id="tree3d-orbitTime" min="1" max="86400" step="1" value="24" oninput="updateTree3dTurnFields()" style="width:90px; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                <select id="tree3d-orbitUnit" aria-label="Seconds, minutes or hours" onchange="updateTree3dTurnFields()" style="width:auto; flex:0 0 auto; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="seconds">seconds</option>
+                                                    <option value="minutes">minutes</option>
+                                                    <option value="hours" selected>hours</option>
+                                                </select>
+                                            </div>
+                                            <div class="turn-presets" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(1, 'minutes')">1 min</button>
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(5, 'minutes')">5 min</button>
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(30, 'minutes')">30 min</button>
+                                                <button type="button" class="turn-preset" onclick="setTree3dTurnTime(24, 'hours')">24 h</button>
+                                            </div>
+                                            <label for="tree3d-orbitDirection" style="display:block; color:#334155; margin:8px 0 4px;">Direction</label>
+                                            <select id="tree3d-orbitDirection" onchange="updateTree3dTurnFields()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                <option value="right">The tree turns to the right</option>
+                                                <option value="left">The tree turns to the left</option>
+                                            </select>
+                                            <p id="tree3d-turnHelp" style="font-size:12px; color:#666; margin-top:6px;">From 30 seconds to 24 hours a turn.</p>
+                                        </div>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-showSoilPanel"> Show the soil life cutaway
+                                        </label>
+                                    </div>
+                                    <!-- Sound: a whole row of its own (Owner: Role 2, Wei Jie). -->
+                                    <div style="grid-column: 1 / -1;">
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Sound</span>
+                                        <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+                                            <label style="display:flex; align-items:center; gap:8px; color:#334155;">
+                                                <input type="checkbox" id="tree3d-soundEnabled" onchange="updateTree3dSoundOffNote()"> Sound on the 3D screen (ambient sounds, weather and music)
+                                            </label>
+                                            <div style="display:flex; align-items:center; gap:10px;">
+                                                <label for="tree3d-soundVolume" style="color:#334155;">Volume</label>
+                                                <input type="range" id="tree3d-soundVolume" min="0" max="100" step="1" value="78" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-soundVolumeValue">78</span>
+                                            </div>
+                                            <button type="button" class="turn-preset" id="tree3d-soundPreview" onclick="toggleTree3dSoundPreview()">▶ Listen here</button>
+                                        </div>
+                                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px 28px; margin-top:6px;">
+                                            <div>
+                                                <span style="display:block; font-weight:600; color:#334155; margin:8px 0 4px;">Ambient sounds</span>
+<div class="tree3d-ambient-list">
+                                            <div class="tree3d-ambient-row">
+                                                <label title="the flowing river"><input type="checkbox" id="tree3d-ambientRiver" onchange="applyTree3dSoundPreview()"> River water</label>
+                                                <input type="range" id="tree3d-ambientRiverVolume" min="0" max="100" step="1" value="100" aria-label="River water volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientRiverVolumeValue">100</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="a magpie-robin calling now and then"><input type="checkbox" id="tree3d-ambientBirds" onchange="applyTree3dSoundPreview()"> Birds</label>
+                                                <input type="range" id="tree3d-ambientBirdsVolume" min="0" max="100" step="1" value="100" aria-label="Birds volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientBirdsVolumeValue">100</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="the breeze in the trees"><input type="checkbox" id="tree3d-ambientWind" onchange="applyTree3dSoundPreview()"> Forest wind</label>
+                                                <input type="range" id="tree3d-ambientWindVolume" min="0" max="100" step="1" value="100" aria-label="Forest wind volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientWindVolumeValue">100</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="a soft, steady rain"><input type="checkbox" id="tree3d-ambientRain" onchange="applyTree3dSoundPreview()"> Gentle rain</label>
+                                                <input type="range" id="tree3d-ambientRainVolume" min="0" max="100" step="1" value="60" aria-label="Gentle rain volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientRainVolumeValue">60</span>
+                                            </div>
+                                            <div class="tree3d-ambient-row">
+                                                <label title="crickets and cicadas, louder at night"><input type="checkbox" id="tree3d-ambientInsects" onchange="applyTree3dSoundPreview()"> Night insects</label>
+                                                <input type="range" id="tree3d-ambientInsectsVolume" min="0" max="100" step="1" value="60" aria-label="Night insects volume" oninput="updateTree3dRangeLabels()">
+                                                <span id="tree3d-ambientInsectsVolumeValue">60</span>
+                                            </div>
+                                        </div>
+                                            </div>
+                                            <div>
+                                                <span style="display:block; font-weight:600; color:#334155; margin:8px 0 4px;">Background music</span>
+                                                <div style="display:flex; align-items:center; gap:10px;">
+                                                    <label for="tree3d-musicStyle" style="color:#334155; min-width:92px;">Music to play</label>
+                                                    <select id="tree3d-musicStyle" class="form-control" style="max-width:300px;" onchange="tree3dMusicChanged()">
+                                                        <optgroup label="Built-in music (default)">
+                                                            <option value="kalimba">Calm kalimba (default)</option>
+                                                            <option value="piano">Soft piano</option>
+                                                            <option value="dreamy">Dreamy pads</option>
+                                                            <option value="musicbox">Music box</option>
+                                                        </optgroup>
+                                                        <optgroup label="My uploaded music" id="tree3d-musicUploadedGroup"></optgroup>
+                                                        <option value="none">None (no music)</option>
+                                                    </select>
+                                                </div>
+                                                <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+                                                    <label for="tree3d-musicVolume" style="color:#334155; min-width:92px;">Music volume</label>
+                                                    <input type="range" id="tree3d-musicVolume" min="0" max="100" step="1" value="45" oninput="updateTree3dRangeLabels()">
+                                                    <span id="tree3d-musicVolumeValue">45</span>
+                                                </div>
+                                                <p style="font-size:12px; color:#666; margin-top:8px;">Built-in music is composed live by the 3D screen itself, never quite the same twice, so there is nothing to license: Calm kalimba (the default), Soft piano, Dreamy pads or Music box. Your uploaded music is listed under My uploaded music; it plays looped. The ambient sounds play with whichever music you choose.</p>
+                                            </div>
+                                        </div>
+                                        <!-- My music: the admin's own music files across the whole row (assets/Tree/music;
+                                             /api/admin/parameters/tree3d-music/upload, /list and DELETE; frontend/3dTree/background-music.js plays them). -->
+                                        <div id="tree3d-musicUploadBlock" style="margin-top:14px; padding:12px 14px; border:1px solid #dbe4ea; border-radius:8px; background:#f8fafc;">
+                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                                                <span style="font-weight:600; color:#334155;">🎵 My music</span>
+                                                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                                    <input type="file" id="tree3d-musicFile" accept="audio/*,.mp3,.ogg,.oga,.wav,.m4a,.aac,.webm,.flac">
+                                                    <button type="button" class="btn-primary" id="tree3d-musicUpload" onclick="uploadTree3dMusic()">Upload Music</button>
+                                                </div>
+                                            </div>
+                                            <div id="tree3d-musicSoundOff" hidden style="margin-top:10px; padding:8px 12px; border:1px solid #fcd34d; border-radius:6px; background:#fffbeb; color:#92400e; font-size:13px;">
+                                                ⚠️ <strong>Sound on the 3D screen is off</strong>, so the 3D screen plays no sound at all, not even your music. Turn it on to hear the music there.
+                                                <button type="button" class="btn-primary" style="margin-left:8px;" onclick="turnOnTree3dSound()">Turn on sound</button>
+                                            </div>
+                                            <div id="tree3d-musicList" style="margin-top:10px;"></div>
+                                            <small id="tree3d-musicStatus" style="display:block; margin-top:6px; color:#475569;"></small>
+                                            <small style="display:block; margin-top:4px; color:#666;">MP3, OGG, WAV, M4A, AAC, WebM or FLAC, up to 30 MB each. An uploaded file plays on the 3D screen at once; Use plays another of your files, and choosing Built-in music above (then Save) goes back to the 3D screen's own music. Your files stay here until you delete them. Use music you have the right to play in public.</small>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:8px;">Tick the ambient sounds to play, each at its own volume within the Volume above; the river water, birds and forest wind are on at first. The weather's own sounds (rain as it rains, thunder) play as well. Listen here plays exactly what the 3D screen plays, in this browser, and follows your changes as you make them. Browsers play sound only after a first touch on the page: until then the 3D screen shows "Tap anywhere to turn on the sound", and any touch starts it. <strong>To have the sound start by itself every time the 3D page loads</strong>, double-click <code>scripts\browser\allow-3d-tree-autoplay.reg</code> on the 3D screen's PC once and answer Yes (it allows the 3D tree's address to play sound in Chrome and Edge; <code>undo-3d-tree-autoplay.reg</code> removes it).</p>
+                                    </div>
+                                    <div>
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">On-screen panels</span>
+                                        <label style="display:flex; align-items:center; gap:8px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-showWeatherPanel"> Weather panel
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:6px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-showRiverPanel"> River level panel
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:6px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-showControlsBar"> Controls bar (sound, orbit, wind, soil, full screen)
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:6px; color:#334155;">
+                                            <input type="checkbox" id="tree3d-showYearReview"> Year Review button
+                                        </label>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">Hidden panels keep working from this page.</p>
+                                    </div>
+                                    <div>
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Run now on the 3D screen</span>
+                                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                            <button class="btn-primary" type="button" onclick="triggerTree3dAction('gust')">Wind gust now</button>
+                                            <button class="btn-primary" type="button" onclick="triggerTree3dAction('sunset')">Play sunset now</button>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">Play sunset eases into night and stays there until the weather settings are saved again.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <!-- 3D View & Zoom: a live preview of the 3D tree (frontend/3dTree/3dTree.html?viewEditor=1) to turn and
+                             zoom, saved as snapshots (tree3dParameters.savedViews) and chosen for the 3D screens (screenView;
+                             frontend/3dTree/view-settings.js, admin/js/tree3d.js). -->
+                        <div class="tree-adjustment-section" data-treeadj-fold="view3d">
+                            <div class="section-header">
+                                <h3>3D View &amp; Zoom</h3>
+                            </div>
+                            <div id="treeadj-body-view3d" class="section-body">
+                                <p style="font-size:12px; color:#666; margin:0 0 12px;">Frame the 3D tree the way the screen should show it: in the preview, drag to turn round the tree and up or down, and zoom in or out with the mouse wheel (or the buttons). Save it as a snapshot, then choose which snapshot the 3D screens show. The screens move to it within about 5 seconds and keep turning slowly from there (when the automatic turn is on).</p>
+                                <div class="view3d-layout">
+                                    <div class="view3d-stage">
+                                        <div class="view3d-tools">
+                                            <button type="button" class="turn-preset" onclick="zoomTree3dView(1.15)" title="Zoom in">＋ Zoom in</button>
+                                            <button type="button" class="turn-preset" onclick="zoomTree3dView(1 / 1.15)" title="Zoom out">－ Zoom out</button>
+                                            <button type="button" class="turn-preset" onclick="standardTree3dView()">Standard view</button>
+                                            <span id="tree3d-viewReadout" class="view3d-readout">Zoom 100%</span>
+                                        </div>
+                                    </div>
+                                    <div class="view3d-snapshots">
+                                        <label for="tree3d-viewName" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Save this view</label>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="text" id="tree3d-viewName" maxlength="60" placeholder="e.g. Close up on the canopy" style="flex:1; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <button type="button" class="btn-primary" onclick="saveTree3dSnapshot()">Save snapshot</button>
+                                        </div>
+                                        <span style="display:block; font-weight:600; color:#334155; margin:14px 0 6px;">Saved views</span>
+                                        <ul id="tree3d-viewList" class="view3d-list"></ul>
+                                        <button type="button" class="turn-preset" style="margin-top:8px;" onclick="useTree3dView('')">Use the standard view on the 3D screens</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <!-- 3D Leaf Adjustments: the feedback leaves on the 3D tree (frontend/3dTree/feedback-leaves.js).
+                             The leaf is the RainTree model in /assets/Tree/3dTreeLeaves; it is coloured, not uploaded. -->
+                        <div class="tree-adjustment-section" data-treeadj-fold="leaf3d">
+                            <div class="section-header">
+                                <h3>3D Leaf Adjustments</h3>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <button class="btn-primary" onclick="saveTree3dSettings()">Save 3D Leaves</button>
+                                    <button class="btn-primary" onclick="resetTree3dLeafSettings()">Reset to Defaults</button>
+                                </div>
+                            </div>
+                            <div id="treeadj-body-leaf3d" class="section-body">
+                                <label style="display:flex; align-items:center; gap:10px; font-weight:600; color:#334155; margin-bottom:6px;">
+                                    <input type="checkbox" id="tree3d-showFeedbackLeaves"> Show a leaf for each feedback on the 3D tree
+                                </label>
+                                <label style="display:flex; align-items:center; gap:10px; font-weight:600; color:#334155; margin-bottom:6px;">
+                                    <input type="checkbox" id="tree3d-showLeafNames"> Show the visitor's name on each leaf (as the 2D tree)
+                                </label>
+                                <p style="font-size:12px; color:#666; margin:0 0 16px;">The leaf is the RainTree leaf model. The 3D tree shows the same leaves as the 2D tree: a new feedback's leaf flies in, a new visitor's leaf glows for a minute, and past the 2D tree's Maximum Visible Leaves the oldest leaf falls.</p>
+                                <!-- The visitors' names on the 3D leaves: font style, weight and colour (frontend/3dTree/feedback-leaves.js
+                                     NAME_FONTS and useNameStyle; checked by backend/features/parameters/tree3d.js). -->
+                                <div class="leaf3d-name-settings">
+                                    <div style="flex:1; min-width:300px;">
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:8px;">Names on the leaves</span>
+                                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px 20px;">
+                                            <div>
+                                                <label for="tree3d-leafNameFont" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font style</label>
+                                                <select id="tree3d-leafNameFont" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="auto">Match the look</option>
+                                                    <option value="elegant-script">Elegant script</option>
+                                                    <option value="handwriting">Handwriting</option>
+                                                    <option value="modern">Modern</option>
+                                                    <option value="rounded">Rounded</option>
+                                                    <option value="classic-serif">Classic serif</option>
+                                                    <option value="typewriter">Typewriter</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafNameWeight" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font weight</label>
+                                                <select id="tree3d-leafNameWeight" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="400">Regular</option>
+                                                    <option value="500">Medium</option>
+                                                    <option value="600">Semi-bold</option>
+                                                    <option value="700">Bold</option>
+                                                    <option value="800">Extra bold</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafNameSize" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font size</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-leafNameSize" min="0.7" max="1.4" step="0.05" value="1" oninput="updateTree3dNamePreview()" style="flex:1;">
+                                                    <span id="tree3d-leafNameSizeValue" style="min-width:42px; text-align:right;">100%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafNameColor" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Colour</label>
+                                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                                    <input type="color" id="tree3d-leafNameColor" value="#ffffff" oninput="updateTree3dNamePreview()" style="width:44px; height:32px; padding:0; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <div class="leaf3d-swatches" id="tree3d-leafNameSwatches" role="group" aria-label="Quick name colours"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:8px;">"Match the look" writes the names by hand with the glowing look and in clean letters with the natural look. Font size runs from 70% to 140% of the standard; larger names wrap onto more lines inside the leaf, and a long name ends with "…". A dark colour gets a light edge so it stays readable. VIP names are written the same unless they have their own style (3D VIP Leaf Adjustments). The 3D screen writes the names again within about 5 seconds of saving.</p>
+                                    </div>
+                                    <div style="text-align:center;">
+                                        <div class="leaf3d-preview-frame leaf3d-name-frame" id="tree3d-leafNameFrame">
+                                            <div class="leaf3d-preview" id="tree3d-leafNamePreviewLeaf"></div>
+                                            <span class="leaf3d-name-sample" id="tree3d-leafNameSample">Jayson Tan</span>
+                                        </div>
+                                        <p id="tree3d-leafNameCaption" style="font-size:12px; color:#666; margin-top:6px;">Name preview</p>
+                                    </div>
+                                </div>
+                                <!-- Long names scrolling inside the leaf: a row of its own, across the whole width (Owner: Role 2, Wei Jie;
+                                     tree3dParameters.leafNameScroll: frontend/3dTree/feedback-leaves.js scrollingNameLabel, frontend/tree/tree.js
+                                     makeLeafNameScroll). -->
+                                <div class="name-scroll-row">
+                                    <label class="name-scroll-switch">
+                                        <input type="checkbox" id="tree3d-leafNameScroll" onchange="updateTree3dNameScrollDemo()"> Scroll long names inside the leaf (2D and 3D trees)
+                                    </label>
+                                    <div class="name-scroll-demo" id="tree3d-nameScrollDemo" aria-label="Example: a long name on a leaf">
+                                        <span class="name-scroll-track"><span>Muhammad Hafiz bin Abdullah Rahman</span><span aria-hidden="true">Muhammad Hafiz bin Abdullah Rahman</span></span>
+                                        <span class="name-scroll-short">Muhammad Hafiz…</span>
+                                    </div>
+                                    <p class="name-scroll-help">A name too long for its leaf is shortened with "…". <strong>On</strong> (the default): it shows in full instead, gliding smoothly from right to left inside the leaf so it reads from left to right; it pauses at the start, scrolls at a steady pace, then starts again, its ends fading softly. Short names stay still. <strong>Off</strong>: long names are shortened with "…". Press Save; both trees change within about 5 seconds.</p>
+                                </div>
+                                <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start;">
+                                    <div style="flex:1; min-width:300px;">
+                                        <div style="margin-bottom:16px;">
+                                            <span style="display:block; font-weight:600; color:#334155; margin-bottom:6px;">New leaves: light green</span>
+                                            <div class="leaf3d-swatches" id="tree3d-leafNewSwatches" role="group" aria-label="New leaf colour, light greens"></div>
+                                            <input type="hidden" id="tree3d-leafNewColor" value="#7cb342">
+                                        </div>
+                                        <div style="margin-bottom:16px;">
+                                            <span style="display:block; font-weight:600; color:#334155; margin-bottom:6px;">Older leaves: dark green</span>
+                                            <div class="leaf3d-swatches" id="tree3d-leafOldSwatches" role="group" aria-label="Older leaf colour, dark greens"></div>
+                                            <input type="hidden" id="tree3d-leafOldColor" value="#1f5f2e">
+                                        </div>
+                                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:14px 24px;">
+                                            <div>
+                                                <label for="tree3d-leafSide" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Left or right leaves</label>
+                                                <select id="tree3d-leafSide" onchange="updateTree3dLeafPreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="both">Left and right mixed (as the 2D tree)</option>
+                                                    <option value="left">Left leaves only</option>
+                                                    <option value="right">Right leaves only</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafNewHours" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">A leaf stays light for</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="number" id="tree3d-leafNewHours" min="0" max="10080" step="1" value="24" style="width:90px;">
+                                                    <select id="tree3d-leafNewUnit" aria-label="Minutes or hours" style="padding:5px 6px; border:1px solid #d1d5db; border-radius:6px;">
+                                                        <option value="minutes">minutes</option>
+                                                        <option value="hours" selected>hours</option>
+                                                    </select>
+                                                </div>
+                                                <p style="font-size:12px; color:#666; margin-top:6px;">A leaf joins light (light green, or a light shade of its badge colour) and turns dark after this long, for example 1 hour.</p>
+                                            </div>
+                                            <div>
+                                                <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaves on the tree</span>
+                                                <p style="margin:0; color:#334155;">Same as the 2D tree: <strong id="tree3d-leafCount2d">15</strong> leaves</p>
+                                                <p style="font-size:12px; color:#666; margin-top:4px;">Set by Maximum Visible Leaves in the 2D Tree Parameters Settings. Past it, the oldest leaf falls on both trees; at growth stage 0 neither shows leaves.</p>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-leafScale" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Leaf scale</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-leafScale" min="0.4" max="2.5" step="0.05" value="1" oninput="updateTree3dLeafPreview()">
+                                                    <span id="tree3d-leafScaleValue">1</span>
+                                                </div>
+                                                <p style="font-size:12px; color:#666; margin-top:4px;">Size of the leaves on the 3D tree (1 = standard).</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; gap:18px; text-align:center;">
+                                        <div>
+                                            <div class="leaf3d-preview-frame"><div class="leaf3d-preview" id="tree3d-leafNewPreview"></div></div>
+                                            <p id="tree3d-leafNewCaption" style="font-size:12px; color:#666; margin-top:6px;">New leaf</p>
+                                        </div>
+                                        <div>
+                                            <div class="leaf3d-preview-frame"><div class="leaf3d-preview" id="tree3d-leafOldPreview"></div></div>
+                                            <p id="tree3d-leafOldCaption" style="font-size:12px; color:#666; margin-top:6px;">Older leaf</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <!-- 3D VIP Leaf Adjustments: VIP visitors (the names in VIP Management) get a gold leaf on the
+                             3D tree (frontend/3dTree/feedback-leaves.js). The leaf is the RainTree model; not uploaded. -->
+                        <div class="tree-adjustment-section" data-treeadj-fold="vip3d">
+                            <div class="section-header">
+                                <h3>3D VIP Leaf Adjustments</h3>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <button class="btn-primary" onclick="saveTree3dSettings()">Save VIP Leaves</button>
+                                    <button class="btn-primary" onclick="resetTree3dVipSettings()">Reset to Defaults</button>
+                                </div>
+                            </div>
+                            <div id="treeadj-body-vip3d" class="section-body">
+                                <p style="font-size:12px; color:#666; margin:0 0 14px;">VIP visitors are the names in VIP Management. Their leaves on the 3D tree are gold, as on the 2D tree, and a change to the VIP list shows on the 3D screen within about 5 seconds.
+                                    <button class="btn-secondary" type="button" onclick="showPage('vip')" style="margin-left:8px;">Open VIP Management</button>
+                                </p>
+                                <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start;">
+                                    <div style="flex:1; min-width:300px;">
+                                        <div style="margin-bottom:16px;">
+                                            <span style="display:block; font-weight:600; color:#334155; margin-bottom:6px;">VIP leaves: gold</span>
+                                            <div class="leaf3d-swatches" id="tree3d-leafVipSwatches" role="group" aria-label="VIP leaf colour, golds"></div>
+                                            <input type="hidden" id="tree3d-leafVipColor" value="#d4af37">
+                                        </div>
+                                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:14px 24px;">
+                                            <div>
+                                                <label for="tree3d-vipLeafScale" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">VIP leaf scale</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-vipLeafScale" min="0.4" max="2.5" step="0.05" value="1" oninput="updateTree3dLeafPreview()">
+                                                    <span id="tree3d-vipLeafScaleValue">1</span>
+                                                </div>
+                                                <p style="font-size:12px; color:#666; margin-top:4px;">Size of VIP leaves on the 3D tree (1 = standard).</p>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-vipLeafBrightness" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">VIP leaf brightness</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-vipLeafBrightness" min="30" max="120" step="5" value="70" oninput="updateTree3dLeafPreview()">
+                                                    <span id="tree3d-vipLeafBrightnessValue">70%</span>
+                                                </div>
+                                                <p style="font-size:12px; color:#666; margin-top:4px;">How bright the gold VIP leaves are, with their gold glow and star. 70% (the default) is soft, so the name reads clearly; 100% is as bright as before.</p>
+                                            </div>
+                                            <div>
+                                                <span style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Glow</span>
+                                                <label style="display:flex; align-items:center; gap:8px; color:#334155;">
+                                                    <input type="checkbox" id="tree3d-vipGlow" onchange="updateTree3dLeafPreview()"> Gold glow pulsing around VIP leaves
+                                                </label>
+                                                <label style="display:flex; align-items:center; gap:8px; color:#334155; margin-top:6px;">
+                                                    <input type="checkbox" id="tree3d-vipSparkle" onchange="updateTree3dLeafPreview()"> White star twinkling at the tip of VIP leaves
+                                                </label>
+                                                <label style="display:flex; align-items:center; gap:8px; color:#334155; margin-top:6px;">
+                                                    <input type="checkbox" id="tree3d-vipTurn" onchange="updateTree3dLeafPreview()"> VIP leaves turn gently from left to right
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align:center;">
+                                        <div class="leaf3d-preview-frame"><div class="leaf3d-vip-glow" id="tree3d-leafVipGlowBox"><div class="leaf3d-vip-turn" id="tree3d-leafVipTurn"><div class="leaf3d-preview" id="tree3d-leafVipPreview"></div></div><span class="leaf3d-vip-sparkle" id="tree3d-leafVipSparkle" aria-hidden="true">✦</span></div></div>
+                                        <p id="tree3d-leafVipCaption" style="font-size:12px; color:#666; margin-top:6px;">VIP leaf</p>
+                                    </div>
+                                </div>
+                                <!-- Names on VIP leaves: their own font style, weight, size and colour (vipNameOwnStyle, vipNameFont,
+                                     vipNameWeight, vipNameColor, vipNameSize; frontend/3dTree/feedback-leaves.js useNameStyle), or
+                                     the same as the other names (Names on the leaves, in 3D Leaf Adjustments). -->
+                                <div class="leaf3d-name-settings" style="margin:18px 0 0;">
+                                    <div style="flex:1; min-width:300px;">
+                                        <span style="display:block; font-weight:600; color:#334155; margin-bottom:8px;">Names on VIP leaves</span>
+                                        <label style="display:flex; align-items:center; gap:8px; color:#334155; margin-bottom:10px;">
+                                            <input type="checkbox" id="tree3d-vipNameOwnStyle" onchange="updateTree3dNamePreview()"> Give VIP names their own style
+                                        </label>
+                                        <div id="tree3d-vipNameFields" class="leaf3d-name-fields" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px 20px;">
+                                            <div>
+                                                <label for="tree3d-vipNameFont" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font style</label>
+                                                <select id="tree3d-vipNameFont" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="auto">Match the look</option>
+                                                    <option value="elegant-script">Elegant script</option>
+                                                    <option value="handwriting">Handwriting</option>
+                                                    <option value="modern">Modern</option>
+                                                    <option value="rounded">Rounded</option>
+                                                    <option value="classic-serif">Classic serif</option>
+                                                    <option value="typewriter">Typewriter</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-vipNameWeight" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font weight</label>
+                                                <select id="tree3d-vipNameWeight" onchange="updateTree3dNamePreview()" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <option value="400">Regular</option>
+                                                    <option value="500">Medium</option>
+                                                    <option value="600">Semi-bold</option>
+                                                    <option value="700">Bold</option>
+                                                    <option value="800">Extra bold</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-vipNameSize" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Font size</label>
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <input type="range" id="tree3d-vipNameSize" min="0.7" max="1.4" step="0.05" value="1" oninput="updateTree3dNamePreview()" style="flex:1;">
+                                                    <span id="tree3d-vipNameSizeValue" style="min-width:42px; text-align:right;">100%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label for="tree3d-vipNameColor" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Colour</label>
+                                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                                    <input type="color" id="tree3d-vipNameColor" value="#ffffff" oninput="updateTree3dNamePreview()" style="width:44px; height:32px; padding:0; border:1px solid #d1d5db; border-radius:6px;">
+                                                    <div class="leaf3d-swatches" id="tree3d-vipNameSwatches" role="group" aria-label="Quick VIP name colours"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p style="font-size:12px; color:#666; margin-top:8px;">Off: VIP names are written like the other names (Names on the leaves, in 3D Leaf Adjustments). On: VIP names use the style chosen here, for example a larger size or a dark brown that stands out on the gold leaf. The preview shows the VIP's gold leaf in the chosen look; save with Save VIP Leaves.</p>
+                                    </div>
+                                    <div style="text-align:center;">
+                                        <div class="leaf3d-preview-frame leaf3d-name-frame" id="tree3d-vipNameFrame">
+                                            <div class="leaf3d-preview" id="tree3d-vipNamePreviewLeaf"></div>
+                                            <span class="leaf3d-name-sample" id="tree3d-vipNameSample">Jayson Tan</span>
+                                        </div>
+                                        <p id="tree3d-vipNameCaption" style="font-size:12px; color:#666; margin-top:6px;">VIP name preview</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="tree-adjustment-section" data-treeadj-fold="title3d">
+                            <div class="section-header">
+                                <h3>3D Tree Title Box Settings</h3>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <button class="btn-primary" onclick="saveTree3dSettings()">Save 3D Title Box</button>
+                                    <button class="btn-primary" onclick="resetTree3dTitleSettings()">Reset to Defaults</button>
+                                </div>
+                            </div>
+                            <div id="treeadj-body-title3d" class="section-body">
+                                <label style="display:flex; align-items:center; gap:10px; font-weight:600; color:#334155; margin-bottom:16px;">
+                                    <input type="checkbox" id="tree3d-showTitleBox"> Display 3D Tree Title Box
+                                </label>
+                                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:16px 24px;">
+                                    <div>
+                                        <label for="tree3d-titleOpacity">Background Opacity</label>
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <input type="range" id="tree3d-titleOpacity" min="0" max="1" step="0.01" value="0.54" oninput="updateTree3dRangeLabels()">
+                                            <span id="tree3d-titleOpacityValue">0.54</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-titleBlur">Blur Amount (px)</label>
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <input type="range" id="tree3d-titleBlur" min="0" max="40" step="1" value="18" oninput="updateTree3dRangeLabels()">
+                                            <span id="tree3d-titleBlurValue">18px</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-titleRadius">Border Radius (px)</label>
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <input type="range" id="tree3d-titleRadius" min="0" max="60" step="1" value="20" oninput="updateTree3dRangeLabels()">
+                                            <span id="tree3d-titleRadiusValue">20px</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-titlePaddingX">Horizontal Padding (px)</label>
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <input type="number" id="tree3d-titlePaddingX" value="22" min="0" max="100">
+                                            <span>px</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-titlePaddingY">Vertical Padding (px)</label>
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <input type="number" id="tree3d-titlePaddingY" value="12" min="0" max="100">
+                                            <span>px</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="tree3d-titlePosition" style="display:block; font-size:0.9rem; font-weight:500; color:#334155; margin-bottom:4px;">Position</label>
+                                        <select id="tree3d-titlePosition" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                            <option value="auto" selected>Automatic (top centre; top left on the wall)</option>
+                                            <option value="top-left">Top Left</option>
+                                            <option value="top-center">Top Center</option>
+                                            <option value="top-right">Top Right</option>
+                                            <option value="bottom-left">Bottom Left</option>
+                                            <option value="bottom-center">Bottom Center</option>
+                                            <option value="bottom-right">Bottom Right</option>
+                                        </select>
+                                    </div>
+                                    <div style="grid-column: 1 / -1;">
+                                        <label for="tree3d-titleText" style="display:block; font-size:0.9rem; font-weight:500; color:#334155; margin-bottom:4px;">Title Text</label>
+                                        <input type="text" id="tree3d-titleText" value="ESG Tree" maxlength="80"
+                                            style="width:30%; min-width:240px; height:40px; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                    </div>
+                                    <div style="grid-column: 1 / -1;">
+                                        <label for="tree3d-subtitleText" style="display:block; font-size:0.9rem; font-weight:500; color:#334155; margin-bottom:4px;">Subtitle Text</label>
+                                        <input type="text" id="tree3d-subtitleText" value="Terminalia catappa · A living river valley" maxlength="160"
+                                            style="width:30%; min-width:240px; height:40px; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div id="tree-parameters-tab" class="tree-tab-content">
+                        <div class="tree-adjustment-section" data-treeadj-fold="canopy">
                         <div class="section-header">
                             <h3>Digital Tree Visualization Parameters</h3>
                             <p class="section-description">Configure leaf placement and animation settings</p>
@@ -1167,6 +1973,7 @@
                                 </button>
                             </div>
                         </div>
+                        <div id="treeadj-body-canopy" class="section-body">
 
                         <div class="form-group">
                             <label for="param-ovalWidth">Leaf Canopy Width (pixels)</label>
@@ -1206,12 +2013,18 @@
                             <small class="text-muted">Duration of leaf appearance animation</small>
                         </div>
 
+                        <div class="form-group">
+                            <label for="param-leafShowcaseSeconds">Time at the Bottom Middle (seconds)</label>
+                            <input type="number" id="param-leafShowcaseSeconds" min="0" max="30" step="1" placeholder="12">
+                            <small class="text-muted">A new feedback's leaf shows at the bottom middle of the screen this long before flying to the tree, for example 10 to 15 seconds (0 = flies at once; empty = 12). Shared with the 3D tree: one setting for both trees.</small>
+                        </div>
+
                         <div class="divider"></div>
 
                         <div class="form-group">
                             <label for="param-leafFallThreshold">Maximum Visible Leaves</label>
                             <input type="number" id="param-leafFallThreshold" min="1" max="500" step="1" placeholder="15">
-                            <small class="text-muted">Keep this many live leaves; when a new leaf exceeds the limit, the oldest falls first</small>
+                            <small class="text-muted">Keep this many live leaves in all, at every growth stage; when a new leaf exceeds the limit, the oldest falls first</small>
                         </div>
 
                         <div class="form-group">
@@ -1234,6 +2047,18 @@
                                 <output id="param-sharedLeafScaleValue">1.00x</output>
                             </div>
                             <small class="text-muted">The same scale is saved to normal green leaves and badge-coloured leaves so both change together.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="param-tintDurationHours">A leaf stays light for</label>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="number" id="param-tintDurationHours" min="1" max="10080" step="1" value="24" style="width:110px;">
+                                <select id="param-tintDurationUnit" aria-label="Minutes or hours" style="width:auto; flex:0 0 auto;">
+                                    <option value="minutes">minutes</option>
+                                    <option value="hours" selected>hours</option>
+                                </select>
+                            </div>
+                            <small class="text-muted">On the 2D tree, a new feedback's leaf starts in a light shade of its badge colour and turns to a dark shade of it after this long, so older leaves stand out. Any time up to 7 days, for example 1 minute, 30 minutes or 24 hours. The 3D tree has its own, "A leaf stays light for" in 3D Leaf Adjustments.</small>
                         </div>
 
                         <div class="badge-leaf-style-grid">
@@ -1272,7 +2097,39 @@
                                 <span><strong>Social Champion</strong><small>Community impact badge leaf</small></span>
                                 <input type="color" id="badge-leaf-color-social-champion" value="#d97706">
                             </label>
+                            <!-- Several pledge topics chosen by one visitor: brown by default (Owner: Role 2, Wei Jie) -->
+                            <label class="badge-leaf-style-card">
+                                <span class="badge-leaf-preview" data-preview-badge-leaf="multi-pledge"></span>
+                                <span><strong>Multiple pledges</strong><small>A visitor who chose several pledge topics (brown by default)</small></span>
+                                <input type="color" id="badge-leaf-color-multi-pledge" value="#8b5a2b">
+                            </label>
                         </div>
+                            </div>
+                        </div>
+                    </div>
+                        </div>
+                        <!-- <Jun Kai start> Tree Settings preview (Tree Adjustment B, admin/js/treeAdjustment.js): the tree with the
+                             changes that are not saved yet. The 3D frame is Wei Jie's 3D View & Zoom preview, moved here, so his
+                             zoom and snapshot buttons work on it; the 2D frame shows the 2D tree. -->
+                        <aside class="treeadj-preview ui-card" id="treeadj-preview" aria-labelledby="treeadj-preview-title">
+                            <div class="treeadj-preview-head">
+                                <div>
+                                    <h3 id="treeadj-preview-title">Preview</h3>
+                                    <div class="treeadj-preview-sub" id="treeadj-preview-sub">The 2D tree with your changes, saved or not</div>
+                                </div>
+                                <a class="ui-btn ui-btn-secondary" id="treeadj-open-tree" href="/tree" target="_blank" rel="noopener">Open the tree</a>
+                            </div>
+                            <div class="treeadj-screen ui-light-only" id="treeadj-screen" data-kind="2d" data-state="idle">
+                                <iframe id="treeadj-frame-2d" class="treeadj-frame" title="Preview of the 2D tree" tabindex="-1" aria-hidden="true" src="about:blank"></iframe>
+                                <div class="view3d-frame-box">
+                                    <iframe id="tree3d-viewFrame" class="view3d-frame" title="3D tree view preview" hidden></iframe>
+                                    <button type="button" class="btn-primary view3d-open" id="tree3d-viewOpen" onclick="openTree3dViewEditor()">Show 3D preview</button>
+                                </div>
+                                <div class="treeadj-screen-note" id="treeadj-screen-note">Loading the tree</div>
+                            </div>
+                            <div class="ui-note treeadj-changes" id="treeadj-changes" role="status" aria-live="polite">No unsaved changes.</div>
+                        </aside>
+                        <!-- <Jun Kai end> -->
                     </div>
                 </div>
 
@@ -4663,6 +5520,8 @@
     <script src="/admin/js/sidebar.js"></script>
     <!-- <Jun Kai end> -->
     <script src="/admin/js/tree.js"></script>
+    <script src="/admin/js/tree3d.js"></script>
+    <script src="/admin/js/treeAdjustment.js"></script><!-- <Jun Kai/> Tree Settings B: folds and the preview -->
     <script src="/admin/js/passwordReset.js"></script><!-- <Jun Kai/> a forgotten password (the login card); before init.js -->
     <script src="/admin/js/init.js"></script>
     <script src="/admin/js/themes.js"></script>

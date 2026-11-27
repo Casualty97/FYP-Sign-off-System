@@ -2377,6 +2377,21 @@ html[data-theme="dark"] .dt-vip-star { color: #fbbf24; }
     display: block;
 }
 
+/* Display 2D/3D Tree switches the settings below it: the 2D tabs, or the 3D Tree Settings (admin/js/tree3d.js). */
+.tree3d-settings {
+    display: none;
+    margin-top: 20px;
+}
+
+#tree-adjustment-page.tree-mode-3d .tree3d-settings {
+    display: block;
+}
+
+#tree-adjustment-page.tree-mode-3d .tree-tabs,
+#tree-adjustment-page.tree-mode-3d .tree-tab-content {
+    display: none;
+}
+
 /* ==================== OVERLAY MANAGEMENT PAGE STYLES ==================== */
 
 /* Overlay page container */
@@ -9293,30 +9308,30 @@ html[data-theme="dark"] .pb-heart { color: #fb7185; }
 html[data-theme="dark"] { --l3-link: #60a5fa; }
 /* <Jun Kai end> */
 
-/* <Jun Kai start> Users: the Add user and Edit user dialogs (va-dialog) with the three role cards */
+/* <Jun Kai start> Users: the Add user and Edit user dialogs (va-dialog) with the three role cards (users-role-card: "users-role" is the Role column of the table) */
 .users-dialog { width: min(640px, calc(100vw - 32px)); }
 .users-dialog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
 .users-dialog .ui-field { min-width: 0; margin: 0 0 14px; }
 .users-dialog .ui-input:disabled { background: var(--theme-bg-color); color: var(--color-muted); cursor: not-allowed; }
-.users-roles { min-width: 0; margin: 4px 0 0; padding: 0; border: 0; }
-.users-roles legend { margin: 0 0 8px; padding: 0; }
-.users-role { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 12px; cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease; }
-.users-role + .users-role { margin-top: 8px; }
-.users-role:hover { border-color: color-mix(in srgb, var(--theme-btn-primary-bg) 45%, var(--theme-border-color)); }
-.users-role:has(input:checked) { border-color: var(--theme-btn-primary-bg); background: color-mix(in srgb, var(--theme-btn-primary-bg) 7%, transparent); box-shadow: inset 0 0 0 1px var(--theme-btn-primary-bg); }
-.users-role input { flex-shrink: 0; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--theme-btn-primary-bg); cursor: pointer; }
-.users-role input:focus-visible { outline: 2px solid var(--l3-focus, var(--theme-btn-primary-bg)); outline-offset: 2px; }
-.users-role-text { min-width: 0; }
-.users-role-name { display: block; font-size: 14px; font-weight: 700; line-height: 1.35; color: var(--theme-text-color); }
-.users-role-lead { display: block; font-size: 13px; line-height: 1.4; color: var(--color-dark-gray); }
-.users-role ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
-.users-role li + li { margin-top: 2px; }
+.users-role-cards { min-width: 0; margin: 4px 0 0; padding: 0; border: 0; }
+.users-role-cards legend { margin: 0 0 8px; padding: 0; }
+.users-role-card { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 12px; cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease; }
+.users-role-card + .users-role-card { margin-top: 8px; }
+.users-role-card:hover { border-color: color-mix(in srgb, var(--theme-btn-primary-bg) 45%, var(--theme-border-color)); }
+.users-role-card:has(input:checked) { border-color: var(--theme-btn-primary-bg); background: color-mix(in srgb, var(--theme-btn-primary-bg) 7%, transparent); box-shadow: inset 0 0 0 1px var(--theme-btn-primary-bg); }
+.users-role-card input { flex-shrink: 0; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--theme-btn-primary-bg); cursor: pointer; }
+.users-role-card input:focus-visible { outline: 2px solid var(--l3-focus, var(--theme-btn-primary-bg)); outline-offset: 2px; }
+.users-role-card-text { min-width: 0; }
+.users-role-card-name { display: block; font-size: 14px; font-weight: 700; line-height: 1.35; color: var(--theme-text-color); }
+.users-role-card-lead { display: block; font-size: 13px; line-height: 1.4; color: var(--color-dark-gray); }
+.users-role-card ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--color-dark-gray); }
+.users-role-card li + li { margin-top: 2px; }
 .users-root-role { padding: 12px 14px; border: 1px solid var(--theme-border-color); border-radius: 12px; }
 .users-root-role p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-dark-gray); }
 .users-root-role strong { color: var(--theme-text-color); }
 .users-dialog-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: #fef2f2; font-size: 13px; line-height: 1.5; color: #b91c1c; }
 @media (max-width: 560px) { .users-dialog-grid { grid-template-columns: minmax(0, 1fr); } }
-@media (prefers-reduced-motion: reduce) { .users-role { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .users-role-card { transition: none; } }
 /* <Jun Kai end> */
 
 /* <Jun Kai start> Style & Theme: the starter themes use the saved theme cards, with one line on what the colours are */
@@ -9329,7 +9344,11 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
    buttons are hidden even when the page shows one itself (the Revert buttons), and the fields take no clicks */
 #tree-adjustment-page.is-view-only [data-tree-change] { display: none !important; }
 #tree-adjustment-page.is-view-only :is(input, select, textarea) { pointer-events: none; }
+#tree-adjustment-page.is-view-only [data-tree-locked] { pointer-events: none; }
 .tree-view-only-note { margin: 0 0 16px; }
+/* a hidden note stays hidden: .ui-note sets display: block, which would beat the hidden attribute (the view only note
+   showed for a System Admin after a fresh load) */
+.ui-note[hidden] { display: none; }
 /* <Jun Kai end> */
 
 /* <Jun Kai start> uiConfirm, uiAlert and uiPrompt (uiKit.js): the small va-dialog; a message keeps its line breaks */
@@ -9375,4 +9394,533 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
    the photo timer camera and the badge email are gone. The Live Pulse card lets the page show through its gradient, so in
    dark mode the light page colour sits under it. */
 html[data-theme="dark"] #pulse-page .pulse-launch-section { background-color: #f3f6fa; }
+/* <Jun Kai end> */
+/* 3D Leaf Adjustments (admin/js/tree3d.js): colour swatches and a preview of the RainTree leaf in the
+   chosen colour. The leaf picture is grey, so the colour shows through it with its veins. */
+.leaf3d-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.leaf3d-swatch {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 0 1px #cbd5e1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.leaf3d-swatch[aria-pressed="true"] {
+    box-shadow: 0 0 0 2px #0f172a;
+}
+
+.leaf3d-swatch:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.leaf3d-preview-frame {
+    width: 120px;
+    height: 120px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #e6e9ef;
+    border-radius: 8px;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+.leaf3d-preview {
+    position: relative;
+    width: 100px;
+    height: 66px;
+    background-color: var(--leaf-colour, #43a047);
+    -webkit-mask: url('/assets/Tree/3dTreeLeaves/leaf-preview.png') center / contain no-repeat;
+    mask: url('/assets/Tree/3dTreeLeaves/leaf-preview.png') center / contain no-repeat;
+    filter: brightness(1.35);
+    transition: transform 0.15s ease;
+}
+
+.leaf3d-preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('/assets/Tree/3dTreeLeaves/leaf-preview.png') center / contain no-repeat;
+    mix-blend-mode: multiply;
+}
+
+/* 3D Scene Controls, Motion: quick choices for how long one full turn of the tree takes (admin/js/tree3d.js
+   setTree3dTurnTime). */
+.turn-preset {
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 3px 11px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.turn-preset:hover {
+    background: #e2e8f0;
+}
+
+.turn-preset:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+/* 3D Leaf Adjustments, Names on the leaves (admin/js/tree3d.js updateTree3dNamePreview): a sample name on a
+   leaf in the chosen font, weight and colour, on the night sky with the glowing look. */
+.leaf3d-name-settings {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin: 0 0 18px;
+    padding: 14px;
+    border: 1px solid #e6e9ef;
+    border-radius: 8px;
+    background: #fbfcfe;
+}
+
+.leaf3d-name-frame {
+    position: relative;
+    width: 150px;
+    height: 120px;
+}
+
+.leaf3d-name-frame.glowing {
+    background: radial-gradient(circle at 50% 45%, #183a2c, #0b1712 75%);
+}
+
+.leaf3d-name-frame .leaf3d-preview {
+    width: 130px;
+    height: 86px;
+}
+
+.leaf3d-name-sample {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    line-height: 1.1;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* 3D Leaf Settings > Scroll long names: a row of its own across the whole width, with a leaf showing a long name
+   scrolling as on the trees (admin/js/tree3d.js updateTree3dNameScrollDemo). */
+.name-scroll-row {
+    display: flex; align-items: center; gap: 14px 24px; flex-wrap: wrap;
+    width: 100%; box-sizing: border-box; margin: 16px 0 6px; padding: 12px 16px;
+    border: 1px solid #dbe4ea; border-radius: 8px; background: #f8fafc;
+}
+.name-scroll-switch { display: flex; align-items: center; gap: 10px; font-weight: 600; color: #334155; flex: 1 1 320px; margin: 0; }
+.name-scroll-help { flex: 1 1 100%; font-size: 12px; color: #666; margin: 0; }
+.name-scroll-demo {
+    position: relative; width: 170px; height: 34px; flex: 0 0 auto; overflow: hidden;
+    border-radius: 60% 4px 60% 4px; background: linear-gradient(135deg, #3f8f4f, #1f5f2e);
+    color: #fff; font-weight: 700; font-size: 13px; line-height: 34px; white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+}
+.name-scroll-track {
+    display: inline-flex; padding-left: 17px;
+    animation: nameScrollDemo var(--demo-duration, 9s) linear infinite;
+}
+.name-scroll-track > span { padding-right: 60px; }
+.name-scroll-short { display: none; padding-left: 17px; }
+.name-scroll-demo.is-off .name-scroll-track { display: none; }
+.name-scroll-demo.is-off .name-scroll-short { display: inline; }
+@keyframes nameScrollDemo {
+    0%, 20% { transform: translateX(0); }
+    100% { transform: translateX(calc(-1 * var(--demo-distance, 300px))); }
+}
+@media (prefers-reduced-motion: reduce) { .name-scroll-track { animation: none; } }
+
+/* 3D VIP Leaf Adjustments: the VIP preview pulses gold like the VIP leaves (2D: vipGoldPulse). */
+.leaf3d-vip-glow.glowing {
+    animation: leaf3dVipPulse 2s ease-in-out infinite;
+}
+
+/* Sound > Ambient sounds (admin/js/tree3d.js): each sound's tickbox, volume and its value, in line. */
+.tree3d-ambient-list { display: grid; gap: 4px; }
+.tree3d-ambient-row {
+    display: grid; grid-template-columns: minmax(130px, 170px) minmax(90px, 1fr) 32px; align-items: center; gap: 10px;
+    color: #334155;
+}
+.tree3d-ambient-row label { display: flex; align-items: center; gap: 8px; margin: 0; }
+
+/* The white star at a VIP leaf's tip in the preview (tree3dParameters.vipSparkle), hidden when turned off. */
+.leaf3d-vip-glow { position: relative; }
+.leaf3d-vip-sparkle {
+    position: absolute; top: 50%; right: -2px; transform: translateY(-62%);
+    color: rgba(255, 255, 255, 0.8); font-size: 12px; line-height: 1; /* small and soft, as on the 3D tree */
+    text-shadow: 0 0 4px rgba(255, 241, 204, 0.6);
+    pointer-events: none;
+}
+.leaf3d-vip-sparkle.tip-left { right: auto; left: -2px; } /* a leaf pointing left: its tip on the left */
+.leaf3d-vip-sparkle.is-off { display: none; }
+
+/* The VIP leaf in the preview turning gently from left to right and back, as on the 3D tree (vipTurn). */
+.leaf3d-vip-turn { display: inline-block; }
+.leaf3d-vip-turn.turning { animation: leaf3dVipTurn 6s ease-in-out infinite; }
+@keyframes leaf3dVipTurn {
+    0%, 100% { transform: perspective(240px) rotateY(0deg); }
+    25% { transform: perspective(240px) rotateY(40deg); }
+    75% { transform: perspective(240px) rotateY(-40deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .leaf3d-vip-turn.turning { animation: none; }
+}
+
+/* Gentle, as on the 3D tree, and dimmer with the VIP leaf brightness (--vip-glow, 0.3 to 1). */
+@keyframes leaf3dVipPulse {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 215, 0, calc(0.45 * var(--vip-glow, 0.7)))); }
+    50% { filter: drop-shadow(0 0 6px rgba(255, 215, 0, calc(0.6 * var(--vip-glow, 0.7)))) drop-shadow(0 0 12px rgba(255, 200, 0, calc(0.35 * var(--vip-glow, 0.7)))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .leaf3d-vip-glow.glowing { animation: none; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.9)); }
+}
+
+/* Names on VIP leaves (admin/js/tree3d.js updateTree3dNamePreview): the VIP name fields while "own style" is off. */
+.leaf3d-name-fields.is-off {
+    opacity: 0.45;
+}
+
+/* 3D View & Zoom (admin/js/tree3d.js): the live 3D preview beside the saved views. */
+.view3d-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 1.6fr) minmax(260px, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .view3d-layout { grid-template-columns: 1fr; }
+}
+
+.view3d-frame-box {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0b1712;
+    display: grid;
+    place-items: center;
+}
+
+.view3d-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.view3d-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.view3d-readout {
+    font-size: 12px;
+    color: #334155;
+    margin-left: auto;
+}
+
+.view3d-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.view3d-empty {
+    font-size: 13px;
+    color: #64748b;
+    padding: 10px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+}
+
+.view3d-item {
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.view3d-item.view3d-in-use {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+
+.view3d-item-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.view3d-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #166534;
+}
+
+.view3d-meta {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.view3d-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.view3d-actions .turn-preset:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.view3d-delete { color: #b91c1c; }
+
+/* ---------- 2D Tree Display: the tree's picture style (Role 2, Wei Jie; js/tree.js, checklist item 12) ---------- */
+.tree-style-panel {
+    margin-top: 18px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.tree-style-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.tree-style-panel select {
+    padding: 8px 10px;
+    border: 1px solid #d7dbe3;
+    border-radius: 6px;
+    background: #fff;
+    min-width: 280px;
+}
+
+.tree-style-previews {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.tree-style-preview {
+    margin: 0;
+    font-size: 12px;
+    color: #475569;
+}
+
+.tree-style-preview img,
+.tree-style-preview .tree-style-missing {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--theme-border-color);
+    background: #e2e8f0;
+}
+
+.tree-style-preview .tree-style-missing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+.tree-style-preview figcaption { margin-top: 4px; }
+
+.tree-style-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.tree-style-status { font-size: 13px; color: #64748b; }
+.tree-style-status.error { color: #b91c1c; }
+.tree-style-help { font-size: 12px; color: #666; margin-top: 6px; }
+
+#tree-style-capture-modal.open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tree-style-capture-box {
+    width: min(680px, 92vw);
+    padding: 18px;
+}
+
+.tree-style-capture-progress { margin: 0 0 10px; font-weight: 600; }
+
+/* The 3D page draws its picture at 1920 x 1080 whatever the frame's size (frontend/3dTree/capture-2d.js). */
+.tree-style-capture-frame {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: 8px;
+    background: #0b1f33;
+}
+
+/* The painted tree's preview: its canopy and trunk pictures stacked on the default background, as on /tree. */
+.tree-style-preview .tree-style-painted {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid var(--theme-border-color);
+    background: #e2e8f0 url('/assets/Tree/background/2dTreeBackground.jpeg') center / cover no-repeat;
+}
+
+.tree-style-preview .tree-style-painted img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    aspect-ratio: auto;
+}
+
+/* Screen size, for the 2D and 3D trees (Role 2, Wei Jie; js/tree.js updateScreenSizeFields). */
+.screen-size-panel {
+    margin-top: 18px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.screen-size-panel select {
+    padding: 8px 10px;
+    border: 1px solid #d7dbe3;
+    border-radius: 6px;
+    background: #fff;
+    width: 100%;
+    max-width: 360px;
+}
+
+.screen-size-custom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.screen-size-custom[hidden] { display: none; }
+
+.screen-size-custom input {
+    width: 90px;
+    padding: 6px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+}
+
+.screen-size-shape {
+    margin: 8px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+/* <Jun Kai start> Tree Settings, Tree Adjustment B (admin/js/treeAdjustment.js): Wei Jie's sections fold open on the
+   left, the preview of the tree stays on the right. The tree screen in the preview stays light in dark mode
+   (ui-light-only). His two 2D tabs show as one list, so the tab buttons are hidden. */
+.treeadj-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr); gap: 20px; align-items: start; }
+.treeadj-settings { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+#tree-adjustment-page .tree-tabs { display: none; }
+#tree-adjustment-page:not(.tree-mode-3d) .tree-tab-content,
+#tree-adjustment-page.tree-mode-3d .tree3d-settings { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+#tree-adjustment-page .treeadj-settings > br,
+#tree-adjustment-page .tree-tab-content > br,
+#tree-adjustment-page .tree3d-settings > br { display: none; }
+#tree-adjustment-page .treeadj-fold { padding: 0; border-width: 1px; border-radius: 14px; min-width: 0; }
+#tree-adjustment-page .treeadj-fold > .section-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; padding: 0; border-bottom: 0; }
+#tree-adjustment-page .treeadj-fold > .section-header > h3 { flex: 1 1 100%; margin: 0; font-size: 15px; }
+#tree-adjustment-page .treeadj-fold.is-open > .section-header { padding-bottom: 12px; }
+#tree-adjustment-page .treeadj-fold.is-open > .section-header > :not(h3) { padding: 0 20px; }
+#tree-adjustment-page .treeadj-fold:not(.is-open) > .section-header > :not(h3),
+#tree-adjustment-page .treeadj-fold:not(.is-open) > .section-body { display: none !important; }
+#tree-adjustment-page .treeadj-fold > .section-body { padding: 0 20px 20px; margin-top: 0 !important; flex-wrap: wrap; min-width: 0; }
+.treeadj-fold-toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 20px; border: 0; border-radius: 14px; background: none; color: inherit; font: inherit; text-align: left; }
+button.treeadj-fold-toggle { cursor: pointer; }
+button.treeadj-fold-toggle:hover { background: var(--theme-bg-color); }
+button.treeadj-fold-toggle:focus-visible { outline: 2px solid var(--l3-focus, #2563eb); outline-offset: -2px; }
+.treeadj-fold.is-open > .section-header button.treeadj-fold-toggle { border-radius: 14px 14px 0 0; }
+.treeadj-fold-title { font-weight: 700; color: var(--theme-text-color); }
+.treeadj-fold-sum { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--color-dark-gray); text-align: right; overflow-wrap: anywhere; }
+.treeadj-unsaved[hidden] { display: none; } /* .ui-tag sets display: inline-block, which would beat hidden */
+.treeadj-fold-chevron { display: inline-flex; flex: none; color: var(--color-dark-gray); transition: transform 0.15s ease; }
+.treeadj-fold.is-open .treeadj-fold-chevron { transform: rotate(180deg); }
+/* .page-content has overflow: auto without a height, so it never scrolls but would still hold the preview in place */
+.page-content:has(> #tree-adjustment-page.active) { overflow: visible; }
+.treeadj-preview { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 18px 20px; }
+.treeadj-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.treeadj-preview-head h3 { margin: 0; font-size: 16px; color: var(--theme-text-color); }
+.treeadj-preview-sub { margin-top: 2px; font-size: 13px; color: var(--color-dark-gray); }
+.treeadj-preview-head .ui-btn { flex: none; text-decoration: none; }
+.treeadj-screen { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #0b1712; }
+.treeadj-screen .treeadj-frame,
+.treeadj-screen .view3d-frame { position: absolute; top: 0; left: 0; right: auto; bottom: auto; width: 1600px; height: 900px; border: 0; transform-origin: 0 0; }
+.treeadj-screen .treeadj-frame { pointer-events: none; }
+.treeadj-screen .view3d-frame-box { position: absolute; inset: 0; aspect-ratio: auto; border-radius: 0; }
+.treeadj-screen[data-kind="2d"] .view3d-frame-box,
+.treeadj-screen[data-kind="3d"] .treeadj-frame { display: none; }
+.treeadj-screen-note { position: absolute; inset: 0; display: grid; place-items: center; color: #e2e8f0; font-size: 13px; pointer-events: none; }
+.treeadj-screen[data-state="ready"] .treeadj-screen-note { display: none; }
+.treeadj-changes { margin: 0; }
+#tree-adjustment-page .treeadj-tile { padding: 6px !important; border: 1px solid var(--theme-border-color) !important; border-radius: 10px !important; background: var(--theme-card-bg) !important; box-shadow: none !important; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+#tree-adjustment-page .treeadj-tile:hover { border-color: #94a3b8 !important; }
+#tree-adjustment-page .treeadj-tile[data-selected="true"] { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22) !important; }
+#tree-adjustment-page .treeadj-tile:focus-visible { outline: 2px solid var(--l3-focus, #2563eb); outline-offset: 2px; }
+#tree-adjustment-page .treeadj-tile-pic { border: 0 !important; border-radius: 7px !important; }
+#tree-adjustment-page .treeadj-tile-name { font-size: 12px !important; font-weight: 600; color: var(--theme-text-color) !important; overflow-wrap: anywhere; }
+/* the note IT roles get instead of a System Admin only picture list spans the whole list */
+#tree-adjustment-page .tree-pictures-admin-only { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 1100px) {
+    .treeadj-layout { grid-template-columns: 1fr; }
+    .treeadj-preview { position: static; order: -1; }
+}
+@media (max-width: 600px) {
+    .treeadj-fold-toggle { flex-wrap: wrap; padding: 12px 16px; }
+    .treeadj-fold-sum { flex: 1 1 100%; order: 3; margin-left: 0; text-align: left; }
+    #tree-adjustment-page .treeadj-fold > .section-body { padding: 0 16px 16px; }
+    #tree-adjustment-page .treeadj-fold.is-open > .section-header > :not(h3) { padding: 0 16px; }
+    .treeadj-preview { padding: 14px 16px; }
+}
 /* <Jun Kai end> */

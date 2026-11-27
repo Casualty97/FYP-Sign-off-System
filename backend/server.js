@@ -13,7 +13,7 @@
 // XY CHANGE SUMMARY (DONE BY XY)
 // ============================================================
 //
-//
+//changes
 // 1. LIVE PULSE ROUTING
 //    const pulseRoutes                - Live Pulse API routes for dashboard data (DONE BY XY)
 //    app.use('/api/pulse')            - Public Pulse API route wiring (DONE BY XY)
@@ -151,7 +151,9 @@ function requireMobileTokenForPledgeboard(req, res, next) {
 }
 
 // Import tree routes and wire them to the shared DB
-const { router: treeRoutes, setDatabase: setTreeDatabase } = require('./features/tree/routes');
+const { router: treeRoutes, setDatabase: setTreeDatabase, countLiveTreeLeaves } = require('./features/tree/routes');
+const { withAutoTreeStage } = require('./features/parameters/treeStage');
+const { serveChosenTree } = require('./features/parameters/treeDisplay');
 
 // Import cleanup module
 const dataRetentionCleanup = require('./features/archive/retention');
@@ -204,17 +206,6 @@ function getBindHost() {
     }
 
     return bindHost || '0.0.0.0';
-}
-
-function getActiveTreeDisplayMode() {
-    const config = parametersConfigStore.readParametersConfig();
-    const mode = String(config.treeParameters?.treeDisplayMode || '2d').trim().toLowerCase();
-    return mode === '3d' ? '3d' : '2d';
-}
-
-function sendBlockedTreeRoute(res, activeMode) {
-    const activeRoute = activeMode === '3d' ? '/3dtree' : '/tree';
-    return res.status(403).send(`<p>Tree display is currently set to <a href="${activeRoute}">${activeRoute}</a>.</p>`);
 }
 
 // ==================== 2. NETWORK INTERFACE FUNCTIONS ====================
@@ -502,9 +493,11 @@ app.use('/api/pulse', pulseRoutes);
 // Tree API for the leaves (names from feedback.db)
 app.use('/api/tree', treeRoutes);
 
-app.get('/api/parameters', (req, res) => {
+app.get('/api/parameters', async (req, res) => {
     try {
-        res.json({ success: true, parameters: parametersConfigStore.readParametersConfig() });
+        // In Auto, the tree's growth stage follows its leaf count (features/parameters/treeStage.js).
+        const parameters = await withAutoTreeStage(parametersConfigStore.readParametersConfig(), countLiveTreeLeaves);
+        res.json({ success: true, parameters });
     } catch (error) {
         console.error('Error loading public parameters:', error);
         res.status(500).json({ success: false, error: 'Failed to load parameters' });
@@ -627,27 +620,38 @@ app.get(['/admin', '/admin/'], (req, res) => {
     res.sendFile(path.join(paths.FRONTEND, 'admin', 'admin.html'));
 });
 
+// <Jun Kai start> The Tree Animation Demo shows the 3D tree by default and the 2D tree with ?tree=2d (its dock switches
+// between them), whichever tree the wall shows: Wei Jie's tree page with the demo dock's script and styles added to its
+// head (frontend/treeDemo/), so his page files stay as they are.
 app.get(['/tree-demo', '/tree-demo/'], auth.requireAuth, (req, res) => {
+    const page = req.query.tree === '2d' ? path.join(paths.FRONTEND, 'tree', 'tree.html') : path.join(paths.FRONTEND, '3dTree', '3dTree.html');
+    fs.readFile(page, 'utf8', (err, html) => {
+        if (err) return res.status(500).send('The tree page could not be read.');
+        const demo = '  <link rel="stylesheet" href="/treeDemo/treeDemo.css">\n  <script src="/treeDemo/treeDemo.js"></script>\n</head>';
+        res.type('html').set('Cache-Control', 'no-store').send(html.replace('</head>', demo));
+    });
+});
+// <Jun Kai end>
+
+// <Jun Kai start> The Tree Settings preview (admin/js/treeAdjustment.js) shows either tree before the choice between
+// them is saved, so these two addresses skip the move to the chosen tree below. Signed in only, as the demo.
+app.get('/tree-preview/2d', auth.requireAuth, (req, res) => {
     res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
 });
-
-// Tree page is selected from admin settings; inactive route returns 403.
-app.get('/tree', (req, res) => {
-    const activeMode = getActiveTreeDisplayMode();
-    if (activeMode !== '2d') {
-        return sendBlockedTreeRoute(res, activeMode);
-    }
-    res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
-});
-
-// 3D Tree page is selected from admin settings; inactive route returns 403.
-app.get(['/3dTree', '/3dtree'], (req, res) => {
-    const activeMode = getActiveTreeDisplayMode();
-    if (activeMode !== '3d') {
-        return sendBlockedTreeRoute(res, activeMode);
-    }
+app.get('/tree-preview/3d', auth.requireAuth, (req, res) => {
     res.sendFile(path.join(paths.FRONTEND, '3dTree', '3dTree.html'));
 });
+// <Jun Kai end>
+
+// The 2D or 3D tree, as chosen in the admin's Display 2D/3D Tree: the other address goes straight to the
+// chosen tree (features/parameters/treeDisplay.js).
+app.get('/tree', serveChosenTree('2d', (req, res) => {
+    res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
+}));
+
+app.get(['/3dTree', '/3dtree'], serveChosenTree('3d', (req, res) => {
+    res.sendFile(path.join(paths.FRONTEND, '3dTree', '3dTree.html'));
+}));
 
 app.get('/pulse', (req, res) => {
     res.sendFile(path.join(paths.FRONTEND, 'pulse', 'pulse.html'));
