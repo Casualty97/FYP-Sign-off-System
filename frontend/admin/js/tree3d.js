@@ -362,6 +362,7 @@ function tree3dMusicChanged() {
 }
 
 async function loadTree3dMusicTracks() {
+    if (sessionStorage.getItem('userRole') !== 'system_admin') return setTree3dMusicStatus('Only a System Admin can see and change the uploaded music.'); // <Jun Kai/>
     try {
         const response = await fetch('/api/admin/parameters/tree3d-music/list', { credentials: 'include', cache: 'no-store' });
         const data = await response.json();
