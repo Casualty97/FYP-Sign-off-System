@@ -1451,7 +1451,7 @@ async function loadTree3dSettings() {
 
 document.addEventListener('DOMContentLoaded', () => {
     showTreeSettingsForMode(document.getElementById('param-treeDisplayMode')?.value);
-    loadTree3dSettings();
+    // <Jun Kai/> the 3D settings load when Tree Settings opens (navigation.js), after sign-in, not on every page load
     // The names' preview follows the look ("Match the look" writes by hand when glowing) and the new leaf colour.
     tree3dField('glowLook')?.addEventListener('change', updateTree3dNamePreview);
     tree3dField('leafNewSwatches')?.addEventListener('click', () => setTimeout(updateTree3dNamePreview));
