@@ -144,6 +144,27 @@ test('the two tree page files are sent to their gated routes, under every spelli
     }
 });
 
+test('the move to the gated route keeps the options after the ?', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'page-gates-'));
+    fs.mkdirSync(path.join(root, '3dTree'), { recursive: true });
+    fs.writeFileSync(path.join(root, '3dTree', '3dTree.html'), 'x');
+    try {
+        const gate = pageGates.middleware(root);
+        const moved = (originalUrl) => {
+            let to = null;
+            gate({ method: 'GET', path: originalUrl.split('?')[0], originalUrl }, { redirect: (url) => { to = url; } }, () => { to = 'next'; });
+            return to;
+        };
+        // Wei Jie's 3D View & Zoom preview and his 2D style capture open these
+        assert.equal(moved('/3dTree/3dTree.html?viewEditor=1&clean=1'), '/3dTree?viewEditor=1&clean=1');
+        assert.equal(moved('/3dTree/3dTree.html?capture2d=1&stage=2'), '/3dTree?capture2d=1&stage=2');
+        assert.equal(moved('/3dTree/3dTree.html'), '/3dTree');
+        assert.equal(moved('/3dTree/scene.js?v=1'), 'next', 'the page files next to it are served as before');
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
 // ---------------------------------------------------------------- new tablets
 test('one address adds five new devices an hour', () => {
     heartbeatLimit.reset();

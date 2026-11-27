@@ -35,7 +35,10 @@ function middleware(frontendRoot) {
     return (req, res, next) => {
         if (req.method !== 'GET' && req.method !== 'HEAD') return next();
         const route = gatedRoute(req.path, frontendRoot);
-        if (route) return res.redirect(route);
+        // the options stay (Wei Jie's 3D View & Zoom preview and 2D style capture open /3dTree/3dTree.html?viewEditor=1
+        // and ?capture2d=1); the gated route keeps them too
+        const url = String(req.originalUrl || '');
+        if (route) return res.redirect(route + (url.includes('?') ? url.slice(url.indexOf('?')) : ''));
         next();
     };
 }
