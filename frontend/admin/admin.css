@@ -9924,3 +9924,107 @@ button.treeadj-fold-toggle:focus-visible { outline: 2px solid var(--l3-focus, #2
     .treeadj-preview { padding: 14px 16px; }
 }
 /* <Jun Kai end> */
+
+/* <Jun Kai start> Tree Settings in the kit look (Wei Jie's sections inside the Tree Settings B folds). His buttons get the
+   kit classes in treeAdjustment.js; these rules give his fields, labels and help the kit look and fix the layouts that
+   broke inside the folds. His markup is full of inline styles, so a rule that must win over one says !important.
+   Never put display: ... !important on a fold's buttons: view only hides them with [data-tree-change] (see above). */
+#tree-adjustment-page .treeadj-fold > .section-header > .treeadj-actions { display: flex; flex: 1 1 100%; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+#tree-adjustment-page .treeadj-fold > .section-header > .section-description { margin: 0; font-size: 13px; color: var(--color-muted); }
+/* the music list is drawn again by tree3d.js with class btn-secondary each time: the kit look here */
+#tree-adjustment-page #tree3d-musicList button { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid var(--theme-border-color) !important; border-radius: 8px; background: var(--theme-card-bg) !important; color: var(--theme-text-color) !important; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+#tree-adjustment-page #tree3d-musicList button:last-child { color: #b91c1c !important; border-color: #fecaca !important; }
+#tree-adjustment-page #tree3d-musicList > div { background: var(--theme-card-bg) !important; border-color: var(--theme-border-color) !important; }
+#tree-adjustment-page #tree3d-musicList > div > span:first-child { color: var(--theme-text-color) !important; }
+/* view only: a section's action row with nothing left in it (every button a change button) takes no space */
+#tree-adjustment-page.is-view-only .treeadj-fold > .section-header > .treeadj-actions:not(:has(> button:not([data-tree-change]))) { display: none; }
+
+/* fields: the kit field (.ui-input / .ui-select) */
+#tree-adjustment-page .treeadj-fold :is(input[type="text"], input[type="number"], input[type="url"], input:not([type]), select, textarea):not(.ui-input):not(.ui-select) {
+    box-sizing: border-box !important;
+    height: 38px !important;
+    min-height: 0 !important;
+    max-width: 100%;
+    padding: 0 12px !important;
+    border: 1px solid var(--theme-border-color) !important;
+    border-radius: 8px !important;
+    background-color: var(--theme-card-bg) !important;
+    color: var(--theme-text-color) !important;
+    font-family: inherit !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+}
+#tree-adjustment-page .treeadj-fold select:not(.ui-select) {
+    appearance: none;
+    padding-right: 34px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 10px center !important;
+}
+#tree-adjustment-page .treeadj-fold textarea { height: auto !important; min-height: 76px !important; padding: 8px 12px !important; line-height: 1.4; }
+#tree-adjustment-page .treeadj-fold :is(input, select, textarea):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):focus { outline: none; border-color: var(--theme-btn-primary-bg) !important; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important; }
+#tree-adjustment-page .treeadj-fold :is(input, select, textarea):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):disabled { background-color: var(--theme-bg-color) !important; color: var(--color-muted) !important; cursor: not-allowed; }
+/* widths: a number is short, a title is long; his time-and-unit pairs keep their own widths */
+#tree-adjustment-page .treeadj-fold input[type="number"]:not(#tree3d-orbitTime):not(#param-tintDurationHours) { width: 120px !important; }
+#tree-adjustment-page .treeadj-fold .form-group input[type="number"] { width: 100% !important; max-width: 320px; }
+#param-titleText, #param-subtitleText, #tree3d-titleText, #tree3d-subtitleText { width: 100% !important; max-width: 520px !important; }
+#tree-adjustment-page #tree3d-viewName { width: auto !important; min-width: 0 !important; }
+/* ticks, radios and sliders in the theme colour; the file picker as a kit button */
+#tree-adjustment-page .treeadj-fold :is(input[type="checkbox"], input[type="radio"], input[type="range"]) { accent-color: var(--theme-btn-primary-bg); }
+#tree-adjustment-page .treeadj-fold :is(input[type="checkbox"], input[type="radio"]) { width: 16px; height: 16px; }
+#tree-adjustment-page .treeadj-fold input[type="file"] { max-width: 100%; font-size: 13px; color: var(--color-dark-gray); }
+#tree-adjustment-page .treeadj-fold input[type="file"]::file-selector-button { height: 36px; margin-right: 10px; padding: 0 14px; border: 1px solid var(--theme-border-color); border-radius: 8px; background: var(--theme-card-bg); color: var(--theme-text-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* labels and help: one look for each (status lines keep their own colour, it carries meaning) */
+#tree-adjustment-page .treeadj-fold .section-body label:not(:has(input[type="checkbox"], input[type="radio"])) { font-size: 13px !important; font-weight: 600 !important; color: var(--theme-text-color) !important; }
+#tree-adjustment-page .treeadj-fold .section-body label:has(> input[type="checkbox"], > input[type="radio"]) { display: inline-flex; align-items: center; gap: 8px; font-size: 14px !important; font-weight: 400 !important; color: var(--theme-text-color) !important; }
+/* only his grey help text (a coloured line, like the green "10 new leaves: 4, 3 and 3", keeps its colour) */
+#tree-adjustment-page .treeadj-fold .section-body :is(p, small, span, div):is([style*="color:#666"], [style*="color: #666"], [style*="color:#64748b"], [style*="color: #64748b"], [style*="color:#475569"], [style*="color: #475569"], .text-muted, .form-text):not([role="status"]):not([id$="-status"]):not([id*="Status"]):not(.treeadj-tile-name) {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    color: var(--color-muted) !important;
+}
+/* the canopy fields' help sits on its own line under the field (it ran on beside the shorter field) */
+#tree-adjustment-page .treeadj-fold .form-group > small { display: block; margin-top: 6px; }
+#tree-adjustment-page .treeadj-fold .section-body .tree-style-label { font-size: 13px !important; font-weight: 600 !important; color: var(--theme-text-color) !important; }
+/* his sub-headings are written in a fixed dark slate (#334155), unreadable in dark mode: the theme's text colour */
+#tree-adjustment-page .treeadj-fold .section-body :is([style*="color:#334155"], [style*="color: #334155"]) { color: var(--theme-text-color) !important; }
+/* the 3D name boxes ask for 300 px, more than a phone's card has */
+#tree-adjustment-page .leaf3d-name-settings > div { min-width: min(300px, 100%) !important; }
+
+/* Tree Background: the upload and the current picture on the left, the list on the right (the picture sat alone
+   under the upload with a big gap). Only while the fold is open, so the closed fold rule above still hides it. */
+#tree-adjustment-page .treeadj-fold.is-open > #treeadj-body-background,
+#tree-adjustment-page .treeadj-fold.is-open > #treeadj-body-leaf,
+#tree-adjustment-page .treeadj-fold.is-open > #treeadj-body-vip-leaf {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start !important;
+    gap: 16px 24px !important;
+}
+#treeadj-body-background { grid-template-areas: "upload list" "picture list"; }
+#treeadj-body-background > :nth-child(1) { grid-area: upload; }
+#treeadj-body-background > :nth-child(2) { grid-area: list; }
+#treeadj-body-background > :nth-child(3) { grid-area: picture; width: auto !important; max-width: 320px; }
+/* Leaf and VIP Leaf: upload, size and preview on the left, the list with its Apply on the right */
+#treeadj-body-leaf, #treeadj-body-vip-leaf { grid-template-areas: "upload list" "scale list" "preview list"; }
+:is(#treeadj-body-leaf, #treeadj-body-vip-leaf) > :nth-child(1) { grid-area: upload; }
+:is(#treeadj-body-leaf, #treeadj-body-vip-leaf) > :nth-child(2) { grid-area: list; }
+:is(#treeadj-body-leaf, #treeadj-body-vip-leaf) > :nth-child(3) { grid-area: scale; width: auto !important; }
+:is(#treeadj-body-leaf, #treeadj-body-vip-leaf) > :nth-child(4) { grid-area: preview; width: auto !important; text-align: left !important; }
+:is(#treeadj-body-leaf, #treeadj-body-vip-leaf) > :nth-child(4) > .preview-leaf-box { margin: 0 !important; }
+:is(#treeadj-body-leaf, #treeadj-body-vip-leaf) > :nth-child(2) > div[style*="justify-content:flex-end"] { justify-content: flex-start !important; }
+/* the lists' frames in the theme */
+#tree-adjustment-page :is(#param-treeBackgroundList, #param-existingLeafList, #param-existingVipLeafList) { border-color: var(--theme-border-color) !important; border-radius: 10px !important; background: var(--theme-card-bg) !important; }
+
+/* 3D View & Zoom: one column (the preview sits in the Preview card now), so the snapshot row fits the card */
+#tree-adjustment-page .view3d-layout { grid-template-columns: minmax(0, 1fr) !important; }
+#tree-adjustment-page .view3d-snapshots, #tree-adjustment-page .view3d-snapshots > div { min-width: 0 !important; }
+#tree-adjustment-page .view3d-readout { margin-left: 0 !important; }
+
+@media (max-width: 760px) {
+    #tree-adjustment-page .treeadj-fold.is-open > :is(#treeadj-body-background, #treeadj-body-leaf, #treeadj-body-vip-leaf) { grid-template-columns: minmax(0, 1fr); }
+    #treeadj-body-background { grid-template-areas: "upload" "list" "picture"; }
+    #treeadj-body-leaf, #treeadj-body-vip-leaf { grid-template-areas: "upload" "list" "scale" "preview"; }
+}
+/* <Jun Kai end> */

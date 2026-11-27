@@ -336,6 +336,33 @@ function treeAdjSetOpen(section, open) {
     section.querySelector('.treeadj-fold-toggle')?.setAttribute('aria-expanded', String(open));
 }
 
+// <Jun Kai start> his buttons in the kit look. His btn-primary / btn-secondary are painted by the theme (themes.js), so they
+// showed as plain text or as the old blue. Each section's buttons from its heading go in one row on the right (Reset
+// and the like first, Save last), and every button of his gets the kit classes: Save and the background's Apply in
+// green, the rest plain, Delete in red. His onclick names and ids stay, so view only still hides the change buttons.
+const TREEADJ_PRIMARY = /^(save|selectTreeBackground)/;
+function treeAdjKitButton(button) {
+    const action = (button.getAttribute('onclick') || '').trim().split('(')[0];
+    button.classList.remove('btn', 'btn-primary', 'btn-secondary', 'btn-danger');
+    button.classList.add('ui-btn', /^delete/i.test(action) ? 'ui-btn-danger' : TREEADJ_PRIMARY.test(action) ? 'ui-btn-primary' : 'ui-btn-secondary');
+}
+function treeAdjKitButtons(section) {
+    const header = section.querySelector(':scope > .section-header');
+    if (!header) return;
+    const isPrimary = (button) => TREEADJ_PRIMARY.test((button.getAttribute('onclick') || '').trim());
+    const buttons = [...header.querySelectorAll('button[onclick]')].filter((button) => !button.classList.contains('treeadj-fold-toggle'));
+    if (buttons.length) {
+        const row = document.createElement('div');
+        row.className = 'treeadj-actions';
+        buttons.sort((a, b) => Number(isPrimary(a)) - Number(isPrimary(b))).forEach((button) => row.appendChild(button));
+        // the boxes they sat in are empty now
+        [...header.children].forEach((child) => { if (child.tagName === 'DIV' && !child.textContent.trim() && !child.querySelector('input, select, button')) child.remove(); });
+        header.appendChild(row);
+    }
+    section.querySelectorAll('button.btn-primary, button.btn-secondary, button.btn-danger').forEach(treeAdjKitButton);
+}
+// <Jun Kai end>
+
 // turns each section heading into a button that folds the section; his heading text, buttons and fields stay
 function treeAdjBuildFolds() {
     if (treeAdjFoldsReady) return;
@@ -361,6 +388,7 @@ function treeAdjBuildFolds() {
             + '<span class="treeadj-fold-sum"></span>' + (key === 'display' ? '' : `<span class="treeadj-fold-chevron" aria-hidden="true">${TREEADJ_CHEVRON}</span>`);
         toggle.querySelector('.treeadj-fold-title').textContent = title;
         heading.appendChild(toggle);
+        treeAdjKitButtons(section); // <Jun Kai/>
         const open = key === 'display' || (Array.isArray(remembered) ? remembered.includes(key) : Object.values(TREEADJ_FIRST_FOLD).includes(key));
         treeAdjSetOpen(section, open);
     });
@@ -433,6 +461,18 @@ function treeFramePause(frame, paused) {
 }
 
 const treeFrameLoaded = (frame, src) => !!frame && frame.getAttribute('src') === src;
+
+// only one 3D scene is kept at a time (one takes well over a gigabyte in the test browser): opening the 3D preview on
+// Tree Settings empties the kept one on the Tree Leaves card, and the other way round
+function treeKeepOnly(frame) {
+    ['tree3d-viewFrame', 'dt-tree-frame'].map((id) => document.getElementById(id)).forEach((other) => {
+        if (!other || other === frame) return;
+        if (/3dTree|tree-preview\/3d/i.test(other.getAttribute('src') || '')) {
+            other.dataset.treePaused = '';
+            other.setAttribute('src', 'about:blank');
+        }
+    });
+}
 // <Jun Kai end>
 
 // one frame shown at a time; the 3D one stays loaded but paused when the 2D one shows (the 2D one is light and has
@@ -452,6 +492,7 @@ function treeAdjShowPreview() {
     const open = treeAdjEl('treeadj-open-tree');
     if (open) open.setAttribute('href', TREEADJ_OPEN_TREE[kind]);
     const frame = frames[kind];
+    if (kind === '3d') treeKeepOnly(frame); // <Jun Kai/>
     if (!treeFrameLoaded(frame, TREEADJ_FRAME_SRC[kind])) {
         screen.dataset.state = 'loading';
         const note = treeAdjEl('treeadj-screen-note');
@@ -621,9 +662,14 @@ function treeOpenInOneTab(event) {
     const want = new URL(link.href, window.location.href);
     let now = '';
     try { now = tab.location.href; } catch { now = ''; } // another site in that tab
-    const same = now && now !== 'about:blank' && new URL(now).pathname.toLowerCase() === want.pathname.toLowerCase();
+    const open = now && now !== 'about:blank';
+    // the same address as last time counts as the same tree too: the server may have moved the tab on (for example
+    // /3dTree to /tree while 2D is the saved choice), and pressing again must not load it again
+    const same = open && (new URL(now).pathname.toLowerCase() === want.pathname.toLowerCase() || treeTabAsked[link.dataset.treeTab] === want.href);
     if (!same) tab.location.href = want.href;
+    treeTabAsked[link.dataset.treeTab] = want.href;
     tab.focus();
 }
+const treeTabAsked = {};
 document.addEventListener('click', treeOpenInOneTab);
 // <Jun Kai end>
