@@ -1061,6 +1061,7 @@ async function loadTreePreview() {
     const label = document.getElementById('dt-preview-mode');
     if (label) label.textContent = mode === '3d' ? 'A small copy of the 3D tree screen' : 'A small copy of the tree screen';
     if (!document.getElementById('digital-tree-page')?.classList.contains('active')) return;
+    if (mode === '3d' && typeof treeKeepOnly === 'function') treeKeepOnly(frame); // one kept 3D scene at a time
     // already loaded this session (the 3D tree is kept while away): it carries on at once
     if (frame.getAttribute('src') === shown) {
         if (typeof treeFramePause === 'function') treeFramePause(frame, false);

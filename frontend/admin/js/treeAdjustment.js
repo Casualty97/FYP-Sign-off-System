@@ -461,6 +461,18 @@ function treeFramePause(frame, paused) {
 }
 
 const treeFrameLoaded = (frame, src) => !!frame && frame.getAttribute('src') === src;
+
+// only one 3D scene is kept at a time (one takes well over a gigabyte in the test browser): opening the 3D preview on
+// Tree Settings empties the kept one on the Tree Leaves card, and the other way round
+function treeKeepOnly(frame) {
+    ['tree3d-viewFrame', 'dt-tree-frame'].map((id) => document.getElementById(id)).forEach((other) => {
+        if (!other || other === frame) return;
+        if (/3dTree|tree-preview\/3d/i.test(other.getAttribute('src') || '')) {
+            other.dataset.treePaused = '';
+            other.setAttribute('src', 'about:blank');
+        }
+    });
+}
 // <Jun Kai end>
 
 // one frame shown at a time; the 3D one stays loaded but paused when the 2D one shows (the 2D one is light and has
@@ -480,6 +492,7 @@ function treeAdjShowPreview() {
     const open = treeAdjEl('treeadj-open-tree');
     if (open) open.setAttribute('href', TREEADJ_OPEN_TREE[kind]);
     const frame = frames[kind];
+    if (kind === '3d') treeKeepOnly(frame); // <Jun Kai/>
     if (!treeFrameLoaded(frame, TREEADJ_FRAME_SRC[kind])) {
         screen.dataset.state = 'loading';
         const note = treeAdjEl('treeadj-screen-note');
