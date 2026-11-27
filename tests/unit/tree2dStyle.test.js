@@ -16,8 +16,27 @@ const {
     saveTreeCapture
 } = require('../../backend/features/parameters/tree2dStyle');
 
-const JPEG = `data:image/jpeg;base64,${Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]).toString('base64')}`;
-const PNG = `data:image/png;base64,${Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]).toString('base64')}`;
+const zlib = require('zlib');
+
+// The smallest whole pictures the checks accept: a JPEG from FF D8 FF to FF D9, and a PNG of its signature, an
+// IHDR chunk (1 x 1) and an IEND chunk.
+const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 0xff, 0xd9]);
+const pngChunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+    const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(body));
+    return Buffer.concat([length, body, crc]);
+};
+const pngBytes = (width = 1, height = 1) => {
+    const header = Buffer.alloc(13);
+    header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 6; // 8-bit RGBA
+    return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), pngChunk('IHDR', header), pngChunk('IEND', Buffer.alloc(0))]);
+};
+const PNG_BYTES = pngBytes();
+const jpegUrl = bytes => `data:image/jpeg;base64,${bytes.toString('base64')}`;
+const pngUrl = bytes => `data:image/png;base64,${bytes.toString('base64')}`;
+const JPEG = jpegUrl(JPEG_BYTES);
+const PNG = pngUrl(PNG_BYTES);
 const META = { width: 1920, height: 1080, canopy: { x: 230, y: 120, width: 1458, height: 585 }, coverage: 0.31234, treeFoot: { x: 951, y: 935 }, treeTop: { x: 951, y: 100 } };
 const tempAssets = () => fs.mkdtempSync(path.join(os.tmpdir(), 'tree2d-style-'));
 
@@ -79,6 +98,45 @@ test('a capture with a wrong style, stage or picture is refused and nothing is w
         assert.throws(() => saveTreeCapture(assets, { ...capture, canopy: JPEG }), /PNG/);
         assert.throws(() => saveTreeCapture(assets, { ...capture, scene: 'data:image/jpeg;base64,aGVsbG8=' }), /not a valid JPEG/);
         assert.equal(fs.existsSync(path.join(assets, 'Tree')), false);
+    } finally {
+        fs.rmSync(assets, { recursive: true, force: true });
+    }
+});
+
+test('a picture must be one whole picture: nothing appended, no broken chunks, only base64 text', () => {
+    const assets = tempAssets();
+    try {
+        const capture = { style: 'natural', stage: 3, scene: JPEG, canopy: PNG, meta: META };
+        const page = Buffer.from('<script>alert(1)</script>');
+        // another file appended after the picture's end
+        assert.throws(() => saveTreeCapture(assets, { ...capture, scene: jpegUrl(Buffer.concat([JPEG_BYTES, page])) }), /not a valid JPEG/);
+        assert.throws(() => saveTreeCapture(assets, { ...capture, canopy: pngUrl(Buffer.concat([PNG_BYTES, page])) }), /not a valid PNG/);
+        // a JPEG cut short, a PNG whose last chunk runs past the end, a PNG without IHDR first, an absurd size
+        assert.throws(() => saveTreeCapture(assets, { ...capture, scene: jpegUrl(JPEG_BYTES.subarray(0, 8)) }), /not a valid JPEG/);
+        assert.throws(() => saveTreeCapture(assets, { ...capture, canopy: pngUrl(PNG_BYTES.subarray(0, PNG_BYTES.length - 4)) }), /not a valid PNG/);
+        const noHeader = Buffer.concat([PNG_BYTES.subarray(0, 8), pngChunk('IEND', Buffer.alloc(0))]);
+        assert.throws(() => saveTreeCapture(assets, { ...capture, canopy: pngUrl(noHeader) }), /not a valid PNG/);
+        assert.throws(() => saveTreeCapture(assets, { ...capture, canopy: pngUrl(pngBytes(50000, 1)) }), /not a valid PNG/);
+        // characters that are not base64 (Buffer.from would quietly skip them)
+        assert.throws(() => saveTreeCapture(assets, { ...capture, scene: `${JPEG.slice(0, -4)}<b>${JPEG.slice(-4)}` }), /not a valid JPEG/);
+        // too large is refused from the text's length, before it is decoded
+        assert.throws(() => saveTreeCapture(assets, { ...capture, scene: `data:image/jpeg;base64,${'A'.repeat(12 * 1024 * 1024)}` }), /too large/);
+        assert.equal(fs.existsSync(path.join(assets, 'Tree')), false);
+    } finally {
+        fs.rmSync(assets, { recursive: true, force: true });
+    }
+});
+
+test('saving a stage again replaces its files and leaves no temporary files', () => {
+    const assets = tempAssets();
+    try {
+        const capture = { style: 'natural', stage: 0, scene: JPEG, canopy: PNG, meta: META };
+        saveTreeCapture(assets, capture, new Date('2026-11-21T00:00:00Z'));
+        saveTreeCapture(assets, { ...capture, canopy: pngUrl(pngBytes(2, 2)) }, new Date('2026-11-22T00:00:00Z'));
+        const folder = path.join(assets, 'Tree', '2d-from-3d', 'natural');
+        assert.deepEqual(fs.readdirSync(folder).sort(), ['stage0-canopy.png', 'stage0.jpg', 'stage0.json']);
+        assert.deepEqual(fs.readFileSync(path.join(folder, 'stage0-canopy.png')), pngBytes(2, 2));
+        assert.equal(JSON.parse(fs.readFileSync(path.join(folder, 'stage0.json'), 'utf8')).capturedAt, '2026-11-22T00:00:00.000Z');
     } finally {
         fs.rmSync(assets, { recursive: true, force: true });
     }

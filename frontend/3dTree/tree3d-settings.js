@@ -92,7 +92,7 @@ function applyTitleBox(box) {
   const live = {
     title,
     subtitleHtml: customSubtitle ? escapeHtml(box.subtitleText) : builtInSubtitleHtml,
-    label: `ESG Centre, ${title}`,
+    label: `RP Xperience Centre, ${title}`,
   };
   // While a year review is shown, the heading belongs to it; Year Review restores this one on Live.
   if (!document.body.classList.contains('year-review-mode')) {

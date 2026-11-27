@@ -125,6 +125,10 @@ The default view uses multisample anti-aliasing, smoothed leaf-mask edges, trili
 
 The scene loads all visible 3D meshes and their source materials from the bundled GLBs. Image textures, including the sky panorama and bank surfaces, are embedded in those files. Anti-aliasing smooths edges at the display's native resolution.
 
+## Bundled three.js
+
+`vendor/three-runtime.js` is three.js r183 with its GLTF loader and the meshoptimizer decoder, bundled into one minified ES module (licences in `vendor/`). It carries one local patch: `MathUtils.generateUUID` (minified as `yn`) takes its 128 bits from `crypto.getRandomValues` instead of `Math.random`, with the same lowercase RFC 4122 version 4 format. three.js gives every object, geometry, material and texture such a `uuid` to name it in the scene and in `toJSON`; it is not a secret, but CodeQL's `js/insecure-randomness` rule counts any random `uuid` as a security value. The other `Math.random` calls (random vectors, `randInt`, `randFloat`) are left as they are. When the bundle is rebuilt, apply the patch again: search the new bundle for the function that builds a uuid from four `Math.random()*4294967295|0` numbers.
+
 ## Reuse the models
 
 The ZIP contains 21 GLB files. The website loads 19 at a time, with two alternate models for the low-quality mode.

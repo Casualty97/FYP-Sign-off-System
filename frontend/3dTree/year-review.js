@@ -114,7 +114,7 @@ function updateTreeHeading() {
     const count = state.reviewLeafCount;
     heading.textContent = `${state.selectedYear} ESG Tree Review`;
     if (subtitle) subtitle.textContent = `Completed yearly tree with ${count} contribution${count === 1 ? '' : 's'}`;
-    masthead.setAttribute('aria-label', `ESG Centre, ${state.selectedYear} ESG Tree Review`);
+    masthead.setAttribute('aria-label', `RP Xperience Centre, ${state.selectedYear} ESG Tree Review`);
   } else {
     heading.textContent = liveHeading.title;
     if (subtitle) subtitle.innerHTML = liveHeading.subtitleHtml;
@@ -134,7 +134,11 @@ function renderYearReviewBook() {
   const leafCount = Number(page.leafCount) || 0;
 
   ui.year.textContent = page.year;
-  ui.count.textContent = `${leafCount} ${leafCount === 1 ? 'leaf' : 'leaves'}`;
+  // <Jun Kai start>
+  // archived leaves are in the count but no longer on that year's tree, so the book says how many
+  const archivedLeaves = Number(page.archivedLeafCount) || 0;
+  ui.count.textContent = `${leafCount} ${leafCount === 1 ? 'leaf' : 'leaves'}${archivedLeaves ? ` · ${archivedLeaves} archived` : ''}`;
+  // <Jun Kai end>
   ui.preview.innerHTML = '';
 
   const dotCount = Math.min(leafCount, 90);

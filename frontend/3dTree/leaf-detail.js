@@ -60,6 +60,17 @@ export function createLeafDetail({ onClose } = {}) {
     badge.style.setProperty('--leaf-detail-badge-color', badgeColour || visitor?.badgeColor || '#4a7c59');
     field('leafDetailDate').textContent = formatLeafDate(visitor?.created_at);
     field('leafDetailSnippet').textContent = visitor?.pledgeSnippet || 'No pledge snippet was shared for this leaf.';
+    // <Jun Kai start>
+    // a leaf kept after the Visitor Data Archive has no pledge to show: the month and year of the visit and one line
+    // (as the 2D tree, frontend/tree/tree.js openLeafDetail)
+    if (visitor?.archived) {
+      const visited = new Date(visitor.created_at);
+      field('leafDetailDate').textContent = Number.isNaN(visited.getTime())
+        ? 'Date unavailable'
+        : visited.toLocaleDateString('en-SG', { month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' });
+      field('leafDetailSnippet').textContent = "This visitor's details were archived.";
+    }
+    // <Jun Kai end>
     place(x, y);
     open = true;
     card.classList.add('active');
