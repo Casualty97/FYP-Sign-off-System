@@ -16,6 +16,7 @@ const NOT_LIVE_SQL = 'NOT EXISTS (SELECT 1 FROM feedback f WHERE f.id = al.feedb
 // loaded on first use, so the label and row rules below work without a database or the email service
 const db = () => require('../../core/db');
 const badges = () => require('../email/service');
+const multiPledge = () => require('../parameters/tree3d'); // MULTI_PLEDGE_KEY and MULTI_PLEDGE_COLOUR, as the live rows
 
 // keep and initials leave a leaf behind; remove (and anything unknown) does not
 const keeps = (mode) => mode === 'keep' || mode === 'initials';
@@ -159,9 +160,14 @@ function keeper({ mode, details, archiveId, archivedAt = new Date(), badgeKeysOf
 }
 
 // A kept leaf shaped like the rows GET /api/tree returns, plus archived: true. The name is the label; no pledge.
+// With more than one badge kept (badge_keys) the leaf stays "Multiple pledges", as the live tree drew it
+// (features/tree/routes.js mapRowsToVisitors); otherwise it keeps its one badge.
 function treeLeaf(row, badgeConfigs = badges().BADGE_CONFIGS) {
-    const badgeKey = row.badge_key || DEFAULT_BADGE;
-    const badge = badgeConfigs[badgeKey] || badgeConfigs[DEFAULT_BADGE] || {};
+    const first = row.badge_key || DEFAULT_BADGE;
+    const badge = badgeConfigs[first] || badgeConfigs[DEFAULT_BADGE] || {};
+    const kept = [...new Set(String(row.badge_keys || '').split(',').map((key) => key.trim()).filter(Boolean))];
+    const several = kept.length > 1;
+    const { MULTI_PLEDGE_KEY, MULTI_PLEDGE_COLOUR } = several ? multiPledge() : {};
     return {
         id: row.feedback_id,
         name: row.label || DEFAULT_LABEL,
@@ -169,10 +175,14 @@ function treeLeaf(row, badgeConfigs = badges().BADGE_CONFIGS) {
         user_created_at: null,
         created_at: row.created_at,
         isVip: Number(row.is_vip) === 1,
-        badgeKey,
-        badgeName: badge.name || 'Feedback Contributor',
-        badgeColor: badge.color || '',
+        badgeKey: several ? MULTI_PLEDGE_KEY : first,
+        badgeName: several
+            ? `Multiple pledges: ${kept.map((key) => badgeConfigs[key]?.name || key).join(', ')}`
+            : badge.name || 'Feedback Contributor',
+        badgeColor: several ? MULTI_PLEDGE_COLOUR : badge.color || '',
+        badgeKeys: several ? kept : [first],
         pledgeTopic: '',
+        pledgeTopics: [],
         pledgeSnippet: '',
         hasPublicName: false,
         privacyLabel: PRIVACY_LABEL,
@@ -209,7 +219,7 @@ async function forYear(year) {
     if (!Number.isInteger(treeYear)) return [];
     try {
         const [rows] = await db().pool.promise().query(
-            `SELECT al.feedback_id, al.created_at, al.label, al.badge_key, al.is_vip FROM archived_leaves al
+            `SELECT al.feedback_id, al.created_at, al.label, al.badge_key, al.badge_keys, al.is_vip FROM archived_leaves al
              WHERE al.created_at >= ? AND al.created_at < ? AND ${NOT_LIVE_SQL}
              ORDER BY al.created_at ASC, al.feedback_id ASC`, yearRange(treeYear));
         return rows.map((row) => treeLeaf(row));

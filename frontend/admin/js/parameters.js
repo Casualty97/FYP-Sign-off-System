@@ -297,8 +297,12 @@ function megabytesToBytes(value, fallbackMb) {
     return Math.max(1, Number.isFinite(number) ? number : fallbackMb) * 1024 * 1024;
 }
 
+// An empty box gives the fallback (the default), not 0: an empty "Time at the Bottom Middle" used to save 0 and
+// make new leaves skip the bottom middle.
 function getNumberValue(id, fallback) {
-    const number = Number(getInputValue(id));
+    const raw = getInputValue(id);
+    if (raw === '') return fallback;
+    const number = Number(raw);
     return Number.isFinite(number) ? number : fallback;
 }
 
@@ -311,6 +315,10 @@ function clampNumber(value, min, max, fallback) {
 function getDefaultBadgeLeafColors() {
     return { ...DEFAULT_BADGE_LEAF_COLORS };
 }
+
+// The leaf colours under Badge Leaf Styling: every badge (as the badge emails), and Multiple pledges, for a
+// visitor who chose several pledge topics (a leaf colour only, no email of its own; Owner: Role 2, Wei Jie).
+const BADGE_LEAF_STYLE_BADGES = [...DEFAULT_BADGE_EMAIL_BADGES, { key: 'multi-pledge', name: 'Multiple pledges' }];
 
 function normalizeHexColor(value, fallback = '#4a7c59') {
     const color = String(value || '').trim();
@@ -345,9 +353,6 @@ function setSharedLeafScale(value) {
     const oldOutput = document.getElementById('param-leafDisplayScaleValue');
     if (oldOutput) oldOutput.textContent = String(normalized);
 
-    const oldOutputVip = document.getElementById('param-vipLeafDisplayScaleValue');
-    if (oldOutputVip) oldOutputVip.textContent = String(normalized);
-
     document.querySelectorAll('.badge-leaf-preview').forEach(preview => {
         preview.style.setProperty('--badge-preview-scale', normalized);
     });
@@ -360,7 +365,7 @@ function setSharedLeafScale(value) {
 
 function collectBadgeLeafStyleColors() {
     const defaults = getDefaultBadgeLeafColors();
-    return DEFAULT_BADGE_EMAIL_BADGES.reduce((colors, badge) => {
+    return BADGE_LEAF_STYLE_BADGES.reduce((colors, badge) => {
         colors[badge.key] = normalizeHexColor(getInputValue(getBadgeLeafColorInputId(badge.key)), defaults[badge.key]);
         return colors;
     }, {});
@@ -368,7 +373,7 @@ function collectBadgeLeafStyleColors() {
 
 function updateBadgeLeafPreviews() {
     const colors = collectBadgeLeafStyleColors();
-    DEFAULT_BADGE_EMAIL_BADGES.forEach((badge) => {
+    BADGE_LEAF_STYLE_BADGES.forEach((badge) => {
         const preview = document.querySelector(`[data-preview-badge-leaf="${badge.key}"]`);
         if (preview) {
             preview.style.setProperty('--badge-preview-color', colors[badge.key]);
@@ -417,7 +422,7 @@ function bindFeedbackAndLeafStyleControls() {
         }
     });
 
-    DEFAULT_BADGE_EMAIL_BADGES.forEach((badge) => {
+    BADGE_LEAF_STYLE_BADGES.forEach((badge) => {
         const input = document.getElementById(getBadgeLeafColorInputId(badge.key));
         if (input && !input.dataset.badgeLeafBound) {
             input.addEventListener('input', updateBadgeLeafPreviews);
@@ -612,6 +617,8 @@ function populateParameterForm(config) {
     setInputValue('param-leafRefreshInterval', tree.leafRefreshInterval);
     setInputValue('param-leafOpacity', tree.leafOpacity);
     setInputValue('param-leafAnimationDuration', tree.leafAnimationDuration);
+    setInputValue('param-leafShowcaseSeconds', tree.leafShowcaseSeconds ?? 12);
+    setInputValue('tree3d-leafShowcaseSeconds', tree.leafShowcaseSeconds ?? 12); // the same setting in the 3D panel
     setInputValue('param-leafFallThreshold', tree.leafFallThreshold);
     setInputValue('param-leafFallDuration', tree.leafFallDuration);
     const normalizedTreeStage = Number.isInteger(Number(tree.treeStage))
@@ -623,6 +630,10 @@ function populateParameterForm(config) {
         treeStageStatus.textContent = `Current: stage ${normalizedTreeStage}. Shown on /tree after apply.`;
     }
     setInputValue('param-treeDisplayMode', tree.treeDisplayMode || '2d');
+    // The 2D tree's picture style (js/tree.js): painted, or captured from the 3D tree.
+    setInputValue('param-treeStyle', ['natural', 'digital'].includes(tree.treeStyle) ? tree.treeStyle : 'painted');
+    if (typeof setScreenSizeFields === 'function') setScreenSizeFields('param', tree.screenSize); // js/tree.js
+    if (typeof loadTreeStylePreviews === 'function') loadTreeStylePreviews();
     setCheckedValue('param-showTitleBox', tree.showTitleBox !== false);
     // Leaf display scale (new) - Done by Yu Kang
     const badgeLeafScale = Number(badgeLeafStyles.leafScale);
@@ -645,11 +656,16 @@ function populateParameterForm(config) {
         if (vipValEl) vipValEl.textContent = String(vipLeafScale);
     }
     setSharedLeafScale(leafScale);
-    setInputValue('param-tintDurationHours', badgeLeafStyles.tintDurationHours != null ? badgeLeafStyles.tintDurationHours : 24);
+    // "A leaf stays light for", in hours (24 when unset or 0, as the 2D tree takes it), shown in minutes when it
+    // is not a whole number of hours (so 1 minute shows as 1 minute).
+    const tintHours = Number(badgeLeafStyles.tintDurationHours) > 0 ? Number(badgeLeafStyles.tintDurationHours) : 24;
+    const tintInHours = Number.isInteger(tintHours);
+    setInputValue('param-tintDurationHours', tintInHours ? tintHours : Math.max(1, Math.round(tintHours * 60)));
+    setInputValue('param-tintDurationUnit', tintInHours ? 'hours' : 'minutes');
 
     const badgeLeafColors = getBadgeLeafStyleColors(badgeLeafStyles.colors);
     const defaultBadgeLeafColors = getDefaultBadgeLeafColors();
-    DEFAULT_BADGE_EMAIL_BADGES.forEach((badge) => {
+    BADGE_LEAF_STYLE_BADGES.forEach((badge) => {
         setInputValue(
             getBadgeLeafColorInputId(badge.key),
             normalizeHexColor(badgeLeafColors[badge.key], defaultBadgeLeafColors[badge.key])
@@ -697,7 +713,8 @@ function populateParameterForm(config) {
                 : `/assets/Tree/leaf/${assets.leafImage}`;
             previewBox.style.backgroundImage = `url('${leafPreviewPath}')`;
         } else {
-            previewBox.style.backgroundImage = '';
+            // None chosen: the 2D tree's own leaf pictures from /assets/Tree/leaf (New/Old Left/Right Leaf).
+            previewBox.style.backgroundImage = "url('/assets/Tree/leaf/NewLeftLeaf.png')";
         }
         // apply scale to preview
         previewBox.style.transform = `scale(${leafScale})`;
@@ -710,7 +727,8 @@ function populateParameterForm(config) {
                 : `/assets/Tree/vip-leaf/${assets.vipLeafImage}`;
             vipPreviewBox.style.backgroundImage = `url('${vipLeafPreviewPath}')`;
         } else {
-            vipPreviewBox.style.backgroundImage = '';
+            // None chosen: the 2D tree's own VIP leaf pictures from /assets/Tree/vip-leaf (Gold Left/Right Leaf).
+            vipPreviewBox.style.backgroundImage = "url('/assets/Tree/vip-leaf/GoldLeftLeaf.png')";
         }
         vipPreviewBox.style.transform = `scale(${vipLeafScale})`;
     }
@@ -723,6 +741,9 @@ function populateParameterForm(config) {
     if (revertVipBtn) {
         revertVipBtn.style.display = assets.previousVipLeafImage ? 'block' : 'none';
     }
+    // The pickers hide Revert again if that previous picture has since been deleted (loadAvailableLeafImages).
+    window.previousLeafImagePath = assets.previousLeafImage || '';
+    window.previousVipLeafImagePath = assets.previousVipLeafImage || '';
     // Load available leaf images from server - Done by Yu Kang
     window.currentLeafImagePath = assets.leafImage || '';
     loadAvailableLeafImages(window.currentLeafImagePath);
@@ -815,12 +836,16 @@ function collectParameterForm() {
             leafRefreshInterval: getNumberValue('param-leafRefreshInterval', 30000),
             leafOpacity: getNumberValue('param-leafOpacity', 0.9),
             leafAnimationDuration: getNumberValue('param-leafAnimationDuration', 500),
+            // A new leaf's time at the bottom middle before it flies to the 2D tree (frontend/tree/tree.js).
+            leafShowcaseSeconds: Math.min(30, Math.max(0, getNumberValue('param-leafShowcaseSeconds', 12))),
             leafFallThreshold: getNumberValue('param-leafFallThreshold', 15),
             leafFallDuration: getNumberValue('param-leafFallDuration', 4200),
             treeStage: Math.max(0, Math.min(4, Number(getInputValue('param-treeStage')) || 0)),
             treeDisplayMode: getInputValue('param-treeDisplayMode') === '3d' ? '3d' : '2d',
+            treeStyle: ['natural', 'digital'].includes(getInputValue('param-treeStyle')) ? getInputValue('param-treeStyle') : 'painted',
+            screenSize: typeof readScreenSizeFields === 'function' ? readScreenSizeFields('param') : undefined,
             leafDisplayScale: sharedLeafScale,
-            vipLeafDisplayScale: parseFloat(getInputValue('param-vipLeafDisplayScale')) || 1.0,
+            vipLeafDisplayScale: clampNumber(getInputValue('param-vipLeafDisplayScale') || 1, 0.4, 2, 1), // VIP Leaf Adjustments
             showTitleBox: getCheckedValue('param-showTitleBox')
         },
         feedbackPageStyle: {
@@ -830,7 +855,9 @@ function collectParameterForm() {
         },
         badgeLeafStyles: {
             leafScale: sharedLeafScale,
-            tintDurationHours: clampNumber(getInputValue('param-tintDurationHours'), 0, 168, 24),
+            tintDurationHours: Math.round(clampNumber(
+                (Number(getInputValue('param-tintDurationHours')) || 24) / (getInputValue('param-tintDurationUnit') === 'minutes' ? 60 : 1),
+                0, 168, 24) * 1000) / 1000,
             colors: collectBadgeLeafStyleColors()
         },
         photoSettings: {
