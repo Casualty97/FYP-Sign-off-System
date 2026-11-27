@@ -1027,6 +1027,9 @@ async function loadTreePreview() {
     const address = mode === '3d' ? '/3dtree' : '/tree';
     const open = document.getElementById('dt-open-tree');
     if (open) open.setAttribute('href', address);
+    // the 3D tree in the card is Wei Jie's preview (Tree Settings > 3D View & Zoom): the view the screens use, but
+    // standing still and with no sound, so the admin page does not play music
+    const shown = mode === '3d' ? '/3dTree?viewEditor=1' : address;
     const label = document.getElementById('dt-preview-mode');
     if (label) label.textContent = mode === '3d' ? 'A small copy of the 3D tree screen' : 'A small copy of the tree screen';
     if (!document.getElementById('digital-tree-page')?.classList.contains('active')) return;
@@ -1037,7 +1040,7 @@ async function loadTreePreview() {
         screen.dataset.state = 'ready';
         fitTreeFrame();
     };
-    frame.setAttribute('src', address);
+    frame.setAttribute('src', shown);
     fitTreeFrame();
 }
 // <Jun Kai end>
