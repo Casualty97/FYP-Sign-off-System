@@ -461,6 +461,13 @@ async function archiveStep(cookie) {
       }
     }
     // <Jun Kai end>
+    // <Jun Kai start> the Tree Animation Demo is the 3D tree with the demo dock added, for signed-in admins only
+    await expect('GET /tree-demo without a session is refused', `${BASE}/tree-demo`, (r) => r.status === 401 || `${r.status}`, { redirect: 'manual' });
+    await expect('GET /tree-demo sends the 3D tree page with the demo dock', `${BASE}/tree-demo`, (r) => r.status === 200 && r.text.includes('<base href="/3dTree/">')
+      && r.text.includes('<script src="/treeDemo/treeDemo.js"></script>') && r.text.includes('/treeDemo/treeDemo.css') || `${r.status} ${r.text.slice(0, 160)}`, { headers: { cookie } });
+    await expect('GET /tree-demo?tree=2d sends the 2D tree page with the demo dock', `${BASE}/tree-demo?tree=2d`, (r) => r.status === 200 && r.text.includes('/tree/tree.js')
+      && !r.text.includes('<base href="/3dTree/">') && r.text.includes('<script src="/treeDemo/treeDemo.js"></script>') || `${r.status} ${r.text.slice(0, 160)}`, { headers: { cookie } });
+    // <Jun Kai end>
     // <Jun Kai start> "keep me signed in for 1 day": the token alone signs the admin back in, Logout ends it
     try {
       const r = await fetch(`${BASE}/api/admin/login`, json({ username: ADMIN_USER, password: ADMIN_PASS, remember: true }));

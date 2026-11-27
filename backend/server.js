@@ -617,9 +617,18 @@ app.get(['/admin', '/admin/'], (req, res) => {
     res.sendFile(path.join(paths.FRONTEND, 'admin', 'admin.html'));
 });
 
+// <Jun Kai start> The Tree Animation Demo shows the 3D tree by default and the 2D tree with ?tree=2d (its dock switches
+// between them), whichever tree the wall shows: Wei Jie's tree page with the demo dock's script and styles added to its
+// head (frontend/treeDemo/), so his page files stay as they are.
 app.get(['/tree-demo', '/tree-demo/'], auth.requireAuth, (req, res) => {
-    res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
+    const page = req.query.tree === '2d' ? path.join(paths.FRONTEND, 'tree', 'tree.html') : path.join(paths.FRONTEND, '3dTree', '3dTree.html');
+    fs.readFile(page, 'utf8', (err, html) => {
+        if (err) return res.status(500).send('The tree page could not be read.');
+        const demo = '  <link rel="stylesheet" href="/treeDemo/treeDemo.css">\n  <script src="/treeDemo/treeDemo.js"></script>\n</head>';
+        res.type('html').set('Cache-Control', 'no-store').send(html.replace('</head>', demo));
+    });
 });
+// <Jun Kai end>
 
 // <Jun Kai start> The Tree Settings preview (admin/js/treeAdjustment.js) shows either tree before the choice between
 // them is saved, so these two addresses skip the move to the chosen tree below. Signed in only, as the demo.
