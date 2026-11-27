@@ -9,6 +9,9 @@ const express = require('express');
 console.log = () => {};
 console.debug = () => {};
 const tree = require('../../backend/features/tree/routes');
+// GET /api/tree adds the leaves the Visitor Data Archive kept (features/archive/archivedLeaves.js), read from the
+// real database pool; none here, so no pool is opened and the test ends when its tests do.
+require('../../backend/features/archive/archivedLeaves').withKept = async (liveLeaves) => liveLeaves;
 
 const year = new Date().getFullYear();
 const row = (id, name, metadata) => ({
