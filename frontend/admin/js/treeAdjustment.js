@@ -23,6 +23,9 @@ let treeAdjSavedTimer = null;
 let treeAdjLastDraft = '';
 let treeAdjOpened = false;
 let treeAdjFoldsReady = false;
+let treeAdjOpenedAt = 0;
+let treeAdjLoaded = {};          // what his form showed after loading, for settings the server has no value for
+const TREEADJ_SETTLE_MS = 3000;  // his loaders fill the fields within this time after the page opens
 
 const treeAdjEl = (id) => document.getElementById(id);
 const treeAdjChecked = (id) => Boolean(treeAdjEl(id)?.checked);
@@ -61,14 +64,19 @@ function treeAdjStage(kind) {
     const thresholds = {};
     [1, 2, 3, 4].forEach((n) => { thresholds[`stage${n}`] = parseInt(treeAdjValue(prefix + n), 10) || 0; });
     let stage = Math.max(0, Math.min(4, Number(treeAdjValue(kind === '3d' ? 'tree3d-treeStage' : 'param-treeStage')) || 0));
-    if (auto && treeAdjLeafCount !== null && typeof getStageFromLeafCount === 'function') stage = getStageFromLeafCount(treeAdjLeafCount, thresholds);
-    return { auto, stage, thresholds };
+    // In Auto the server works the stage out from its own leaf count. Only when Auto or its thresholds are not saved
+    // yet does the preview work out a stage itself, from this year's leaves as the admin page counts them.
+    const saved = treeAdjSaved?.treeParameters || {};
+    const autoAsSaved = auto && saved.treeStageMode === 'auto' && treeAdjSame(thresholds, saved.leafThresholds) && Number.isFinite(Number(saved.treeStage));
+    if (autoAsSaved) stage = Number(saved.treeStage);
+    else if (auto && treeAdjLeafCount !== null && typeof getStageFromLeafCount === 'function') stage = getStageFromLeafCount(treeAdjLeafCount, thresholds);
+    return { auto, stage, thresholds, autoAsSaved };
 }
 
 function treeAdjStageValues(kind) {
-    const { auto, stage, thresholds } = treeAdjStage(kind);
+    const { auto, stage, thresholds, autoAsSaved } = treeAdjStage(kind);
     const values = { 'treeParameters.treeStageMode': auto ? 'auto' : 'manual', 'treeParameters.leafThresholds': thresholds };
-    if (!auto || treeAdjLeafCount !== null) values['treeParameters.treeStage'] = stage;
+    if (!auto || (!autoAsSaved && treeAdjLeafCount !== null)) values['treeParameters.treeStage'] = stage;
     return values;
 }
 
@@ -282,10 +290,19 @@ function treeAdjSame(now, saved) {
     return String(now ?? '').trim().toLowerCase() === String(saved ?? '').trim().toLowerCase();
 }
 
-// the paths of one fold that differ from what the server has
+// The paths of one fold that differ from what the server has. A setting the server has no value for yet (an older
+// settings file) is compared with what his form showed once his loaders had filled it in.
 function treeAdjChanges(key) {
     if (!treeAdjSaved) return [];
-    return Object.entries(treeAdjValues(key)).filter(([path, value]) => !treeAdjSame(value, treeAdjGet(treeAdjSaved, path))).map(([path]) => path);
+    const settled = Date.now() - treeAdjOpenedAt > TREEADJ_SETTLE_MS;
+    return Object.entries(treeAdjValues(key)).filter(([path, value]) => {
+        const saved = treeAdjGet(treeAdjSaved, path);
+        if (saved !== undefined && saved !== null) return !treeAdjSame(value, saved);
+        if (!settled) return false;
+        const id = `${key}|${path}`;
+        if (!(id in treeAdjLoaded)) treeAdjLoaded[id] = JSON.stringify(value);
+        return treeAdjLoaded[id] !== JSON.stringify(value);
+    }).map(([path]) => path);
 }
 
 const treeAdjFoldTitle = (section) => section.querySelector('.treeadj-fold-title')?.textContent.trim()
@@ -455,6 +472,8 @@ async function treeAdjReadLeafCount() {
 function treeAdjOpen() {
     if (treeAdjOpened) return;
     treeAdjOpened = true;
+    treeAdjOpenedAt = Date.now();
+    treeAdjLoaded = {};
     treeAdjBuildFolds();
     treeAdjShowPreview();
     treeAdjReadSaved();
