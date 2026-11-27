@@ -270,14 +270,14 @@ function usersOpenPages() {
 
 function usersRoleCards(name, current) {
     const pages = usersOpenPages();
-    return `<fieldset class="users-roles">
+    return `<fieldset class="users-role-cards">
         <legend class="ui-label">Role</legend>
         ${USERS_ROLES.map((role) => `
-        <label class="users-role">
+        <label class="users-role-card">
             <input type="radio" name="${name}" value="${role.value}"${role.value === current ? ' checked' : ''}>
-            <span class="users-role-text">
-                <span class="users-role-name">${role.name}</span>
-                <span class="users-role-lead">${role.lead(pages)}</span>
+            <span class="users-role-card-text">
+                <span class="users-role-card-name">${role.name}</span>
+                <span class="users-role-card-lead">${role.lead(pages)}</span>
                 <ul>${role.points(pages).map((point) => `<li>${escapeHtml(point)}</li>`).join('')}</ul>
             </span>
         </label>`).join('')}
