@@ -1,74 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-<<<<<<< HEAD
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RP Xperience Centre Digital Tree 3D</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-
-    <link rel="stylesheet" href="3dTree.css?v=badge-colors-20260716-1">
-    <script src="3dTree.js?v=badge-colors-20260716-1" defer></script>
-</head>
-<body>
-    <div id="treeContainer">
-        <div class="tree-title">
-            <h1 id="treeTitle">🌳 RP Xperience Centre Digital Tree</h1>
-            <p id="treeSubtitle">Growing with every visitor's contribution this year</p>
-        </div>
-
-        <button class="year-review-toggle" id="yearReviewToggle" type="button" aria-expanded="false" aria-controls="yearReviewBook">
-            Year Review
-        </button>
-
-        <aside class="year-review-book" id="yearReviewBook" aria-label="Year review book" aria-hidden="true">
-            <div class="book-topline">
-                <span class="book-label">Year Review</span>
-                <div class="book-actions">
-                    <button class="book-live-button" id="bookLiveButton" type="button">Live</button>
-                    <button class="book-close-button" id="bookCloseButton" type="button" aria-label="Close year review">×</button>
-                </div>
-            </div>
-            <div class="book-page">
-                <button class="book-nav" id="bookPrevButton" type="button" aria-label="Previous year">‹</button>
-                <div class="book-turn-sheet" id="bookTurnSheet" aria-hidden="true">
-                    <span id="bookTurnYear">----</span>
-                </div>
-                <div class="book-content">
-                    <div class="book-year" id="bookYear">----</div>
-                    <div class="book-count" id="bookCount">0 leaves</div>
-                    <div class="review-tree-preview" id="reviewTreePreview"></div>
-                    <button class="book-view-button" id="bookViewButton" type="button">View Tree</button>
-                </div>
-                <button class="book-nav" id="bookNextButton" type="button" aria-label="Next year">›</button>
-            </div>
-        </aside>
-        
-        <!-- Hidden 2D anchors keep the shared tree script working on the 3D page. -->
-        <!--<img id="treeImage" src="/assets/Tree/stage4.png" alt="" aria-hidden="true">
-        <img id="treeImageLeaves" src="/assets/Tree/stage4leaves.png" alt="" aria-hidden="true">-->
-
-        <model-viewer id="treeModel" src="/assets/Tree/Tree_WO_base.glb" alt="RP Xperience Centre 3D Tree" camera-controls shadow-intensity="1" exposure="1" interaction-prompt="none" camera-orbit="270deg 90deg 200%">
-        </model-viewer>
-        
-        <div id="ovalOverlay"></div>
-        <div id="leavesContainer"></div>
-        
-        <div class="loading" id="loadingMessage">
-            Loading tree data...
-        </div>
-
-        <aside class="leaf-detail-card" id="leafDetailCard" aria-live="polite" aria-hidden="true">
-            <button class="leaf-detail-close" id="leafDetailClose" type="button" aria-label="Close leaf details">×</button>
-            <p class="leaf-detail-kicker" id="leafDetailPrivacy">Leaf details</p>
-            <h2 id="leafDetailName">Anonymous visitor</h2>
-            <div class="leaf-detail-meta">
-                <span id="leafDetailBadge">Feedback Contributor</span>
-                <span id="leafDetailDate">Today</span>
-            </div>
-            <p class="leaf-detail-quote" id="leafDetailSnippet">Select a leaf to view its pledge snippet.</p>
-        </aside>
-=======
   <meta charset="utf-8">
   <!-- The server shows this page at /3dTree (no trailing slash), so relative links such as ./scene.js and
        ./assets/... must resolve inside the 3dTree folder. -->
@@ -76,7 +8,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#172d26">
   <link rel="icon" href="data:,">
-  <title>ESG Tree | ESG Centre</title>
+  <title>ESG Tree | RP Xperience Centre</title>
   <link rel="stylesheet" href="./scene.css">
   <script type="module" src="./scene.js"></script>
   <script type="module" src="./year-review.js"></script>
@@ -88,11 +20,10 @@
       <canvas id="landscape" tabindex="0" aria-label="The ESG Tree and animated river"
         aria-describedby="tree-view-help"></canvas>
       <span id="tree-view-help" class="access">Drag or use the arrow keys to orbit the tree.</span>
->>>>>>> weijie_working_branches
     </div>
 
-    <header class="masthead glass-card" tabindex="0" aria-label="ESG Centre, ESG Tree">
-      <p class="eyebrow"><span class="mark" aria-hidden="true">✦</span> ESG CENTRE <span class="divider"></span> <span id="tree-stage-label">STAGE 4</span></p>
+    <header class="masthead glass-card" tabindex="0" aria-label="RP Xperience Centre, ESG Tree">
+      <p class="eyebrow"><span class="mark" aria-hidden="true">✦</span> RP XPERIENCE CENTRE <span class="divider"></span> <span id="tree-stage-label">STAGE 4</span></p>
       <h1>ESG Tree</h1>
       <p class="species"><i>Terminalia catappa</i><span>·</span> A living river valley</p>
     </header>

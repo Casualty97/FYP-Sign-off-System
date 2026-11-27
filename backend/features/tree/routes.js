@@ -30,7 +30,8 @@ const router = express.Router();
 const { getBadgeSummary, determineBadgeKeys, BADGE_CONFIGS } = require('../email/service');
 const { MULTI_PLEDGE_KEY, MULTI_PLEDGE_COLOUR } = require('../parameters/tree3d');
 const { isFeedbackFlagged } = require('../analysis/flagged');
-<<<<<<< HEAD
+const paths = require('../../core/paths');
+const { createTreeLiveEvents, FINGERPRINT_SQL } = require('./liveEvents');
 // <Jun Kai start>
 const deletedCounts = require('../archive/deletedCounts');
 const archivedLeaves = require('../archive/archivedLeaves');
@@ -58,11 +59,6 @@ function treeProblem(text, err, now = Date.now()) {
     return true;
 }
 // <Jun Kai end>
-=======
-const paths = require('../../core/paths');
-const { createTreeLiveEvents, FINGERPRINT_SQL } = require('./liveEvents');
-
-let db;
 
 // The tree screens' live connection (GET /api/tree/events, ./liveEvents.js): told at once when the tree's data
 // or the admin's settings change, instead of checking on a timer.
@@ -75,7 +71,6 @@ const liveEvents = createTreeLiveEvents({
     // The leaf count for the automatic growth stage is counted again at once, not after its 10 seconds.
     onChange: () => { leafCountCache.at = 0; }
 });
->>>>>>> weijie_working_branches
 
 function setDatabase(database) {
     db = database;
@@ -132,26 +127,17 @@ router.get('/', (req, res) => {
         const requestedYear = parseTreeYear(req.query.year);
         const treeYear = requestedYear || getCurrentTreeYear();
 
-        loadLeafRows(treeYear, (userErr, visibleRows, hiddenCount) => {
+        loadLeafRows(treeYear, (userErr, visibleRows) => {
             if (userErr) {
                 treeProblem('the leaves could not be read', userErr); // <Jun Kai/>
                 return res.status(500).json({ error: 'Leaf query error: ' + userErr.message });
             }
 
-<<<<<<< HEAD
-            const visibleRows = (rows || []).filter(row => !isFeedbackFlagged([
-                row.comment,
-                row.answer_values
-            ]));
             // <Jun Kai start>
             // leaves the Visitor Data Archive kept for this year (no name, no pledge, archived: true) are drawn with the
             // live ones, in the same order: created_at, then id
             return archivedLeaves.withKept(mapRowsToVisitors(visibleRows, vipSet), treeYear).then((leaves) => { res.json(leaves); });
             // <Jun Kai end>
-=======
-            console.log('✅ Tree leaves fetched:', visibleRows.length, hiddenCount ? `(${hiddenCount} flagged hidden)` : '');
-            return res.json(mapRowsToVisitors(visibleRows, vipSet));
->>>>>>> weijie_working_branches
         });
     });
 });
@@ -388,11 +374,8 @@ router.get('/vip-names', (req, res) => {
 module.exports = {
     router,
     setDatabase,
-<<<<<<< HEAD
-    treeProblem // <Jun Kai/> for the unit test of the 3 line limit
-=======
     countLiveTreeLeaves,
     // A feedback was saved here (features/feedback/routes.js): the tree screens are told at once.
-    nudgeTreeScreens: () => liveEvents.nudge()
->>>>>>> weijie_working_branches
+    nudgeTreeScreens: () => liveEvents.nudge(),
+    treeProblem // <Jun Kai/> for the unit test of the 3 line limit
 };
