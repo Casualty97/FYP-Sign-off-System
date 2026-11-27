@@ -9330,6 +9330,9 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
 #tree-adjustment-page.is-view-only [data-tree-change] { display: none !important; }
 #tree-adjustment-page.is-view-only :is(input, select, textarea) { pointer-events: none; }
 .tree-view-only-note { margin: 0 0 16px; }
+/* a hidden note stays hidden: .ui-note sets display: block, which would beat the hidden attribute (the view only note
+   showed for a System Admin after a fresh load) */
+.ui-note[hidden] { display: none; }
 /* <Jun Kai end> */
 
 /* <Jun Kai start> uiConfirm, uiAlert and uiPrompt (uiKit.js): the small va-dialog; a message keeps its line breaks */
