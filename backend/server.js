@@ -621,6 +621,16 @@ app.get(['/tree-demo', '/tree-demo/'], auth.requireAuth, (req, res) => {
     res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
 });
 
+// <Jun Kai start> The Tree Settings preview (admin/js/treeAdjustment.js) shows either tree before the choice between
+// them is saved, so these two addresses skip the move to the chosen tree below. Signed in only, as the demo.
+app.get('/tree-preview/2d', auth.requireAuth, (req, res) => {
+    res.sendFile(path.join(paths.FRONTEND, 'tree', 'tree.html'));
+});
+app.get('/tree-preview/3d', auth.requireAuth, (req, res) => {
+    res.sendFile(path.join(paths.FRONTEND, '3dTree', '3dTree.html'));
+});
+// <Jun Kai end>
+
 // The 2D or 3D tree, as chosen in the admin's Display 2D/3D Tree: the other address goes straight to the
 // chosen tree (features/parameters/treeDisplay.js).
 app.get('/tree', serveChosenTree('2d', (req, res) => {
