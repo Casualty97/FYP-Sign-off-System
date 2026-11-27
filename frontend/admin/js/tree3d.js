@@ -1193,7 +1193,7 @@ async function updateTree3dAutoStage() {
     preview.textContent = `${stage} (${TREE3D_STAGE_NAMES[stage]})`;
     const growth = tree3dField('growthPreview');
     if (growth) growth.textContent = tree3dGrowthText(leafCount, thresholds, stage);
-    if (tree3dStageIsAuto()) tree3dField('treeStage').value = String(stage);
+    // <Jun Kai/> the preview leaves the manual stage list alone, so switching back to Manual still shows that choice
     return stage;
 }
 

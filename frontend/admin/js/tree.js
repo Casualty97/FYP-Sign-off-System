@@ -440,11 +440,7 @@ async function updateAutoStagePreview() {
     const stage = getStageFromLeafCount(leafCount, thresholds);
     autoStageSpan.textContent = stage;
 
-    // If in auto mode, also update the manual dropdown selection (for consistency)
-    const isAuto = document.querySelector('input[name="stageMode"]:checked')?.value === 'auto';
-    if (isAuto) {
-        document.getElementById('param-treeStage').value = stage;
-    }
+    // <Jun Kai/> the preview leaves the manual stage list alone, so switching back to Manual still shows that choice
 }
 
 // Add event listeners to threshold inputs
