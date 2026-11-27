@@ -9884,8 +9884,11 @@ button.treeadj-fold-toggle:focus-visible { outline: 2px solid var(--l3-focus, #2
 .treeadj-fold.is-open > .section-header button.treeadj-fold-toggle { border-radius: 14px 14px 0 0; }
 .treeadj-fold-title { font-weight: 700; color: var(--theme-text-color); }
 .treeadj-fold-sum { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--color-dark-gray); text-align: right; overflow-wrap: anywhere; }
+.treeadj-unsaved[hidden] { display: none; } /* .ui-tag sets display: inline-block, which would beat hidden */
 .treeadj-fold-chevron { display: inline-flex; flex: none; color: var(--color-dark-gray); transition: transform 0.15s ease; }
 .treeadj-fold.is-open .treeadj-fold-chevron { transform: rotate(180deg); }
+/* .page-content has overflow: auto without a height, so it never scrolls but would still hold the preview in place */
+.page-content:has(> #tree-adjustment-page.active) { overflow: visible; }
 .treeadj-preview { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 18px 20px; }
 .treeadj-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .treeadj-preview-head h3 { margin: 0; font-size: 16px; color: var(--theme-text-color); }
