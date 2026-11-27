@@ -9934,6 +9934,10 @@ button.treeadj-fold-toggle:focus-visible { outline: 2px solid var(--l3-focus, #2
 /* the music list is drawn again by tree3d.js with class btn-secondary each time: the kit look here */
 #tree-adjustment-page #tree3d-musicList button { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid var(--theme-border-color) !important; border-radius: 8px; background: var(--theme-card-bg) !important; color: var(--theme-text-color) !important; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 #tree-adjustment-page #tree3d-musicList button:last-child { color: #b91c1c !important; border-color: #fecaca !important; }
+#tree-adjustment-page #tree3d-musicList > div { background: var(--theme-card-bg) !important; border-color: var(--theme-border-color) !important; }
+#tree-adjustment-page #tree3d-musicList > div > span:first-child { color: var(--theme-text-color) !important; }
+/* view only: a section's action row with nothing left in it (every button a change button) takes no space */
+#tree-adjustment-page.is-view-only .treeadj-fold > .section-header > .treeadj-actions:not(:has(> button:not([data-tree-change]))) { display: none; }
 
 /* fields: the kit field (.ui-input / .ui-select) */
 #tree-adjustment-page .treeadj-fold :is(input[type="text"], input[type="number"], input[type="url"], input:not([type]), select, textarea):not(.ui-input):not(.ui-select) {
@@ -9974,7 +9978,8 @@ button.treeadj-fold-toggle:focus-visible { outline: 2px solid var(--l3-focus, #2
 /* labels and help: one look for each (status lines keep their own colour, it carries meaning) */
 #tree-adjustment-page .treeadj-fold .section-body label:not(:has(input[type="checkbox"], input[type="radio"])) { font-size: 13px !important; font-weight: 600 !important; color: var(--theme-text-color) !important; }
 #tree-adjustment-page .treeadj-fold .section-body label:has(> input[type="checkbox"], > input[type="radio"]) { display: inline-flex; align-items: center; gap: 8px; font-size: 14px !important; font-weight: 400 !important; color: var(--theme-text-color) !important; }
-#tree-adjustment-page .treeadj-fold .section-body :is(p, small, span, div):is([style*="color:#666"], [style*="color: #666"], [style*="color:#64748b"], [style*="color: #64748b"], [style*="color:#475569"], [style*="color: #475569"], [style*="font-size:12px"], [style*="font-size: 12px"], .text-muted, .form-text):not([role="status"]):not([id$="-status"]):not([id*="Status"]):not(.treeadj-tile-name) {
+/* only his grey help text (a coloured line, like the green "10 new leaves: 4, 3 and 3", keeps its colour) */
+#tree-adjustment-page .treeadj-fold .section-body :is(p, small, span, div):is([style*="color:#666"], [style*="color: #666"], [style*="color:#64748b"], [style*="color: #64748b"], [style*="color:#475569"], [style*="color: #475569"], .text-muted, .form-text):not([role="status"]):not([id$="-status"]):not([id*="Status"]):not(.treeadj-tile-name) {
     font-size: 12.5px !important;
     line-height: 1.45 !important;
     color: var(--color-muted) !important;

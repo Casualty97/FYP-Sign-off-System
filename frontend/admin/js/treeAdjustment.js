@@ -649,9 +649,14 @@ function treeOpenInOneTab(event) {
     const want = new URL(link.href, window.location.href);
     let now = '';
     try { now = tab.location.href; } catch { now = ''; } // another site in that tab
-    const same = now && now !== 'about:blank' && new URL(now).pathname.toLowerCase() === want.pathname.toLowerCase();
+    const open = now && now !== 'about:blank';
+    // the same address as last time counts as the same tree too: the server may have moved the tab on (for example
+    // /3dTree to /tree while 2D is the saved choice), and pressing again must not load it again
+    const same = open && (new URL(now).pathname.toLowerCase() === want.pathname.toLowerCase() || treeTabAsked[link.dataset.treeTab] === want.href);
     if (!same) tab.location.href = want.href;
+    treeTabAsked[link.dataset.treeTab] = want.href;
     tab.focus();
 }
+const treeTabAsked = {};
 document.addEventListener('click', treeOpenInOneTab);
 // <Jun Kai end>

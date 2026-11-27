@@ -326,7 +326,7 @@ function showTree3dMusicTracks(tracks) {
         row.style.cssText = 'display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:7px 10px; margin-top:6px; background:#fff; border:1px solid #e2e8f0; border-radius:6px;';
         const name = document.createElement('span');
         name.style.cssText = 'flex:1 1 240px; color:#1e293b; font-weight:500; overflow-wrap:anywhere;';
-        name.textContent = `🎵 ${track.name}`;
+        name.textContent = track.name; // <Jun Kai/> no emoji (Tree Settings in the kit look)
         const details = document.createElement('span');
         details.style.cssText = 'color:#64748b; font-size:12px;';
         details.textContent = `${track.sizeMb} MB · uploaded ${new Date(track.uploadedAt).toLocaleDateString()}`;
