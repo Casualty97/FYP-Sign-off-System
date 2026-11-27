@@ -261,7 +261,8 @@ function standIns(over = {}) {
         deps: {
             now: () => new Date(T0 + 10 * 60 * MIN),
             pollMs: 1,
-            waitMs: over.waitMs === undefined ? 50 : over.waitMs,
+            // real time: a busy CI machine can take longer than 50 ms for a few 1 ms polls; a server that answers ends the wait at once
+            waitMs: over.waitMs === undefined ? 5000 : over.waitMs,
             readMode: () => over.mode || 'auto',
             readPolicies: () => over.policies || [POLICY],
             probe: (callback) => { const running = answers[Math.min(calls.probes, answers.length - 1)]; calls.probes++; callback({ running }); },
