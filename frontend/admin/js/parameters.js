@@ -659,6 +659,7 @@ function populateParameterForm(config) {
     // "A leaf stays light for", in hours (24 when unset or 0, as the 2D tree takes it), shown in minutes when it
     // is not a whole number of hours (so 1 minute shows as 1 minute).
     const tintHours = Number(badgeLeafStyles.tintDurationHours) > 0 ? Number(badgeLeafStyles.tintDurationHours) : 24;
+    badgeTintSavedAsDefault = !(Number(badgeLeafStyles.tintDurationHours) > 0); // <Jun Kai/> a saved 0 is the 24 h default
     const tintInHours = Number.isInteger(tintHours);
     setInputValue('param-tintDurationHours', tintInHours ? tintHours : Math.max(1, Math.round(tintHours * 60)));
     setInputValue('param-tintDurationUnit', tintInHours ? 'hours' : 'minutes');
@@ -758,6 +759,14 @@ function populateParameterForm(config) {
     // <Jun Kai end>
 }
 
+// <Jun Kai start> A saved tint time of 0 means the 24 h default (the 2D tree only uses it when it is above 0). The field
+// shows it as 24 hours, and while it still does, 0 is saved back, so saving another setting does not change it.
+let badgeTintSavedAsDefault = false;
+function keepTintDefault(hours) {
+    return badgeTintSavedAsDefault && hours === 24 ? 0 : hours;
+}
+// <Jun Kai end>
+
 function collectParameterForm() {
     const sharedLeafScale = collectSharedLeafScale();
     const feedbackBackground = getInputValue('param-feedbackBackground');
@@ -855,9 +864,9 @@ function collectParameterForm() {
         },
         badgeLeafStyles: {
             leafScale: sharedLeafScale,
-            tintDurationHours: Math.round(clampNumber(
+            tintDurationHours: keepTintDefault(Math.round(clampNumber( // <Jun Kai/> keepTintDefault
                 (Number(getInputValue('param-tintDurationHours')) || 24) / (getInputValue('param-tintDurationUnit') === 'minutes' ? 60 : 1),
-                0, 168, 24) * 1000) / 1000,
+                0, 168, 24) * 1000) / 1000),
             colors: collectBadgeLeafStyleColors()
         },
         photoSettings: {

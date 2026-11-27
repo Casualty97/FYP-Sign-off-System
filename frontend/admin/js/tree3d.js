@@ -362,6 +362,7 @@ function tree3dMusicChanged() {
 }
 
 async function loadTree3dMusicTracks() {
+    if (sessionStorage.getItem('userRole') !== 'system_admin') return setTree3dMusicStatus('Only a System Admin can see and change the uploaded music.'); // <Jun Kai/>
     try {
         const response = await fetch('/api/admin/parameters/tree3d-music/list', { credentials: 'include', cache: 'no-store' });
         const data = await response.json();
@@ -1193,7 +1194,7 @@ async function updateTree3dAutoStage() {
     preview.textContent = `${stage} (${TREE3D_STAGE_NAMES[stage]})`;
     const growth = tree3dField('growthPreview');
     if (growth) growth.textContent = tree3dGrowthText(leafCount, thresholds, stage);
-    if (tree3dStageIsAuto()) tree3dField('treeStage').value = String(stage);
+    // <Jun Kai/> the preview leaves the manual stage list alone, so switching back to Manual still shows that choice
     return stage;
 }
 
@@ -1451,7 +1452,7 @@ async function loadTree3dSettings() {
 
 document.addEventListener('DOMContentLoaded', () => {
     showTreeSettingsForMode(document.getElementById('param-treeDisplayMode')?.value);
-    loadTree3dSettings();
+    // <Jun Kai/> the 3D settings load when Tree Settings opens (navigation.js), after sign-in, not on every page load
     // The names' preview follows the look ("Match the look" writes by hand when glowing) and the new leaf colour.
     tree3dField('glowLook')?.addEventListener('change', updateTree3dNamePreview);
     tree3dField('leafNewSwatches')?.addEventListener('click', () => setTimeout(updateTree3dNamePreview));
