@@ -440,11 +440,7 @@ async function updateAutoStagePreview() {
     const stage = getStageFromLeafCount(leafCount, thresholds);
     autoStageSpan.textContent = stage;
 
-    // If in auto mode, also update the manual dropdown selection (for consistency)
-    const isAuto = document.querySelector('input[name="stageMode"]:checked')?.value === 'auto';
-    if (isAuto) {
-        document.getElementById('param-treeStage').value = stage;
-    }
+    // <Jun Kai/> the preview leaves the manual stage list alone, so switching back to Manual still shows that choice
 }
 
 // Add event listeners to threshold inputs
@@ -1158,6 +1154,7 @@ async function revertParameterVipLeaf() {
 }
 
 async function loadAvailableLeafImages(currentLeafImagePath = '') {
+    if (sessionStorage.getItem('userRole') !== 'system_admin') return showTreePicturesAdminOnly(document.getElementById('param-existingLeafList'), 'the leaf pictures'); // <Jun Kai/>
     try {
         console.log('📂 Loading available leaf images...');
         const response = await fetch('/api/admin/parameters/leaf/list', {
@@ -1245,6 +1242,7 @@ function hideRevertIfPictureGone(buttonId, previousPath, pictures) {
 }
 
 async function loadAvailableVipLeafImages(currentVipLeafImagePath = '') {
+    if (sessionStorage.getItem('userRole') !== 'system_admin') return showTreePicturesAdminOnly(document.getElementById('param-existingVipLeafList'), 'the VIP leaf pictures'); // <Jun Kai/>
     try {
         console.log('📂 Loading available VIP leaf images...');
         const response = await fetch('/api/admin/parameters/vip-leaf/list', {
@@ -1492,3 +1490,15 @@ async function loadTreeTitleSettings() {
 // Call when DOM is ready
 document.addEventListener('DOMContentLoaded', loadTreeTitleSettings);
 
+
+// <Jun Kai start> IT roles may look at Tree Settings, but the picture lists come from System Admin only routes:
+// the list says so instead of asking and staying empty
+function showTreePicturesAdminOnly(list, what) {
+    if (!list) return;
+    list.textContent = '';
+    const note = document.createElement('p');
+    note.className = 'ui-help tree-pictures-admin-only';
+    note.textContent = `Only a System Admin can see and change ${what}.`;
+    list.appendChild(note);
+}
+// <Jun Kai end>
