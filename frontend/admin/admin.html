@@ -834,11 +834,15 @@
                         <h2>Tree Settings</h2>
                         <p>Adjust tree growth parameters and background settings</p>
                     </div>
+                    <!-- <Jun Kai start> Tree Adjustment B: the settings fold open on the left, the preview stays on the right -->
+                    <div class="treeadj-layout" id="treeadj-layout">
+                        <div class="treeadj-settings" id="treeadj-settings">
+                    <!-- <Jun Kai end> -->
 
                     <!-- Which tree the wall shows. The settings below follow this choice: 2D shows the two 2D tabs,
                          3D shows the 3D Tree Settings (showTreeSettingsForMode in admin/js/tree3d.js).
                          Save Display makes the chosen tree live. -->
-                    <div class="tree-adjustment-section">
+                    <div class="tree-adjustment-section" data-treeadj-fold="display">
                         <div class="section-header">
                             <h3>Display 2D/3D Tree</h3>
                             <div style="display:flex; gap:10px; align-items:center;">
@@ -846,7 +850,7 @@
                             </div>
                         </div>
 
-                        <div class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
+                        <div id="treeadj-body-display" class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
                             <div style="flex:1;">
                                 <label for="param-treeDisplayMode">Tree Display Mode</label><br>
                                 <select id="param-treeDisplayMode" onchange="showTreeSettingsForMode(this.value)" style="padding:8px 10px;border:1px solid #d7dbe3;border-radius:6px;background:#fff;min-width:180px;">
@@ -870,7 +874,7 @@
                     </div>
 
                     <div id="tree-elements-tab" class="tree-tab-content active">
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="tree-display">
                             <div class="section-header">
                                 <h3>Tree Display</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -878,7 +882,7 @@
                                     <button class="btn-primary" onclick="refreshTreeData()">Refresh Data</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-tree-display" class="section-body">
                                 <!-- Auto / Manual toggle -->
                                 <div style="display:flex; align-items:center; gap:20px; margin-bottom:16px;">
                                     <label style="font-weight:600; display:flex; align-items:center; gap:8px;">
@@ -967,12 +971,12 @@
 
                         <br>
                         
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="background">
                             <div class="section-header">
                                 <h3>Tree Background</h3>
                                 <button class="btn-primary" onclick="selectTreeBackground()">Apply Selected</button>
                             </div>
-                            <div class="section-body" style="display:flex;gap:20px;align-items:flex-start;margin-top:12px;">
+                            <div id="treeadj-body-background" class="section-body" style="display:flex;gap:20px;align-items:flex-start;margin-top:12px;">
                                 <div style="flex:1;">
                                     <label for="param-treeBackgroundUpload">Upload custom background image</label><br>
                                     <input type="file" id="param-treeBackgroundUpload" accept="image/png,image/jpeg,image/webp">
@@ -995,14 +999,14 @@
                         </div>
 
                         <br>
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="leaf">
                             <div class="section-header">
                                 <h3>Leaf Adjustments</h3>
                                 <button class="btn-primary" onclick="saveTreeParameters()">Save Changes</button>
 
 
                             </div>
-                            <div class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
+                            <div id="treeadj-body-leaf" class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
                                 <div style="flex:1;">
                                     <label for="param-leafUpload">Upload custom leaf image</label><br>
                                     <input type="file" id="param-leafUpload" accept="image/png,image/jpeg,image/webp">
@@ -1037,12 +1041,12 @@
 
                         <br>
 
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="vip-leaf">
                             <div class="section-header">
                                 <h3>VIP Leaf Adjustments</h3>
                                 <button class="btn-primary" onclick="saveTreeParameters()">Save Changes</button>
                             </div>
-                            <div class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
+                            <div id="treeadj-body-vip-leaf" class="section-body" style="display:flex;gap:20px;align-items:center;margin-top:12px;">
                                 <div style="flex:1;">
                                     <label for="param-vipLeafUpload">Upload custom VIP leaf image</label><br>
                                     <input type="file" id="param-vipLeafUpload" accept="image/png,image/jpeg,image/webp">
@@ -1076,7 +1080,7 @@
                         </div>
                         
                         <br>
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="title-box">
                             <div class="section-header">
                                 <h3>Tree Title Box Settings</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1088,7 +1092,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-title-box" class="section-body">
                                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:16px 24px;">
                                     <!-- Background opacity -->
                                     <div>
@@ -1206,14 +1210,14 @@
                     <div id="tree3d-settings-tab" class="tree3d-settings">
                         <!-- 3D Tree Growth Stage: the same stage as the 2D tree's (treeParameters.treeStage), shown on
                              /3dTree with the Ketapang Stage 0 to 4 models in assets/Tree/3dTreeLeaves (tree-stage.js). -->
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="stage3d">
                             <div class="section-header">
                                 <h3>3D Tree Growth Stage</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
                                     <button class="btn-primary" onclick="saveTree3dStage()">Save Stage</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-stage3d" class="section-body">
                                 <div style="display:flex; align-items:center; gap:20px; margin-bottom:16px;">
                                     <label style="font-weight:600; display:flex; align-items:center; gap:8px;">
                                         <input type="radio" name="tree3dStageMode" value="auto" onchange="updateTree3dStageMode()" checked> Auto (based on leaf count)
@@ -1251,7 +1255,7 @@
 
                         <!-- 3D Tree Visualization Parameters: the 2D tree's Visualization Parameters for the 3D tree, saved in
                              tree3dParameters (Maximum Visible Leaves stays shared with the 2D tree in treeParameters). -->
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="visual3d">
                             <div class="section-header">
                                 <h3>3D Tree Visualization Parameters</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1259,7 +1263,7 @@
                                     <button class="btn-primary" onclick="resetTree3dVisualization()">Reset to Defaults</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-visual3d" class="section-body">
                                 <p style="font-size:12px; color:#666; margin:0 0 14px;">Leaf placement and animation on the 3D tree, as the 2D tree's Visualization Parameters. The /3dTree screen applies a saved change within about 5 seconds; changing the leaf area places the leaves again.</p>
                                 <div style="font-weight:600; color:#334155; margin-bottom:8px;">Leaf area on the canopy</div>
                                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px 24px; margin-bottom:18px;">
@@ -1357,7 +1361,7 @@
 
                         <br>
 
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="scene3d">
                             <div class="section-header">
                                 <h3>3D Scene Controls</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1365,7 +1369,7 @@
                                     <button class="btn-primary" onclick="resetTree3dSettings()">Reset to Defaults</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-scene3d" class="section-body">
                                 <p style="font-size:12px; color:#666; margin:0 0 14px;">These are the controls shown on the /3dTree screen. The screen applies a saved change within about 5 seconds. Someone using the on-screen controls is not overruled until the next change here.</p>
                                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:18px 24px;">
                                     <div>
@@ -1588,18 +1592,14 @@
                         <!-- 3D View & Zoom: a live preview of the 3D tree (frontend/3dTree/3dTree.html?viewEditor=1) to turn and
                              zoom, saved as snapshots (tree3dParameters.savedViews) and chosen for the 3D screens (screenView;
                              frontend/3dTree/view-settings.js, admin/js/tree3d.js). -->
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="view3d">
                             <div class="section-header">
                                 <h3>3D View &amp; Zoom</h3>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-view3d" class="section-body">
                                 <p style="font-size:12px; color:#666; margin:0 0 12px;">Frame the 3D tree the way the screen should show it: in the preview, drag to turn round the tree and up or down, and zoom in or out with the mouse wheel (or the buttons). Save it as a snapshot, then choose which snapshot the 3D screens show. The screens move to it within about 5 seconds and keep turning slowly from there (when the automatic turn is on).</p>
                                 <div class="view3d-layout">
                                     <div class="view3d-stage">
-                                        <div class="view3d-frame-box">
-                                            <iframe id="tree3d-viewFrame" class="view3d-frame" title="3D tree view preview" hidden></iframe>
-                                            <button type="button" class="btn-primary view3d-open" id="tree3d-viewOpen" onclick="openTree3dViewEditor()">Show 3D preview</button>
-                                        </div>
                                         <div class="view3d-tools">
                                             <button type="button" class="turn-preset" onclick="zoomTree3dView(1.15)" title="Zoom in">＋ Zoom in</button>
                                             <button type="button" class="turn-preset" onclick="zoomTree3dView(1 / 1.15)" title="Zoom out">－ Zoom out</button>
@@ -1623,7 +1623,7 @@
                         <br>
                         <!-- 3D Leaf Adjustments: the feedback leaves on the 3D tree (frontend/3dTree/feedback-leaves.js).
                              The leaf is the RainTree model in /assets/Tree/3dTreeLeaves; it is coloured, not uploaded. -->
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="leaf3d">
                             <div class="section-header">
                                 <h3>3D Leaf Adjustments</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1631,7 +1631,7 @@
                                     <button class="btn-primary" onclick="resetTree3dLeafSettings()">Reset to Defaults</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-leaf3d" class="section-body">
                                 <label style="display:flex; align-items:center; gap:10px; font-weight:600; color:#334155; margin-bottom:6px;">
                                     <input type="checkbox" id="tree3d-showFeedbackLeaves"> Show a leaf for each feedback on the 3D tree
                                 </label>
@@ -1768,7 +1768,7 @@
                         <br>
                         <!-- 3D VIP Leaf Adjustments: VIP visitors (the names in VIP Management) get a gold leaf on the
                              3D tree (frontend/3dTree/feedback-leaves.js). The leaf is the RainTree model; not uploaded. -->
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="vip3d">
                             <div class="section-header">
                                 <h3>3D VIP Leaf Adjustments</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1776,7 +1776,7 @@
                                     <button class="btn-primary" onclick="resetTree3dVipSettings()">Reset to Defaults</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-vip3d" class="section-body">
                                 <p style="font-size:12px; color:#666; margin:0 0 14px;">VIP visitors are the names in VIP Management. Their leaves on the 3D tree are gold, as on the 2D tree, and a change to the VIP list shows on the 3D screen within about 5 seconds.
                                     <button class="btn-secondary" type="button" onclick="showPage('vip')" style="margin-left:8px;">Open VIP Management</button>
                                 </p>
@@ -1883,7 +1883,7 @@
                             </div>
                         </div>
                         <br>
-                        <div class="tree-adjustment-section">
+                        <div class="tree-adjustment-section" data-treeadj-fold="title3d">
                             <div class="section-header">
                                 <h3>3D Tree Title Box Settings</h3>
                                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1891,7 +1891,7 @@
                                     <button class="btn-primary" onclick="resetTree3dTitleSettings()">Reset to Defaults</button>
                                 </div>
                             </div>
-                            <div class="section-body">
+                            <div id="treeadj-body-title3d" class="section-body">
                                 <label style="display:flex; align-items:center; gap:10px; font-weight:600; color:#334155; margin-bottom:16px;">
                                     <input type="checkbox" id="tree3d-showTitleBox"> Display 3D Tree Title Box
                                 </label>
@@ -1959,6 +1959,7 @@
                     </div>
 
                     <div id="tree-parameters-tab" class="tree-tab-content">
+                        <div class="tree-adjustment-section" data-treeadj-fold="canopy">
                         <div class="section-header">
                             <h3>Digital Tree Visualization Parameters</h3>
                             <p class="section-description">Configure leaf placement and animation settings</p>
@@ -1972,6 +1973,7 @@
                                 </button>
                             </div>
                         </div>
+                        <div id="treeadj-body-canopy" class="section-body">
 
                         <div class="form-group">
                             <label for="param-ovalWidth">Leaf Canopy Width (pixels)</label>
@@ -2102,6 +2104,32 @@
                                 <input type="color" id="badge-leaf-color-multi-pledge" value="#8b5a2b">
                             </label>
                         </div>
+                            </div>
+                        </div>
+                    </div>
+                        </div>
+                        <!-- <Jun Kai start> Tree Settings preview (Tree Adjustment B, admin/js/treeAdjustment.js): the tree with the
+                             changes that are not saved yet. The 3D frame is Wei Jie's 3D View & Zoom preview, moved here, so his
+                             zoom and snapshot buttons work on it; the 2D frame shows the 2D tree. -->
+                        <aside class="treeadj-preview ui-card" id="treeadj-preview" aria-labelledby="treeadj-preview-title">
+                            <div class="treeadj-preview-head">
+                                <div>
+                                    <h3 id="treeadj-preview-title">Preview</h3>
+                                    <div class="treeadj-preview-sub" id="treeadj-preview-sub">The 2D tree with your changes, saved or not</div>
+                                </div>
+                                <a class="ui-btn ui-btn-secondary" id="treeadj-open-tree" href="/tree" target="_blank" rel="noopener">Open the tree</a>
+                            </div>
+                            <div class="treeadj-screen ui-light-only" id="treeadj-screen" data-kind="2d" data-state="idle">
+                                <iframe id="treeadj-frame-2d" class="treeadj-frame" title="Preview of the 2D tree" tabindex="-1" aria-hidden="true" src="about:blank"></iframe>
+                                <div class="view3d-frame-box">
+                                    <iframe id="tree3d-viewFrame" class="view3d-frame" title="3D tree view preview" hidden></iframe>
+                                    <button type="button" class="btn-primary view3d-open" id="tree3d-viewOpen" onclick="openTree3dViewEditor()">Show 3D preview</button>
+                                </div>
+                                <div class="treeadj-screen-note" id="treeadj-screen-note">Loading the tree</div>
+                            </div>
+                            <div class="ui-note treeadj-changes" id="treeadj-changes" role="status" aria-live="polite">No unsaved changes.</div>
+                        </aside>
+                        <!-- <Jun Kai end> -->
                     </div>
                 </div>
 
@@ -5492,6 +5520,7 @@
     <!-- <Jun Kai end> -->
     <script src="/admin/js/tree.js"></script>
     <script src="/admin/js/tree3d.js"></script>
+    <script src="/admin/js/treeAdjustment.js"></script><!-- <Jun Kai/> Tree Settings B: folds and the preview -->
     <script src="/admin/js/passwordReset.js"></script><!-- <Jun Kai/> a forgotten password (the login card); before init.js -->
     <script src="/admin/js/init.js"></script>
     <script src="/admin/js/themes.js"></script>

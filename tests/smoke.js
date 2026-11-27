@@ -424,6 +424,11 @@ async function archiveStep(cookie) {
     // file, and the export unlock is not a password check for anyone
     await expect('GET /uploads/photos/<file> without a session is refused', `${BASE}/uploads/photos/smoke-nobody.png`, (r) => r.status === 401);
     await expect('GET /uploads/photos/<file> on the kiosk server without a session is refused', `${KIOSK}/uploads/photos/smoke-nobody.png`, (r) => r.status === 401);
+    // <Jun Kai start> the Tree Settings preview addresses are for signed in admins only
+    for (const kind of ['2d', '3d']) {
+      await expect(`GET /tree-preview/${kind} without a session is refused`, `${BASE}/tree-preview/${kind}`, (r) => r.status === 401 && !r.text.includes('preview-draft.js') || `${r.status} ${r.text.slice(0, 80)}`);
+    }
+    // <Jun Kai end>
     await expect('GET /tree/tree.html is sent to the gated /tree route', `${BASE}/tree/tree.html`, (r) => r.status === 302 && r.headers.get('location') === '/tree' || `location ${r.headers.get('location')}`, { redirect: 'manual' });
     await expect('POST /api/admin/data-export/unlock without a session is refused', `${BASE}/api/admin/data-export/unlock`, (r) => r.status === 401, json({ username: ADMIN_USER, password: ADMIN_PASS }));
     // the kiosk page asks this every 10 seconds: when the server started, and whether the policies have the kiosk open
@@ -475,6 +480,11 @@ async function archiveStep(cookie) {
     if (cookie) {
       await expect('GET /api/admin/server-schedules with the session', `${BASE}/api/admin/server-schedules`, (r) => r.body && r.body.success === true, { headers: { cookie } });
       await expect('GET /api/admin/dashboard with the session', `${BASE}/api/admin/dashboard`, (r) => r.body && r.body.success === true, { headers: { cookie } });
+      // <Jun Kai start> signed in, the Tree Settings preview addresses send the 2D and the 3D tree page
+      for (const [kind, mark] of [['2d', 'id="treeContainer"'], ['3d', 'id="landscape"']]) {
+        await expect(`GET /tree-preview/${kind} with the session sends the ${kind.toUpperCase()} tree page`, `${BASE}/tree-preview/${kind}`, (r) => r.status === 200 && /text\/html/.test(r.headers.get('content-type') || '') && r.text.includes(mark) && r.text.includes('/tree/preview-draft.js') || `${r.status} ${r.text.slice(0, 80)}`, { headers: { cookie } });
+      }
+      // <Jun Kai end>
       await expect('GET /api/pledgeboard/admin/pledges with the session', `${BASE}/api/pledgeboard/admin/pledges`, (r) => r.body && r.body.success === true && Array.isArray(r.body.pledges) || r.text.slice(0, 160), { headers: { cookie } }); // <Jun Kai/>
       await expect('GET /api/admin/health with the session', `${BASE}/api/admin/health?all=1`, (r) => r.body && r.body.success === true && r.body.health && Array.isArray(r.body.health.checks) && r.body.health.checks.length >= 6 || r.text.slice(0, 160), { headers: { cookie } });
       // <Jun Kai start>

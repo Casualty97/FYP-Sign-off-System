@@ -9344,6 +9344,7 @@ html[data-theme="dark"] { --l3-link: #60a5fa; }
    buttons are hidden even when the page shows one itself (the Revert buttons), and the fields take no clicks */
 #tree-adjustment-page.is-view-only [data-tree-change] { display: none !important; }
 #tree-adjustment-page.is-view-only :is(input, select, textarea) { pointer-events: none; }
+#tree-adjustment-page.is-view-only [data-tree-locked] { pointer-events: none; }
 .tree-view-only-note { margin: 0 0 16px; }
 /* a hidden note stays hidden: .ui-note sets display: block, which would beat the hidden attribute (the view only note
    showed for a System Admin after a fresh load) */
@@ -9856,3 +9857,70 @@ html[data-theme="dark"] #pulse-page .pulse-launch-section { background-color: #f
     font-weight: 600;
     color: #334155;
 }
+
+/* <Jun Kai start> Tree Settings, Tree Adjustment B (admin/js/treeAdjustment.js): Wei Jie's sections fold open on the
+   left, the preview of the tree stays on the right. The tree screen in the preview stays light in dark mode
+   (ui-light-only). His two 2D tabs show as one list, so the tab buttons are hidden. */
+.treeadj-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr); gap: 20px; align-items: start; }
+.treeadj-settings { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+#tree-adjustment-page .tree-tabs { display: none; }
+#tree-adjustment-page:not(.tree-mode-3d) .tree-tab-content,
+#tree-adjustment-page.tree-mode-3d .tree3d-settings { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+#tree-adjustment-page .treeadj-settings > br,
+#tree-adjustment-page .tree-tab-content > br,
+#tree-adjustment-page .tree3d-settings > br { display: none; }
+#tree-adjustment-page .treeadj-fold { padding: 0; border-width: 1px; border-radius: 14px; min-width: 0; }
+#tree-adjustment-page .treeadj-fold > .section-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; padding: 0; border-bottom: 0; }
+#tree-adjustment-page .treeadj-fold > .section-header > h3 { flex: 1 1 100%; margin: 0; font-size: 15px; }
+#tree-adjustment-page .treeadj-fold.is-open > .section-header { padding-bottom: 12px; }
+#tree-adjustment-page .treeadj-fold.is-open > .section-header > :not(h3) { padding: 0 20px; }
+#tree-adjustment-page .treeadj-fold:not(.is-open) > .section-header > :not(h3),
+#tree-adjustment-page .treeadj-fold:not(.is-open) > .section-body { display: none !important; }
+#tree-adjustment-page .treeadj-fold > .section-body { padding: 0 20px 20px; margin-top: 0 !important; flex-wrap: wrap; min-width: 0; }
+.treeadj-fold-toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 20px; border: 0; border-radius: 14px; background: none; color: inherit; font: inherit; text-align: left; }
+button.treeadj-fold-toggle { cursor: pointer; }
+button.treeadj-fold-toggle:hover { background: var(--theme-bg-color); }
+button.treeadj-fold-toggle:focus-visible { outline: 2px solid var(--l3-focus, #2563eb); outline-offset: -2px; }
+.treeadj-fold.is-open > .section-header button.treeadj-fold-toggle { border-radius: 14px 14px 0 0; }
+.treeadj-fold-title { font-weight: 700; color: var(--theme-text-color); }
+.treeadj-fold-sum { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--color-dark-gray); text-align: right; overflow-wrap: anywhere; }
+.treeadj-unsaved[hidden] { display: none; } /* .ui-tag sets display: inline-block, which would beat hidden */
+.treeadj-fold-chevron { display: inline-flex; flex: none; color: var(--color-dark-gray); transition: transform 0.15s ease; }
+.treeadj-fold.is-open .treeadj-fold-chevron { transform: rotate(180deg); }
+/* .page-content has overflow: auto without a height, so it never scrolls but would still hold the preview in place */
+.page-content:has(> #tree-adjustment-page.active) { overflow: visible; }
+.treeadj-preview { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 18px 20px; }
+.treeadj-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.treeadj-preview-head h3 { margin: 0; font-size: 16px; color: var(--theme-text-color); }
+.treeadj-preview-sub { margin-top: 2px; font-size: 13px; color: var(--color-dark-gray); }
+.treeadj-preview-head .ui-btn { flex: none; text-decoration: none; }
+.treeadj-screen { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #0b1712; }
+.treeadj-screen .treeadj-frame,
+.treeadj-screen .view3d-frame { position: absolute; top: 0; left: 0; right: auto; bottom: auto; width: 1600px; height: 900px; border: 0; transform-origin: 0 0; }
+.treeadj-screen .treeadj-frame { pointer-events: none; }
+.treeadj-screen .view3d-frame-box { position: absolute; inset: 0; aspect-ratio: auto; border-radius: 0; }
+.treeadj-screen[data-kind="2d"] .view3d-frame-box,
+.treeadj-screen[data-kind="3d"] .treeadj-frame { display: none; }
+.treeadj-screen-note { position: absolute; inset: 0; display: grid; place-items: center; color: #e2e8f0; font-size: 13px; pointer-events: none; }
+.treeadj-screen[data-state="ready"] .treeadj-screen-note { display: none; }
+.treeadj-changes { margin: 0; }
+#tree-adjustment-page .treeadj-tile { padding: 6px !important; border: 1px solid var(--theme-border-color) !important; border-radius: 10px !important; background: var(--theme-card-bg) !important; box-shadow: none !important; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+#tree-adjustment-page .treeadj-tile:hover { border-color: #94a3b8 !important; }
+#tree-adjustment-page .treeadj-tile[data-selected="true"] { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22) !important; }
+#tree-adjustment-page .treeadj-tile:focus-visible { outline: 2px solid var(--l3-focus, #2563eb); outline-offset: 2px; }
+#tree-adjustment-page .treeadj-tile-pic { border: 0 !important; border-radius: 7px !important; }
+#tree-adjustment-page .treeadj-tile-name { font-size: 12px !important; font-weight: 600; color: var(--theme-text-color) !important; overflow-wrap: anywhere; }
+/* the note IT roles get instead of a System Admin only picture list spans the whole list */
+#tree-adjustment-page .tree-pictures-admin-only { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 1100px) {
+    .treeadj-layout { grid-template-columns: 1fr; }
+    .treeadj-preview { position: static; order: -1; }
+}
+@media (max-width: 600px) {
+    .treeadj-fold-toggle { flex-wrap: wrap; padding: 12px 16px; }
+    .treeadj-fold-sum { flex: 1 1 100%; order: 3; margin-left: 0; text-align: left; }
+    #tree-adjustment-page .treeadj-fold > .section-body { padding: 0 16px 16px; }
+    #tree-adjustment-page .treeadj-fold.is-open > .section-header > :not(h3) { padding: 0 16px; }
+    .treeadj-preview { padding: 14px 16px; }
+}
+/* <Jun Kai end> */
