@@ -1205,7 +1205,7 @@ function updateTree3dStageMode() {
     const auto = tree3dStageIsAuto();
     select.disabled = auto;
     manual.style.opacity = auto ? '0.6' : '1';
-    if (auto) updateTree3dAutoStage();
+    updateTree3dAutoStage(); // <Jun Kai/> also in Manual, so "Current leaf count" shows the count (as the 2D panel), not dashes; it leaves the manual choice alone since #101
 }
 
 // Shows a saved stage, mode and thresholds in this panel and in the 2D tree's panel, so both always agree.
