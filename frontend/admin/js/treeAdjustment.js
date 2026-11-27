@@ -336,6 +336,33 @@ function treeAdjSetOpen(section, open) {
     section.querySelector('.treeadj-fold-toggle')?.setAttribute('aria-expanded', String(open));
 }
 
+// <Jun Kai start> his buttons in the kit look. His btn-primary / btn-secondary are painted by the theme (themes.js), so they
+// showed as plain text or as the old blue. Each section's buttons from its heading go in one row on the right (Reset
+// and the like first, Save last), and every button of his gets the kit classes: Save and the background's Apply in
+// green, the rest plain, Delete in red. His onclick names and ids stay, so view only still hides the change buttons.
+const TREEADJ_PRIMARY = /^(save|selectTreeBackground)/;
+function treeAdjKitButton(button) {
+    const action = (button.getAttribute('onclick') || '').trim().split('(')[0];
+    button.classList.remove('btn', 'btn-primary', 'btn-secondary', 'btn-danger');
+    button.classList.add('ui-btn', /^delete/i.test(action) ? 'ui-btn-danger' : TREEADJ_PRIMARY.test(action) ? 'ui-btn-primary' : 'ui-btn-secondary');
+}
+function treeAdjKitButtons(section) {
+    const header = section.querySelector(':scope > .section-header');
+    if (!header) return;
+    const isPrimary = (button) => TREEADJ_PRIMARY.test((button.getAttribute('onclick') || '').trim());
+    const buttons = [...header.querySelectorAll('button[onclick]')].filter((button) => !button.classList.contains('treeadj-fold-toggle'));
+    if (buttons.length) {
+        const row = document.createElement('div');
+        row.className = 'treeadj-actions';
+        buttons.sort((a, b) => Number(isPrimary(a)) - Number(isPrimary(b))).forEach((button) => row.appendChild(button));
+        // the boxes they sat in are empty now
+        [...header.children].forEach((child) => { if (child.tagName === 'DIV' && !child.textContent.trim() && !child.querySelector('input, select, button')) child.remove(); });
+        header.appendChild(row);
+    }
+    section.querySelectorAll('button.btn-primary, button.btn-secondary, button.btn-danger').forEach(treeAdjKitButton);
+}
+// <Jun Kai end>
+
 // turns each section heading into a button that folds the section; his heading text, buttons and fields stay
 function treeAdjBuildFolds() {
     if (treeAdjFoldsReady) return;
@@ -361,6 +388,7 @@ function treeAdjBuildFolds() {
             + '<span class="treeadj-fold-sum"></span>' + (key === 'display' ? '' : `<span class="treeadj-fold-chevron" aria-hidden="true">${TREEADJ_CHEVRON}</span>`);
         toggle.querySelector('.treeadj-fold-title').textContent = title;
         heading.appendChild(toggle);
+        treeAdjKitButtons(section); // <Jun Kai/>
         const open = key === 'display' || (Array.isArray(remembered) ? remembered.includes(key) : Object.values(TREEADJ_FIRST_FOLD).includes(key));
         treeAdjSetOpen(section, open);
     });
@@ -406,14 +434,57 @@ function treeAdjFrames() {
     return { '2d': treeAdjEl('treeadj-frame-2d'), '3d': treeAdjEl('tree3d-viewFrame') };
 }
 
-// one frame at a time: each holds a live connection, and the 3D one a whole 3D scene
+// <Jun Kai start> A 3D tree preview loads once for the sign-in session (about 20 model files, and the browser cannot
+// keep them for next time while the server's own HTTPS certificate is not trusted), so leaving its page no longer
+// empties it. While it is out of sight it is told its page is hidden: the 3D page then draws nothing (scene.js skips
+// every frame while document.hidden), and when it shows again it carries on at once. Signing out reloads the admin
+// page, which drops it. Also used by the Tree Leaves card (tree.js).
+function treeFramePause(frame, paused) {
+    if (!frame) return;
+    frame.dataset.treePaused = paused ? '1' : '';
+    if (!frame.dataset.treePauseWatch) {
+        // the 3D page reloads itself when the look changes: a paused frame stays paused
+        frame.dataset.treePauseWatch = '1';
+        frame.addEventListener('load', () => { if (frame.dataset.treePaused === '1') treeFramePause(frame, true); });
+    }
+    let doc = null;
+    try { doc = frame.contentDocument; } catch { return; }
+    if (!doc || !doc.defaultView || doc.location.href === 'about:blank') return;
+    if (paused) {
+        Object.defineProperty(doc, 'hidden', { configurable: true, get: () => true });
+        Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    } else {
+        delete doc.hidden; // back to the browser's own answer
+        delete doc.visibilityState;
+    }
+    doc.dispatchEvent(new Event('visibilitychange'));
+}
+
+const treeFrameLoaded = (frame, src) => !!frame && frame.getAttribute('src') === src;
+
+// only one 3D scene is kept at a time (one takes well over a gigabyte in the test browser): opening the 3D preview on
+// Tree Settings empties the kept one on the Tree Leaves card, and the other way round
+function treeKeepOnly(frame) {
+    ['tree3d-viewFrame', 'dt-tree-frame'].map((id) => document.getElementById(id)).forEach((other) => {
+        if (!other || other === frame) return;
+        if (/3dTree|tree-preview\/3d/i.test(other.getAttribute('src') || '')) {
+            other.dataset.treePaused = '';
+            other.setAttribute('src', 'about:blank');
+        }
+    });
+}
+// <Jun Kai end>
+
+// one frame shown at a time; the 3D one stays loaded but paused when the 2D one shows (the 2D one is light and has
+// no scene to keep, so it is emptied: each frame holds a live connection to the server)
 function treeAdjShowPreview() {
     const screen = treeAdjEl('treeadj-screen');
     const frames = treeAdjFrames();
     if (!screen || !frames['2d'] || !frames['3d']) return;
     const kind = treeAdjMode();
     const other = kind === '3d' ? '2d' : '3d';
-    if (frames[other].getAttribute('src') && frames[other].getAttribute('src') !== 'about:blank') frames[other].setAttribute('src', 'about:blank');
+    if (other === '3d') treeFramePause(frames['3d'], true); // <Jun Kai/> kept for the session
+    else if (frames['2d'].getAttribute('src') && frames['2d'].getAttribute('src') !== 'about:blank') frames['2d'].setAttribute('src', 'about:blank');
     frames[other].hidden = true;
     screen.dataset.kind = kind;
     const sub = treeAdjEl('treeadj-preview-sub');
@@ -421,7 +492,8 @@ function treeAdjShowPreview() {
     const open = treeAdjEl('treeadj-open-tree');
     if (open) open.setAttribute('href', TREEADJ_OPEN_TREE[kind]);
     const frame = frames[kind];
-    if (frame.getAttribute('src') !== TREEADJ_FRAME_SRC[kind]) {
+    if (kind === '3d') treeKeepOnly(frame); // <Jun Kai/>
+    if (!treeFrameLoaded(frame, TREEADJ_FRAME_SRC[kind])) {
         screen.dataset.state = 'loading';
         const note = treeAdjEl('treeadj-screen-note');
         if (note) note.textContent = 'Loading the tree';
@@ -430,20 +502,17 @@ function treeAdjShowPreview() {
         };
         treeAdjLastDraft = '';
         frame.setAttribute('src', TREEADJ_FRAME_SRC[kind]);
+    } else {
+        // <Jun Kai start> already loaded this session: it carries on where it was, with the latest unsaved changes
+        screen.dataset.state = 'ready';
+        treeAdjLastDraft = '';
+        // <Jun Kai end>
     }
+    treeFramePause(frame, false); // <Jun Kai/>
     frame.hidden = false;
     // his 3D View & Zoom: shows the frame and starts the zoom readout (the address set above is kept)
     if (kind === '3d' && typeof openTree3dViewEditor === 'function') openTree3dViewEditor();
     treeAdjFit();
-}
-
-function treeAdjEmptyFrames() {
-    Object.values(treeAdjFrames()).forEach((frame) => {
-        if (frame && frame.getAttribute('src') && frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
-    });
-    const screen = treeAdjEl('treeadj-screen');
-    if (screen) screen.dataset.state = 'idle';
-    treeAdjLastDraft = '';
 }
 
 // tells the frame to read its settings again when the fields changed since the last time
@@ -503,7 +572,12 @@ function treeAdjClose() {
     treeAdjOpened = false;
     window.clearInterval(treeAdjTimer);
     window.clearInterval(treeAdjSavedTimer);
-    treeAdjEmptyFrames();
+    // <Jun Kai start> the 3D preview stays loaded but paused (no 0 to 18 again next time); the 2D one is emptied
+    const frames = treeAdjFrames();
+    treeFramePause(frames['3d'], true);
+    if (frames['2d'] && frames['2d'].getAttribute('src') && frames['2d'].getAttribute('src') !== 'about:blank') frames['2d'].setAttribute('src', 'about:blank');
+    if (typeof tree3dViewTimer !== 'undefined') window.clearInterval(tree3dViewTimer); // his zoom readout; it starts again with the preview
+    // <Jun Kai end>
 }
 
 // his two delete questions, in the kit window: his function runs once with the browser question answered "no" to
@@ -573,4 +647,29 @@ document.addEventListener('DOMContentLoaded', () => {
     new MutationObserver(follow).observe(page, { attributes: true, attributeFilter: ['class'] });
     follow();
 });
+// <Jun Kai end>
+
+// <Jun Kai start> The Tree Animation Demo and "Open the tree" each open one tab and use it again: pressing the link
+// again brings that tab to the front without loading the tree again (a new tab counts 0 to 18 once more). A tab that
+// shows another tree (2D or 3D) is moved to the one asked for; the demo tab keeps the tree chosen in it.
+function treeOpenInOneTab(event) {
+    const link = event.target.closest && event.target.closest('a[data-tree-tab]');
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    let tab = null;
+    try { tab = window.open('', link.dataset.treeTab); } catch { tab = null; }
+    if (!tab) return; // pop-ups blocked: the link opens a new tab as usual
+    event.preventDefault();
+    const want = new URL(link.href, window.location.href);
+    let now = '';
+    try { now = tab.location.href; } catch { now = ''; } // another site in that tab
+    const open = now && now !== 'about:blank';
+    // the same address as last time counts as the same tree too: the server may have moved the tab on (for example
+    // /3dTree to /tree while 2D is the saved choice), and pressing again must not load it again
+    const same = open && (new URL(now).pathname.toLowerCase() === want.pathname.toLowerCase() || treeTabAsked[link.dataset.treeTab] === want.href);
+    if (!same) tab.location.href = want.href;
+    treeTabAsked[link.dataset.treeTab] = want.href;
+    tab.focus();
+}
+const treeTabAsked = {};
+document.addEventListener('click', treeOpenInOneTab);
 // <Jun Kai end>

@@ -1024,6 +1024,12 @@ function watchTreeFrame() {
     treeFrameWatch = new MutationObserver(() => {
         if (page.classList.contains('active')) return;
         const frame = document.getElementById('dt-tree-frame');
+        // the 3D tree stays loaded for the session, paused while away (treeFramePause, treeAdjustment.js); the 2D one
+        // is light and is emptied as before
+        if (frame && /^\/3dTree/i.test(frame.getAttribute('src') || '') && typeof treeFramePause === 'function') {
+            treeFramePause(frame, true);
+            return;
+        }
         if (frame && frame.getAttribute('src') !== 'about:blank') frame.setAttribute('src', 'about:blank');
         screen.dataset.state = 'idle';
     });
@@ -1055,6 +1061,15 @@ async function loadTreePreview() {
     const label = document.getElementById('dt-preview-mode');
     if (label) label.textContent = mode === '3d' ? 'A small copy of the 3D tree screen' : 'A small copy of the tree screen';
     if (!document.getElementById('digital-tree-page')?.classList.contains('active')) return;
+    if (mode === '3d' && typeof treeKeepOnly === 'function') treeKeepOnly(frame); // one kept 3D scene at a time
+    // already loaded this session (the 3D tree is kept while away): it carries on at once
+    if (frame.getAttribute('src') === shown) {
+        if (typeof treeFramePause === 'function') treeFramePause(frame, false);
+        screen.dataset.state = 'ready';
+        fitTreeFrame();
+        return;
+    }
+    if (typeof treeFramePause === 'function') treeFramePause(frame, false);
     screen.dataset.state = 'loading';
     if (note) note.textContent = 'Loading the tree';
     frame.onload = () => {

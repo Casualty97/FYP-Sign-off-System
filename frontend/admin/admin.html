@@ -273,7 +273,7 @@
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
                             <span class="nav-label">Tree Settings</span>
                         </a>
-                        <a href="/tree-demo" target="_blank" rel="noopener" class="nav-item">
+                        <a href="/tree-demo" target="_blank" rel="noopener" class="nav-item" data-tree-tab="rpx-tree-demo"><!-- <Jun Kai/> one tab, used again -->
                             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg></span>
                             <span class="nav-label">Tree Animation Demo</span>
                         </a>
@@ -753,7 +753,7 @@
                                         <h3 id="dt-preview-title">How the tree looks now</h3>
                                         <p id="dt-preview-mode">A small copy of the tree screen</p>
                                     </div>
-                                    <a class="ui-btn ui-btn-secondary" id="dt-open-tree" href="/tree" target="_blank" rel="noopener"><span data-fb-icon="monitor"></span>Open the tree</a>
+                                    <a class="ui-btn ui-btn-secondary" id="dt-open-tree" href="/tree" target="_blank" rel="noopener" data-tree-tab="rpx-tree"><span data-fb-icon="monitor"></span>Open the tree</a>
                                 </div>
                                 <div class="ui-card-body">
                                     <div class="dt-screen" id="dt-screen" data-state="idle">
@@ -908,7 +908,7 @@
 
                                 <!-- Automatic thresholds configuration -->
                                 <div id="autoThresholdsContainer" style="margin-top: 16px; padding: 12px; background: #f8fafc; border-radius: 8px;">
-                                    <div style="font-weight:600; margin-bottom:12px;">⚙️ Leaf count thresholds for automatic stage</div>
+                                    <div style="font-weight:600; margin-bottom:12px;">Leaf count thresholds for automatic stage</div>
                                     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px;">
                                         <div><label>Stage 1 (Early Growth) min leaves:</label> <input type="number" id="threshold-stage1" min="0" step="1" value="1" style="width:100px;"></div>
                                         <div><label>Stage 2 (Young Canopy) min leaves:</label> <input type="number" id="threshold-stage2" min="0" step="1" value="10" style="width:100px;"></div>
@@ -925,7 +925,7 @@
 
                                 <!-- The 2D tree's screen shape (js/tree.js, backend/features/parameters/screenSize.js) -->
                                 <div class="screen-size-panel">
-                                    <label for="param-screenPreset" class="tree-style-label">🖥️ Screen size</label>
+                                    <label for="param-screenPreset" class="tree-style-label">Screen size</label>
                                     <select id="param-screenPreset" data-screen-size onchange="updateScreenSizeFields('param')"></select>
                                     <div id="param-screenCustom" class="screen-size-custom" hidden>
                                         <label for="param-screenWidth">Width</label>
@@ -940,7 +940,7 @@
 
                                 <!-- The 2D tree's pictures (checklist item 12): painted, or captured from the 3D tree (js/tree.js) -->
                                 <div class="tree-style-panel">
-                                    <label for="param-treeStyle" class="tree-style-label">🖼️ Tree picture style</label>
+                                    <label for="param-treeStyle" class="tree-style-label">Tree picture style</label>
                                     <select id="param-treeStyle" onchange="loadTreeStylePreviews()">
                                         <option value="painted">Painted (the original stage pictures)</option>
                                         <option value="natural">Natural (the 3D tree in daylight)</option>
@@ -948,7 +948,7 @@
                                     </select>
                                     <div id="tree-style-previews" class="tree-style-previews" aria-live="polite"></div>
                                     <div class="tree-style-actions">
-                                        <button type="button" class="btn-secondary" id="tree-style-capture" onclick="captureTreeStylesFrom3d()">📸 Capture from the 3D tree</button>
+                                        <button type="button" class="btn-secondary" id="tree-style-capture" onclick="captureTreeStylesFrom3d()">Capture from the 3D tree</button>
                                         <span id="tree-style-status" class="tree-style-status"></span>
                                     </div>
                                     <p class="tree-style-help">Natural and Digital show the 3D tree itself at each growth stage, so the 2D and 3D screens match; the visitors' leaves sit on its canopy. Capture takes pictures of all five stages in both styles (about 2 to 4 minutes); capture again after changing the 3D tree, for example its trunk glow. Save Display to show the chosen style on /tree.</p>
@@ -1012,7 +1012,7 @@
                                     <input type="file" id="param-leafUpload" accept="image/png,image/jpeg,image/webp">
                                     <div style="display:flex;gap:8px;margin-top:6px;">
                                         <button class="btn-primary" onclick="uploadParameterLeaf()">Upload Leaf</button>
-                                        <button class="btn-secondary" id="revert-leaf-btn" onclick="revertParameterLeaf()" style="display:none;">↶ Revert</button>
+                                        <button class="btn-secondary" id="revert-leaf-btn" onclick="revertParameterLeaf()" style="display:none;">Revert</button>
                                     </div>
                                     <p style="font-size:12px;color:#666;margin-top:6px;">Uploaded leaf will be saved to <em>/assets/Tree</em> and applied to the tree.</p>
                                 </div>
@@ -1052,7 +1052,7 @@
                                     <input type="file" id="param-vipLeafUpload" accept="image/png,image/jpeg,image/webp">
                                     <div style="display:flex;gap:8px;margin-top:6px;">
                                         <button class="btn-primary" onclick="uploadParameterVipLeaf()">Upload VIP Leaf</button>
-                                        <button class="btn-secondary" id="revert-vip-leaf-btn" onclick="revertParameterVipLeaf()" style="display:none;">↶ Revert</button>
+                                        <button class="btn-secondary" id="revert-vip-leaf-btn" onclick="revertParameterVipLeaf()" style="display:none;">Revert</button>
                                     </div>
                                     <p style="font-size:12px;color:#666;margin-top:6px;">Uploaded VIP leaf will be saved to <em>/assets/Tree/vip-leaf</em> and applied only to VIP users.</p>
                                 </div>
@@ -1390,7 +1390,7 @@
                                     </div>
                                     <div>
                                 <div class="screen-size-panel">
-                                    <label for="tree3d-screenPreset" class="tree-style-label">🖥️ Screen size</label>
+                                    <label for="tree3d-screenPreset" class="tree-style-label">Screen size</label>
                                     <select id="tree3d-screenPreset" data-screen-size onchange="updateScreenSizeFields('tree3d')"></select>
                                     <div id="tree3d-screenCustom" class="screen-size-custom" hidden>
                                         <label for="tree3d-screenWidth">Width</label>
@@ -1416,7 +1416,7 @@
                                         <select id="tree3d-rainArea" style="width:100%; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px;" title="The automatic weather is always detected at Woodlands">
                                             <option value="Woodlands">Woodlands</option>
                                         </select>
-                                        <p style="font-size:12px; color:#666; margin-top:6px;">📍 Woodlands only.</p>
+                                        <p style="font-size:12px; color:#666; margin-top:6px;">Woodlands only.</p>
                                     </div>
                                     <div>
                                         <label for="tree3d-manualSky" style="display:block; font-weight:600; color:#334155; margin-bottom:4px;">Time of day (manual weather)</label>
@@ -1545,14 +1545,14 @@
                                              /api/admin/parameters/tree3d-music/upload, /list and DELETE; frontend/3dTree/background-music.js plays them). -->
                                         <div id="tree3d-musicUploadBlock" style="margin-top:14px; padding:12px 14px; border:1px solid #dbe4ea; border-radius:8px; background:#f8fafc;">
                                             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                                                <span style="font-weight:600; color:#334155;">🎵 My music</span>
+                                                <span style="font-weight:600; color:#334155;">My music</span>
                                                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                                                     <input type="file" id="tree3d-musicFile" accept="audio/*,.mp3,.ogg,.oga,.wav,.m4a,.aac,.webm,.flac">
                                                     <button type="button" class="btn-primary" id="tree3d-musicUpload" onclick="uploadTree3dMusic()">Upload Music</button>
                                                 </div>
                                             </div>
-                                            <div id="tree3d-musicSoundOff" hidden style="margin-top:10px; padding:8px 12px; border:1px solid #fcd34d; border-radius:6px; background:#fffbeb; color:#92400e; font-size:13px;">
-                                                ⚠️ <strong>Sound on the 3D screen is off</strong>, so the 3D screen plays no sound at all, not even your music. Turn it on to hear the music there.
+                                            <div id="tree3d-musicSoundOff" class="ui-note ui-note-warn" hidden style="margin-top:10px;"><!-- <Jun Kai/> the kit warning note -->
+                                                <strong>Sound on the 3D screen is off</strong>, so the 3D screen plays no sound at all, not even your music. Turn it on to hear the music there.
                                                 <button type="button" class="btn-primary" style="margin-left:8px;" onclick="turnOnTree3dSound()">Turn on sound</button>
                                             </div>
                                             <div id="tree3d-musicList" style="margin-top:10px;"></div>
@@ -1966,10 +1966,10 @@
 
                             <div class="parameter-actions">
                                 <button class="btn-primary" onclick="saveParameters()">
-                                    <span class="btn-icon">💾</span> Save All Changes
+                                    Save All Changes
                                 </button>
                                 <button class="btn-secondary" onclick="loadParameters()">
-                                    <span class="btn-icon">🔄</span> Reload
+                                    Reload
                                 </button>
                             </div>
                         </div>
@@ -2117,7 +2117,7 @@
                                     <h3 id="treeadj-preview-title">Preview</h3>
                                     <div class="treeadj-preview-sub" id="treeadj-preview-sub">The 2D tree with your changes, saved or not</div>
                                 </div>
-                                <a class="ui-btn ui-btn-secondary" id="treeadj-open-tree" href="/tree" target="_blank" rel="noopener">Open the tree</a>
+                                <a class="ui-btn ui-btn-secondary" id="treeadj-open-tree" href="/tree" target="_blank" rel="noopener" data-tree-tab="rpx-tree">Open the tree</a>
                             </div>
                             <div class="treeadj-screen ui-light-only" id="treeadj-screen" data-kind="2d" data-state="idle">
                                 <iframe id="treeadj-frame-2d" class="treeadj-frame" title="Preview of the 2D tree" tabindex="-1" aria-hidden="true" src="about:blank"></iframe>
