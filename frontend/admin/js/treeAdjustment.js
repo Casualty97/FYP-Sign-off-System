@@ -90,9 +90,22 @@ function treeAdjBackground() {
     const tile = treeAdjChosenTile('param-treeBackgroundList');
     if (!tile?.dataset.backgroundFilename) return undefined;
     const path = `/assets/Tree/background/${tile.dataset.backgroundFilename}`;
-    // no background saved means the 2D tree shows its default one
+    // no background saved, or a saved one whose file is gone, means the 2D tree shows its default one: the default tile
+    // then stands for what is saved, so the fold does not say "Not saved" before anything was changed
     const saved = treeAdjSaved?.visualAssets?.treeBackground;
-    return saved === '' && typeof DEFAULT_TREE_BACKGROUND === 'string' && path === DEFAULT_TREE_BACKGROUND ? '' : path;
+    const isDefault = typeof DEFAULT_TREE_BACKGROUND === 'string' && path === DEFAULT_TREE_BACKGROUND;
+    if (isDefault && saved === '') return '';
+    if (isDefault && treeAdjSavedMissing()) return saved;
+    return path;
+}
+
+// true while the saved background is the picture his list found missing (tree.js marks it in data-saved-missing)
+function treeAdjSavedMissing() {
+    const missing = treeAdjEl('param-treeBackgroundList')?.dataset.savedMissing;
+    let file = String(treeAdjSaved?.visualAssets?.treeBackground || '').split('/').pop();
+    if (!missing || !file) return false;
+    try { file = decodeURIComponent(file); } catch { /* keep the name as saved */ }
+    return file === missing;
 }
 
 const TREEADJ_3D_KEYS = {
@@ -160,6 +173,7 @@ const TREEADJ_FOLDS = {
         values: () => ({ 'visualAssets.treeBackground': treeAdjBackground() }),
         summary: () => {
             const chosen = treeAdjTileName(treeAdjChosenTile('param-treeBackgroundList'));
+            if (chosen && treeAdjSavedMissing() && treeAdjBackground() === treeAdjSaved.visualAssets.treeBackground) return `${chosen} (the saved picture is missing)`;
             if (chosen) return chosen;
             // the saved picture is not in the list (its file is gone): say which one is saved
             const saved = String(treeAdjSaved?.visualAssets?.treeBackground || '').split('/').pop().replace(/\.[a-z0-9]+$/i, '');

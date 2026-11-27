@@ -631,6 +631,18 @@ async function saveTreeStageSelection() {
 
 // The 2D tree's own background when none is chosen (frontend/tree/tree.css body background).
 const DEFAULT_TREE_BACKGROUND = '/assets/Tree/background/2dTreeBackground.jpeg';
+// <Jun Kai start>
+// the saved background's file name when it is in /assets/Tree/background/ but not in the list any more (its file was
+// deleted, like the mangrove picture), otherwise ''. A saved path outside that folder is left alone.
+const TREE_BACKGROUND_FOLDER = '/assets/Tree/background/';
+function missingTreeBackground(saved, backgrounds) {
+    if (!saved || !saved.startsWith(TREE_BACKGROUND_FOLDER)) return '';
+    let file = saved.slice(TREE_BACKGROUND_FOLDER.length);
+    try { file = decodeURIComponent(file); } catch { /* keep the name as saved */ }
+    const listed = (Array.isArray(backgrounds) ? backgrounds : []).some((background) => background && background.filename === file);
+    return listed ? '' : file;
+}
+// <Jun Kai end>
 
 async function loadAvailableTreeBackgrounds() {
     try {
@@ -658,7 +670,12 @@ async function loadAvailableTreeBackgrounds() {
         // With no background chosen, the 2D tree shows its default (DEFAULT_TREE_BACKGROUND, from tree.css):
         // the preview shows it and its tile is marked, so the admin sees what the tree shows.
         const currentTreeBackground = data.currentTreeBackground || '';
-        const shownTreeBackground = currentTreeBackground || DEFAULT_TREE_BACKGROUND;
+        // <Jun Kai start>
+        // a saved picture whose file is gone: the wall tree falls back to the default, so the preview and the marked tile do too
+        const savedMissing = missingTreeBackground(currentTreeBackground, data.backgroundImages);
+        picker.dataset.savedMissing = savedMissing;
+        // <Jun Kai end>
+        const shownTreeBackground = (!savedMissing && currentTreeBackground) || DEFAULT_TREE_BACKGROUND; // <Jun Kai/> was currentTreeBackground || DEFAULT_TREE_BACKGROUND
         if (preview) {
             preview.style.backgroundImage = `url('${shownTreeBackground}')`;
         }
@@ -729,6 +746,11 @@ async function loadAvailableTreeBackgrounds() {
 
             picker.appendChild(tile);
         });
+        // <Jun Kai start>
+        if (savedMissing && status) {
+            status.textContent = `The saved background (${savedMissing}) is missing, so the tree shows the default background. Choose one and click Apply Background to save it.`;
+        }
+        // <Jun Kai end>
     } catch (error) {
         console.error('❌ Error loading available tree backgrounds:', error);
         const status = document.getElementById('tree-background-status');
